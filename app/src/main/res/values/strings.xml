@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">TaoYuanGutter</string>
+    <string name="welcome_title">您好，歡迎使用</string>
+    <string name="platform_title">桃園市道路側溝資料平台</string>
+
+    <!-- Strings for Login Screen -->
+    <string name="prompt_username">帳號</string>
+    <string name="prompt_password">密碼</string>
+    <string name="remember_me">記住我</string>
+    <string name="forgot_password">忘記密碼？</string>
+    <string name="login_button">登入</string>
+    <string name="input_hint">請輸入</string>
+
+    <string name="login_error_invalid_credentials">帳號或密碼錯誤</string>
+    <string name="login_error_empty_fields">請輸入帳號和密碼</string>
+
+    <!-- Strings for Main Activity -->
+    <string name="title_activity_main">地圖</string>
+    <string name="title_activity_map">地圖</string>
+    <string name="legend_title">圖示說明</string>
+    <string name="layers_title">圖層選單</string>
+    <string name="my_location_title">現在位置</string>
+
+    <string name="map_normal">電子地圖</string>
+    <string name="map_satellite">衛星地圖</string>
+    <string name="map_search_hint">搜尋地點…</string>
+
+    <string name="legend_uninvestigated">已巡檢</string>
+    <string name="legend_inspected">已巡檢側溝</string>
+    <string name="legend_to_be_audited">待審核</string>
+    <string name="legend_to_be_fixed">待修正</string>
+    <string name="legend_completed">已完成</string>
+
+    <!-- Strings for Form Fragment -->
+    <string name="form_title">巡檢資料填寫</string>
+    <string name="form_field_name">姓名</string>
+    <string name="form_field_email">電子郵件</string>
+    <string name="form_field_phone">電話</string>
+    <string name="form_field_address">地址</string>
+    <string name="form_field_notes">備註</string>
+    <string name="form_field_category">類別</string>
+    <string name="form_field_select_category">請選擇類別</string>
+    <string name="form_field_select_date">選擇日期</string>
+    <string name="form_submit_button">送出</string>
+    <string name="form_field_dropdown_hint">請選擇項目</string>
+
+    <!-- General strings -->
+    <string name="app_version">版本：1.0</string>
+    <string name="confirm">確定</string>
+    <string name="cancel">取消</string>
+</resources>

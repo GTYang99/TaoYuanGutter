@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.TaoYuanGutter" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryVariant">@color/colorPrimaryVariant</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/colorSecondary</item>
+        <item name="colorSecondaryVariant">@color/colorSecondaryVariant</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <!-- Surface color for components like cards -->
+        <item name="colorSurface">@color/colorSurface</item>
+        <item name="colorOnSurface">@color/black</item>
+        <!-- Background color -->
+        <item name="android:colorBackground">@color/colorBackground</item>
+        <item name="colorOnBackground">@color/black</item>
+        <!-- Error color -->
+        <item name="colorError">#B00020</item>
+        <item name="colorOnError">@color/white</item>
+
+        <!-- Status bar and Navigation bar styling -->
+        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:navigationBarColor">?attr/colorSurface</item>
+
+        <!-- Basic text appearance -->
+        <item name="android:textColorPrimary">@color/textColorPrimary</item>
+        <item name="android:textColorSecondary">@color/textColorSecondary</item>
+
+        <!-- Components specific styling -->
+        <!-- Example: Button styling -->
+        <item name="materialButtonStyle">@style/Widget.App.Button.OutlinedButton.Icon</item> <!-- Example, can be adjusted -->
+
+        <!-- Action bar / Toolbar styling -->
+        <item name="toolbarStyle">@style/Widget.App.Toolbar</item>
+
+        <!-- You can add more theme attributes here -->
+    </style>
+
+    <!-- Splash Screen Theme -->
+    <style name="Theme.TaoYuanGutter.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/colorPrimary</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item> <!-- TODO: Provide a splash icon drawable -->
+        <item name="windowSplashScreenAnimationDuration">800</item>
+        <item name="postSplashScreenTheme">@style/Theme.TaoYuanGutter</item> <!-- The theme to apply after the splash screen -->
+    </style>
+
+    <!-- Widget styles (examples) -->
+    <style name="Widget.App.Button.OutlinedButton.Icon" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="android:textColor">@color/loginButtonBackground</item>
+        <item name="strokeColor">@color/loginButtonBackground</item>
+    </style>
+
+    <style name="Widget.App.Toolbar" parent="Widget.MaterialComponents.Toolbar">
+        <item name="android:background">@color/colorPrimary</item>
+        <item name="titleTextColor">@color/white</item>
+        <item name="android:tint">@color/white</item>
+    </style>
+
+    <!-- Styles for Login Screen specific elements -->
+    <style name="Login.InputField" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">@dimen/spacing_medium</item>
+        <item name="android:layout_marginEnd">@dimen/spacing_medium</item>
+        <item name="hintTextColor">@color/inputFieldHint</item>
+        <item name="boxStrokeColor">@color/colorPrimary</item>
+        <item name="android:textColorHint">@color/inputFieldHint</item>
+    </style>
+
+    <style name="Login.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">@dimen/button_height_normal</item>
+        <item name="android:layout_marginStart">@dimen/spacing_medium</item>
+        <item name="android:layout_marginEnd">@dimen/spacing_medium</item>
+        <item name="backgroundTint">@color/loginButtonBackground</item>
+        <item name="android:textColor">@color/loginButtonText</item>
+        <item name="cornerRadius">8dp</item>
+    </style>
+
+    <!-- Define dimens if not present -->
+    <dimen name="spacing_medium">16dp</dimen>
+    <dimen name="button_height_normal">50dp</dimen>
+
+</resources>
