@@ -18,9 +18,6 @@ android {
         versionName "1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        
-        // 直接在此注入 API Key，確保 AndroidManifest.xml 的 ${MAPS_API_KEY} 能被替換
-        manifestPlaceholders = [MAPS_API_KEY: "AIzaSyBxjatCpRsjgj-v0HBZ2VQkLivkv8m9Bco"]
     }
 
     buildFeatures {
@@ -42,6 +39,12 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
+}
+
+secrets {
+    // 預設讀取專案根目錄的 local.properties
+    // 這是最安全的方式，因為 local.properties 預設不會被 Git 追蹤
+    defaultPropertiesFileName = "local.properties"
 }
 
 dependencies {
