@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white"
+    android:orientation="vertical">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/bg_drag_handle" />
+
+    <!-- Header Row: [X] 路線規劃 [+] -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:paddingHorizontal="8dp">
+
+        <!-- 關閉按鈕（左上） -->
+        <ImageButton
+            android:id="@+id/btnClose"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="關閉"
+            android:src="@drawable/ic_close"
+            app:tint="@color/text_grey" />
+
+        <!-- 標題 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="@string/add_gutter_route_title"
+            android:textColor="@color/text_grey"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+
+        <!-- 新增節點按鈕（右上） -->
+        <ImageButton
+            android:id="@+id/btnAddNode"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="新增節點"
+            android:src="@drawable/ic_add"
+            app:tint="@color/colorPrimary" />
+
+    </RelativeLayout>
+
+    <!-- 分隔線 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_grey" />
+
+    <!-- 節點清單（佔剩餘空間） -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvWaypoints"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp" />
+
+    <!-- 底部分隔線 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_grey" />
+
+    <!-- 新增側溝按鈕 -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSubmitGutter"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_margin="16dp"
+        android:text="@string/btn_add_gutter"
+        android:textColor="@color/white"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:backgroundTint="@color/colorPrimary"
+        app:cornerRadius="10dp" />
+
+</LinearLayout>

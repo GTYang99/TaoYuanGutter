@@ -44,7 +44,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|end"
             android:layout_marginEnd="16dp"
-            android:layout_marginBottom="32dp"
+            android:layout_marginBottom="120dp"
             android:orientation="vertical">
 
             <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -52,7 +52,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:contentDescription="圖示說明"
+                android:contentDescription="@string/legend_title"
                 android:src="@drawable/ic_info"
                 app:backgroundTint="@color/fab_selector"
                 app:tint="@color/fab_icon_selector"
@@ -63,7 +63,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:contentDescription="圖層選單"
+                android:contentDescription="@string/layers_title"
                 android:src="@drawable/ic_layers"
                 app:backgroundTint="@color/fab_selector"
                 app:tint="@color/fab_icon_selector"
@@ -73,7 +73,7 @@
                 android:id="@+id/btnMyLocation"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:contentDescription="現在位置"
+                android:contentDescription="@string/my_location_title"
                 android:src="@drawable/ic_my_location"
                 app:backgroundTint="@color/fab_selector"
                 app:tint="@color/fab_icon_selector"

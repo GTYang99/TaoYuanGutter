@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="64dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="20dp"
+    android:background="?attr/selectableItemBackground">
+
+    <!-- 左側連接線 + 彩色圓點 -->
+    <FrameLayout
+        android:layout_width="24dp"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
+
+            <!-- 上半連接線 -->
+            <View
+                android:id="@+id/viewLineTop"
+                android:layout_width="2dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@color/border_grey" />
+
+            <!-- 下半連接線 -->
+            <View
+                android:id="@+id/viewLineBottom"
+                android:layout_width="2dp"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:background="@color/border_grey" />
+        </LinearLayout>
+
+        <!-- 彩色圓點（程式碼設定顏色） -->
+        <View
+            android:id="@+id/viewDot"
+            android:layout_width="14dp"
+            android:layout_height="14dp"
+            android:layout_gravity="center" />
+
+    </FrameLayout>
+
+    <!-- 文字區塊 -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvWaypointLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_grey"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvWaypointHint"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="點選以設定位置"
+            android:textColor="@color/hint_grey"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+    <!-- 拖曳把手（僅節點顯示） -->
+    <ImageView
+        android:id="@+id/ivDragHandle"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:contentDescription="拖曳排序"
+        android:src="@drawable/ic_drag_handle"
+        android:visibility="gone" />
+
+</LinearLayout>

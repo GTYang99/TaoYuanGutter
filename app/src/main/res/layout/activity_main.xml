@@ -12,12 +12,40 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Map Buttons Container (Moved to Right Bottom) -->
-    <LinearLayout
+    <!-- 選點 Overlay（初始 GONE，選點時由 MainActivity 切換為 VISIBLE） -->
+    <include
+        android:id="@+id/locationPickerOverlay"
+        layout="@layout/overlay_location_picker"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 新增側溝 FAB（左下角，主要動作） -->
+    <!-- 調整 marginBottom 到 112dp (16dp + 80dp + 16dp)，使其位於選點 Overlay 的按鈕列上方 -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnAddGutter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="32dp"
+        android:layout_marginBottom="300dp"
+        android:contentDescription="新增側溝"
+        android:src="@drawable/ic_add"
+        app:backgroundTint="@color/colorPrimary"
+        app:tint="@color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Map Buttons Container（右下角） -->
+    <!-- 調整 marginBottom 到 112dp，使其底部與左側 + 號按鈕對齊 -->
+    <LinearLayout
+        android:id="@+id/mapButtonsContainer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="112dp"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent">

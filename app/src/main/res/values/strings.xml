@@ -45,6 +45,15 @@
     <string name="form_submit_button">送出</string>
     <string name="form_field_dropdown_hint">請選擇項目</string>
 
+    <!-- Strings for Add Gutter Bottom Sheet -->
+    <string name="add_gutter_route_title">側溝編號（系統生成）</string>
+    <string name="btn_add_gutter">新增側溝</string>
+    <string name="waypoint_start">起點</string>
+    <string name="waypoint_end">終點</string>
+    <string name="waypoint_node_prefix">節點</string>
+    <string name="hint_set_location">點選以設定位置</string>
+    <string name="picker_hint">請拖曳地圖至目標點位</string>
+
     <!-- General strings -->
     <string name="app_version">版本：1.0</string>
     <string name="confirm">確定</string>
