@@ -5,15 +5,15 @@
     android:viewportWidth="48"
     android:viewportHeight="48">
     <!-- 水平左段 -->
-    <path android:strokeColor="#FFFFFF" android:strokeWidth="3" android:pathData="M4,24 L18,24" android:strokeLineCap="round"/>
+    <path android:strokeColor="@color/black" android:strokeWidth="3" android:pathData="M4,24 L18,24" android:strokeLineCap="round"/>
     <!-- 水平右段 -->
-    <path android:strokeColor="#FFFFFF" android:strokeWidth="3" android:pathData="M30,24 L44,24" android:strokeLineCap="round"/>
+    <path android:strokeColor="@color/black" android:strokeWidth="3" android:pathData="M30,24 L44,24" android:strokeLineCap="round"/>
     <!-- 垂直上段 -->
-    <path android:strokeColor="#FFFFFF" android:strokeWidth="3" android:pathData="M24,4 L24,18" android:strokeLineCap="round"/>
+    <path android:strokeColor="@color/black" android:strokeWidth="3" android:pathData="M24,4 L24,18" android:strokeLineCap="round"/>
     <!-- 垂直下段 -->
-    <path android:strokeColor="#FFFFFF" android:strokeWidth="3" android:pathData="M24,30 L24,44" android:strokeLineCap="round"/>
+    <path android:strokeColor="@color/black" android:strokeWidth="3" android:pathData="M24,30 L24,44" android:strokeLineCap="round"/>
     <!-- 中心圓（白外框 + 紅填色） -->
     <path android:fillColor="#F44336" android:pathData="M24,24 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/>
-    <path android:strokeColor="#FFFFFF" android:strokeWidth="2" android:fillColor="@android:color/transparent"
+    <path android:strokeColor="@color/crosshair" android:strokeWidth="2" android:fillColor="@android:color/transparent"
         android:pathData="M24,24 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/>
 </vector>

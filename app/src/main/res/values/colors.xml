@@ -29,4 +29,6 @@
 
     <color name="login_bg_gradient_start">#F8F7FF</color>
     <color name="login_bg_gradient_end">#E8E4FF</color>
+    <color name="crosshair">#FAF32A</color>
+
 </resources>

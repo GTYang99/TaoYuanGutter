@@ -55,18 +55,13 @@ class WaypointAdapter(
             setColor(dotColor)
         }
 
-        // 拖曳把手：僅節點顯示，觸碰時啟動拖曳
-        if (item.type == WaypointType.NODE) {
-            holder.binding.ivDragHandle.visibility = View.VISIBLE
-            holder.binding.ivDragHandle.setOnTouchListener { _, event ->
-                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                    startDragListener?.invoke(holder)
-                }
-                false
+        // 拖曳把手：所有 cell 都顯示，觸碰時啟動拖曳
+        holder.binding.ivDragHandle.visibility = View.VISIBLE
+        holder.binding.ivDragHandle.setOnTouchListener { _, event ->
+            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                startDragListener?.invoke(holder)
             }
-        } else {
-            holder.binding.ivDragHandle.visibility = View.GONE
-            holder.binding.ivDragHandle.setOnTouchListener(null)
+            false
         }
 
         // 點選整行 → 請求選點

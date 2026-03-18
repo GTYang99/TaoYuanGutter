@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -19,7 +20,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     interface LocationPickerHost {
         /** 請求 MainActivity 顯示地圖選點 overlay */
         fun startLocationPick(sheet: AddGutterBottomSheet, waypointIndex: Int)
+        /** 當 BottomSheet 點擊提交完成後的回呼 */
+        fun onGutterSubmitted(waypoints: List<Waypoint>)
     }
+
+    /**
+     * 當 waypoints 發生任何異動（座標更新、節點排序改變）時通知 MainActivity。
+     * 傳入 null 代表 sheet 已關閉，MainActivity 應清除地圖疊加層。
+     */
+    var onWaypointsChanged: ((List<Waypoint>?) -> Unit)? = null
 
     // ── ViewBinding ─────────────────────────────────────────────────────
     private var _binding: BottomSheetAddGutterBinding? = null
@@ -33,6 +42,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     )
 
     // ── Lifecycle ────────────────────────────────────────────────────────
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // 禁止 back 鍵與點擊背景關閉，只有按「新增側溝」才能離開
+        isCancelable = false
+    }
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -48,40 +63,69 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         setupButtons()
     }
 
+    override fun onStart() {
+        super.onStart()
+        // 移除 BottomSheetDialog 預設的背景遮罩，確保地圖可見且顏色正常
+        dialog?.window?.setDimAmount(0f)
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    override fun onDismiss(dialog: android.content.DialogInterface) {
+        super.onDismiss(dialog)
+        // 關閉時保留地圖上的標記與連線：以目前 waypoints 狀態重繪（不清除）
+        onWaypointsChanged?.invoke(waypoints.toList())
     }
 
     // ── 設定 BottomSheet 行為 ────────────────────────────────────────────
     private fun setupBottomSheetBehavior() {
         dialog?.setOnShowListener {
             getBehavior()?.apply {
-                peekHeight   = (resources.displayMetrics.heightPixels * 0.52).toInt()
-                state        = BottomSheetBehavior.STATE_COLLAPSED
-                isHideable   = true          // 允許程式碼隱藏
+                peekHeight    = (resources.displayMetrics.heightPixels * 0.52).toInt()
+                state         = BottomSheetBehavior.STATE_COLLAPSED
+                isHideable    = false   // 禁止向下滑關閉
                 skipCollapsed = false
             }
         }
     }
 
     private fun getBehavior(): BottomSheetBehavior<View>? {
-        val sheet = (dialog as? BottomSheetDialog)
-            ?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-            ?: return null
-        return BottomSheetBehavior.from(sheet)
+        val sheetView = getSheetView() ?: return null
+        return BottomSheetBehavior.from(sheetView)
     }
 
-    /** 隱藏底部面板（選點時呼叫） */
+    private fun getSheetView(): View? =
+        (dialog as? BottomSheetDialog)
+            ?.findViewById(com.google.android.material.R.id.design_bottom_sheet)
+
+    /**
+     * 選點時呼叫：sheet 滑出畫面底部，並將 dialog window 設為不攔截觸控，
+     * 讓觸控事件穿透到後方的地圖與 overlay 按鈕。
+     */
     fun hideSelf() {
-        getBehavior()?.state = BottomSheetBehavior.STATE_HIDDEN
+        val sheetView = getSheetView() ?: return
+        sheetView.animate()
+            .translationY(sheetView.height.toFloat())
+            .setDuration(250)
+            .start()
+        // 讓 dialog window 不再攔截觸控，地圖 / overlay 才能接收到點擊
+        dialog?.window?.addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
     }
 
-    /** 重新展開底部面板（選點完成 / 取消後呼叫） */
+    /**
+     * 選點完成/取消後呼叫：sheet 滑回原位，並還原 dialog window 觸控攔截。
+     */
     fun showSelf() {
-        getBehavior()?.apply {
-            state = BottomSheetBehavior.STATE_COLLAPSED
-        }
+        val sheetView = getSheetView() ?: return
+        sheetView.animate()
+            .translationY(0f)
+            .setDuration(250)
+            .start()
+        // 還原觸控攔截，sheet 上的按鈕/cell 才能再次被點選
+        dialog?.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE)
     }
 
     // ── RecyclerView + ItemTouchHelper（拖曳排序） ───────────────────────
@@ -92,20 +136,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 ?.startLocationPick(this, position)
         }
 
-        // ItemTouchHelper：只允許節點（非起點/終點）拖曳
+        // ItemTouchHelper：所有 cell 皆可拖曳，排序後依位置重新命名
         val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
         ) {
             override fun getMovementFlags(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder
-            ): Int {
-                val pos = viewHolder.adapterPosition
-                return if (waypoints.getOrNull(pos)?.type == WaypointType.NODE)
-                    makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
-                else
-                    makeMovementFlags(0, 0)
-            }
+            ): Int = makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
 
             override fun onMove(
                 recyclerView: RecyclerView,
@@ -114,9 +152,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             ): Boolean {
                 val from = viewHolder.adapterPosition
                 val to   = target.adapterPosition
-                // 不允許移動到起點（0）或終點（最後一個）
-                if (to == 0 || to == waypoints.size - 1) return false
-
                 val moved = waypoints.removeAt(from)
                 waypoints.add(to, moved)
                 adapter.notifyItemMoved(from, to)
@@ -130,7 +165,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 viewHolder: RecyclerView.ViewHolder
             ) {
                 super.clearView(recyclerView, viewHolder)
-                renumberNodes()
+                renumberAll()   // 依位置重新指派 type + label
             }
         })
 
@@ -148,6 +183,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     // ── 按鈕 ─────────────────────────────────────────────────────────────
     private fun setupButtons() {
+        // X 按鈕：取消本次新增，地圖標記保留，sheet 關閉回地圖
         binding.btnClose.setOnClickListener { dismiss() }
 
         binding.btnAddNode.setOnClickListener {
@@ -160,21 +196,40 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         }
 
         binding.btnSubmitGutter.setOnClickListener {
-            // TODO: 將 waypoints 資料傳遞至後端或下一個畫面
+            // 通知 Host (MainActivity) 提交完成，並傳遞 waypoints 資料
+            (requireActivity() as? LocationPickerHost)?.onGutterSubmitted(waypoints.toList())
             dismiss()
         }
     }
 
-    // ── 節點重新編號 ──────────────────────────────────────────────────────
-    private fun renumberNodes() {
-        var count = 0
+    // ── 依位置重新命名全部 waypoints ──────────────────────────────────────
+    /**
+     * 拖曳排序結束後呼叫。
+     * 位置 0      → WaypointType.START / "起點"
+     * 位置 last   → WaypointType.END   / "終點"
+     * 其餘位置    → WaypointType.NODE  / "節點N"（依序編號）
+     */
+    private fun renumberAll() {
+        var nodeCount = 0
         waypoints.forEachIndexed { idx, wp ->
-            if (wp.type == WaypointType.NODE) {
-                count++
-                waypoints[idx].label = "節點$count"
+            when (idx) {
+                0 -> {
+                    wp.type  = WaypointType.START
+                    wp.label = "起點"
+                }
+                waypoints.size - 1 -> {
+                    wp.type  = WaypointType.END
+                    wp.label = "終點"
+                }
+                else -> {
+                    nodeCount++
+                    wp.type  = WaypointType.NODE
+                    wp.label = "節點$nodeCount"
+                }
             }
         }
         adapter.notifyDataSetChanged()
+        onWaypointsChanged?.invoke(waypoints.toList())
     }
 
     // ── 由 MainActivity 回呼：寫入選定座標 ──────────────────────────────
@@ -182,6 +237,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (index in waypoints.indices) {
             waypoints[index].latLng = latLng
             adapter.notifyItemChanged(index)
+            // 座標更新：通知地圖新增/移動標記與連線
+            onWaypointsChanged?.invoke(waypoints.toList())
         }
     }
 
