@@ -23,6 +23,7 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
@@ -44,7 +45,8 @@ class MainActivity : AppCompatActivity(),
 
     /**
      * GutterFormActivity 的 ActivityResultLauncher。
-     * 當使用者填完表單並返回時，呼叫 showSelf() 把 BottomSheet 帶回畫面。
+     * - activeSheet != null：從 BottomSheet 流程進入，返回時呼叫 showSelf()。
+     * - activeSheet == null：從 Polyline 點擊流程進入，返回時只清除暫時顯示的大頭針。
      */
     private lateinit var gutterFormLauncher: ActivityResultLauncher<android.content.Intent>
 
@@ -58,9 +60,14 @@ class MainActivity : AppCompatActivity(),
         gutterFormLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) {
-            // GutterFormActivity 返回 → 顯示 btnAddGutter、讓 BottomSheet 滑回
             binding.btnAddGutter.visibility = View.VISIBLE
-            activeSheet?.showSelf()
+            if (activeSheet != null) {
+                // 從 BottomSheet 流程：讓表單滑回
+                activeSheet?.showSelf()
+            } else {
+                // 從 Polyline 點擊流程：清除暫時顯示的大頭針（保留 polyline）
+                clearMapMarkersOnly()
+            }
         }
 
         val mapFragment = supportFragmentManager
@@ -99,6 +106,11 @@ class MainActivity : AppCompatActivity(),
             )
             gutterFormLauncher.launch(intent)
             true   // 消費事件，不顯示預設 info window
+        }
+
+        // ── 點擊 Polyline → 顯示路線點位列表供選擇編輯 ──────────────
+        map.setOnPolylineClickListener { polyline ->
+            showPolylineEditDialog(polyline)
         }
 
         // info window 點擊同樣開啟表單（使用者若先點開了 info window 再點選它）
@@ -142,6 +154,13 @@ class MainActivity : AppCompatActivity(),
 
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
         }
+    }
+
+    // ── 地圖疊加層：只清除大頭針，保留 polyline ──────────────────────────
+    private fun clearMapMarkersOnly() {
+        mapMarkers.forEach { it.remove() }
+        mapMarkers.clear()
+        // mapPolyline 不動：路線線段繼續顯示
     }
 
     // ── 地圖疊加層：標記 + 連線 ──────────────────────────────────────────
@@ -188,7 +207,10 @@ class MainActivity : AppCompatActivity(),
                     .color(Color.parseColor("#5C35CC"))   // brand_purple
                     .width(10f)
                     .geodesic(true)
+                    .clickable(true)
             )
+            // 將目前 waypoints 存入 tag，供點擊時讀取
+            mapPolyline?.tag = ArrayList(waypoints)
         }
     }
 
@@ -210,12 +232,19 @@ class MainActivity : AppCompatActivity(),
 
     /**
      * 當 AddGutterBottomSheet 點擊「新增側溝」後的回呼。
-     * 每個點位在選點確認時已各自開啟表單，這裡只需完成整條路線的提交。
-     * 地圖上的標記與連線保留（onDismiss 已保留疊加層）。
+     *
+     * 執行順序：
+     *   1. 此函式設定 activeSheet=null 並排程清除大頭針（post）
+     *   2. BottomSheet 隨後呼叫 dismiss() → onDismiss → onWaypointsChanged
+     *      → refreshMapOverlay() 重繪大頭針 + 連線
+     *   3. post 的 clearMapMarkersOnly() 在當幀結束後執行，移除大頭針、保留連線
      */
     override fun onGutterSubmitted(waypoints: List<Waypoint>) {
         activeSheet = null
         binding.btnAddGutter.visibility = View.VISIBLE
+        // 提交後只保留路線線段，移除所有大頭針
+        // 用 post() 確保在 onDismiss→refreshMapOverlay 完成後才執行
+        binding.root.post { clearMapMarkersOnly() }
         // TODO: 將整條路線的 waypoints 資料送至後端或本機資料庫
     }
 
@@ -258,6 +287,69 @@ class MainActivity : AppCompatActivity(),
             activeSheet?.showSelf()
             pickingIndex = -1
         }
+    }
+
+    // ── 重新顯示大頭針（不動 polyline，供編輯時暫時顯示）─────────────────
+    private fun refreshMapMarkersOnly(waypoints: List<Waypoint>) {
+        val map = googleMap ?: return
+        mapMarkers.forEach { it.remove() }
+        mapMarkers.clear()
+
+        for ((index, wp) in waypoints.withIndex()) {
+            val latLng = wp.latLng ?: continue
+            val hue = when (wp.type) {
+                WaypointType.START -> BitmapDescriptorFactory.HUE_GREEN
+                WaypointType.NODE  -> BitmapDescriptorFactory.HUE_AZURE
+                WaypointType.END   -> BitmapDescriptorFactory.HUE_RED
+            }
+            val marker = map.addMarker(
+                MarkerOptions()
+                    .position(latLng)
+                    .title(wp.label)
+                    .snippet("%.5f, %.5f".format(latLng.latitude, latLng.longitude))
+                    .icon(BitmapDescriptorFactory.defaultMarker(hue))
+            )
+            marker?.tag = index
+            marker?.let { mapMarkers.add(it) }
+        }
+    }
+
+    // ── 點選 Polyline → 彈出點位列表對話框 ───────────────────────────────
+    @Suppress("UNCHECKED_CAST")
+    private fun showPolylineEditDialog(polyline: Polyline) {
+        val waypoints = (polyline.tag as? ArrayList<Waypoint>) ?: return
+        if (waypoints.isEmpty()) return
+
+        // 暫時顯示大頭針，方便使用者確認要編輯哪一個點
+        refreshMapMarkersOnly(waypoints)
+
+        val labels = waypoints.mapIndexed { idx, wp ->
+            val coordStr = wp.latLng?.let { " (%.5f, %.5f)".format(it.latitude, it.longitude) } ?: " (尚未設定)"
+            "${idx + 1}. ${wp.label}$coordStr"
+        }.toTypedArray()
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("選擇要編輯的點位")
+            .setItems(labels) { _, which ->
+                val wp     = waypoints.getOrNull(which) ?: return@setItems
+                val latLng = wp.latLng ?: return@setItems
+
+                binding.btnAddGutter.visibility = View.GONE
+
+                val intent = GutterFormActivity.newIntent(
+                    this,
+                    arrayListOf(wp.label),
+                    doubleArrayOf(latLng.latitude),
+                    doubleArrayOf(latLng.longitude),
+                    0
+                )
+                gutterFormLauncher.launch(intent)
+            }
+            .setOnCancelListener {
+                // 使用者取消對話框 → 移除暫時大頭針
+                clearMapMarkersOnly()
+            }
+            .show()
     }
 
     // ── Dialog ────────────────────────────────────────────────────────────

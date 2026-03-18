@@ -48,6 +48,7 @@
     <!-- Strings for Add Gutter Bottom Sheet -->
     <string name="add_gutter_route_title">側溝編號（系統生成）</string>
     <string name="btn_add_gutter">新增側溝</string>
+    <string name="btn_add_point">新增節點</string>
     <string name="waypoint_start">起點</string>
     <string name="waypoint_end">終點</string>
     <string name="waypoint_node_prefix">節點</string>
