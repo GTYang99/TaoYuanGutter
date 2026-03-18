@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="96dp">
+
+        <!-- ① 側溝編號 ─────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="側溝編號"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilGutterId"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etGutterId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ② 側溝形式 ─────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="側溝形式"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilGutterType"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <AutoCompleteTextView
+                android:id="@+id/actvGutterType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ③ 側溝X（E）座標 ────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="側溝X（E）座標"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCoordX"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCoordX"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal|numberSigned"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ④ 側溝Y（N）座標 ────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="側溝Y（N）座標"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCoordY"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCoordY"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal|numberSigned"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ⑤ 側溝Z座標 ─────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="側溝Z座標"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCoordZ"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCoordZ"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal|numberSigned"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ⑥ 測量座標編號 ──────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="測量座標編號"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilMeasureId"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etMeasureId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ⑦ 側溝測量深度 ──────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="側溝測量深度（m）"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilDepth"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDepth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ⑧ 側溝頂寬度 ───────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="側溝頂寬度（m）"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilTopWidth"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etTopWidth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ⑨ 補充說明 ─────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="補充說明"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilRemarks"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etRemarks"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:inputType="textMultiLine"
+                android:gravity="top|start"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>

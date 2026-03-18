@@ -38,6 +38,17 @@
         <!-- You can add more theme attributes here -->
     </style>
 
+    <!--
+        GutterFormActivity: 半透明浮動視窗，佔畫面下方 3/4。
+        windowIsTranslucent = true → MainActivity 保持可見（地圖顯示於上方 1/4）
+        backgroundDimEnabled = false → 不模糊地圖區
+    -->
+    <style name="Theme.TaoYuanGutter.FormSheet" parent="Theme.TaoYuanGutter">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
     <!-- Splash Screen Theme -->
     <style name="Theme.TaoYuanGutter.Splash" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@color/colorPrimary</item>

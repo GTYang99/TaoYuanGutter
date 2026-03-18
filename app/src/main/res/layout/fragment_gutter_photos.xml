@@ -1,0 +1,259 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="96dp">
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- ① 測量位置及側溝概況                                      -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="測量位置及側溝概況"
+            android:textSize="14sp"
+            android:textColor="@color/textColorSecondary"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <!--
+            照片區：ConstraintLayout 用 wrap_content 高度，
+            內部 ratioAnchor（height=0dp + dimensionRatio H,4:3）
+            撐開 ConstraintLayout 至「寬度 × 3/4」的景框比例。
+        -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/photoSlot1"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/bg_photo_placeholder"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:clipToOutline="true"
+            android:outlineProvider="background">
+
+            <!-- 4:3 橫向比例錨定 View（不可見，純粹撐高） -->
+            <View
+                android:id="@+id/ratioAnchor1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="H,4:3"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- 未拍照佔位：相機 Icon + 提示文字，合為一組方便整體 show/hide -->
+            <LinearLayout
+                android:id="@+id/placeholderSlot1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                app:layout_constraintTop_toTopOf="@id/ratioAnchor1"
+                app:layout_constraintBottom_toBottomOf="@id/ratioAnchor1"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <ImageView
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_camera"
+                    android:scaleType="centerInside"
+                    android:alpha="0.6"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="點擊拍照"
+                    android:textSize="12sp"
+                    android:textColor="@color/inputFieldHint"
+                    android:layout_marginTop="6dp" />
+
+            </LinearLayout>
+
+            <!-- 已拍照縮圖（拍照後顯示，預設 GONE） -->
+            <ImageView
+                android:id="@+id/ivPhotoSlot1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                android:contentDescription="@null"
+                app:layout_constraintTop_toTopOf="@id/ratioAnchor1"
+                app:layout_constraintBottom_toBottomOf="@id/ratioAnchor1"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- ② 側溝內徑寬度尺寸                                       -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="側溝內徑寬度尺寸"
+            android:textSize="14sp"
+            android:textColor="@color/textColorSecondary"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/photoSlot2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/bg_photo_placeholder"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:clipToOutline="true"
+            android:outlineProvider="background">
+
+            <View
+                android:id="@+id/ratioAnchor2"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="H,4:3"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <LinearLayout
+                android:id="@+id/placeholderSlot2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                app:layout_constraintTop_toTopOf="@id/ratioAnchor2"
+                app:layout_constraintBottom_toBottomOf="@id/ratioAnchor2"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <ImageView
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_camera"
+                    android:scaleType="centerInside"
+                    android:alpha="0.6"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="點擊拍照"
+                    android:textSize="12sp"
+                    android:textColor="@color/inputFieldHint"
+                    android:layout_marginTop="6dp" />
+
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/ivPhotoSlot2"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                android:contentDescription="@null"
+                app:layout_constraintTop_toTopOf="@id/ratioAnchor2"
+                app:layout_constraintBottom_toBottomOf="@id/ratioAnchor2"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <!-- ③ 側溝深度尺寸                                           -->
+        <!-- ══════════════════════════════════════════════════════════ -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="側溝深度尺寸"
+            android:textSize="14sp"
+            android:textColor="@color/textColorSecondary"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/photoSlot3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:background="@drawable/bg_photo_placeholder"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackgroundBorderless"
+            android:clipToOutline="true"
+            android:outlineProvider="background">
+
+            <View
+                android:id="@+id/ratioAnchor3"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                app:layout_constraintDimensionRatio="H,4:3"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <LinearLayout
+                android:id="@+id/placeholderSlot3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                app:layout_constraintTop_toTopOf="@id/ratioAnchor3"
+                app:layout_constraintBottom_toBottomOf="@id/ratioAnchor3"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent">
+
+                <ImageView
+                    android:layout_width="56dp"
+                    android:layout_height="56dp"
+                    android:src="@drawable/ic_camera"
+                    android:scaleType="centerInside"
+                    android:alpha="0.6"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="點擊拍照"
+                    android:textSize="12sp"
+                    android:textColor="@color/inputFieldHint"
+                    android:layout_marginTop="6dp" />
+
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/ivPhotoSlot3"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                android:contentDescription="@null"
+                app:layout_constraintTop_toTopOf="@id/ratioAnchor3"
+                app:layout_constraintBottom_toBottomOf="@id/ratioAnchor3"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>

@@ -4,11 +4,13 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.navigation.findNavController
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
+import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -37,11 +39,29 @@ class MainActivity : AppCompatActivity(),
     private val mapMarkers = mutableListOf<Marker>()
     private var mapPolyline: Polyline? = null
 
+    // 最新一版 waypoints（供點擊標記時重開表單用）
+    private var currentWaypoints: List<Waypoint> = emptyList()
+
+    /**
+     * GutterFormActivity 的 ActivityResultLauncher。
+     * 當使用者填完表單並返回時，呼叫 showSelf() 把 BottomSheet 帶回畫面。
+     */
+    private lateinit var gutterFormLauncher: ActivityResultLauncher<android.content.Intent>
+
     // ── Lifecycle ────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // 必須在 STARTED 之前完成 launcher 的註冊
+        gutterFormLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) {
+            // GutterFormActivity 返回 → 顯示 btnAddGutter、讓 BottomSheet 滑回
+            binding.btnAddGutter.visibility = View.VISIBLE
+            activeSheet?.showSelf()
+        }
 
         val mapFragment = supportFragmentManager
             .findFragmentById(R.id.map) as SupportMapFragment
@@ -62,6 +82,40 @@ class MainActivity : AppCompatActivity(),
             isCompassEnabled      = true
             isMapToolbarEnabled   = true
         }
+
+        // ── 點擊大頭針 → 重開 GutterFormActivity 編輯該點位 ──────────
+        map.setOnMarkerClickListener { marker ->
+            val wpIndex = marker.tag as? Int ?: return@setOnMarkerClickListener false
+            val wp      = currentWaypoints.getOrNull(wpIndex)
+                ?: return@setOnMarkerClickListener false
+            val latLng  = wp.latLng ?: return@setOnMarkerClickListener false
+
+            val intent = GutterFormActivity.newIntent(
+                this,
+                arrayListOf(wp.label),
+                doubleArrayOf(latLng.latitude),
+                doubleArrayOf(latLng.longitude),
+                0
+            )
+            gutterFormLauncher.launch(intent)
+            true   // 消費事件，不顯示預設 info window
+        }
+
+        // info window 點擊同樣開啟表單（使用者若先點開了 info window 再點選它）
+        map.setOnInfoWindowClickListener { marker ->
+            val wpIndex = marker.tag as? Int ?: return@setOnInfoWindowClickListener
+            val wp      = currentWaypoints.getOrNull(wpIndex) ?: return@setOnInfoWindowClickListener
+            val latLng  = wp.latLng ?: return@setOnInfoWindowClickListener
+
+            val intent = GutterFormActivity.newIntent(
+                this,
+                arrayListOf(wp.label),
+                doubleArrayOf(latLng.latitude),
+                doubleArrayOf(latLng.longitude),
+                0
+            )
+            gutterFormLauncher.launch(intent)
+        }
     }
 
     // ── 地圖按鈕 ──────────────────────────────────────────────────────────
@@ -72,14 +126,16 @@ class MainActivity : AppCompatActivity(),
             // TODO: 請求權限並移至當前位置
         }
         binding.btnAddGutter.setOnClickListener {
-            // 開啟新 sheet 前先清除上一次留下的地圖疊加層
+            // 開啟新 sheet 前先清除上一次留下的地圖疊加層與快取 waypoints
             refreshMapOverlay(emptyList())
+            currentWaypoints = emptyList()
 
             val sheet = AddGutterBottomSheet.newInstance()
             activeSheet = sheet
 
             // 當 waypoints 有任何異動（座標確定、拖曳排序、關閉）時重繪地圖疊加層
             sheet.onWaypointsChanged = { waypoints ->
+                currentWaypoints = waypoints ?: emptyList()
                 refreshMapOverlay(waypoints ?: emptyList())
                 if (waypoints == null) activeSheet = null
             }
@@ -102,7 +158,7 @@ class MainActivity : AppCompatActivity(),
 
         val routePoints = mutableListOf<LatLng>()
 
-        for (wp in waypoints) {
+        for ((index, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue   // 尚未設定座標的點跳過
 
             routePoints.add(latLng)
@@ -119,6 +175,8 @@ class MainActivity : AppCompatActivity(),
                     .snippet("%.5f, %.5f".format(latLng.latitude, latLng.longitude))
                     .icon(BitmapDescriptorFactory.defaultMarker(hue))
             )
+            // tag = waypoint 的索引，供點擊標記時查詢表單資料
+            marker?.tag = index
             marker?.let { mapMarkers.add(it) }
         }
 
@@ -151,36 +209,49 @@ class MainActivity : AppCompatActivity(),
     }
 
     /**
-     * 當 AddGutterBottomSheet 點擊「提交」後的回呼。
-     * 這裡是流程結尾：回到地圖畫面（清除疊加層，或是依需求跳轉）。
+     * 當 AddGutterBottomSheet 點擊「新增側溝」後的回呼。
+     * 每個點位在選點確認時已各自開啟表單，這裡只需完成整條路線的提交。
+     * 地圖上的標記與連線保留（onDismiss 已保留疊加層）。
      */
     override fun onGutterSubmitted(waypoints: List<Waypoint>) {
-        // 1. 清除地圖上的規劃線（代表任務已結束）
-        refreshMapOverlay(emptyList())
-
-        // 2. 顯示成功提示或跳轉至表單畫面
-        // 目前實作：回到地圖初始狀態
         activeSheet = null
-        
-        // 如果您有 fragment_form 且想跳過去：
-        // findNavController(R.id.nav_host_fragment).navigate(R.id.action_map_to_form)
+        binding.btnAddGutter.visibility = View.VISIBLE
+        // TODO: 將整條路線的 waypoints 資料送至後端或本機資料庫
     }
 
     // ── 選點 Overlay 按鈕邏輯 ────────────────────────────────────────────
     private fun setupLocationPickerOverlay() {
+
         binding.locationPickerOverlay.btnConfirmPick.setOnClickListener {
             val latLng = googleMap?.cameraPosition?.target
+            // 隱藏 overlay
             binding.locationPickerOverlay.root.visibility = View.GONE
-            binding.btnAddGutter.visibility = View.VISIBLE
 
             if (latLng != null && pickingIndex >= 0) {
+                // 1. 將座標寫入 waypoint（同步更新地圖疊加層）
                 activeSheet?.updateWaypointLocation(pickingIndex, latLng)
+
+                // 2. 取得此點位的標題，開啟單一點位的 GutterFormActivity
+                val label = activeSheet?.getWaypointLabel(pickingIndex) ?: "點位"
+                val intent = GutterFormActivity.newIntent(
+                    this,
+                    arrayListOf(label),
+                    doubleArrayOf(latLng.latitude),
+                    doubleArrayOf(latLng.longitude),
+                    0
+                )
+                // 使用 launcher：表單返回後自動 showSelf()
+                gutterFormLauncher.launch(intent)
+            } else {
+                // 沒有座標或 index 無效時直接回 BottomSheet
+                binding.btnAddGutter.visibility = View.VISIBLE
+                activeSheet?.showSelf()
             }
 
-            activeSheet?.showSelf()
             pickingIndex = -1
         }
 
+        // 取消：直接滑回 BottomSheet
         binding.locationPickerOverlay.btnCancelPick.setOnClickListener {
             binding.locationPickerOverlay.root.visibility = View.GONE
             binding.btnAddGutter.visibility = View.VISIBLE

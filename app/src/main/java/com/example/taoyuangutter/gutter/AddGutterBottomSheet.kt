@@ -233,6 +233,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     }
 
     // ── 由 MainActivity 回呼：寫入選定座標 ──────────────────────────────
+    /** 取得指定索引的 waypoint 標題（給 MainActivity 組裝 GutterFormActivity Intent 用） */
+    fun getWaypointLabel(index: Int): String =
+        waypoints.getOrNull(index)?.label ?: "點位"
+
     fun updateWaypointLocation(index: Int, latLng: LatLng) {
         if (index in waypoints.indices) {
             waypoints[index].latLng = latLng

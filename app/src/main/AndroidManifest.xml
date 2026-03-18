@@ -4,6 +4,9 @@
 
     <!-- Required for network operations -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Camera for photo capture -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <!-- Required for accessing fine location (GPS) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -49,6 +52,31 @@
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
             android:theme="@style/Theme.TaoYuanGutter" />
+
+        <!-- Gutter Form Activity（半透明浮動，佔下方 3/4 螢幕） -->
+        <activity
+            android:name=".gutter.GutterFormActivity"
+            android:label="@string/gutter_form_title"
+            android:theme="@style/Theme.TaoYuanGutter.FormSheet"
+            android:windowSoftInputMode="adjustResize" />
+
+        <!-- 橫向強制相機 Activity（CameraX） -->
+        <activity
+            android:name=".gutter.LandscapeCameraActivity"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.TaoYuanGutter"
+            android:exported="false" />
+
+        <!-- FileProvider for camera photo URIs -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
     </application>
 

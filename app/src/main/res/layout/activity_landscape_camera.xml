@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    橫向專用相機畫面。
+    - PreviewView 填滿全螢幕
+    - 底部控制列：左側取消、中間快門、右側空白（對稱）
+    - orientationWarning：裝置未橫放時顯示提示遮罩
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- CameraX 預覽 -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/viewFinder"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- 底部控制列 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="#AA000000"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp">
+
+        <!-- 取消按鈕 -->
+        <ImageButton
+            android:id="@+id/btnCancel"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_close"
+            android:tint="#FFFFFF"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="取消" />
+
+        <!-- 彈性間距（左） -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- 快門按鈕 -->
+        <ImageButton
+            android:id="@+id/btnCapture"
+            android:layout_width="72dp"
+            android:layout_height="72dp"
+            android:src="@null"
+            android:background="@drawable/bg_shutter_button"
+            android:contentDescription="拍照" />
+
+        <!-- 彈性間距（右，與取消按鈕對稱） -->
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <!-- 佔位（與取消按鈕對稱） -->
+        <View
+            android:layout_width="48dp"
+            android:layout_height="48dp" />
+
+    </LinearLayout>
+
+    <!--
+        橫向提示遮罩：裝置未橫放時顯示。
+        初始 visibility=visible；偵測到橫向後設為 gone。
+    -->
+    <FrameLayout
+        android:id="@+id/orientationWarning"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageView
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:src="@drawable/ic_screen_rotation"
+                android:contentDescription="@null" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="請轉為橫向拍照"
+                android:textColor="#FFFFFF"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginTop="16dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="請將手機旋轉至橫向後即可拍照"
+                android:textColor="#CCCCCC"
+                android:textSize="13sp"
+                android:layout_marginTop="6dp" />
+
+        </LinearLayout>
+
+    </FrameLayout>
+
+</FrameLayout>

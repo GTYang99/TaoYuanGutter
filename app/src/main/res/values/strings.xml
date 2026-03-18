@@ -54,6 +54,31 @@
     <string name="hint_set_location">點選以設定位置</string>
     <string name="picker_hint">請拖曳地圖至目標點位</string>
 
+    <!-- Gutter Form Activity -->
+    <string name="gutter_form_title">側溝資料填寫</string>
+    <string name="tab_basic_info">基本資料</string>
+    <string name="tab_photos">照片上傳</string>
+    <string name="fab_submit_gutter">新增側溝</string>
+    <!-- 基本資料欄位 -->
+    <string name="field_gutter_id">側溝編號</string>
+    <string name="field_gutter_type">側溝形式</string>
+    <string name="field_coord_x">側溝X（E）座標</string>
+    <string name="field_coord_y">側溝Y（N）座標</string>
+    <string name="field_coord_z">側溝Z座標</string>
+    <string name="field_measure_id">測量座標編號</string>
+    <string name="field_depth">側溝測量深度（m）</string>
+    <string name="field_top_width">側溝頂寬度（m）</string>
+    <string name="field_remarks">補充說明</string>
+    <!-- 側溝形式選項 -->
+    <string name="gutter_type_u_open">U形溝（明溝）</string>
+    <string name="gutter_type_u_covered">U形溝（加蓋）</string>
+    <string name="gutter_type_l_mixed">L形溝與暗溝渠併用</string>
+    <string name="gutter_type_other">其他</string>
+    <!-- 照片上傳欄位標題 -->
+    <string name="photo_slot_overview">測量位置及側溝概況</string>
+    <string name="photo_slot_width">側溝內徑寬度尺寸</string>
+    <string name="photo_slot_depth">側溝深度尺寸</string>
+
     <!-- General strings -->
     <string name="app_version">版本：1.0</string>
     <string name="confirm">確定</string>

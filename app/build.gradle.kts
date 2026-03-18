@@ -58,6 +58,12 @@ dependencies {
     implementation(libs.androidx.navigation.ui.ktx)
     implementation(libs.play.services.maps)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.viewpager2)
+    // CameraX：自訂橫向相機
+    implementation(libs.camerax.core)
+    implementation(libs.camerax.camera2)
+    implementation(libs.camerax.lifecycle)
+    implementation(libs.camerax.view)
     // Compose (for ui/theme files)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
