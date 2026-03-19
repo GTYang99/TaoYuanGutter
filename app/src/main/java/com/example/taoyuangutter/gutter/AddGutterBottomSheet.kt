@@ -105,10 +105,13 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun setupBottomSheetBehavior() {
         dialog?.setOnShowListener {
             getBehavior()?.apply {
-                peekHeight    = (resources.displayMetrics.heightPixels * 0.52).toInt()
-                state         = BottomSheetBehavior.STATE_COLLAPSED
-                isHideable    = false
-                skipCollapsed = false
+                val screenH    = resources.displayMetrics.heightPixels
+                peekHeight     = (screenH * 0.52).toInt()
+                // 完全展開時頂部仍保留 30%，讓地圖（含大頭針/線段）始終可見
+                expandedOffset = (screenH * 0.30).toInt()
+                state          = BottomSheetBehavior.STATE_COLLAPSED
+                isHideable     = false
+                skipCollapsed  = false
             }
         }
     }
@@ -216,8 +219,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 val insertIdx  = waypoints.size - 1
                 waypoints.add(insertIdx, Waypoint(WaypointType.NODE, "節點${nodeCount + 1}"))
                 adapter.notifyItemInserted(insertIdx)
-                adapter.notifyItemChanged(insertIdx + 1)
                 binding.rvWaypoints.scrollToPosition(insertIdx)
+                // 新節點插入後 waypoints index 改變，需通知 MainActivity 刷新大頭針 tag
+                onWaypointsChanged?.invoke(waypoints.toList())
             }
 
             binding.btnSubmitGutter.setOnClickListener {

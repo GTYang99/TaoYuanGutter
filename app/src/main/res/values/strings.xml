@@ -15,7 +15,7 @@
     <string name="login_error_invalid_credentials">帳號或密碼錯誤</string>
     <string name="login_error_empty_fields">請輸入帳號和密碼</string>
 
-    <!-- Strings for Main Activity -->
+    <!-- Strings for M圖示說明ain Activity -->
     <string name="title_activity_main">地圖</string>
     <string name="title_activity_map">地圖</string>
     <string name="legend_title">圖示說明</string>
