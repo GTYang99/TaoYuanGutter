@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -220,7 +221,35 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
 
             binding.btnSubmitGutter.setOnClickListener {
-                (requireActivity() as? LocationPickerHost)?.onGutterSubmitted(waypoints.toList())
+                // ① 起點與終點必須已設定座標
+                val start = waypoints.firstOrNull { it.type == WaypointType.START }
+                val end   = waypoints.firstOrNull { it.type == WaypointType.END }
+                if (start?.latLng == null) {
+                    Toast.makeText(requireContext(), "請先設定起點座標", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                if (end?.latLng == null) {
+                    Toast.makeText(requireContext(), "請先設定終點座標", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                // ② 自動移除「未選座標」或「未填寫基本資料」的節點
+                val validWaypoints = waypoints.filter { wp ->
+                    if (wp.type != WaypointType.NODE) return@filter true
+                    val hasLocation  = wp.latLng != null
+                    val hasBasicData = wp.basicData.values.any { it.isNotEmpty() }
+                    hasLocation && hasBasicData
+                }
+                val removedCount = waypoints.size - validWaypoints.size
+                if (removedCount > 0) {
+                    Toast.makeText(
+                        requireContext(),
+                        "已自動移除 $removedCount 個未完成設定的節點",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+                (requireActivity() as? LocationPickerHost)?.onGutterSubmitted(validWaypoints)
                 dismiss()
             }
         }
@@ -249,6 +278,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             waypoints[index].latLng = latLng
             adapter.notifyItemChanged(index)
             onWaypointsChanged?.invoke(waypoints.toList())
+        }
+    }
+
+    /** 將表單填寫的基本資料存回對應的 waypoint（供新增流程返回後呼叫） */
+    fun updateWaypointBasicData(index: Int, data: HashMap<String, String>) {
+        if (index in waypoints.indices) {
+            waypoints[index].basicData = data
+            adapter.notifyItemChanged(index)
         }
     }
 

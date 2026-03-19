@@ -36,6 +36,12 @@ class MainActivity : AppCompatActivity(),
     private var activeSheet: AddGutterBottomSheet? = null
     private var pickingIndex: Int = -1
 
+    /**
+     * 目前正在開啟 GutterFormActivity 的點位索引（新增模式）。
+     * 用於表單返回後，以表單內座標欄位更新大頭針位置。
+     */
+    private var pendingWaypointFormIndex: Int = -1
+
     // 檢視線段模式的 BottomSheet
     private var inspectSheet: AddGutterBottomSheet? = null
 
@@ -69,7 +75,35 @@ class MainActivity : AppCompatActivity(),
 
             when {
                 activeSheet != null -> {
-                    // 新增流程：返回後讓 BottomSheet 滑回
+                    // 新增流程：若表單回傳了資料，同步更新 waypoint
+                    if (result.resultCode == Activity.RESULT_OK && pendingWaypointFormIndex >= 0) {
+                        val data = result.data
+
+                        // ① 以表單填寫的座標更新大頭針位置
+                        val newLat = data?.getDoubleExtra(GutterFormActivity.RESULT_LATITUDE,  Double.NaN) ?: Double.NaN
+                        val newLng = data?.getDoubleExtra(GutterFormActivity.RESULT_LONGITUDE, Double.NaN) ?: Double.NaN
+                        if (!newLat.isNaN() && !newLng.isNaN()) {
+                            activeSheet?.updateWaypointLocation(
+                                pendingWaypointFormIndex,
+                                LatLng(newLat, newLng)
+                            )
+                        }
+
+                        // ② 將表單基本資料存回 waypoint.basicData（供新增側溝時驗證是否已填寫）
+                        val newData = hashMapOf(
+                            "gutterId"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_GUTTER_ID)   ?: ""),
+                            "gutterType" to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_GUTTER_TYPE) ?: ""),
+                            "coordX"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_X)     ?: ""),
+                            "coordY"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Y)     ?: ""),
+                            "coordZ"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Z)     ?: ""),
+                            "measureId"  to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_MEASURE_ID)  ?: ""),
+                            "depth"      to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_DEPTH)       ?: ""),
+                            "topWidth"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_TOP_WIDTH)   ?: ""),
+                            "remarks"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS)     ?: "")
+                        )
+                        activeSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
+                    }
+                    pendingWaypointFormIndex = -1
                     activeSheet?.showSelf()
                 }
                 inspectSheet != null -> {
@@ -117,7 +151,7 @@ class MainActivity : AppCompatActivity(),
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
         val taoyuan = LatLng(24.9936, 121.3010)
-        googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(taoyuan, 13f))
+        googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(taoyuan, 20f))
         googleMap?.mapType = GoogleMap.MAP_TYPE_NORMAL
         googleMap?.uiSettings?.apply {
             isZoomControlsEnabled = true
@@ -138,6 +172,7 @@ class MainActivity : AppCompatActivity(),
                 // 新增模式：重開編輯表單
                 val wp     = currentWaypoints.getOrNull(wpIndex) ?: return@setOnMarkerClickListener false
                 val latLng = wp.latLng ?: return@setOnMarkerClickListener false
+                pendingWaypointFormIndex = wpIndex  // 記住索引供表單返回時更新座標
                 val intent = GutterFormActivity.newIntent(
                     this, arrayListOf(wp.label), doubleArrayOf(latLng.latitude),
                     doubleArrayOf(latLng.longitude), 0
@@ -156,6 +191,7 @@ class MainActivity : AppCompatActivity(),
             val wpIndex = marker.tag as? Int ?: return@setOnInfoWindowClickListener
             val wp      = currentWaypoints.getOrNull(wpIndex) ?: return@setOnInfoWindowClickListener
             val latLng  = wp.latLng ?: return@setOnInfoWindowClickListener
+            pendingWaypointFormIndex = wpIndex
             val intent  = GutterFormActivity.newIntent(
                 this, arrayListOf(wp.label), doubleArrayOf(latLng.latitude),
                 doubleArrayOf(latLng.longitude), 0
@@ -333,6 +369,7 @@ class MainActivity : AppCompatActivity(),
             if (latLng != null && pickingIndex >= 0) {
                 activeSheet?.updateWaypointLocation(pickingIndex, latLng)
                 val label  = activeSheet?.getWaypointLabel(pickingIndex) ?: "點位"
+                pendingWaypointFormIndex = pickingIndex   // 記住索引供表單返回時更新座標
                 val intent = GutterFormActivity.newIntent(
                     this, arrayListOf(label),
                     doubleArrayOf(latLng.latitude), doubleArrayOf(latLng.longitude), 0

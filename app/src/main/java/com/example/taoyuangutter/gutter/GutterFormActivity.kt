@@ -36,6 +36,10 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_DATA_TOP_WIDTH   = "ex_topWidth"
         const val EXTRA_DATA_REMARKS     = "ex_remarks"
 
+        /** 回傳 result intent 的 key：更新後的座標（供 MainActivity 移動大頭針） */
+        const val RESULT_LATITUDE        = "result_lat"
+        const val RESULT_LONGITUDE       = "result_lng"
+
         /** 回傳 result intent 的 key：儲存的 basicData */
         const val RESULT_WAYPOINT_INDEX  = "result_wp_index"
         const val RESULT_DATA_GUTTER_ID   = "r_gutterId"
@@ -261,6 +265,28 @@ class GutterFormActivity : AppCompatActivity() {
             val basicData = basicFrag?.collectData() ?: emptyMap()
             val photos    = photoFrag?.getPhotoUris()
             // TODO: 將 basicData + photos 送至後端或本機資料庫
+
+            // 從表單的 X(經度)/Y(緯度) 欄位解析最新座標，回傳給 MainActivity 更新大頭針
+            // coordX = 經度(lng)，coordY = 緯度(lat)（見 prefillCoordinates 的命名慣例）
+            val parsedLat = basicData["coordY"]?.toDoubleOrNull()
+            val parsedLng = basicData["coordX"]?.toDoubleOrNull()
+            val resultIntent = android.content.Intent().apply {
+                if (parsedLat != null && parsedLng != null) {
+                    putExtra(RESULT_LATITUDE,  parsedLat)
+                    putExtra(RESULT_LONGITUDE, parsedLng)
+                }
+                // 同時回傳所有表單資料，供 MainActivity 存回 waypoint.basicData
+                putExtra(RESULT_DATA_GUTTER_ID,   basicData["gutterId"]   ?: "")
+                putExtra(RESULT_DATA_GUTTER_TYPE, basicData["gutterType"] ?: "")
+                putExtra(RESULT_DATA_COORD_X,     basicData["coordX"]     ?: "")
+                putExtra(RESULT_DATA_COORD_Y,     basicData["coordY"]     ?: "")
+                putExtra(RESULT_DATA_COORD_Z,     basicData["coordZ"]     ?: "")
+                putExtra(RESULT_DATA_MEASURE_ID,  basicData["measureId"]  ?: "")
+                putExtra(RESULT_DATA_DEPTH,       basicData["depth"]      ?: "")
+                putExtra(RESULT_DATA_TOP_WIDTH,   basicData["topWidth"]   ?: "")
+                putExtra(RESULT_DATA_REMARKS,     basicData["remarks"]    ?: "")
+            }
+            setResult(Activity.RESULT_OK, resultIntent)
 
             val nextIndex = currentIndex + 1
             if (nextIndex < waypointLabels.size) {
