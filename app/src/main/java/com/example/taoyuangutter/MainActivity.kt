@@ -1,5 +1,6 @@
 package com.example.taoyuangutter
 
+import android.app.Activity
 import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -23,7 +24,6 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
@@ -36,17 +36,23 @@ class MainActivity : AppCompatActivity(),
     private var activeSheet: AddGutterBottomSheet? = null
     private var pickingIndex: Int = -1
 
-    // 地圖疊加層：路線標記與連線
+    // 檢視線段模式的 BottomSheet
+    private var inspectSheet: AddGutterBottomSheet? = null
+
+    // 地圖疊加層
     private val mapMarkers = mutableListOf<Marker>()
     private var mapPolyline: Polyline? = null
 
     // 最新一版 waypoints（供點擊標記時重開表單用）
     private var currentWaypoints: List<Waypoint> = emptyList()
 
+    // 目前正在檢視的 waypoints（polyline 點擊後從 polyline.tag 讀取）
+    private var inspectWaypoints: List<Waypoint> = emptyList()
+
     /**
      * GutterFormActivity 的 ActivityResultLauncher。
-     * - activeSheet != null：從 BottomSheet 流程進入，返回時呼叫 showSelf()。
-     * - activeSheet == null：從 Polyline 點擊流程進入，返回時只清除暫時顯示的大頭針。
+     * - activeSheet != null：新增流程，返回後 showSelf()
+     * - activeSheet == null, inspectSheet != null：檢視/編輯流程，返回後更新 waypoint 資料
      */
     private lateinit var gutterFormLauncher: ActivityResultLauncher<android.content.Intent>
 
@@ -56,17 +62,46 @@ class MainActivity : AppCompatActivity(),
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 必須在 STARTED 之前完成 launcher 的註冊
         gutterFormLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
-        ) {
+        ) { result ->
             binding.btnAddGutter.visibility = View.VISIBLE
-            if (activeSheet != null) {
-                // 從 BottomSheet 流程：讓表單滑回
-                activeSheet?.showSelf()
-            } else {
-                // 從 Polyline 點擊流程：清除暫時顯示的大頭針（保留 polyline）
-                clearMapMarkersOnly()
+
+            when {
+                activeSheet != null -> {
+                    // 新增流程：返回後讓 BottomSheet 滑回
+                    activeSheet?.showSelf()
+                }
+                inspectSheet != null -> {
+                    // 檢視/編輯流程：更新 waypoint basicData，讓 BottomSheet 滑回
+                    if (result.resultCode == Activity.RESULT_OK) {
+                        val data = result.data
+                        val idx  = data?.getIntExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, -1) ?: -1
+                        if (idx >= 0) {
+                            val newData = hashMapOf(
+                                "gutterId"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_GUTTER_ID)   ?: ""),
+                                "gutterType" to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_GUTTER_TYPE) ?: ""),
+                                "coordX"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_X)     ?: ""),
+                                "coordY"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Y)     ?: ""),
+                                "coordZ"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Z)     ?: ""),
+                                "measureId"  to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_MEASURE_ID)  ?: ""),
+                                "depth"      to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_DEPTH)       ?: ""),
+                                "topWidth"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_TOP_WIDTH)   ?: ""),
+                                "remarks"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS)     ?: "")
+                            )
+                            // 同步更新 inspectWaypoints 與 polyline.tag
+                            inspectWaypoints.getOrNull(idx)?.basicData = newData
+                            @Suppress("UNCHECKED_CAST")
+                            (mapPolyline?.tag as? ArrayList<Waypoint>)?.getOrNull(idx)?.basicData = newData
+                        }
+                    }
+                    // 讓 BottomSheet 滑回（保留大頭針顯示）
+                    inspectSheet?.showSelf()
+                }
+                else -> {
+                    // 其他情況（不應發生）：清除暫時大頭針
+                    clearMapMarkersOnly()
+                }
             }
         }
 
@@ -90,44 +125,108 @@ class MainActivity : AppCompatActivity(),
             isMapToolbarEnabled   = true
         }
 
-        // ── 點擊大頭針 → 重開 GutterFormActivity 編輯該點位 ──────────
+        // 點擊大頭針 → 重開 GutterFormActivity（依目前情境選擇模式）
         map.setOnMarkerClickListener { marker ->
             val wpIndex = marker.tag as? Int ?: return@setOnMarkerClickListener false
-            val wp      = currentWaypoints.getOrNull(wpIndex)
-                ?: return@setOnMarkerClickListener false
-            val latLng  = wp.latLng ?: return@setOnMarkerClickListener false
 
-            val intent = GutterFormActivity.newIntent(
-                this,
-                arrayListOf(wp.label),
-                doubleArrayOf(latLng.latitude),
-                doubleArrayOf(latLng.longitude),
-                0
-            )
-            gutterFormLauncher.launch(intent)
-            true   // 消費事件，不顯示預設 info window
+            if (inspectSheet != null) {
+                // 檢視模式：從 inspectWaypoints 開啟檢視表單
+                val wp     = inspectWaypoints.getOrNull(wpIndex) ?: return@setOnMarkerClickListener false
+                val latLng = wp.latLng ?: return@setOnMarkerClickListener false
+                openInspectForm(wpIndex, wp, latLng)
+            } else {
+                // 新增模式：重開編輯表單
+                val wp     = currentWaypoints.getOrNull(wpIndex) ?: return@setOnMarkerClickListener false
+                val latLng = wp.latLng ?: return@setOnMarkerClickListener false
+                val intent = GutterFormActivity.newIntent(
+                    this, arrayListOf(wp.label), doubleArrayOf(latLng.latitude),
+                    doubleArrayOf(latLng.longitude), 0
+                )
+                gutterFormLauncher.launch(intent)
+            }
+            true
         }
 
-        // ── 點擊 Polyline → 顯示路線點位列表供選擇編輯 ──────────────
+        // 點擊 Polyline → 開啟檢視線段 BottomSheet
         map.setOnPolylineClickListener { polyline ->
-            showPolylineEditDialog(polyline)
+            openInspectBottomSheet(polyline)
         }
 
-        // info window 點擊同樣開啟表單（使用者若先點開了 info window 再點選它）
         map.setOnInfoWindowClickListener { marker ->
             val wpIndex = marker.tag as? Int ?: return@setOnInfoWindowClickListener
             val wp      = currentWaypoints.getOrNull(wpIndex) ?: return@setOnInfoWindowClickListener
             val latLng  = wp.latLng ?: return@setOnInfoWindowClickListener
-
-            val intent = GutterFormActivity.newIntent(
-                this,
-                arrayListOf(wp.label),
-                doubleArrayOf(latLng.latitude),
-                doubleArrayOf(latLng.longitude),
-                0
+            val intent  = GutterFormActivity.newIntent(
+                this, arrayListOf(wp.label), doubleArrayOf(latLng.latitude),
+                doubleArrayOf(latLng.longitude), 0
             )
             gutterFormLauncher.launch(intent)
         }
+    }
+
+    // ── LocationPickerHost 實作 ───────────────────────────────────────────
+    override fun startLocationPick(sheet: AddGutterBottomSheet, waypointIndex: Int) {
+        activeSheet  = sheet
+        pickingIndex = waypointIndex
+        sheet.hideSelf()
+        binding.btnAddGutter.visibility = View.GONE
+        binding.locationPickerOverlay.root.visibility = View.VISIBLE
+    }
+
+    override fun onGutterSubmitted(waypoints: List<Waypoint>) {
+        activeSheet = null
+        binding.btnAddGutter.visibility = View.VISIBLE
+        binding.root.post { clearMapMarkersOnly() }
+    }
+
+    override fun getInspectWaypoints(): List<Waypoint> = inspectWaypoints
+
+    override fun openWaypointForInspect(sheet: AddGutterBottomSheet, waypointIndex: Int) {
+        val wp     = inspectWaypoints.getOrNull(waypointIndex) ?: return
+        val latLng = wp.latLng ?: return
+        sheet.hideSelf()
+        binding.btnAddGutter.visibility = View.GONE
+        openInspectForm(waypointIndex, wp, latLng)
+    }
+
+    /** 開啟單一 waypoint 的 GutterFormActivity（檢視模式） */
+    private fun openInspectForm(waypointIndex: Int, wp: Waypoint, latLng: LatLng) {
+        val intent = GutterFormActivity.newViewIntent(
+            this,
+            label        = wp.label,
+            lat          = latLng.latitude,
+            lng          = latLng.longitude,
+            waypointIndex = waypointIndex,
+            basicData    = wp.basicData
+        )
+        gutterFormLauncher.launch(intent)
+    }
+
+    // ── 點擊 Polyline → 開啟檢視 BottomSheet ────────────────────────────
+    @Suppress("UNCHECKED_CAST")
+    private fun openInspectBottomSheet(polyline: Polyline) {
+        val waypoints = (polyline.tag as? ArrayList<Waypoint>) ?: return
+        if (waypoints.isEmpty()) return
+
+        inspectWaypoints = waypoints.toList()
+
+        // 暫時顯示大頭針，方便使用者確認點位位置
+        refreshMapMarkersOnly(inspectWaypoints)
+
+        val sheet = AddGutterBottomSheet.newInstanceForInspect()
+        inspectSheet = sheet
+
+        sheet.onWaypointsChanged = { wps ->
+            if (wps == null) {
+                // BottomSheet 關閉 → 清除大頭針
+                clearMapMarkersOnly()
+                inspectSheet    = null
+                inspectWaypoints = emptyList()
+            }
+            // wps != null（inspectMode onDismiss 不會傳非 null，忽略）
+        }
+
+        sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
     }
 
     // ── 地圖按鈕 ──────────────────────────────────────────────────────────
@@ -138,14 +237,12 @@ class MainActivity : AppCompatActivity(),
             // TODO: 請求權限並移至當前位置
         }
         binding.btnAddGutter.setOnClickListener {
-            // 開啟新 sheet 前先清除上一次留下的地圖疊加層與快取 waypoints
             refreshMapOverlay(emptyList())
             currentWaypoints = emptyList()
 
             val sheet = AddGutterBottomSheet.newInstance()
             activeSheet = sheet
 
-            // 當 waypoints 有任何異動（座標確定、拖曳排序、關閉）時重繪地圖疊加層
             sheet.onWaypointsChanged = { waypoints ->
                 currentWaypoints = waypoints ?: emptyList()
                 refreshMapOverlay(waypoints ?: emptyList())
@@ -160,14 +257,11 @@ class MainActivity : AppCompatActivity(),
     private fun clearMapMarkersOnly() {
         mapMarkers.forEach { it.remove() }
         mapMarkers.clear()
-        // mapPolyline 不動：路線線段繼續顯示
     }
 
     // ── 地圖疊加層：標記 + 連線 ──────────────────────────────────────────
     private fun refreshMapOverlay(waypoints: List<Waypoint>) {
         val map = googleMap ?: return
-
-        // 清除舊疊加層
         mapMarkers.forEach { it.remove() }
         mapMarkers.clear()
         mapPolyline?.remove()
@@ -178,118 +272,33 @@ class MainActivity : AppCompatActivity(),
         val routePoints = mutableListOf<LatLng>()
 
         for ((index, wp) in waypoints.withIndex()) {
-            val latLng = wp.latLng ?: continue   // 尚未設定座標的點跳過
-
+            val latLng = wp.latLng ?: continue
             routePoints.add(latLng)
-
-            val hue = when (wp.type) {
-                WaypointType.START -> BitmapDescriptorFactory.HUE_GREEN
-                WaypointType.NODE  -> BitmapDescriptorFactory.HUE_AZURE
-                WaypointType.END   -> BitmapDescriptorFactory.HUE_RED
-            }
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(latLng)
                     .title(wp.label)
                     .snippet("%.5f, %.5f".format(latLng.latitude, latLng.longitude))
-                    .icon(BitmapDescriptorFactory.defaultMarker(hue))
+                    .icon(BitmapDescriptorFactory.defaultMarker(markerHue(wp.type)))
             )
-            // tag = waypoint 的索引，供點擊標記時查詢表單資料
             marker?.tag = index
             marker?.let { mapMarkers.add(it) }
         }
 
-        // 至少兩個已確定座標的點才畫連線
         if (routePoints.size >= 2) {
             mapPolyline = map.addPolyline(
                 PolylineOptions()
                     .addAll(routePoints)
-                    .color(Color.parseColor("#5C35CC"))   // brand_purple
+                    .color(Color.parseColor("#5C35CC"))
                     .width(10f)
                     .geodesic(true)
                     .clickable(true)
             )
-            // 將目前 waypoints 存入 tag，供點擊時讀取
             mapPolyline?.tag = ArrayList(waypoints)
         }
     }
 
-    // ── LocationPickerHost 實作 ───────────────────────────────────────────
-    override fun startLocationPick(
-        sheet: AddGutterBottomSheet,
-        waypointIndex: Int
-    ) {
-        activeSheet  = sheet
-        pickingIndex = waypointIndex
-
-        // 隱藏 BottomSheet，以地圖為主
-        sheet.hideSelf()
-
-        // 隱藏 + FAB，顯示 overlay
-        binding.btnAddGutter.visibility = View.GONE
-        binding.locationPickerOverlay.root.visibility = View.VISIBLE
-    }
-
-    /**
-     * 當 AddGutterBottomSheet 點擊「新增側溝」後的回呼。
-     *
-     * 執行順序：
-     *   1. 此函式設定 activeSheet=null 並排程清除大頭針（post）
-     *   2. BottomSheet 隨後呼叫 dismiss() → onDismiss → onWaypointsChanged
-     *      → refreshMapOverlay() 重繪大頭針 + 連線
-     *   3. post 的 clearMapMarkersOnly() 在當幀結束後執行，移除大頭針、保留連線
-     */
-    override fun onGutterSubmitted(waypoints: List<Waypoint>) {
-        activeSheet = null
-        binding.btnAddGutter.visibility = View.VISIBLE
-        // 提交後只保留路線線段，移除所有大頭針
-        // 用 post() 確保在 onDismiss→refreshMapOverlay 完成後才執行
-        binding.root.post { clearMapMarkersOnly() }
-        // TODO: 將整條路線的 waypoints 資料送至後端或本機資料庫
-    }
-
-    // ── 選點 Overlay 按鈕邏輯 ────────────────────────────────────────────
-    private fun setupLocationPickerOverlay() {
-
-        binding.locationPickerOverlay.btnConfirmPick.setOnClickListener {
-            val latLng = googleMap?.cameraPosition?.target
-            // 隱藏 overlay
-            binding.locationPickerOverlay.root.visibility = View.GONE
-
-            if (latLng != null && pickingIndex >= 0) {
-                // 1. 將座標寫入 waypoint（同步更新地圖疊加層）
-                activeSheet?.updateWaypointLocation(pickingIndex, latLng)
-
-                // 2. 取得此點位的標題，開啟單一點位的 GutterFormActivity
-                val label = activeSheet?.getWaypointLabel(pickingIndex) ?: "點位"
-                val intent = GutterFormActivity.newIntent(
-                    this,
-                    arrayListOf(label),
-                    doubleArrayOf(latLng.latitude),
-                    doubleArrayOf(latLng.longitude),
-                    0
-                )
-                // 使用 launcher：表單返回後自動 showSelf()
-                gutterFormLauncher.launch(intent)
-            } else {
-                // 沒有座標或 index 無效時直接回 BottomSheet
-                binding.btnAddGutter.visibility = View.VISIBLE
-                activeSheet?.showSelf()
-            }
-
-            pickingIndex = -1
-        }
-
-        // 取消：直接滑回 BottomSheet
-        binding.locationPickerOverlay.btnCancelPick.setOnClickListener {
-            binding.locationPickerOverlay.root.visibility = View.GONE
-            binding.btnAddGutter.visibility = View.VISIBLE
-            activeSheet?.showSelf()
-            pickingIndex = -1
-        }
-    }
-
-    // ── 重新顯示大頭針（不動 polyline，供編輯時暫時顯示）─────────────────
+    // ── 重新顯示大頭針（不動 polyline，供檢視模式暫時顯示）──────────────
     private fun refreshMapMarkersOnly(waypoints: List<Waypoint>) {
         val map = googleMap ?: return
         mapMarkers.forEach { it.remove() }
@@ -297,59 +306,51 @@ class MainActivity : AppCompatActivity(),
 
         for ((index, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
-            val hue = when (wp.type) {
-                WaypointType.START -> BitmapDescriptorFactory.HUE_GREEN
-                WaypointType.NODE  -> BitmapDescriptorFactory.HUE_AZURE
-                WaypointType.END   -> BitmapDescriptorFactory.HUE_RED
-            }
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(latLng)
                     .title(wp.label)
                     .snippet("%.5f, %.5f".format(latLng.latitude, latLng.longitude))
-                    .icon(BitmapDescriptorFactory.defaultMarker(hue))
+                    .icon(BitmapDescriptorFactory.defaultMarker(markerHue(wp.type)))
             )
             marker?.tag = index
             marker?.let { mapMarkers.add(it) }
         }
     }
 
-    // ── 點選 Polyline → 彈出點位列表對話框 ───────────────────────────────
-    @Suppress("UNCHECKED_CAST")
-    private fun showPolylineEditDialog(polyline: Polyline) {
-        val waypoints = (polyline.tag as? ArrayList<Waypoint>) ?: return
-        if (waypoints.isEmpty()) return
+    private fun markerHue(type: WaypointType): Float = when (type) {
+        WaypointType.START -> BitmapDescriptorFactory.HUE_GREEN
+        WaypointType.NODE  -> BitmapDescriptorFactory.HUE_AZURE
+        WaypointType.END   -> BitmapDescriptorFactory.HUE_RED
+    }
 
-        // 暫時顯示大頭針，方便使用者確認要編輯哪一個點
-        refreshMapMarkersOnly(waypoints)
+    // ── 選點 Overlay 按鈕邏輯 ────────────────────────────────────────────
+    private fun setupLocationPickerOverlay() {
+        binding.locationPickerOverlay.btnConfirmPick.setOnClickListener {
+            val latLng = googleMap?.cameraPosition?.target
+            binding.locationPickerOverlay.root.visibility = View.GONE
 
-        val labels = waypoints.mapIndexed { idx, wp ->
-            val coordStr = wp.latLng?.let { " (%.5f, %.5f)".format(it.latitude, it.longitude) } ?: " (尚未設定)"
-            "${idx + 1}. ${wp.label}$coordStr"
-        }.toTypedArray()
-
-        MaterialAlertDialogBuilder(this)
-            .setTitle("選擇要編輯的點位")
-            .setItems(labels) { _, which ->
-                val wp     = waypoints.getOrNull(which) ?: return@setItems
-                val latLng = wp.latLng ?: return@setItems
-
-                binding.btnAddGutter.visibility = View.GONE
-
+            if (latLng != null && pickingIndex >= 0) {
+                activeSheet?.updateWaypointLocation(pickingIndex, latLng)
+                val label  = activeSheet?.getWaypointLabel(pickingIndex) ?: "點位"
                 val intent = GutterFormActivity.newIntent(
-                    this,
-                    arrayListOf(wp.label),
-                    doubleArrayOf(latLng.latitude),
-                    doubleArrayOf(latLng.longitude),
-                    0
+                    this, arrayListOf(label),
+                    doubleArrayOf(latLng.latitude), doubleArrayOf(latLng.longitude), 0
                 )
                 gutterFormLauncher.launch(intent)
+            } else {
+                binding.btnAddGutter.visibility = View.VISIBLE
+                activeSheet?.showSelf()
             }
-            .setOnCancelListener {
-                // 使用者取消對話框 → 移除暫時大頭針
-                clearMapMarkersOnly()
-            }
-            .show()
+            pickingIndex = -1
+        }
+
+        binding.locationPickerOverlay.btnCancelPick.setOnClickListener {
+            binding.locationPickerOverlay.root.visibility = View.GONE
+            binding.btnAddGutter.visibility = View.VISIBLE
+            activeSheet?.showSelf()
+            pickingIndex = -1
+        }
     }
 
     // ── Dialog ────────────────────────────────────────────────────────────

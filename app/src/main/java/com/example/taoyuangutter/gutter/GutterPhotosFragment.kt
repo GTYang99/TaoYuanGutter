@@ -41,10 +41,9 @@ class GutterPhotosFragment : Fragment() {
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
-            // 優先從 Intent Result 拿路徑，若無則從 pendingFile 拿（回溯相容）
             val path = result.data?.getStringExtra(LandscapeCameraActivity.EXTRA_RESULT_PATH)
             val file = if (path != null) File(path) else pendingFile
-            
+
             if (file != null && file.exists()) {
                 when (pendingSlot) {
                     1 -> { photoFileSlot1 = file; showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, file) }
@@ -60,13 +59,16 @@ class GutterPhotosFragment : Fragment() {
     // ── Lifecycle ────────────────────────────────────────────────────────
 
     companion object {
-        fun newInstance() = GutterPhotosFragment()
-        
-        private const val KEY_PHOTO_1 = "photo_1"
-        private const val KEY_PHOTO_2 = "photo_2"
-        private const val KEY_PHOTO_3 = "photo_3"
+        private const val ARG_VIEW_MODE  = "view_mode"
+        private const val KEY_PHOTO_1    = "photo_1"
+        private const val KEY_PHOTO_2    = "photo_2"
+        private const val KEY_PHOTO_3    = "photo_3"
         private const val KEY_PENDING_SLOT = "pending_slot"
         private const val KEY_PENDING_FILE = "pending_file"
+
+        fun newInstance(viewMode: Boolean = false) = GutterPhotosFragment().apply {
+            arguments = Bundle().apply { putBoolean(ARG_VIEW_MODE, viewMode) }
+        }
     }
 
     override fun onCreateView(
@@ -78,7 +80,7 @@ class GutterPhotosFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
+
         // 恢復狀態
         savedInstanceState?.let { bundle ->
             bundle.getString(KEY_PHOTO_1)?.let { photoFileSlot1 = File(it) }
@@ -93,9 +95,8 @@ class GutterPhotosFragment : Fragment() {
         photoFileSlot2?.let { showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, it) }
         photoFileSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, it) }
 
-        binding.photoSlot1.setOnClickListener { requestCameraForSlot(1) }
-        binding.photoSlot2.setOnClickListener { requestCameraForSlot(2) }
-        binding.photoSlot3.setOnClickListener { requestCameraForSlot(3) }
+        val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
+        setEditable(!isViewMode)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -110,6 +111,32 @@ class GutterPhotosFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    // ── 可編輯狀態切換 ────────────────────────────────────────────────────
+
+    /**
+     * [enabled] = true → 編輯模式，可點選格子拍照；
+     * [enabled] = false → 檢視模式，只顯示既有照片，無法拍照
+     */
+    fun setEditable(enabled: Boolean) {
+        if (enabled) {
+            binding.photoSlot1.setOnClickListener { requestCameraForSlot(1) }
+            binding.photoSlot2.setOnClickListener { requestCameraForSlot(2) }
+            binding.photoSlot3.setOnClickListener { requestCameraForSlot(3) }
+            // 無照片時顯示 placeholder（相機 icon）
+            if (photoFileSlot1 == null) binding.placeholderSlot1.visibility = View.VISIBLE
+            if (photoFileSlot2 == null) binding.placeholderSlot2.visibility = View.VISIBLE
+            if (photoFileSlot3 == null) binding.placeholderSlot3.visibility = View.VISIBLE
+        } else {
+            binding.photoSlot1.setOnClickListener(null)
+            binding.photoSlot2.setOnClickListener(null)
+            binding.photoSlot3.setOnClickListener(null)
+            // 唯讀：沒有照片的格子隱藏 placeholder（不顯示相機圖示）
+            if (photoFileSlot1 == null) binding.placeholderSlot1.visibility = View.INVISIBLE
+            if (photoFileSlot2 == null) binding.placeholderSlot2.visibility = View.INVISIBLE
+            if (photoFileSlot3 == null) binding.placeholderSlot3.visibility = View.INVISIBLE
+        }
     }
 
     // ── 相機流程 ─────────────────────────────────────────────────────────

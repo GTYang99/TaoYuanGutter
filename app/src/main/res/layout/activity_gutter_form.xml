@@ -16,7 +16,7 @@
         android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
         app:elevation="4dp">
 
-        <!-- 標題列：左側返回 + 置中標題 -->
+        <!-- 標題列：左側返回 + 置中標題 + 右側編輯/完成 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="56dp"
@@ -24,6 +24,7 @@
             android:gravity="center_vertical"
             android:background="@color/colorPrimary">
 
+            <!-- 左側：返回箭頭（固定） -->
             <ImageButton
                 android:id="@+id/btnBack"
                 android:layout_width="48dp"
@@ -33,18 +34,50 @@
                 android:contentDescription="返回"
                 android:padding="12dp" />
 
-            <!-- 置中標題：右側留 48dp 與返回按鈕對稱 -->
+            <!-- 置中標題 -->
             <TextView
                 android:id="@+id/tvFormTitle"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginEnd="48dp"
                 android:gravity="center"
                 android:textColor="@color/white"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:text="起點" />
+
+            <!-- 右側按鈕槽：編輯 icon（檢視模式）或完成文字（編輯模式），預設隱藏 -->
+            <FrameLayout
+                android:layout_width="56dp"
+                android:layout_height="48dp">
+
+                <!-- 檢視模式：鉛筆編輯 icon -->
+                <ImageButton
+                    android:id="@+id/btnEdit"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:src="@drawable/ic_edit"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="編輯"
+                    android:padding="12dp"
+                    android:visibility="gone" />
+
+                <!-- 編輯模式：完成文字按鈕 -->
+                <TextView
+                    android:id="@+id/btnDone"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="完成"
+                    android:textColor="@color/white"
+                    android:textSize="15sp"
+                    android:textStyle="bold"
+                    android:background="?attr/selectableItemBackground"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone" />
+
+            </FrameLayout>
 
         </LinearLayout>
 

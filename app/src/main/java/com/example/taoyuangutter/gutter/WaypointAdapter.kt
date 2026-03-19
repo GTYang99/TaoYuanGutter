@@ -17,6 +17,9 @@ class WaypointAdapter(
     /** 由 AddGutterBottomSheet 注入，用於啟動拖曳 */
     var startDragListener: ((RecyclerView.ViewHolder) -> Unit)? = null
 
+    /** false = 隱藏拖曳把手（檢視模式） */
+    var showDragHandle: Boolean = true
+
     inner class ViewHolder(val binding: ItemWaypointBinding) :
         RecyclerView.ViewHolder(binding.root)
 
@@ -55,10 +58,10 @@ class WaypointAdapter(
             setColor(dotColor)
         }
 
-        // 拖曳把手：所有 cell 都顯示，觸碰時啟動拖曳
-        holder.binding.ivDragHandle.visibility = View.VISIBLE
+        // 拖曳把手：依 showDragHandle 顯示或隱藏
+        holder.binding.ivDragHandle.visibility = if (showDragHandle) View.VISIBLE else View.GONE
         holder.binding.ivDragHandle.setOnTouchListener { _, event ->
-            if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            if (showDragHandle && event.actionMasked == MotionEvent.ACTION_DOWN) {
                 startDragListener?.invoke(holder)
             }
             false
