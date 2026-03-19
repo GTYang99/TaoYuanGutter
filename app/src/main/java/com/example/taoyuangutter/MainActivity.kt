@@ -392,16 +392,39 @@ class MainActivity : AppCompatActivity(),
 
     // ── Dialog ────────────────────────────────────────────────────────────
     private fun showMapTypeDialog() {
-        val options = arrayOf(getString(R.string.map_normal), getString(R.string.map_satellite))
-        AlertDialog.Builder(this)
-            .setTitle(R.string.layers_title)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> googleMap?.mapType = GoogleMap.MAP_TYPE_NORMAL
-                    1 -> googleMap?.mapType = GoogleMap.MAP_TYPE_SATELLITE
-                }
-            }
-            .show()
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_layers, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        val ivRadioNormal    = dialogView.findViewById<android.widget.ImageView>(R.id.icRadioNormal)
+        val ivRadioSatellite = dialogView.findViewById<android.widget.ImageView>(R.id.icRadioSatellite)
+
+        // 根據目前地圖模式設定單選框狀態
+        fun updateRadio(selectedType: Int) {
+            ivRadioNormal.setImageResource(
+                if (selectedType == GoogleMap.MAP_TYPE_NORMAL) R.drawable.ic_radio_checked
+                else R.drawable.ic_radio_unchecked
+            )
+            ivRadioSatellite.setImageResource(
+                if (selectedType == GoogleMap.MAP_TYPE_SATELLITE) R.drawable.ic_radio_checked
+                else R.drawable.ic_radio_unchecked
+            )
+        }
+
+        updateRadio(googleMap?.mapType ?: GoogleMap.MAP_TYPE_NORMAL)
+
+        dialogView.findViewById<android.view.View>(R.id.rowNormalMap).setOnClickListener {
+            googleMap?.mapType = GoogleMap.MAP_TYPE_NORMAL
+            dialog.dismiss()
+        }
+        dialogView.findViewById<android.view.View>(R.id.rowSatelliteMap).setOnClickListener {
+            googleMap?.mapType = GoogleMap.MAP_TYPE_SATELLITE
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun showLegendDialog() {

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 電子地圖：扁平化線條路網圖示 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+
+    <!-- 外框矩形（地圖邊界） -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#546E7A"
+        android:strokeWidth="1.5"
+        android:pathData="M3,4 L21,4 L21,20 L3,20 Z"/>
+
+    <!-- 橫向道路 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#546E7A"
+        android:strokeWidth="1.5"
+        android:pathData="M3,12 L21,12"/>
+
+    <!-- 縱向道路 -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#546E7A"
+        android:strokeWidth="1.5"
+        android:pathData="M12,4 L12,20"/>
+
+    <!-- 斜向小路（左下區） -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#546E7A"
+        android:strokeWidth="1.2"
+        android:pathData="M3,16 L8,12"/>
+
+    <!-- 斜向小路（右上區） -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#546E7A"
+        android:strokeWidth="1.2"
+        android:pathData="M16,4 L21,9"/>
+
+</vector>
