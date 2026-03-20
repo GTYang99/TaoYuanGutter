@@ -40,15 +40,30 @@ import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
+import com.google.android.gms.maps.model.TileOverlay
+import com.google.android.gms.maps.model.TileOverlayOptions
+import com.google.android.gms.maps.model.UrlTileProvider
 import com.google.android.gms.tasks.CancellationTokenSource
 import kotlinx.coroutines.launch
+import java.net.MalformedURLException
+import java.net.URL
 
 class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
     AddGutterBottomSheet.LocationPickerHost {
 
+    private enum class MapMode { EMAP, PHOTO2 }
+
+    companion object {
+        private const val KEY_PENDING_WP_INDEX = "pending_wp_index"
+    }
+
     private lateinit var binding: ActivityMainBinding
     private var googleMap: GoogleMap? = null
+
+    // ── NLSC WMTS 底圖 ────────────────────────────────────────────────────
+    private var currentTileOverlay: TileOverlay? = null
+    private var currentMapMode = MapMode.EMAP
 
     // ── 定位 ─────────────────────────────────────────────────────────────
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -69,32 +84,12 @@ class MainActivity : AppCompatActivity(),
     private var inspectWaypoints: List<Waypoint> = emptyList()
 
     // ── 地圖疊加層 ────────────────────────────────────────────────────────
-
-    /**
-     * 暫時性大頭針：新增流程選點中 或 檢視模式顯示。
-     * 每次 refreshWorkingMarkers / clearWorkingMarkers 時更新。
-     */
     private val workingMarkers = mutableListOf<Marker>()
-
-    /** 目前被放大顯示的大頭針所對應的 waypoint index（-1 = 無）。 */
     private var highlightedMarkerIndex: Int = -1
-
-    /**
-     * 新增流程中目前繪製中的 Polyline（尚未提交的那條）。
-     * 提交或放棄新增後設為 null。
-     */
     private var workingPolyline: Polyline? = null
-
-    /**
-     * 已提交（暫存）的側溝 Polyline 列表。
-     * 關閉 APP 才消失；呼叫 API 拉取後端資料後可一併替換。
-     */
     private val submittedPolylines = mutableListOf<Polyline>()
-
-    /** 目前正在操作的 waypoints（新增流程用，供大頭針點擊返回表單）。 */
     private var currentWaypoints: List<Waypoint> = emptyList()
 
-    // ── ActivityResultLauncher ────────────────────────────────────────────
     private lateinit var gutterFormLauncher: ActivityResultLauncher<android.content.Intent>
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
@@ -105,17 +100,12 @@ class MainActivity : AppCompatActivity(),
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        // 定位權限請求結果
         locationPermissionLauncher = registerForActivityResult(
             ActivityResultContracts.RequestMultiplePermissions()
         ) { permissions ->
             val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                           permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
-            if (granted) {
-                enableMyLocationAndMove()
-            } else {
-                Toast.makeText(this, "需要定位權限才能顯示目前位置", Toast.LENGTH_SHORT).show()
-            }
+            if (granted) enableMyLocationAndMove()
         }
 
         gutterFormLauncher = registerForActivityResult(
@@ -128,28 +118,27 @@ class MainActivity : AppCompatActivity(),
                     if (result.resultCode == Activity.RESULT_OK && pendingWaypointFormIndex >= 0) {
                         val data = result.data
 
-                        // 以表單填寫的座標更新大頭針位置
-                        val newLat = data?.getDoubleExtra(GutterFormActivity.RESULT_LATITUDE,  Double.NaN) ?: Double.NaN
-                        val newLng = data?.getDoubleExtra(GutterFormActivity.RESULT_LONGITUDE, Double.NaN) ?: Double.NaN
-                        if (!newLat.isNaN() && !newLng.isNaN()) {
-                            activeSheet?.updateWaypointLocation(
-                                pendingWaypointFormIndex,
-                                LatLng(newLat, newLng)
-                            )
+                        // ── 更新地圖定位座標 ────────────────────────────────
+                        // 優先使用 GutterFormActivity 回傳的 lat/lng（已保證永遠有值）；
+                        // 若萬一仍為 NaN（例如舊版快取），退回使用 currentWaypoints 中
+                        // 地圖選點時已儲存的座標，確保大頭針不會消失。
+                        val resultLat = data?.getDoubleExtra(GutterFormActivity.RESULT_LATITUDE,  Double.NaN) ?: Double.NaN
+                        val resultLng = data?.getDoubleExtra(GutterFormActivity.RESULT_LONGITUDE, Double.NaN) ?: Double.NaN
+                        val fallbackLatLng = currentWaypoints.getOrNull(pendingWaypointFormIndex)?.latLng
+                        val effectiveLat = if (!resultLat.isNaN()) resultLat else fallbackLatLng?.latitude  ?: Double.NaN
+                        val effectiveLng = if (!resultLng.isNaN()) resultLng else fallbackLatLng?.longitude ?: Double.NaN
+                        if (!effectiveLat.isNaN() && !effectiveLng.isNaN()) {
+                            activeSheet?.updateWaypointLocation(pendingWaypointFormIndex, LatLng(effectiveLat, effectiveLng))
                         }
 
-                        // 將表單基本資料存回 waypoint.basicData
+                        // ── 更新表單填寫的基本資料 ──────────────────────────
                         val newData = extractBasicData(result.data)
                         activeSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
                     }
                     resetHighlightedMarker()
                     pendingWaypointFormIndex = -1
                     activeSheet?.showSelf()
-                    
-                    // 從表單回來後，若有更新座標，自動縮放以看清線段
-                    if (currentWaypoints.isNotEmpty()) {
-                        fitCameraToWaypoints(currentWaypoints)
-                    }
+                    if (currentWaypoints.isNotEmpty()) fitCameraToWaypoints(currentWaypoints)
                 }
                 inspectSheet != null -> {
                     if (result.resultCode == Activity.RESULT_OK) {
@@ -158,50 +147,82 @@ class MainActivity : AppCompatActivity(),
                         if (idx >= 0) {
                             val newData = extractBasicData(data)
                             inspectWaypoints.getOrNull(idx)?.basicData = newData
-                            @Suppress("UNCHECKED_CAST")
-                            (findPolylineByWaypoints(inspectWaypoints) as? Polyline)
-                                ?.let { poly ->
-                                    (poly.tag as? ArrayList<Waypoint>)?.getOrNull(idx)?.basicData = newData
-                                }
                         }
                     }
-                    // 編輯完成後關閉 BottomSheet，回到只顯示線段的地圖
-                    inspectSheet?.dismiss()
+                    inspectSheet?.showSelf()
+                    fitCameraToWaypoints(inspectWaypoints)
                 }
                 else -> clearWorkingMarkers()
             }
         }
 
-        val mapFragment = supportFragmentManager
-            .findFragmentById(R.id.map) as SupportMapFragment
+        val mapFragment = supportFragmentManager.findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
         setupButtons()
         setupLocationPickerOverlay()
+
+        // ── 系統重建後恢復狀態（相機 Activity 期間 MainActivity 被殺掉時觸發）──
+        if (savedInstanceState != null) {
+            restoreStateAfterRecreation(savedInstanceState)
+        }
     }
 
-    // ── Google Map ────────────────────────────────────────────────────────
+    /**
+     * 在系統重建（拍照流程期間記憶體不足）後恢復關鍵狀態：
+     * - pendingWaypointFormIndex：讓 gutterFormLauncher 知道要更新哪個點位
+     * - activeSheet / inspectSheet：重新綁定已被 FragmentManager 恢復的 BottomSheet
+     */
+    private fun restoreStateAfterRecreation(savedState: Bundle) {
+        pendingWaypointFormIndex = savedState.getInt(KEY_PENDING_WP_INDEX, -1)
+
+        val restoredSheet = supportFragmentManager
+            .findFragmentByTag(AddGutterBottomSheet.TAG) as? AddGutterBottomSheet
+            ?: return
+
+        if (restoredSheet.isAddMode()) {
+            // 新增模式：重新綁定 activeSheet 與 onWaypointsChanged
+            activeSheet = restoredSheet
+            restoredSheet.onWaypointsChanged = { wps ->
+                currentWaypoints = wps ?: emptyList()
+                refreshWorkingLayer(wps ?: emptyList())
+                if (wps == null) activeSheet = null
+            }
+        } else {
+            // 檢視模式：重新綁定 inspectSheet
+            inspectSheet = restoredSheet
+            restoredSheet.onWaypointsChanged = { if (it == null) { clearWorkingMarkers(); inspectSheet = null } }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // 儲存正在開啟表單的點位索引，確保 MainActivity 重建後仍能正確回寫
+        outState.putInt(KEY_PENDING_WP_INDEX, pendingWaypointFormIndex)
+    }
+
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
+        // 關閉 Google 預設底圖，改用 NLSC WMTS 圖層
+        googleMap?.mapType = GoogleMap.MAP_TYPE_NONE
+        setMapTiles(MapMode.EMAP)
+
         val taoyuan = LatLng(24.9936, 121.3010)
         googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(taoyuan, 20f))
-        googleMap?.mapType = GoogleMap.MAP_TYPE_NORMAL
         googleMap?.uiSettings?.apply {
             isZoomControlsEnabled = true
             isCompassEnabled      = true
-            isMapToolbarEnabled   = true
+            isMapToolbarEnabled   = false
         }
 
-        // 點擊大頭針
         map.setOnMarkerClickListener { marker ->
             val wpIndex = marker.tag as? Int ?: return@setOnMarkerClickListener false
-
             if (inspectSheet != null) {
-                val wp     = inspectWaypoints.getOrNull(wpIndex) ?: return@setOnMarkerClickListener false
+                val wp = inspectWaypoints.getOrNull(wpIndex) ?: return@setOnMarkerClickListener false
                 val latLng = wp.latLng ?: return@setOnMarkerClickListener false
                 openInspectForm(wpIndex, wp, latLng)
             } else {
-                val wp     = currentWaypoints.getOrNull(wpIndex) ?: return@setOnMarkerClickListener false
+                val wp = currentWaypoints.getOrNull(wpIndex) ?: return@setOnMarkerClickListener false
                 val latLng = wp.latLng ?: return@setOnMarkerClickListener false
                 pendingWaypointFormIndex = wpIndex
                 openAddForm(wpIndex, wp, latLng)
@@ -209,10 +230,7 @@ class MainActivity : AppCompatActivity(),
             true
         }
 
-        // 點擊 Polyline → 檢視模式
-        map.setOnPolylineClickListener { polyline ->
-            openInspectBottomSheet(polyline)
-        }
+        map.setOnPolylineClickListener { polyline -> openInspectBottomSheet(polyline) }
     }
 
     // ── LocationPickerHost 實作 ───────────────────────────────────────────
@@ -223,29 +241,23 @@ class MainActivity : AppCompatActivity(),
         sheet.hideSelf()
         binding.btnAddGutter.visibility = View.GONE
         binding.locationPickerOverlay.root.visibility = View.VISIBLE
+        googleMap?.setPadding(0, 0, 0, 0)
     }
 
     override fun onGutterSubmitted(waypoints: List<Waypoint>) {
-        // 先清空回呼，避免後續 onDismiss 觸發 refreshWorkingLayer 在 submitted polyline 上疊繪
         activeSheet?.onWaypointsChanged = null
         workingPolyline?.remove()
         workingPolyline = null
         activeSheet = null
         clearWorkingMarkers()
         binding.btnAddGutter.visibility = View.VISIBLE
-
         drawSubmittedGutter(waypoints)
+        googleMap?.setPadding(0, 0, 0, 0)
 
         lifecycleScope.launch {
             when (val result = gutterRepository.submitGutter(waypoints)) {
-                is ApiResult.Success -> {
-                    val msg = result.data.message ?: "側溝資料上傳成功"
-                    Toast.makeText(this@MainActivity, msg, Toast.LENGTH_SHORT).show()
-                }
-                is ApiResult.Error -> {
-                    val code = result.code?.let { "（$it）" } ?: ""
-                    Toast.makeText(this@MainActivity, "上傳失敗$code：${result.message}", Toast.LENGTH_LONG).show()
-                }
+                is ApiResult.Success -> Toast.makeText(this@MainActivity, "側溝上傳成功", Toast.LENGTH_SHORT).show()
+                is ApiResult.Error -> Toast.makeText(this@MainActivity, "上傳失敗：${result.message}", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -261,82 +273,40 @@ class MainActivity : AppCompatActivity(),
         openInspectForm(waypointIndex, wp, latLng)
     }
 
-    /** 檢視現有側溝點位 */
     private fun openInspectForm(waypointIndex: Int, wp: Waypoint, latLng: LatLng) {
-        moveCameraToLatLngOffset(latLng)
-        val intent = GutterFormActivity.newViewIntent(
-            this,
-            label         = wp.label,
-            lat           = latLng.latitude,
-            lng           = latLng.longitude,
-            waypointIndex = waypointIndex,
-            basicData     = wp.basicData
-        )
+        moveCameraToLatLngOffset(latLng, 0.75) 
+        val intent = GutterFormActivity.newViewIntent(this, wp.label, latLng.latitude, latLng.longitude, waypointIndex, wp.basicData)
         gutterFormLauncher.launch(intent)
     }
 
-    /** 新增模式：開啟表單（包含跳轉下一個點位的邏輯） */
     private fun openAddForm(currentIndex: Int, wp: Waypoint, latLng: LatLng) {
-        moveCameraToLatLngOffset(latLng)
-        
+        moveCameraToLatLngOffset(latLng, 0.75)
         val labels = ArrayList(currentWaypoints.map { it.label })
         val lats   = currentWaypoints.map { it.latLng?.latitude ?: 0.0 }.toDoubleArray()
         val lngs   = currentWaypoints.map { it.latLng?.longitude ?: 0.0 }.toDoubleArray()
-
-        val intent = GutterFormActivity.newIntent(
-            this,
-            labels, lats, lngs, currentIndex, wp.basicData
-        )
+        val intent = GutterFormActivity.newIntent(this, labels, lats, lngs, currentIndex, wp.basicData)
         gutterFormLauncher.launch(intent)
     }
 
-    // ── 地圖鏡頭自動定位 ─────────────────────────────────────────────────
-
-    private fun moveCameraToLatLngOffset(latLng: LatLng, zoom: Float = 20f) {
+    private fun moveCameraToLatLngOffset(latLng: LatLng, offsetRatio: Double) {
         val map = googleMap ?: return
-        map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom), object : GoogleMap.CancelableCallback {
-            override fun onFinish() {
-                val screenH = resources.displayMetrics.heightPixels
-                val targetY = screenH / 8
-                val newPoint = map.projection.toScreenLocation(latLng)
-                val dy = newPoint.y - targetY
-                map.animateCamera(CameraUpdateFactory.scrollBy(0f, dy.toFloat()))
-            }
-            override fun onCancel() {}
-        })
+        val screenH = resources.displayMetrics.heightPixels
+        map.setPadding(0, 0, 0, (screenH * offsetRatio).toInt())
+        map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20f))
     }
 
-    private fun fitCameraToWaypoints(
-        waypoints: List<Waypoint>,
-        bottomOffsetRatio: Double = 0.52
-    ) {
-        val map    = googleMap ?: return
+    private fun fitCameraToWaypoints(waypoints: List<Waypoint>, bottomOffsetRatio: Double = 0.52) {
+        val map = googleMap ?: return
         val points = waypoints.mapNotNull { it.latLng }
         if (points.isEmpty()) return
-
         val dm      = resources.displayMetrics
-        val screenW = dm.widthPixels
         val screenH = dm.heightPixels
-        val mapVisibleH = ((1.0 - bottomOffsetRatio) * screenH).toInt()
         val padding = (64 * dm.density).toInt()
-
-        if (points.size == 1) {
-            moveCameraToLatLngOffset(points[0])
-            return
-        }
-
+        map.setPadding(padding, padding, padding, (screenH * bottomOffsetRatio).toInt())
         val boundsBuilder = LatLngBounds.Builder()
         points.forEach { boundsBuilder.include(it) }
-        val bounds = boundsBuilder.build()
-
         try {
-            map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, screenW, mapVisibleH, padding), object : GoogleMap.CancelableCallback {
-                override fun onFinish() {
-                    val offsetPx = (screenH * bottomOffsetRatio / 2).toInt()
-                    map.animateCamera(CameraUpdateFactory.scrollBy(0f, offsetPx.toFloat()))
-                }
-                override fun onCancel() {}
-            })
+            map.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding))
         } catch (e: Exception) {
             map.setOnMapLoadedCallback { fitCameraToWaypoints(waypoints, bottomOffsetRatio) }
         }
@@ -344,139 +314,82 @@ class MainActivity : AppCompatActivity(),
 
     private fun fitCameraToAllGutters() {
         val allWaypoints = mutableListOf<Waypoint>()
-        submittedPolylines.forEach { poly ->
-            @Suppress("UNCHECKED_CAST")
-            val wps = poly.tag as? ArrayList<Waypoint>
-            if (wps != null) allWaypoints.addAll(wps)
-        }
-        if (allWaypoints.isNotEmpty()) {
-            fitCameraToWaypoints(allWaypoints)
-        }
+        submittedPolylines.forEach { poly -> (poly.tag as? ArrayList<Waypoint>)?.let { allWaypoints.addAll(it) } }
+        if (allWaypoints.isNotEmpty()) fitCameraToWaypoints(allWaypoints)
     }
 
-    // ── 定位功能 ──────────────────────────────────────────────────────────
-
     private fun requestLocationAndMove() {
-        val fine   = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-        if (fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED) {
-            enableMyLocationAndMove()
-        } else {
-            locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
-        }
+        val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        if (fine == PackageManager.PERMISSION_GRANTED) enableMyLocationAndMove()
+        else locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
     }
 
     @SuppressLint("MissingPermission")
     private fun enableMyLocationAndMove() {
-        val map = googleMap ?: return
-        map.isMyLocationEnabled = true
-        map.uiSettings.isMyLocationButtonEnabled = false
-
+        googleMap?.isMyLocationEnabled = true
+        googleMap?.uiSettings?.isMyLocationButtonEnabled = false
         val cts = CancellationTokenSource()
         fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
-            .addOnSuccessListener { location ->
-                if (location != null) {
-                    map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 18f))
-                }
-            }
+            .addOnSuccessListener { loc -> if (loc != null) googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 18f)) }
     }
 
-    // ── 點擊 Polyline → 開啟檢視 BottomSheet ─────────────────────────────
     @Suppress("UNCHECKED_CAST")
     private fun openInspectBottomSheet(polyline: Polyline) {
         val waypoints = (polyline.tag as? ArrayList<Waypoint>) ?: return
         if (waypoints.isEmpty()) return
-
         inspectWaypoints = waypoints.toList()
         refreshWorkingMarkers(inspectWaypoints)
-        
         val sheet = AddGutterBottomSheet.newInstanceForInspect()
         inspectSheet = sheet
-
-        sheet.onWaypointsChanged = { wps ->
-            if (wps == null) {
-                clearWorkingMarkers()
-                inspectSheet     = null
-                inspectWaypoints = emptyList()
-            }
-        }
-
+        sheet.onWaypointsChanged = { if (it == null) { clearWorkingMarkers(); inspectSheet = null } }
         sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
         binding.root.post { fitCameraToWaypoints(inspectWaypoints) }
     }
 
-    // ── 地圖按鈕 ──────────────────────────────────────────────────────────
     private fun setupButtons() {
         binding.btnLegend.setOnClickListener { showLegendDialog() }
         binding.btnLayers.setOnClickListener { showMapTypeDialog() }
         binding.btnMyLocation.setOnClickListener { requestLocationAndMove() }
         binding.btnAddGutter.setOnClickListener {
             workingPolyline?.remove()
-            workingPolyline = null
             clearWorkingMarkers()
-            currentWaypoints = emptyList()
-
             fitCameraToAllGutters()
-
             val sheet = AddGutterBottomSheet.newInstance()
             activeSheet = sheet
-
-            sheet.onWaypointsChanged = { waypoints ->
-                currentWaypoints = waypoints ?: emptyList()
-                refreshWorkingLayer(waypoints ?: emptyList())
-                if (waypoints == null) activeSheet = null
+            sheet.onWaypointsChanged = { wps ->
+                currentWaypoints = wps ?: emptyList()
+                refreshWorkingLayer(wps ?: emptyList())
+                if (wps == null) activeSheet = null
             }
-
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
         }
     }
-
-    // ── Working 層 ──────────────────────────────────────────────────────
 
     private fun refreshWorkingLayer(waypoints: List<Waypoint>) {
         val map = googleMap ?: return
         clearWorkingMarkers()
         workingPolyline?.remove()
-        workingPolyline = null
-
         if (waypoints.isEmpty()) return
-
         val routePoints = mutableListOf<LatLng>()
-        for ((index, wp) in waypoints.withIndex()) {
+        for ((idx, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
             routePoints.add(latLng)
-            val marker = map.addMarker(
-                MarkerOptions()
-                    .position(latLng)
-                    .icon(BitmapDescriptorFactory.defaultMarker(markerHue(wp.type)))
-            )
-            marker?.tag = index
+            val marker = map.addMarker(MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.defaultMarker(markerHue(wp.type))))
+            marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
         }
-
         if (routePoints.size >= 2) {
-            workingPolyline = map.addPolyline(
-                PolylineOptions()
-                    .addAll(routePoints)
-                    .color(Color.parseColor("#5C35CC"))
-                    .width(10f)
-                    .geodesic(true)
-                    .clickable(false)
-            )
+            workingPolyline = map.addPolyline(PolylineOptions().addAll(routePoints).color(Color.parseColor("#5C35CC")).width(10f).geodesic(true).clickable(false))
         }
     }
 
     private fun refreshWorkingMarkers(waypoints: List<Waypoint>) {
         val map = googleMap ?: return
         clearWorkingMarkers()
-        for ((index, wp) in waypoints.withIndex()) {
+        for ((idx, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
-            val marker = map.addMarker(
-                MarkerOptions()
-                    .position(latLng)
-                    .icon(BitmapDescriptorFactory.defaultMarker(markerHue(wp.type)))
-            )
-            marker?.tag = index
+            val marker = map.addMarker(MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.defaultMarker(markerHue(wp.type))))
+            marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
         }
     }
@@ -491,24 +404,9 @@ class MainActivity : AppCompatActivity(),
         val map = googleMap ?: return
         val routePoints = waypoints.mapNotNull { it.latLng }
         if (routePoints.size < 2) return
-
-        val polyline = map.addPolyline(
-            PolylineOptions()
-                .addAll(routePoints)
-                .color(Color.parseColor("#5C35CC"))
-                .width(10f)
-                .geodesic(true)
-                .clickable(true)
-        )
+        val polyline = map.addPolyline(PolylineOptions().addAll(routePoints).color(Color.parseColor("#5C35CC")).width(10f).geodesic(true).clickable(true))
         polyline.tag = ArrayList(waypoints)
         submittedPolylines.add(polyline)
-    }
-
-    private fun findPolylineByWaypoints(waypoints: List<Waypoint>): Polyline? {
-        return submittedPolylines.firstOrNull { poly ->
-            val tagList = poly.tag as? ArrayList<*>
-            tagList != null && tagList.size == waypoints.size
-        }
     }
 
     private fun highlightMarker(waypointIndex: Int) {
@@ -548,12 +446,7 @@ class MainActivity : AppCompatActivity(),
         }
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = fillColor }
         canvas.drawCircle(r, r, r, paint)
-        val tail = Path().apply {
-            moveTo(r * 0.35f, r * 1.55f)
-            lineTo(r, h.toFloat())
-            lineTo(r * 1.65f, r * 1.55f)
-            close()
-        }
+        val tail = Path().apply { moveTo(r * 0.35f, r * 1.55f); lineTo(r, h.toFloat()); lineTo(r * 1.65f, r * 1.55f); close() }
         canvas.drawPath(tail, paint)
         paint.color = Color.WHITE
         canvas.drawCircle(r, r, r * 0.38f, paint)
@@ -572,11 +465,8 @@ class MainActivity : AppCompatActivity(),
             binding.locationPickerOverlay.root.visibility = View.GONE
             if (latLng != null && pickingIndex >= 0) {
                 activeSheet?.updateWaypointLocation(pickingIndex, latLng)
-                val label  = activeSheet?.getWaypointLabel(pickingIndex) ?: "點位"
+                val wp = currentWaypoints.getOrNull(pickingIndex) ?: Waypoint(WaypointType.NODE, "點位")
                 pendingWaypointFormIndex = pickingIndex
-                
-                // 找到對應的 waypoint 並預填資料（若有）
-                val wp = currentWaypoints.getOrNull(pickingIndex) ?: Waypoint(WaypointType.NODE, label)
                 openAddForm(pickingIndex, wp, latLng)
             } else {
                 binding.btnAddGutter.visibility = View.VISIBLE
@@ -593,6 +483,27 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    /** 切換 NLSC WMTS 底圖圖層（電子地圖 / 正射影像）。 */
+    private fun setMapTiles(mode: MapMode) {
+        currentTileOverlay?.remove()
+        currentMapMode = mode
+
+        val layer = when (mode) {
+            MapMode.EMAP   -> "EMAP"
+            MapMode.PHOTO2 -> "PHOTO2"
+        }
+        val urlTemplate = "https://wmts.nlsc.gov.tw/wmts/$layer/default/GoogleMapsCompatible/%d/%d/%d"
+
+        val tileProvider = object : UrlTileProvider(256, 256) {
+            override fun getTileUrl(x: Int, y: Int, zoom: Int): URL? = try {
+                URL(String.format(urlTemplate, zoom, y, x))
+            } catch (e: MalformedURLException) { null }
+        }
+        currentTileOverlay = googleMap?.addTileOverlay(
+            TileOverlayOptions().tileProvider(tileProvider).zIndex(-1f)
+        )
+    }
+
     private fun showMapTypeDialog() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_layers, null)
         val dialog = AlertDialog.Builder(this).setView(dialogView).create()
@@ -601,24 +512,24 @@ class MainActivity : AppCompatActivity(),
         val ivRadioNormal    = dialogView.findViewById<android.widget.ImageView>(R.id.icRadioNormal)
         val ivRadioSatellite = dialogView.findViewById<android.widget.ImageView>(R.id.icRadioSatellite)
 
-        fun updateRadio(selectedType: Int) {
+        fun updateRadio(mode: MapMode) {
             ivRadioNormal.setImageResource(
-                if (selectedType == GoogleMap.MAP_TYPE_NORMAL) R.drawable.ic_radio_checked
-                else R.drawable.ic_radio_unchecked
+                if (mode == MapMode.EMAP) R.drawable.ic_radio_checked else R.drawable.ic_radio_unchecked
             )
             ivRadioSatellite.setImageResource(
-                if (selectedType == GoogleMap.MAP_TYPE_SATELLITE) R.drawable.ic_radio_checked
-                else R.drawable.ic_radio_unchecked
+                if (mode == MapMode.PHOTO2) R.drawable.ic_radio_checked else R.drawable.ic_radio_unchecked
             )
         }
-        updateRadio(googleMap?.mapType ?: GoogleMap.MAP_TYPE_NORMAL)
+        updateRadio(currentMapMode)
 
         dialogView.findViewById<android.view.View>(R.id.rowNormalMap).setOnClickListener {
-            googleMap?.mapType = GoogleMap.MAP_TYPE_NORMAL
+            setMapTiles(MapMode.EMAP)
+            updateRadio(MapMode.EMAP)
             dialog.dismiss()
         }
         dialogView.findViewById<android.view.View>(R.id.rowSatelliteMap).setOnClickListener {
-            googleMap?.mapType = GoogleMap.MAP_TYPE_SATELLITE
+            setMapTiles(MapMode.PHOTO2)
+            updateRadio(MapMode.PHOTO2)
             dialog.dismiss()
         }
         dialog.show()
@@ -641,6 +552,9 @@ class MainActivity : AppCompatActivity(),
             "measureId"  to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_MEASURE_ID)  ?: ""),
             "depth"      to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_DEPTH)       ?: ""),
             "topWidth"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_TOP_WIDTH)   ?: ""),
-            "remarks"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS)     ?: "")
+            "remarks"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS)     ?: ""),
+            "photo1"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1)     ?: ""),
+            "photo2"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2)     ?: ""),
+            "photo3"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3)     ?: "")
         )
 }

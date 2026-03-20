@@ -237,12 +237,20 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     return@setOnClickListener
                 }
 
-                // ② 自動移除「未選座標」或「未填寫基本資料」的節點
+                // ② 自動移除「未選座標」或「資料不完整」的節點
+                // 必填欄位：gutterId、gutterType、coordX、coordY、coordZ、measureId、depth、topWidth
+                // 照片：三張都需拍攝（photo1/2/3 均非空）
+                val requiredBasicKeys = listOf(
+                    "gutterId", "gutterType", "coordX", "coordY", "coordZ",
+                    "measureId", "depth", "topWidth"
+                )
+                val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
                 val validWaypoints = waypoints.filter { wp ->
                     if (wp.type != WaypointType.NODE) return@filter true
-                    val hasLocation  = wp.latLng != null
-                    val hasBasicData = wp.basicData.values.any { it.isNotEmpty() }
-                    hasLocation && hasBasicData
+                    val hasLocation   = wp.latLng != null
+                    val hasBasicData  = requiredBasicKeys.all { wp.basicData[it]?.isNotEmpty() == true }
+                    val hasAllPhotos  = requiredPhotoKeys.all { wp.basicData[it]?.isNotEmpty() == true }
+                    hasLocation && hasBasicData && hasAllPhotos
                 }
                 val removedCount = waypoints.size - validWaypoints.size
                 if (removedCount > 0) {
@@ -258,6 +266,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
         }
     }
+
+    /**
+     * 供 MainActivity 在系統重建後辨識模式用：
+     * true = 新增模式（activeSheet），false = 檢視模式（inspectSheet）。
+     */
+    fun isAddMode(): Boolean = !isInspectMode
 
     // ── 依位置重新命名全部 waypoints ──────────────────────────────────────
     private fun renumberAll() {

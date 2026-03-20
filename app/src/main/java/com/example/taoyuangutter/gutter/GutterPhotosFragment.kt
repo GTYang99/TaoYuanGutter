@@ -60,14 +60,29 @@ class GutterPhotosFragment : Fragment() {
 
     companion object {
         private const val ARG_VIEW_MODE  = "view_mode"
-        private const val KEY_PHOTO_1    = "photo_1"
-        private const val KEY_PHOTO_2    = "photo_2"
-        private const val KEY_PHOTO_3    = "photo_3"
+        // 既有照片路徑（重新開啟表單時帶入）
+        const val ARG_PHOTO_1      = "arg_photo_1"
+        const val ARG_PHOTO_2      = "arg_photo_2"
+        const val ARG_PHOTO_3      = "arg_photo_3"
+        // savedInstanceState keys
+        private const val KEY_PHOTO_1      = "photo_1"
+        private const val KEY_PHOTO_2      = "photo_2"
+        private const val KEY_PHOTO_3      = "photo_3"
         private const val KEY_PENDING_SLOT = "pending_slot"
         private const val KEY_PENDING_FILE = "pending_file"
 
-        fun newInstance(viewMode: Boolean = false) = GutterPhotosFragment().apply {
-            arguments = Bundle().apply { putBoolean(ARG_VIEW_MODE, viewMode) }
+        fun newInstance(
+            viewMode: Boolean = false,
+            photo1: String? = null,
+            photo2: String? = null,
+            photo3: String? = null
+        ) = GutterPhotosFragment().apply {
+            arguments = Bundle().apply {
+                putBoolean(ARG_VIEW_MODE, viewMode)
+                if (!photo1.isNullOrEmpty()) putString(ARG_PHOTO_1, photo1)
+                if (!photo2.isNullOrEmpty()) putString(ARG_PHOTO_2, photo2)
+                if (!photo3.isNullOrEmpty()) putString(ARG_PHOTO_3, photo3)
+            }
         }
     }
 
@@ -81,13 +96,20 @@ class GutterPhotosFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // 恢復狀態
-        savedInstanceState?.let { bundle ->
-            bundle.getString(KEY_PHOTO_1)?.let { photoFileSlot1 = File(it) }
-            bundle.getString(KEY_PHOTO_2)?.let { photoFileSlot2 = File(it) }
-            bundle.getString(KEY_PHOTO_3)?.let { photoFileSlot3 = File(it) }
-            pendingSlot = bundle.getInt(KEY_PENDING_SLOT)
-            bundle.getString(KEY_PENDING_FILE)?.let { pendingFile = File(it) }
+        if (savedInstanceState != null) {
+            // 系統重建 → 從 savedInstanceState 恢復
+            savedInstanceState.getString(KEY_PHOTO_1)?.let { photoFileSlot1 = File(it) }
+            savedInstanceState.getString(KEY_PHOTO_2)?.let { photoFileSlot2 = File(it) }
+            savedInstanceState.getString(KEY_PHOTO_3)?.let { photoFileSlot3 = File(it) }
+            pendingSlot = savedInstanceState.getInt(KEY_PENDING_SLOT)
+            savedInstanceState.getString(KEY_PENDING_FILE)?.let { pendingFile = File(it) }
+        } else {
+            // 首次建立 → 從 arguments 帶入既有照片（重新開啟表單時）
+            fun tryLoad(path: String?): File? =
+                path?.takeIf { it.isNotEmpty() }?.let { File(it).takeIf { f -> f.exists() } }
+            photoFileSlot1 = tryLoad(arguments?.getString(ARG_PHOTO_1))
+            photoFileSlot2 = tryLoad(arguments?.getString(ARG_PHOTO_2))
+            photoFileSlot3 = tryLoad(arguments?.getString(ARG_PHOTO_3))
         }
 
         // 根據恢復的檔案更新 UI
@@ -179,6 +201,24 @@ class GutterPhotosFragment : Fragment() {
     }
 
     // ── 對外 API ─────────────────────────────────────────────────────────
+
+    /**
+     * 驗證三個照片格是否全部拍攝完畢。
+     * @return 第一個尚未拍攝的照片格說明；全部完成則回傳 null。
+     */
+    fun validateAllPhotos(): String? {
+        if (photoFileSlot1 == null || !photoFileSlot1!!.exists()) return "測量位置及側溝概況（第1張）"
+        if (photoFileSlot2 == null || !photoFileSlot2!!.exists()) return "側溝內徑寬度尺寸（第2張）"
+        if (photoFileSlot3 == null || !photoFileSlot3!!.exists()) return "側溝深度尺寸（第3張）"
+        return null
+    }
+
+    /** 傳回三個照片的絕對路徑（無照片或檔案不存在則為 null）。 */
+    fun getPhotoPaths(): Triple<String?, String?, String?> = Triple(
+        photoFileSlot1?.takeIf { it.exists() }?.absolutePath,
+        photoFileSlot2?.takeIf { it.exists() }?.absolutePath,
+        photoFileSlot3?.takeIf { it.exists() }?.absolutePath
+    )
 
     fun getPhotoUris(): Triple<Uri?, Uri?, Uri?> {
         fun fileToUri(file: File?): Uri? = file?.takeIf { it.exists() }?.let {

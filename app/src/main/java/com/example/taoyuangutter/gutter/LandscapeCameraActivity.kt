@@ -3,6 +3,7 @@ package com.example.taoyuangutter.gutter
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.OrientationEventListener
 import android.view.Surface
@@ -74,6 +75,7 @@ class LandscapeCameraActivity : AppCompatActivity() {
     private fun setupOrientationListener() {
         orientationListener = object : OrientationEventListener(this) {
             override fun onOrientationChanged(orientation: Int) {
+                // ORIENTATION_UNKNOWN = 感應器無法讀取（模擬器常見），保持現有狀態不做任何切換
                 if (orientation == ORIENTATION_UNKNOWN) return
                 val landscape = orientation in 60..120 || orientation in 240..300
                 if (landscape != deviceIsLandscape) {
@@ -82,7 +84,19 @@ class LandscapeCameraActivity : AppCompatActivity() {
                 }
             }
         }
-        updateOrientationUI(false)
+
+        // ── 用 display rotation 初始化（而非假設直立）──────────────────────
+        // 因 manifest 宣告 sensorLandscape，Activity 啟動時 display 已是橫向；
+        // 實體裝置與模擬器均可正確初始化，避免模擬器感應器不動時按鈕永遠 disabled。
+        val rotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            display?.rotation ?: Surface.ROTATION_0
+        } else {
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.rotation
+        }
+        val isDisplayLandscape = rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270
+        deviceIsLandscape = isDisplayLandscape
+        updateOrientationUI(isDisplayLandscape)
     }
 
     private fun updateOrientationUI(isLandscape: Boolean) {

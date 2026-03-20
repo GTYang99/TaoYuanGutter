@@ -37,14 +37,15 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        compose = true
     }
 }
 
 secrets {
-    // 真實金鑰存放於此，已加入 .gitignore，不會上傳至 GitHub
-    propertiesFileName = "new.properties"
+    // 真實金鑰存放於此（local.properties），已加入 .gitignore，不會上傳至 GitHub
+    propertiesFileName = "local.properties"
     // 安全模板，可上傳至 GitHub，提示團隊需設定哪些金鑰
-    defaultPropertiesFileName = "new.defaults.properties"
+    defaultPropertiesFileName = "secrets.defaults.properties"
 }
 
 dependencies {
@@ -64,6 +65,16 @@ dependencies {
     implementation(libs.camerax.camera2)
     implementation(libs.camerax.lifecycle)
     implementation(libs.camerax.view)
+    // GPS 定位
+    implementation(libs.play.services.location)
+    // Coroutines（lifecycleScope.launch）
+    implementation(libs.kotlinx.coroutines.android)
+    // Retrofit + OkHttp（網路 API）
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
+    implementation(libs.gson)
     // Compose (for ui/theme files)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

@@ -5,7 +5,9 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import com.example.taoyuangutter.R
 import com.example.taoyuangutter.databinding.FragmentGutterBasicInfoBinding
 
 class GutterBasicInfoFragment : Fragment() {
@@ -72,6 +74,7 @@ class GutterBasicInfoFragment : Fragment() {
         val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
         setupDropdown()
         prefillData()
+        setupReadOnlyCoordinates()
         setEditable(!isViewMode)
     }
 
@@ -93,22 +96,54 @@ class GutterBasicInfoFragment : Fragment() {
     /** 從 args 預填既有資料（有則填，無則走座標預填） */
     private fun prefillData() {
         val args = arguments ?: return
-        val savedGutterId = args.getString(ARG_DATA_GUTTER_ID, "")
-        if (savedGutterId.isNotEmpty()) {
-            // 有既有資料 → 全部從 args 填入
-            binding.etGutterId.setText(savedGutterId)
-            binding.actvGutterType.setText(args.getString(ARG_DATA_GUTTER_TYPE, ""), false)
-            binding.etCoordX.setText(args.getString(ARG_DATA_COORD_X, ""))
-            binding.etCoordY.setText(args.getString(ARG_DATA_COORD_Y, ""))
-            binding.etCoordZ.setText(args.getString(ARG_DATA_COORD_Z, ""))
-            binding.etMeasureId.setText(args.getString(ARG_DATA_MEASURE_ID, ""))
-            binding.etDepth.setText(args.getString(ARG_DATA_DEPTH, ""))
-            binding.etTopWidth.setText(args.getString(ARG_DATA_TOP_WIDTH, ""))
-            binding.etRemarks.setText(args.getString(ARG_DATA_REMARKS, ""))
+
+        val gutterId   = args.getString(ARG_DATA_GUTTER_ID,   "")
+        val gutterType = args.getString(ARG_DATA_GUTTER_TYPE, "")
+        val coordX     = args.getString(ARG_DATA_COORD_X,     "")
+        val coordY     = args.getString(ARG_DATA_COORD_Y,     "")
+        val coordZ     = args.getString(ARG_DATA_COORD_Z,     "")
+        val measureId  = args.getString(ARG_DATA_MEASURE_ID,  "")
+        val depth      = args.getString(ARG_DATA_DEPTH,       "")
+        val topWidth   = args.getString(ARG_DATA_TOP_WIDTH,   "")
+        val remarks    = args.getString(ARG_DATA_REMARKS,     "")
+
+        // 只要任一欄位有值就代表是既有資料，不能單靠 gutterId 判斷
+        val hasAnyData = listOf(gutterId, gutterType, coordX, coordY, coordZ,
+                                measureId, depth, topWidth, remarks).any { it.isNotEmpty() }
+
+        if (hasAnyData) {
+            binding.etGutterId.setText(gutterId)
+            binding.actvGutterType.setText(gutterType, false)
+            binding.etCoordX.setText(coordX)
+            binding.etCoordY.setText(coordY)
+            binding.etCoordZ.setText(coordZ)
+            binding.etMeasureId.setText(measureId)
+            binding.etDepth.setText(depth)
+            binding.etTopWidth.setText(topWidth)
+            binding.etRemarks.setText(remarks)
+            // 若座標欄位仍空（例如僅填文字欄位），補上 GPS 預填
+            if (coordX.isEmpty() && coordY.isEmpty()) prefillCoordinates()
         } else {
-            // 沒有既有資料 → 用 GPS 座標預填 X/Y
+            // 全空 → 用 GPS 座標預填 X/Y
             prefillCoordinates()
         }
+    }
+
+    /**
+     * 將 coordX / coordY 設為永久唯讀，字體顯示灰色。
+     * 無論 viewMode 為何，這兩個欄位都只能由地圖 pin 帶入，不能手動輸入。
+     */
+    private fun setupReadOnlyCoordinates() {
+        val grayColor = ContextCompat.getColor(requireContext(), R.color.inputFieldHint)
+        listOf(binding.etCoordX, binding.etCoordY).forEach { et ->
+            et.isEnabled = false
+            et.isFocusable = false
+            et.isFocusableInTouchMode = false
+            et.setTextColor(grayColor)
+        }
+        // TextInputLayout 維持正常不透明（只有文字變灰，邊框不需要暗化）
+        binding.tilCoordX.alpha = 1f
+        binding.tilCoordY.alpha = 1f
     }
 
     /** 將 GPS 座標預填至 X/Y 欄位 */
@@ -129,8 +164,7 @@ class GutterBasicInfoFragment : Fragment() {
     fun setEditable(enabled: Boolean) {
         val fields = listOf(
             binding.etGutterId,
-            binding.etCoordX,
-            binding.etCoordY,
+            // etCoordX / etCoordY 永久唯讀，不參與 setEditable 切換
             binding.etCoordZ,
             binding.etMeasureId,
             binding.etDepth,
@@ -154,18 +188,34 @@ class GutterBasicInfoFragment : Fragment() {
         }
 
         // TextInputLayout stroke 顏色提示（唯讀時變灰）
+        // tilCoordX / tilCoordY 不在此列，由 setupReadOnlyCoordinates() 固定處理
         val alpha = if (enabled) 1f else 0.5f
         listOf(
             binding.tilGutterId,
             binding.tilGutterType,
-            binding.tilCoordX,
-            binding.tilCoordY,
             binding.tilCoordZ,
             binding.tilMeasureId,
             binding.tilDepth,
             binding.tilTopWidth,
             binding.tilRemarks
         ).forEach { it.alpha = alpha }
+    }
+
+    /**
+     * 驗證必填欄位（備註為選填，不檢查）。
+     * @return 第一個未填欄位的顯示名稱；全部填妥則回傳 null。
+     */
+    fun validateRequiredFields(): String? {
+        val d = collectData()
+        if (d["gutterId"].isNullOrEmpty())   return "側溝編號"
+        if (d["gutterType"].isNullOrEmpty())  return "側溝形式"
+        if (d["coordX"].isNullOrEmpty())      return "側溝X（E）座標"
+        if (d["coordY"].isNullOrEmpty())      return "側溝Y（N）座標"
+        if (d["coordZ"].isNullOrEmpty())      return "側溝Z座標"
+        if (d["measureId"].isNullOrEmpty())   return "測量座標編號"
+        if (d["depth"].isNullOrEmpty())       return "側溝測量深度"
+        if (d["topWidth"].isNullOrEmpty())    return "側溝頂寬度"
+        return null
     }
 
     /** 收集表單資料（供 GutterFormActivity 提交用） */
