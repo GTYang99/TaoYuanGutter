@@ -100,7 +100,7 @@ class LandscapeCameraActivity : AppCompatActivity() {
     }
 
     private fun updateOrientationUI(isLandscape: Boolean) {
-        binding.orientationWarning.visibility = if (isLandscape) View.GONE else View.VISIBLE
+        //binding.orientationWarning.visibility = if (isLandscape) View.GONE else View.VISIBLE
         binding.btnCapture.isEnabled = isLandscape
         binding.btnCapture.alpha = if (isLandscape) 1f else 0.4f
     }

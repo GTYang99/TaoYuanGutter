@@ -56,6 +56,49 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         isInspectMode = arguments?.getBoolean(ARG_INSPECT_MODE, false) ?: false
         // 新增模式：禁止 back 鍵/點背景關閉；檢視模式：允許
         isCancelable = isInspectMode
+        // 新增模式：若 Activity 在表單期間被系統回收，從 savedInstanceState 恢復所有點位資料
+        if (savedInstanceState != null && !isInspectMode) {
+            restoreWaypointsState(savedInstanceState)
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        if (isInspectMode) return
+        // 儲存所有 waypoints（包含已填寫的 latLng 與 basicData），
+        // 避免 Activity 在 GutterFormActivity 期間被系統回收後資料遺失。
+        outState.putInt(KEY_WP_COUNT, waypoints.size)
+        waypoints.forEachIndexed { i, wp ->
+            outState.putString("wp_type_$i",  wp.type.name)
+            outState.putString("wp_label_$i", wp.label)
+            outState.putDouble("wp_lat_$i",   wp.latLng?.latitude  ?: Double.NaN)
+            outState.putDouble("wp_lng_$i",   wp.latLng?.longitude ?: Double.NaN)
+            val keys = wp.basicData.keys.toTypedArray()
+            val vals = keys.map { wp.basicData[it] ?: "" }.toTypedArray()
+            outState.putStringArray("wp_data_keys_$i", keys)
+            outState.putStringArray("wp_data_vals_$i", vals)
+        }
+    }
+
+    /** 從 savedInstanceState 恢復 waypoints（Activity 重建後呼叫）。 */
+    private fun restoreWaypointsState(state: Bundle) {
+        val count = state.getInt(KEY_WP_COUNT, -1)
+        if (count <= 0) return
+        waypoints.clear()
+        for (i in 0 until count) {
+            val typeName = state.getString("wp_type_$i") ?: WaypointType.START.name
+            val type  = WaypointType.valueOf(typeName)
+            val label = state.getString("wp_label_$i") ?: ""
+            val lat   = state.getDouble("wp_lat_$i", Double.NaN)
+            val lng   = state.getDouble("wp_lng_$i", Double.NaN)
+            val latLng = if (!lat.isNaN() && !lng.isNaN()) LatLng(lat, lng) else null
+            val keys  = state.getStringArray("wp_data_keys_$i") ?: emptyArray()
+            val vals  = state.getStringArray("wp_data_vals_$i") ?: emptyArray()
+            val data  = hashMapOf<String, String>().apply {
+                keys.zip(vals.toList()).forEach { (k, v) -> put(k, v) }
+            }
+            waypoints.add(Waypoint(type, label, latLng, data))
+        }
     }
 
     override fun onCreateView(
@@ -311,6 +354,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     companion object {
         const val TAG = "AddGutterBottomSheet"
         private const val ARG_INSPECT_MODE = "inspect_mode"
+        private const val KEY_WP_COUNT     = "wp_count"
 
         /** 新增模式 */
         fun newInstance() = AddGutterBottomSheet()

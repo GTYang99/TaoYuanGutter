@@ -265,12 +265,12 @@ class GutterFormActivity : AppCompatActivity() {
         }
 
         // ② 驗證三張照片全部拍攝（暫時關閉，測試用）
-//        val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
-//        if (photoError != null) {
-//            binding.viewPager.currentItem = 1
-//            Toast.makeText(this, "請拍攝「$photoError」照片", Toast.LENGTH_SHORT).show()
-//            return
-//        }
+        val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
+        if (photoError != null) {
+            binding.viewPager.currentItem = 1
+            Toast.makeText(this, "請拍攝「$photoError」照片", Toast.LENGTH_SHORT).show()
+            return
+        }
 
         // ③ 驗證通過 → 儲存並關閉
         buildAndFinishWithResult()
