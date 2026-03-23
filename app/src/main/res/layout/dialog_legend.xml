@@ -23,35 +23,39 @@
             android:textSize="20sp"
             android:textStyle="bold" />
 
+        <!-- 已完成 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:gravity="center"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
             <View
-                android:layout_width="32dp"
-                android:layout_height="4dp"
-                android:background="#666666" />
+                android:layout_width="36dp"
+                android:layout_height="6dp"
+                android:background="@drawable/bg_legend_line"
+                android:backgroundTint="#4DB6AC" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:text="@string/legend_uninvestigated"
+                android:text="@string/legend_completed"
                 android:textColor="@color/text_grey"
                 android:textSize="16sp" />
         </LinearLayout>
 
+        <!-- 待修正 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            android:gravity="center"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
             <View
-                android:layout_width="32dp"
-                android:layout_height="4dp"
-                android:background="#FF5252" />
+                android:layout_width="36dp"
+                android:layout_height="6dp"
+                android:background="@drawable/bg_legend_line"
+                android:backgroundTint="#F06292" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -61,20 +65,43 @@
                 android:textSize="16sp" />
         </LinearLayout>
 
+        <!-- 待匯入座標資訊 -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:gravity="center"
+            android:layout_marginBottom="16dp"
+            android:gravity="center_vertical"
             android:orientation="horizontal">
             <View
-                android:layout_width="32dp"
-                android:layout_height="4dp"
-                android:background="#4DB6AC" />
+                android:layout_width="36dp"
+                android:layout_height="6dp"
+                android:background="@drawable/bg_legend_line"
+                android:backgroundTint="#FFA726" />
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="16dp"
-                android:text="@string/legend_completed"
+                android:text="@string/legend_pending_coords"
+                android:textColor="@color/text_grey"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- 非本公司管轄 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <View
+                android:layout_width="36dp"
+                android:layout_height="6dp"
+                android:background="@drawable/bg_legend_line"
+                android:backgroundTint="#9E9E9E" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="@string/legend_not_jurisdiction"
                 android:textColor="@color/text_grey"
                 android:textSize="16sp" />
         </LinearLayout>

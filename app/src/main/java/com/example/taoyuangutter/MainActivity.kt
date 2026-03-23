@@ -291,8 +291,16 @@ class MainActivity : AppCompatActivity(),
     private fun moveCameraToLatLngOffset(latLng: LatLng, offsetRatio: Double) {
         val map = googleMap ?: return
         val screenH = resources.displayMetrics.heightPixels
+        // 暫時設定底部 padding，讓地圖移動時把點位顯示在視窗上半段；
+        // 動畫結束（或被取消）後立即歸零，確保地圖始終佔滿全螢幕。
         map.setPadding(0, 0, 0, (screenH * offsetRatio).toInt())
-        map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 20f))
+        map.animateCamera(
+            CameraUpdateFactory.newLatLngZoom(latLng, 20f),
+            object : GoogleMap.CancelableCallback {
+                override fun onFinish() { map.setPadding(0, 0, 0, 0) }
+                override fun onCancel() { map.setPadding(0, 0, 0, 0) }
+            }
+        )
     }
 
     private fun fitCameraToWaypoints(waypoints: List<Waypoint>, bottomOffsetRatio: Double = 0.52) {
@@ -302,12 +310,21 @@ class MainActivity : AppCompatActivity(),
         val dm      = resources.displayMetrics
         val screenH = dm.heightPixels
         val padding = (64 * dm.density).toInt()
+        // 暫時設定 padding，讓相機計算範圍時排除底部 BottomSheet 區域；
+        // 動畫結束（或被取消）後歸零，避免 Google Maps 縮放鈕 / 羅盤位置偏移。
         map.setPadding(padding, padding, padding, (screenH * bottomOffsetRatio).toInt())
         val boundsBuilder = LatLngBounds.Builder()
         points.forEach { boundsBuilder.include(it) }
         try {
-            map.animateCamera(CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding))
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding),
+                object : GoogleMap.CancelableCallback {
+                    override fun onFinish() { map.setPadding(0, 0, 0, 0) }
+                    override fun onCancel() { map.setPadding(0, 0, 0, 0) }
+                }
+            )
         } catch (e: Exception) {
+            map.setPadding(0, 0, 0, 0)   // 例外時也立即歸零
             map.setOnMapLoadedCallback { fitCameraToWaypoints(waypoints, bottomOffsetRatio) }
         }
     }

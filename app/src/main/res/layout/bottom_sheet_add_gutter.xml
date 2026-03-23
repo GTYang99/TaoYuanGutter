@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/white"
+    android:background="@drawable/bg_form_sheet"
     android:orientation="vertical">
 
     <!-- Drag Handle -->
@@ -11,26 +11,27 @@
         android:layout_width="40dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="12dp"
         android:layout_marginBottom="4dp"
         android:background="@drawable/bg_drag_handle" />
 
-    <!-- Header Row: [X] 路線規劃 [+] -->
+    <!-- Header Row: [<] 新增側溝 [+] -->
     <RelativeLayout
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:paddingHorizontal="8dp">
+        android:layout_height="56dp"
+        android:paddingHorizontal="4dp">
 
-        <!-- 關閉按鈕（左上） -->
+        <!-- 關閉按鈕（左，返回箭頭） -->
         <ImageButton
             android:id="@+id/btnClose"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_alignParentStart="true"
             android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="關閉"
-            android:src="@drawable/ic_close"
+            android:padding="12dp"
+            android:src="@drawable/ic_arrow_back"
             app:tint="@color/text_grey" />
 
         <!-- 標題 -->
@@ -38,20 +39,21 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="@string/add_gutter_route_title"
+            android:text="新增側溝"
             android:textColor="@color/text_grey"
-            android:textSize="17sp"
+            android:textSize="18sp"
             android:textStyle="bold" />
 
-        <!-- 新增節點按鈕（右上） -->
+        <!-- 新增節點按鈕（右） -->
         <ImageButton
             android:id="@+id/btnAddNode"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
             android:layout_alignParentEnd="true"
             android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="新增節點"
+            android:padding="12dp"
             android:src="@drawable/ic_add"
             app:tint="@color/colorPrimary" />
 
@@ -83,13 +85,13 @@
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSubmitGutter"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
+        android:layout_height="52dp"
         android:layout_margin="16dp"
         android:text="@string/btn_add_gutter"
         android:textColor="@color/white"
         android:textSize="16sp"
         android:textStyle="bold"
         app:backgroundTint="@color/colorPrimary"
-        app:cornerRadius="10dp" />
+        app:cornerRadius="12dp" />
 
 </LinearLayout>
