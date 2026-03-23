@@ -42,6 +42,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     // ── 模式 ─────────────────────────────────────────────────────────────
     /** true = 檢視線段模式（點選 cell → 開啟表單檢視），false = 新增模式 */
     private var isInspectMode = false
+    /** true = 從離線流程開啟，顯示「取消」而非返回箭頭 */
+    private var isOfflineMode = false
 
     // ── 資料 ─────────────────────────────────────────────────────────────
     private lateinit var adapter: WaypointAdapter
@@ -53,7 +55,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     // ── Lifecycle ────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        isInspectMode = arguments?.getBoolean(ARG_INSPECT_MODE, false) ?: false
+        isInspectMode = arguments?.getBoolean(ARG_INSPECT_MODE,  false) ?: false
+        isOfflineMode = arguments?.getBoolean(ARG_OFFLINE_MODE, false) ?: false
         // 新增模式：禁止 back 鍵/點背景關閉；檢視模式：允許
         isCancelable = isInspectMode
         // 新增模式：若 Activity 在表單期間被系統回收，從 savedInstanceState 恢復所有點位資料
@@ -147,14 +150,17 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     // ── 設定 BottomSheet 行為 ────────────────────────────────────────────
     private fun setupBottomSheetBehavior() {
         dialog?.setOnShowListener {
+            val sheetView = getSheetView()
+            val screenH   = resources.displayMetrics.heightPixels
+            // 滿版面：讓 BottomSheet 佔滿整個螢幕高度
+            sheetView?.layoutParams?.height = screenH
+            sheetView?.requestLayout()
             getBehavior()?.apply {
-                val screenH    = resources.displayMetrics.heightPixels
-                peekHeight     = (screenH * 0.52).toInt()
-                // 完全展開時頂部仍保留 30%，讓地圖（含大頭針/線段）始終可見
-                expandedOffset = (screenH * 0.30).toInt()
-                state          = BottomSheetBehavior.STATE_COLLAPSED
-                isHideable     = false
-                skipCollapsed  = false
+                peekHeight    = screenH
+                expandedOffset = 0
+                state         = BottomSheetBehavior.STATE_EXPANDED
+                isHideable    = false
+                skipCollapsed = true
             }
         }
     }
@@ -250,7 +256,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     // ── 按鈕 ─────────────────────────────────────────────────────────────
     private fun setupButtons() {
-        binding.btnClose.setOnClickListener { dismiss() }
+        if (isOfflineMode) {
+            // 離線模式：顯示「取消」文字按鈕，隱藏返回箭頭
+            binding.btnClose.visibility  = View.GONE
+            binding.tvCancel.visibility  = View.VISIBLE
+            binding.tvCancel.setOnClickListener { dismiss() }
+        } else {
+            binding.btnClose.setOnClickListener { dismiss() }
+        }
 
         if (isInspectMode) {
             // 檢視模式：隱藏新增節點與提交按鈕
@@ -354,10 +367,16 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     companion object {
         const val TAG = "AddGutterBottomSheet"
         private const val ARG_INSPECT_MODE = "inspect_mode"
+        private const val ARG_OFFLINE_MODE = "offline_mode"
         private const val KEY_WP_COUNT     = "wp_count"
 
-        /** 新增模式 */
+        /** 新增模式（一般地圖流程） */
         fun newInstance() = AddGutterBottomSheet()
+
+        /** 新增模式（離線流程，顯示「取消」按鈕） */
+        fun newOfflineInstance() = AddGutterBottomSheet().apply {
+            arguments = Bundle().apply { putBoolean(ARG_OFFLINE_MODE, true) }
+        }
 
         /** 檢視線段模式（點選 Polyline 後開啟） */
         fun newInstanceForInspect() = AddGutterBottomSheet().apply {

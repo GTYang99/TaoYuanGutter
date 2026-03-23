@@ -3,6 +3,7 @@ package com.example.taoyuangutter
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -26,6 +27,8 @@ import com.example.taoyuangutter.gutter.AddGutterBottomSheet
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
+import com.example.taoyuangutter.login.LoginActivity
+import com.example.taoyuangutter.offline.OfflineDraftsActivity
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -90,7 +93,7 @@ class MainActivity : AppCompatActivity(),
     private val submittedPolylines = mutableListOf<Polyline>()
     private var currentWaypoints: List<Waypoint> = emptyList()
 
-    private lateinit var gutterFormLauncher: ActivityResultLauncher<android.content.Intent>
+    private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -364,6 +367,15 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun setupButtons() {
+        binding.btnLogout.setOnClickListener {
+            val intent = Intent(this, LoginActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            }
+            startActivity(intent)
+        }
+        binding.btnViewDrafts.setOnClickListener {
+            startActivity(Intent(this, OfflineDraftsActivity::class.java))
+        }
         binding.btnLegend.setOnClickListener { showLegendDialog() }
         binding.btnLayers.setOnClickListener { showMapTypeDialog() }
         binding.btnMyLocation.setOnClickListener { requestLocationAndMove() }
@@ -559,7 +571,7 @@ class MainActivity : AppCompatActivity(),
         dialog.show()
     }
 
-    private fun extractBasicData(data: android.content.Intent?): HashMap<String, String> =
+    private fun extractBasicData(data: Intent?): HashMap<String, String> =
         hashMapOf(
             "gutterId"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_GUTTER_ID)   ?: ""),
             "gutterType" to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_GUTTER_TYPE) ?: ""),

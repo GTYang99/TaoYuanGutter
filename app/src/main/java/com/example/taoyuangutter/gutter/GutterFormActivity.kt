@@ -9,7 +9,13 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
+import com.example.taoyuangutter.offline.OfflineDraft
+import com.example.taoyuangutter.offline.OfflineDraftRepository
 
 class GutterFormActivity : AppCompatActivity() {
 
@@ -24,7 +30,12 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_VIEW_MODE        = "view_mode"
         const val EXTRA_WAYPOINT_INDEX   = "waypoint_index"
 
-        // 資料 Key
+        /** 離線模式旗標：不向 MainActivity 回傳 result，改儲存至本機草稿。 */
+        const val EXTRA_OFFLINE_MODE     = "offline_mode"
+        /** 離線模式：若要開啟既有草稿，帶入此 ID（-1 表示新增）。 */
+        const val EXTRA_OFFLINE_DRAFT_ID = "offline_draft_id"
+
+        // 資料 Key（Intent Extra）
         const val EXTRA_DATA_GUTTER_ID   = "ex_gutterId"
         const val EXTRA_DATA_GUTTER_TYPE = "ex_gutterType"
         const val EXTRA_DATA_COORD_X     = "ex_coordX"
@@ -38,6 +49,7 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_DATA_PHOTO_2     = "ex_photo2"
         const val EXTRA_DATA_PHOTO_3     = "ex_photo3"
 
+        // 回傳 Key（Result Intent）
         const val RESULT_LATITUDE        = "result_lat"
         const val RESULT_LONGITUDE       = "result_lng"
         const val RESULT_WAYPOINT_INDEX  = "result_wp_index"
@@ -53,6 +65,8 @@ class GutterFormActivity : AppCompatActivity() {
         const val RESULT_DATA_PHOTO_1     = "r_photo1"
         const val RESULT_DATA_PHOTO_2     = "r_photo2"
         const val RESULT_DATA_PHOTO_3     = "r_photo3"
+
+        // ── Factory ───────────────────────────────────────────────────────
 
         fun newIntent(
             context: Context,
@@ -87,6 +101,21 @@ class GutterFormActivity : AppCompatActivity() {
             fillDataExtras(this, basicData)
         }
 
+        /**
+         * 離線模式：不需地圖點位，座標固定 (0.0, 0.0)。
+         * @param draftId 傳入已存草稿 ID 以開啟既有資料；-1L 表示新增。
+         */
+        fun newOfflineIntent(context: Context, draftId: Long = -1L): Intent =
+            Intent(context, GutterFormActivity::class.java).apply {
+                putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, arrayListOf("離線側溝"))
+                putExtra(EXTRA_LATITUDES,     doubleArrayOf(0.0))
+                putExtra(EXTRA_LONGITUDES,    doubleArrayOf(0.0))
+                putExtra(EXTRA_CURRENT_INDEX, 0)
+                putExtra(EXTRA_VIEW_MODE,     false)
+                putExtra(EXTRA_OFFLINE_MODE,  true)
+                putExtra(EXTRA_OFFLINE_DRAFT_ID, draftId)
+            }
+
         private fun fillDataExtras(intent: Intent, data: HashMap<String, String>) {
             intent.putExtra(EXTRA_DATA_GUTTER_ID,   data["gutterId"]   ?: "")
             intent.putExtra(EXTRA_DATA_GUTTER_TYPE, data["gutterType"] ?: "")
@@ -103,12 +132,19 @@ class GutterFormActivity : AppCompatActivity() {
         }
     }
 
+    // ── 狀態欄位 ──────────────────────────────────────────────────────────
+
     private var waypointLabels = arrayListOf<String>()
     private var latitudes  = doubleArrayOf()
     private var longitudes = doubleArrayOf()
     private var currentIndex  = 0
     private var waypointIndex = 0
-    private var isViewMode = false
+    private var isViewMode    = false
+
+    /** true → 離線模式，儲存至本機草稿，不向 MainActivity 回傳 result */
+    private var isOfflineMode  = false
+    /** 正在編輯的草稿 ID（-1L 表示新增）*/
+    private var offlineDraftId = -1L
 
     /** 本點位的原始 GPS 座標（來自地圖選點），永遠保留以確保 result 能帶回正確定位 */
     private var currentLat: Double = 0.0
@@ -125,35 +161,75 @@ class GutterFormActivity : AppCompatActivity() {
         currentIndex  = intent.getIntExtra(EXTRA_CURRENT_INDEX, 0)
         waypointIndex = intent.getIntExtra(EXTRA_WAYPOINT_INDEX, 0)
         isViewMode    = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
+        isOfflineMode = intent.getBooleanExtra(EXTRA_OFFLINE_MODE, false)
+        offlineDraftId = intent.getLongExtra(EXTRA_OFFLINE_DRAFT_ID, -1L)
 
         val label = waypointLabels.getOrElse(currentIndex) { "點位" }
         val lat   = latitudes.getOrElse(currentIndex)  { 0.0 }
         val lng   = longitudes.getOrElse(currentIndex) { 0.0 }
 
-        // 儲存原始 GPS 座標，用於 result 回傳（不依賴表單欄位是否有值）
         currentLat = lat
         currentLng = lng
 
-        val existingData = hashMapOf(
-            "gutterId"   to (intent.getStringExtra(EXTRA_DATA_GUTTER_ID)   ?: ""),
-            "gutterType" to (intent.getStringExtra(EXTRA_DATA_GUTTER_TYPE) ?: ""),
-            "coordX"     to (intent.getStringExtra(EXTRA_DATA_COORD_X)     ?: ""),
-            "coordY"     to (intent.getStringExtra(EXTRA_DATA_COORD_Y)     ?: ""),
-            "coordZ"     to (intent.getStringExtra(EXTRA_DATA_COORD_Z)     ?: ""),
-            "measureId"  to (intent.getStringExtra(EXTRA_DATA_MEASURE_ID)  ?: ""),
-            "depth"      to (intent.getStringExtra(EXTRA_DATA_DEPTH)       ?: ""),
-            "topWidth"   to (intent.getStringExtra(EXTRA_DATA_TOP_WIDTH)   ?: ""),
-            "remarks"    to (intent.getStringExtra(EXTRA_DATA_REMARKS)     ?: ""),
-            "photo1"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_1)     ?: ""),
-            "photo2"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_2)     ?: ""),
-            "photo3"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_3)     ?: "")
-        )
+        // 離線模式：若有既有草稿 ID，從本機讀取資料
+        val existingData: HashMap<String, String> = if (isOfflineMode && offlineDraftId >= 0) {
+            val draft = OfflineDraftRepository(this).getById(offlineDraftId)
+            draft?.toBasicData() ?: buildEmptyData(lat, lng)
+        } else {
+            hashMapOf(
+                "gutterId"   to (intent.getStringExtra(EXTRA_DATA_GUTTER_ID)   ?: ""),
+                "gutterType" to (intent.getStringExtra(EXTRA_DATA_GUTTER_TYPE) ?: ""),
+                "coordX"     to (intent.getStringExtra(EXTRA_DATA_COORD_X)     ?: ""),
+                "coordY"     to (intent.getStringExtra(EXTRA_DATA_COORD_Y)     ?: ""),
+                "coordZ"     to (intent.getStringExtra(EXTRA_DATA_COORD_Z)     ?: ""),
+                "measureId"  to (intent.getStringExtra(EXTRA_DATA_MEASURE_ID)  ?: ""),
+                "depth"      to (intent.getStringExtra(EXTRA_DATA_DEPTH)       ?: ""),
+                "topWidth"   to (intent.getStringExtra(EXTRA_DATA_TOP_WIDTH)   ?: ""),
+                "remarks"    to (intent.getStringExtra(EXTRA_DATA_REMARKS)     ?: ""),
+                "photo1"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_1)     ?: ""),
+                "photo2"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_2)     ?: ""),
+                "photo3"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_3)     ?: "")
+            )
+        }
 
-        applyBottomSheetWindow()
+        // 離線模式直接全螢幕；一般模式保留底部 sheet 3/4 視窗樣式
+        if (!isOfflineMode) {
+            applyBottomSheetWindow()
+        } else {
+            applyFullScreenInsets()
+        }
         setupTitleBar(label)
         setupViewPager(lat, lng, existingData)
         setupTabButtons()
         setupFab()
+    }
+
+    private fun buildEmptyData(lat: Double, lng: Double) = hashMapOf(
+        "gutterId" to "", "gutterType" to "",
+        "coordX"   to if (lng != 0.0) "%.6f".format(lng) else "",
+        "coordY"   to if (lat != 0.0) "%.6f".format(lat) else "",
+        "coordZ" to "", "measureId" to "", "depth" to "",
+        "topWidth" to "", "remarks" to "",
+        "photo1" to "", "photo2" to "", "photo3" to ""
+    )
+
+    /**
+     * 離線全螢幕模式：讓 Activity 畫到系統列後方，
+     * 再透過 WindowInsets 給 AppBarLayout 加上 statusBar 高度的 paddingTop，
+     * 並給 FAB 加上 navigationBar 高度的 bottomMargin，確保切頁按鈕與 FAB 都在 safe area 內。
+     */
+    private fun applyFullScreenInsets() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            // 頂部 safe area：AppBarLayout（含標題列 + 切頁按鈕列）整體下移
+            binding.appBarLayout.setPadding(0, bars.top, 0, 0)
+            // 底部 safe area：FAB 離 nav bar 保持 24dp 間距
+            val fabParams = binding.fabSubmit.layoutParams as CoordinatorLayout.LayoutParams
+            fabParams.bottomMargin = (24 * resources.displayMetrics.density).toInt() + bars.bottom
+            binding.fabSubmit.layoutParams = fabParams
+            WindowInsetsCompat.CONSUMED
+        }
     }
 
     private fun applyBottomSheetWindow() {
@@ -167,9 +243,16 @@ class GutterFormActivity : AppCompatActivity() {
 
     private fun setupTitleBar(label: String) {
         binding.tvFormTitle.text = label
-        binding.btnBack.setOnClickListener {
-            // 新增模式：返回鍵儲存草稿（不驗證），避免資料遺失
-            if (!isViewMode) saveDraftAndClose() else finish()
+
+        if (isOfflineMode) {
+            // 離線模式：左上角改為 × 取消按鈕，直接 finish 不存草稿
+            binding.btnBack.setImageResource(com.example.taoyuangutter.R.drawable.ic_close)
+            binding.btnBack.contentDescription = "取消"
+            binding.btnBack.setOnClickListener { finish() }
+        } else {
+            binding.btnBack.setOnClickListener {
+                if (!isViewMode) saveDraftAndClose() else finish()
+            }
         }
 
         if (isViewMode) {
@@ -221,7 +304,6 @@ class GutterFormActivity : AppCompatActivity() {
         pagerAdapter = GutterFormPagerAdapter(this, lat, lng, isViewMode, basicData)
         binding.viewPager.adapter = pagerAdapter
         binding.viewPager.isUserInputEnabled = false
-        // 確保兩個 Fragment 同時存在，saveAndClose() 才能同時讀取兩頁的資料
         binding.viewPager.offscreenPageLimit = 1
         binding.viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) = updateTabUI(position)
@@ -248,59 +330,44 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun setupFab() {
-        binding.fabSubmit.setOnClickListener { saveAndClose() }
+        binding.fabSubmit.setOnClickListener {
+            if (isOfflineMode) saveOfflineAndClose() else saveAndClose()
+        }
     }
 
-    /**
-     * FAB 按下：驗證所有必填欄位與三張照片，通過後才收集資料並關閉。
-     * 驗證失敗時切換至對應 tab 並顯示提示，不關閉表單。
-     */
+    // ── 正式流程（有地圖點位）────────────────────────────────────────────
+
     private fun saveAndClose() {
-        // ① 驗證基本資料必填欄位
         val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
         if (basicError != null) {
             binding.viewPager.currentItem = 0
             Toast.makeText(this, "請填寫「$basicError」", Toast.LENGTH_SHORT).show()
             return
         }
-
-        // ② 驗證三張照片全部拍攝（暫時關閉，測試用）
         val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
         if (photoError != null) {
             binding.viewPager.currentItem = 1
             Toast.makeText(this, "請拍攝「$photoError」照片", Toast.LENGTH_SHORT).show()
             return
         }
-
-        // ③ 驗證通過 → 儲存並關閉
         buildAndFinishWithResult()
     }
 
-    /**
-     * 返回鍵／草稿儲存：不驗證，直接將目前填寫狀態存回並關閉。
-     * 避免使用者中途返回時資料遺失。
-     */
     private fun saveDraftAndClose() {
-        buildAndFinishWithResult()
+        if (isOfflineMode) saveOfflineAndClose(silent = true) else buildAndFinishWithResult()
     }
 
-    /** 收集基本資料與照片路徑，組成 RESULT_OK Intent 並 finish。 */
     private fun buildAndFinishWithResult() {
         val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
         val (photo1, photo2, photo3) =
             pagerAdapter.getPhotosFragment()?.getPhotoPaths() ?: Triple(null, null, null)
 
-        // ── 決定地圖定位用的 lat/lng ────────────────────────────────────────
-        // 優先採用表單欄位裡使用者確認過的 WGS84 座標值；
-        // 若欄位空白或無法解析（例如使用者填入的是 TWD97 測量座標），
-        // 則退回使用地圖選點時記錄的原始 GPS 座標，確保大頭針位置永遠有值。
         val formLat = basicData["coordY"]?.toDoubleOrNull()
         val formLng = basicData["coordX"]?.toDoubleOrNull()
         val effectiveLat = if (formLat != null && formLat in -90.0..90.0)   formLat else currentLat
         val effectiveLng = if (formLng != null && formLng in -180.0..180.0) formLng else currentLng
 
         val resultIntent = Intent().apply {
-            // RESULT_LATITUDE / RESULT_LONGITUDE 永遠帶值，讓 MainActivity 能更新大頭針
             putExtra(RESULT_LATITUDE,         effectiveLat)
             putExtra(RESULT_LONGITUDE,        effectiveLng)
             putExtra(RESULT_WAYPOINT_INDEX,   waypointIndex)
@@ -321,9 +388,66 @@ class GutterFormActivity : AppCompatActivity() {
         finish()
     }
 
+    // ── 離線模式（儲存至本機草稿）────────────────────────────────────────
+
+    /**
+     * 將目前填寫內容儲存為本機草稿。
+     * @param silent true → 不顯示 Toast、不 finish（用於返回鍵草稿自動儲存）
+     */
+    private fun saveOfflineAndClose(silent: Boolean = false) {
+        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
+        val (photo1, photo2, photo3) =
+            pagerAdapter.getPhotosFragment()?.getPhotoPaths() ?: Triple(null, null, null)
+
+        val draft = OfflineDraft(
+            id          = if (offlineDraftId >= 0) offlineDraftId else System.currentTimeMillis(),
+            savedAt     = System.currentTimeMillis(),
+            gutterId    = basicData["gutterId"]   ?: "",
+            gutterType  = basicData["gutterType"] ?: "",
+            coordX      = basicData["coordX"]     ?: "",
+            coordY      = basicData["coordY"]     ?: "",
+            coordZ      = basicData["coordZ"]     ?: "",
+            measureId   = basicData["measureId"]  ?: "",
+            depth       = basicData["depth"]      ?: "",
+            topWidth    = basicData["topWidth"]   ?: "",
+            remarks     = basicData["remarks"]    ?: "",
+            photo1      = photo1                  ?: "",
+            photo2      = photo2                  ?: "",
+            photo3      = photo3                  ?: ""
+        )
+
+        OfflineDraftRepository(this).save(draft)
+
+        if (!silent) {
+            Toast.makeText(this, "草稿已儲存至本機", Toast.LENGTH_SHORT).show()
+        }
+        finish()
+    }
+
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        // 新增模式：系統返回鍵儲存草稿（不驗證）
-        if (!isViewMode) saveDraftAndClose() else super.onBackPressed()
+        when {
+            isOfflineMode -> finish()               // 離線取消：不存草稿
+            !isViewMode   -> saveDraftAndClose()
+            else          -> super.onBackPressed()
+        }
     }
 }
+
+// ── OfflineDraft 擴充函式 ─────────────────────────────────────────────────
+
+/** 將 OfflineDraft 轉為 GutterFormActivity 可直接使用的 basicData HashMap。 */
+private fun OfflineDraft.toBasicData(): HashMap<String, String> = hashMapOf(
+    "gutterId"   to gutterId,
+    "gutterType" to gutterType,
+    "coordX"     to coordX,
+    "coordY"     to coordY,
+    "coordZ"     to coordZ,
+    "measureId"  to measureId,
+    "depth"      to depth,
+    "topWidth"   to topWidth,
+    "remarks"    to remarks,
+    "photo1"     to photo1,
+    "photo2"     to photo2,
+    "photo3"     to photo3
+)

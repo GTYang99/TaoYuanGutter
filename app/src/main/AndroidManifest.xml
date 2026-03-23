@@ -67,6 +67,13 @@
             android:theme="@style/Theme.TaoYuanGutter"
             android:exported="false" />
 
+        <!-- 離線草稿列表 Activity -->
+        <activity
+            android:name=".offline.OfflineDraftsActivity"
+            android:label="離線草稿紀錄"
+            android:theme="@style/Theme.TaoYuanGutter"
+            android:exported="false" />
+
         <!-- FileProvider for camera photo URIs -->
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -26,8 +26,28 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 新增側溝 FAB（左下角，主要動作） -->
-    <!-- 調整 marginBottom 到 112dp (16dp + 80dp + 16dp)，使其位於選點 Overlay 的按鈕列上方 -->
+    <!-- 登出文字按鈕（右上角，白色膠囊樣式） -->
+    <TextView
+        android:id="@+id/btnLogout"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:layout_marginTop="48dp"
+        android:layout_marginEnd="16dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:gravity="center"
+        android:text="登出"
+        android:textColor="#333333"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:background="@drawable/bg_logout_chip"
+        android:elevation="4dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 新增側溝 FAB（右下角，主要動作） -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/btnAddGutter"
         android:layout_width="wrap_content"
@@ -41,17 +61,28 @@
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Map Buttons Container（右下角） -->
-    <!-- 調整 marginBottom 到 112dp，使其底部與左側 + 號按鈕對齊 -->
+    <!-- Map Buttons Container（右側，登出按鈕下方） -->
     <LinearLayout
         android:id="@+id/mapButtonsContainer"
         android:layout_width="wrap_content"
-        android:layout_height="180dp"
+        android:layout_height="wrap_content"
         android:layout_marginEnd="16dp"
-        android:layout_marginTop="100dp"
+        android:layout_marginTop="8dp"
         android:orientation="vertical"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/btnLogout"
         app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- 草稿紀錄按鈕 -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnViewDrafts"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:contentDescription="離線草稿紀錄"
+            android:src="@drawable/ic_note"
+            app:backgroundTint="@color/fab_selector"
+            app:tint="@color/fab_icon_selector"
+            app:fabSize="mini" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnLegend"
