@@ -15,12 +15,16 @@ data class OfflineDraft(
     // ── 基本資料欄位 ─────────────────────────────────────────────────────
     val gutterId:   String = "",
     val gutterType: String = "",
+    val matTyp:     String = "",   // 側溝材質：混凝土/卵礫石/紅磚
     val coordX:     String = "",   // 待匯入，預設 "0.0"
     val coordY:     String = "",   // 待匯入，預設 "0.0"
     val coordZ:     String = "",
     val measureId:  String = "",
     val depth:      String = "",
     val topWidth:   String = "",
+    val isBroken:   String = "",   // 溝體結構受損：否/是
+    val isHanging:  String = "",   // 附掛或過路管線：無/有
+    val isSilt:     String = "",   // 淤積程度：無/輕度/中度/嚴重
     val remarks:    String = "",
 
     // ── 照片路徑 ─────────────────────────────────────────────────────────

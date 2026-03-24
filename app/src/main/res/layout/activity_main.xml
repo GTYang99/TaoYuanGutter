@@ -79,9 +79,9 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:contentDescription="離線草稿紀錄"
-            android:src="@drawable/ic_note"
-            app:backgroundTint="@color/fab_selector"
-            app:tint="@color/fab_icon_selector"
+            android:src="@drawable/ic_tabler_cloud"
+            app:backgroundTint="@color/white"
+            app:tint="@color/colorPrimary"
             app:fabSize="mini" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -90,9 +90,9 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:contentDescription="@string/legend_title"
-            android:src="@drawable/ic_info"
-            app:backgroundTint="@color/fab_selector"
-            app:tint="@color/fab_icon_selector"
+            android:src="@drawable/ic_info_new"
+            app:backgroundTint="@color/white"
+            app:tint="@color/colorPrimary"
             app:fabSize="mini" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -101,9 +101,9 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:contentDescription="@string/layers_title"
-            android:src="@drawable/ic_layers"
-            app:backgroundTint="@color/fab_selector"
-            app:tint="@color/fab_icon_selector"
+            android:src="@drawable/ic_bx_layer"
+            app:backgroundTint="@color/white"
+            app:tint="@color/colorPrimary"
             app:fabSize="mini" />
 
         <com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -112,9 +112,9 @@
             android:layout_height="82dp"
             android:contentDescription="@string/my_location_title"
             android:src="@drawable/ic_my_location"
-            app:backgroundTint="@color/fab_selector"
+            app:backgroundTint="@color/white"
             app:fabSize="mini"
-            app:tint="@color/fab_icon_selector" />
+            app:tint="@color/colorPrimary" />
 
     </LinearLayout>
 

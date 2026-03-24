@@ -53,7 +53,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
                 android:contentDescription="@string/legend_title"
-                android:src="@drawable/ic_info"
+                android:src="@drawable/ic_info_new"
                 app:backgroundTint="@color/fab_selector"
                 app:tint="@color/fab_icon_selector"
                 app:fabSize="mini" />

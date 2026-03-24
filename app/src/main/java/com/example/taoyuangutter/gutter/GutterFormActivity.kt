@@ -38,12 +38,16 @@ class GutterFormActivity : AppCompatActivity() {
         // 資料 Key（Intent Extra）
         const val EXTRA_DATA_GUTTER_ID   = "ex_gutterId"
         const val EXTRA_DATA_GUTTER_TYPE = "ex_gutterType"
+        const val EXTRA_DATA_MAT_TYP     = "ex_matTyp"
         const val EXTRA_DATA_COORD_X     = "ex_coordX"
         const val EXTRA_DATA_COORD_Y     = "ex_coordY"
         const val EXTRA_DATA_COORD_Z     = "ex_coordZ"
         const val EXTRA_DATA_MEASURE_ID  = "ex_measureId"
         const val EXTRA_DATA_DEPTH       = "ex_depth"
         const val EXTRA_DATA_TOP_WIDTH   = "ex_topWidth"
+        const val EXTRA_DATA_IS_BROKEN   = "ex_isBroken"
+        const val EXTRA_DATA_IS_HANGING  = "ex_isHanging"
+        const val EXTRA_DATA_IS_SILT     = "ex_isSilt"
         const val EXTRA_DATA_REMARKS     = "ex_remarks"
         const val EXTRA_DATA_PHOTO_1     = "ex_photo1"
         const val EXTRA_DATA_PHOTO_2     = "ex_photo2"
@@ -55,12 +59,16 @@ class GutterFormActivity : AppCompatActivity() {
         const val RESULT_WAYPOINT_INDEX  = "result_wp_index"
         const val RESULT_DATA_GUTTER_ID   = "r_gutterId"
         const val RESULT_DATA_GUTTER_TYPE = "r_gutterType"
+        const val RESULT_DATA_MAT_TYP     = "r_matTyp"
         const val RESULT_DATA_COORD_X     = "r_coordX"
         const val RESULT_DATA_COORD_Y     = "r_coordY"
         const val RESULT_DATA_COORD_Z     = "r_coordZ"
         const val RESULT_DATA_MEASURE_ID  = "r_measureId"
         const val RESULT_DATA_DEPTH       = "r_depth"
         const val RESULT_DATA_TOP_WIDTH   = "r_topWidth"
+        const val RESULT_DATA_IS_BROKEN   = "r_isBroken"
+        const val RESULT_DATA_IS_HANGING  = "r_isHanging"
+        const val RESULT_DATA_IS_SILT     = "r_isSilt"
         const val RESULT_DATA_REMARKS     = "r_remarks"
         const val RESULT_DATA_PHOTO_1     = "r_photo1"
         const val RESULT_DATA_PHOTO_2     = "r_photo2"
@@ -119,12 +127,16 @@ class GutterFormActivity : AppCompatActivity() {
         private fun fillDataExtras(intent: Intent, data: HashMap<String, String>) {
             intent.putExtra(EXTRA_DATA_GUTTER_ID,   data["gutterId"]   ?: "")
             intent.putExtra(EXTRA_DATA_GUTTER_TYPE, data["gutterType"] ?: "")
+            intent.putExtra(EXTRA_DATA_MAT_TYP,     data["matTyp"]     ?: "")
             intent.putExtra(EXTRA_DATA_COORD_X,     data["coordX"]     ?: "")
             intent.putExtra(EXTRA_DATA_COORD_Y,     data["coordY"]     ?: "")
             intent.putExtra(EXTRA_DATA_COORD_Z,     data["coordZ"]     ?: "")
             intent.putExtra(EXTRA_DATA_MEASURE_ID,  data["measureId"]  ?: "")
             intent.putExtra(EXTRA_DATA_DEPTH,       data["depth"]      ?: "")
             intent.putExtra(EXTRA_DATA_TOP_WIDTH,   data["topWidth"]   ?: "")
+            intent.putExtra(EXTRA_DATA_IS_BROKEN,   data["isBroken"]   ?: "")
+            intent.putExtra(EXTRA_DATA_IS_HANGING,  data["isHanging"]  ?: "")
+            intent.putExtra(EXTRA_DATA_IS_SILT,     data["isSilt"]     ?: "")
             intent.putExtra(EXTRA_DATA_REMARKS,     data["remarks"]    ?: "")
             intent.putExtra(EXTRA_DATA_PHOTO_1,     data["photo1"]     ?: "")
             intent.putExtra(EXTRA_DATA_PHOTO_2,     data["photo2"]     ?: "")
@@ -179,12 +191,16 @@ class GutterFormActivity : AppCompatActivity() {
             hashMapOf(
                 "gutterId"   to (intent.getStringExtra(EXTRA_DATA_GUTTER_ID)   ?: ""),
                 "gutterType" to (intent.getStringExtra(EXTRA_DATA_GUTTER_TYPE) ?: ""),
+                "matTyp"     to (intent.getStringExtra(EXTRA_DATA_MAT_TYP)     ?: ""),
                 "coordX"     to (intent.getStringExtra(EXTRA_DATA_COORD_X)     ?: ""),
                 "coordY"     to (intent.getStringExtra(EXTRA_DATA_COORD_Y)     ?: ""),
                 "coordZ"     to (intent.getStringExtra(EXTRA_DATA_COORD_Z)     ?: ""),
                 "measureId"  to (intent.getStringExtra(EXTRA_DATA_MEASURE_ID)  ?: ""),
                 "depth"      to (intent.getStringExtra(EXTRA_DATA_DEPTH)       ?: ""),
                 "topWidth"   to (intent.getStringExtra(EXTRA_DATA_TOP_WIDTH)   ?: ""),
+                "isBroken"   to (intent.getStringExtra(EXTRA_DATA_IS_BROKEN)   ?: ""),
+                "isHanging"  to (intent.getStringExtra(EXTRA_DATA_IS_HANGING)  ?: ""),
+                "isSilt"     to (intent.getStringExtra(EXTRA_DATA_IS_SILT)     ?: ""),
                 "remarks"    to (intent.getStringExtra(EXTRA_DATA_REMARKS)     ?: ""),
                 "photo1"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_1)     ?: ""),
                 "photo2"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_2)     ?: ""),
@@ -205,12 +221,13 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun buildEmptyData(lat: Double, lng: Double) = hashMapOf(
-        "gutterId" to "", "gutterType" to "",
-        "coordX"   to if (lng != 0.0) "%.6f".format(lng) else "",
-        "coordY"   to if (lat != 0.0) "%.6f".format(lat) else "",
-        "coordZ" to "", "measureId" to "", "depth" to "",
-        "topWidth" to "", "remarks" to "",
-        "photo1" to "", "photo2" to "", "photo3" to ""
+        "gutterId"  to "", "gutterType" to "", "matTyp" to "",
+        "coordX"    to if (lng != 0.0) "%.6f".format(lng) else "",
+        "coordY"    to if (lat != 0.0) "%.6f".format(lat) else "",
+        "coordZ"    to "", "measureId" to "", "depth" to "",
+        "topWidth"  to "", "isBroken" to "", "isHanging" to "", "isSilt" to "",
+        "remarks"   to "",
+        "photo1"    to "", "photo2" to "", "photo3" to ""
     )
 
     /**
@@ -285,12 +302,16 @@ class GutterFormActivity : AppCompatActivity() {
             putExtra(RESULT_WAYPOINT_INDEX,   waypointIndex)
             putExtra(RESULT_DATA_GUTTER_ID,   data["gutterId"]   ?: "")
             putExtra(RESULT_DATA_GUTTER_TYPE, data["gutterType"] ?: "")
+            putExtra(RESULT_DATA_MAT_TYP,     data["matTyp"]     ?: "")
             putExtra(RESULT_DATA_COORD_X,     data["coordX"]     ?: "")
             putExtra(RESULT_DATA_COORD_Y,     data["coordY"]     ?: "")
             putExtra(RESULT_DATA_COORD_Z,     data["coordZ"]     ?: "")
             putExtra(RESULT_DATA_MEASURE_ID,  data["measureId"]  ?: "")
             putExtra(RESULT_DATA_DEPTH,       data["depth"]      ?: "")
             putExtra(RESULT_DATA_TOP_WIDTH,   data["topWidth"]   ?: "")
+            putExtra(RESULT_DATA_IS_BROKEN,   data["isBroken"]   ?: "")
+            putExtra(RESULT_DATA_IS_HANGING,  data["isHanging"]  ?: "")
+            putExtra(RESULT_DATA_IS_SILT,     data["isSilt"]     ?: "")
             putExtra(RESULT_DATA_REMARKS,     data["remarks"]    ?: "")
             putExtra(RESULT_DATA_PHOTO_1,     photo1             ?: "")
             putExtra(RESULT_DATA_PHOTO_2,     photo2             ?: "")
@@ -301,7 +322,7 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun setupViewPager(lat: Double, lng: Double, basicData: HashMap<String, String>) {
-        pagerAdapter = GutterFormPagerAdapter(this, lat, lng, isViewMode, basicData)
+        pagerAdapter = GutterFormPagerAdapter(this, lat, lng, isViewMode, basicData, isOfflineMode)
         binding.viewPager.adapter = pagerAdapter
         binding.viewPager.isUserInputEnabled = false
         binding.viewPager.offscreenPageLimit = 1
@@ -373,12 +394,16 @@ class GutterFormActivity : AppCompatActivity() {
             putExtra(RESULT_WAYPOINT_INDEX,   waypointIndex)
             putExtra(RESULT_DATA_GUTTER_ID,   basicData["gutterId"]   ?: "")
             putExtra(RESULT_DATA_GUTTER_TYPE, basicData["gutterType"] ?: "")
+            putExtra(RESULT_DATA_MAT_TYP,     basicData["matTyp"]     ?: "")
             putExtra(RESULT_DATA_COORD_X,     basicData["coordX"]     ?: "")
             putExtra(RESULT_DATA_COORD_Y,     basicData["coordY"]     ?: "")
             putExtra(RESULT_DATA_COORD_Z,     basicData["coordZ"]     ?: "")
             putExtra(RESULT_DATA_MEASURE_ID,  basicData["measureId"]  ?: "")
             putExtra(RESULT_DATA_DEPTH,       basicData["depth"]      ?: "")
             putExtra(RESULT_DATA_TOP_WIDTH,   basicData["topWidth"]   ?: "")
+            putExtra(RESULT_DATA_IS_BROKEN,   basicData["isBroken"]   ?: "")
+            putExtra(RESULT_DATA_IS_HANGING,  basicData["isHanging"]  ?: "")
+            putExtra(RESULT_DATA_IS_SILT,     basicData["isSilt"]     ?: "")
             putExtra(RESULT_DATA_REMARKS,     basicData["remarks"]    ?: "")
             putExtra(RESULT_DATA_PHOTO_1,     photo1                  ?: "")
             putExtra(RESULT_DATA_PHOTO_2,     photo2                  ?: "")
@@ -392,9 +417,25 @@ class GutterFormActivity : AppCompatActivity() {
 
     /**
      * 將目前填寫內容儲存為本機草稿。
-     * @param silent true → 不顯示 Toast、不 finish（用於返回鍵草稿自動儲存）
+     * @param silent true → 不驗證、不顯示 Toast、直接 finish（返回鍵自動存草稿）
+     *               false → 先驗證所有必填欄位與三張照片，通過才存檔並關閉
      */
     private fun saveOfflineAndClose(silent: Boolean = false) {
+        if (!silent) {
+            // 離線提交：同正式流程，所有必填欄位與照片都需填寫才能儲存
+            val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
+            if (basicError != null) {
+                binding.viewPager.currentItem = 0
+                Toast.makeText(this, "請填寫「$basicError」", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
+            if (photoError != null) {
+                binding.viewPager.currentItem = 1
+                Toast.makeText(this, "請拍攝「$photoError」照片", Toast.LENGTH_SHORT).show()
+                return
+            }
+        }
         val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
         val (photo1, photo2, photo3) =
             pagerAdapter.getPhotosFragment()?.getPhotoPaths() ?: Triple(null, null, null)
@@ -404,12 +445,16 @@ class GutterFormActivity : AppCompatActivity() {
             savedAt     = System.currentTimeMillis(),
             gutterId    = basicData["gutterId"]   ?: "",
             gutterType  = basicData["gutterType"] ?: "",
+            matTyp      = basicData["matTyp"]     ?: "",
             coordX      = basicData["coordX"]     ?: "",
             coordY      = basicData["coordY"]     ?: "",
             coordZ      = basicData["coordZ"]     ?: "",
             measureId   = basicData["measureId"]  ?: "",
             depth       = basicData["depth"]      ?: "",
             topWidth    = basicData["topWidth"]   ?: "",
+            isBroken    = basicData["isBroken"]   ?: "",
+            isHanging   = basicData["isHanging"]  ?: "",
+            isSilt      = basicData["isSilt"]     ?: "",
             remarks     = basicData["remarks"]    ?: "",
             photo1      = photo1                  ?: "",
             photo2      = photo2                  ?: "",
@@ -440,12 +485,16 @@ class GutterFormActivity : AppCompatActivity() {
 private fun OfflineDraft.toBasicData(): HashMap<String, String> = hashMapOf(
     "gutterId"   to gutterId,
     "gutterType" to gutterType,
+    "matTyp"     to matTyp,
     "coordX"     to coordX,
     "coordY"     to coordY,
     "coordZ"     to coordZ,
     "measureId"  to measureId,
     "depth"      to depth,
     "topWidth"   to topWidth,
+    "isBroken"   to isBroken,
+    "isHanging"  to isHanging,
+    "isSilt"     to isSilt,
     "remarks"    to remarks,
     "photo1"     to photo1,
     "photo2"     to photo2,

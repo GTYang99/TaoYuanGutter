@@ -9,7 +9,8 @@ class GutterFormPagerAdapter(
     private val latitude: Double,
     private val longitude: Double,
     private val viewMode: Boolean = false,
-    private val basicData: HashMap<String, String> = hashMapOf()
+    private val basicData: HashMap<String, String> = hashMapOf(),
+    private val isOfflineMode: Boolean = false
 ) : FragmentStateAdapter(fragmentActivity) {
 
     // 保留 Fragment 引用，供外部切換編輯模式時直接呼叫
@@ -19,7 +20,7 @@ class GutterFormPagerAdapter(
 
     override fun createFragment(position: Int): Fragment {
         val frag: Fragment = when (position) {
-            0 -> GutterBasicInfoFragment.newInstance(latitude, longitude, viewMode, basicData)
+            0 -> GutterBasicInfoFragment.newInstance(latitude, longitude, viewMode, basicData, isOfflineMode)
             1 -> GutterPhotosFragment.newInstance(
                     viewMode,
                     photo1 = basicData["photo1"],
