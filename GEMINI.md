@@ -23,12 +23,21 @@
     - 調整了 UI 元素的顯示邏輯，以支援編輯模式和檢視模式下的照片操作。
 - **`GutterFormPagerAdapter.kt`**:
     - 更新以正確取得 `GutterBasicInfoFragment` 和 `FragmentGutterPhotos` 的實例。
+- **`PendingDraftsBottomSheet.kt`**:
+    - 調整 BottomSheet 的最大高度為螢幕的 80%，確保其顯示在鏡頭下方。
+    - 修改草稿點擊行為：現在單擊項目會直接恢復草稿到 `AddGutterBottomSheet`。
+    - 調整 `showDraftActionDialog` 為僅處理刪除草稿的邏輯，現在透過長按項目觸發。
+- **`PendingDraftAdapter.kt`**:
+    - 新增 `onItemLongClick` 監聽器，支援長按項目以觸發刪除草稿功能。
 
 ## 本次結論
 - 針對 `fabSubmit` 按鈕的觸發行為，已確認其驗證邏輯（需填寫基本資料與照片）及提示訊息（Toast）已正確實作於 `GutterFormActivity.kt` 的 `saveAndClose()` 函數中。
 - 在 `GutterFormActivity.kt` 的 `buildAndFinishWithResult()` 函數中，`RESULT_LATITUDE` 和 `RESULT_LONGITUDE` 僅在 `basicData["coordY"]` (緯度) 和 `basicData["coordX"]` (經度) 欄位的值能成功透過 `toDoubleOrNull()` 解析為 Double 時才會被加入到回傳的 Intent 中。
 - 若使用者輸入的座標值為空、非數字，或無法解析，`toDoubleOrNull()` 將回傳 `null`，導致 `RESULT_LATITUDE` 和 `RESULT_LONGITUDE` 遺失，進而影響地圖上的點位標記。
 - 關於「編輯完點位後，在 `AddGutterBottomSheet` 中起點資料未正確更新」的問題，經過分析，問題點最可能出在 `MainActivity` (或實作 `LocationPickerHost` 的地方) 未能正確更新其維護的 `Waypoint` 列表，或是 `getInspectWaypoints()` 方法未能返回最新的 `Waypoint` 資料給 `AddGutterBottomSheet`。`AddGutterBottomSheet` 本身接收和顯示資料的邏輯是正確的。
+- `PendingDraftsBottomSheet` 的最大高度已調整為螢幕的 80%，以優化使用者體驗，確保其位於手機鏡頭下方。
+- 點擊 `PendingDraftsBottomSheet` 中的草稿項目現在會直接在 `AddGutterBottomSheet` 中恢復編輯，簡化了操作流程，不再經過中間的選擇對話框。
+- 刪除草稿功能已從單擊動作移至長按動作，提供更直觀和安全的刪除方式。
 
 ## 注意事項
 - minSdk 26

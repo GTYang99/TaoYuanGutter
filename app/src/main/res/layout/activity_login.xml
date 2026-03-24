@@ -151,9 +151,10 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/cbRememberMe" />
 
-        <!-- 離線填寫按鈕 -->
+        <!-- 離線填寫按鈕（暫時隱藏，待後續開發） -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnOfflineForm"
+            android:visibility="gone"
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_marginTop="12dp"

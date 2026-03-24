@@ -33,6 +33,8 @@
     <string name="legend_completed">已完成</string>
     <string name="legend_pending_coords">待匯入座標資訊</string>
     <string name="legend_not_jurisdiction">非本公司管轄</string>
+    <string name="unupload_data">待上傳草稿</string>
+
 
     <!-- Strings for Form Fragment -->
     <string name="form_title">巡檢資料填寫</string>

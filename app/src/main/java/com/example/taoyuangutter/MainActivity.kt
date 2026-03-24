@@ -11,6 +11,8 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
@@ -29,6 +31,10 @@ import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.offline.OfflineDraftsActivity
+import com.example.taoyuangutter.pending.GutterSessionDraft
+import com.example.taoyuangutter.pending.GutterSessionRepository
+import com.example.taoyuangutter.pending.PendingDraftsBottomSheet
+import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
@@ -74,6 +80,7 @@ class MainActivity : AppCompatActivity(),
 
     // ── Repository ───────────────────────────────────────────────────────
     private val gutterRepository = GutterRepository()
+    private val sessionDraftRepository by lazy { GutterSessionRepository(this) }
 
     // ── 目前存活的 BottomSheet 與正在選點的索引 ───────────────────────────
     private var activeSheet: AddGutterBottomSheet? = null
@@ -260,12 +267,42 @@ class MainActivity : AppCompatActivity(),
         lifecycleScope.launch {
             when (val result = gutterRepository.submitGutter(waypoints)) {
                 is ApiResult.Success -> Toast.makeText(this@MainActivity, "側溝上傳成功", Toast.LENGTH_SHORT).show()
-                is ApiResult.Error -> Toast.makeText(this@MainActivity, "上傳失敗：${result.message}", Toast.LENGTH_LONG).show()
+                is ApiResult.Error -> {
+                    Toast.makeText(this@MainActivity, "上傳失敗，已儲存為待上傳草稿", Toast.LENGTH_LONG).show()
+                    saveWaypointsAsPendingDraft(waypoints)
+                }
             }
         }
     }
 
+    /** 將 waypoints 序列化並存入待上傳草稿 Repository。 */
+    private fun saveWaypointsAsPendingDraft(waypoints: List<Waypoint>) {
+        val snapshots = waypoints.map { wp ->
+            WaypointSnapshot(
+                type      = wp.type.name,
+                label     = wp.label,
+                latitude  = wp.latLng?.latitude,
+                longitude = wp.latLng?.longitude,
+                basicData = wp.basicData
+            )
+        }
+        val draft = GutterSessionDraft(waypoints = snapshots)
+        sessionDraftRepository.save(draft)
+    }
+
     override fun getInspectWaypoints(): List<Waypoint> = inspectWaypoints
+
+    override fun openWaypointForEdit(sheet: AddGutterBottomSheet, waypointIndex: Int) {
+        // 同步 currentWaypoints，確保 openAddForm 拿到最新座標
+        currentWaypoints = sheet.getWaypoints()
+        val wp     = currentWaypoints.getOrNull(waypointIndex) ?: return
+        val latLng = wp.latLng ?: return
+        pendingWaypointFormIndex = waypointIndex
+        highlightMarker(waypointIndex)
+        sheet.hideSelf()
+        binding.btnAddGutter.visibility = View.GONE
+        openAddForm(waypointIndex, wp, latLng)
+    }
 
     override fun openWaypointForInspect(sheet: AddGutterBottomSheet, waypointIndex: Int) {
         val wp     = inspectWaypoints.getOrNull(waypointIndex) ?: return
@@ -373,9 +410,7 @@ class MainActivity : AppCompatActivity(),
             }
             startActivity(intent)
         }
-        binding.btnViewDrafts.setOnClickListener {
-            startActivity(Intent(this, OfflineDraftsActivity::class.java))
-        }
+        binding.btnViewDrafts.setOnClickListener { showPendingDraftsSheet() }
         binding.btnLegend.setOnClickListener { showLegendDialog() }
         binding.btnLayers.setOnClickListener { showMapTypeDialog() }
         binding.btnMyLocation.setOnClickListener { requestLocationAndMove() }
@@ -392,6 +427,51 @@ class MainActivity : AppCompatActivity(),
             }
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
         }
+    }
+
+    /** 顯示「待上傳草稿」BottomSheet，並處理「繼續編輯」回呼。 */
+    private fun showPendingDraftsSheet() {
+        val sheet = PendingDraftsBottomSheet.newInstance()
+        sheet.onResumeDraft = { draft -> resumePendingDraft(draft) }
+        sheet.show(supportFragmentManager, PendingDraftsBottomSheet.TAG)
+    }
+
+    /**
+     * 從待上傳草稿恢復 AddGutterBottomSheet。
+     *
+     * 先 dismiss PendingDraftsBottomSheet（與任何現有 activeSheet），
+     * 再以 [View.post] 延到下一幀才 show AddGutterBottomSheet，
+     * 確保兩個 FragmentTransaction 不會同時競爭同一個 FragmentManager。
+     */
+    private fun resumePendingDraft(draft: GutterSessionDraft) {
+        // ① 關閉 PendingDraftsBottomSheet
+        (supportFragmentManager.findFragmentByTag(PendingDraftsBottomSheet.TAG)
+                as? PendingDraftsBottomSheet)
+            ?.dismissAllowingStateLoss()
+
+        // ② 清除現有進行中的 sheet 與地圖疊加層
+        activeSheet?.dismissAllowingStateLoss()
+        activeSheet = null
+        workingPolyline?.remove()
+        workingPolyline = null
+        clearWorkingMarkers()
+
+        // ③ 草稿已取出，立即從 repository 刪除（提交成功才算完成）
+        sessionDraftRepository.delete(draft.id)
+
+        // ④ 等待 dismiss 動畫（約 250ms）完全結束後再 show AddGutterBottomSheet，
+        //    避免兩個 FragmentTransaction 競爭同一個 FragmentManager 而靜默失敗。
+        Handler(Looper.getMainLooper()).postDelayed({
+            if (isFinishing || isDestroyed) return@postDelayed
+            val sheet = AddGutterBottomSheet.newInstanceFromDraft(draft)
+            activeSheet = sheet
+            sheet.onWaypointsChanged = { wps ->
+                currentWaypoints = wps ?: emptyList()
+                refreshWorkingLayer(wps ?: emptyList())
+                if (wps == null) activeSheet = null
+            }
+            sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
+        }, 300L)
     }
 
     private fun refreshWorkingLayer(waypoints: List<Waypoint>) {

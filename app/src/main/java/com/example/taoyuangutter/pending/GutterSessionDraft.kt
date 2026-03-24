@@ -1,0 +1,29 @@
+package com.example.taoyuangutter.pending
+
+/**
+ * 待上傳的完整側溝填報草稿。
+ *
+ * 當 [submitGutter] 失敗，或使用者中途放棄並選擇「儲存草稿」時，
+ * 將目前 AddGutterBottomSheet 的所有 waypoints 序列化並存入此物件。
+ */
+data class GutterSessionDraft(
+    /** 唯一識別碼，以建立時間毫秒數作為主鍵 */
+    val id: Long = System.currentTimeMillis(),
+    /** 建立／更新時間（毫秒），供列表排序與時間顯示 */
+    val savedAt: Long = System.currentTimeMillis(),
+    /** 所有 waypoints 的快照列表（START / NODE / END） */
+    val waypoints: List<WaypointSnapshot> = emptyList()
+)
+
+/**
+ * 單一 Waypoint 的可序列化快照。
+ * 與 [com.example.taoyuangutter.gutter.Waypoint] 一一對應，
+ * 但以純 data class 表示，方便 Gson 序列化。
+ */
+data class WaypointSnapshot(
+    val type: String = "",           // WaypointType.name（START / NODE / END）
+    val label: String = "",
+    val latitude: Double? = null,
+    val longitude: Double? = null,
+    val basicData: HashMap<String, String> = hashMapOf()
+)
