@@ -23,6 +23,23 @@
     - 調整了 UI 元素的顯示邏輯，以支援編輯模式和檢視模式下的照片操作。
 - **`GutterFormPagerAdapter.kt`**:
     - 更新以正確取得 `GutterBasicInfoFragment` 和 `FragmentGutterPhotos` 的實例。
+- **`PendingDraftsBottomSheet.kt`**:
+    - 調整 BottomSheet 的最大高度為螢幕的 80%，確保其顯示在鏡頭下方。
+    - 修改草稿點擊行為：現在單擊項目會直接恢復草稿到 `AddGutterBottomSheet`。
+    - 調整 `showDraftActionDialog` 為僅處理刪除草稿的邏輯，現在透過長按項目觸發。
+- **`PendingDraftAdapter.kt`**:
+    - 新增 `onItemLongClick` 監聽器，支援長按項目以觸發刪除草稿功能。
+- **API 串接與 Repository 優化**:
+    -   `GutterApiClient.kt`:
+        -   將 `BASE_URL` 提取並添加詳細的環境配置說明，建議透過 `gradle.properties` 或 `build.gradle.kts` 管理，並使用 `BuildConfig` 注入。
+        -   配置 `HttpLoggingInterceptor` 以便調試。
+        -   增加了 TODO 提示，建議加入 Header Interceptor 處理 Authentication Token。
+    -   `GutterRepository.kt`:
+        -   強化了錯誤處理機制，增加了對 `HttpException` 和 `IOException` 的捕獲，並嘗試解析後端錯誤 Body，提供更詳細的錯誤訊息。
+        -   `ApiResult.Error` 的 `code` 欄位更一致地使用 HTTP 狀態碼。
+        -   增強了 API Request 和 Response 的資料映射邏輯，增加了清晰的註解。
+        -   預設處理了未知的 `WaypointType`。
+        -   將 `GutterApiService` 作為依賴注入，提升了可測試性。
 
 ## 本次結論
 - 針對 `fabSubmit` 按鈕的觸發行為，已確認其驗證邏輯（需填寫基本資料與照片）及提示訊息（Toast）已正確實作於 `GutterFormActivity.kt` 的 `saveAndClose()` 函數中。
@@ -58,3 +75,6 @@
 6. 更新 GEMINI.md 記錄進度
 7. 重複
 ```
+
+## 未使用的檔案
+- `fragment_form.xml`: 該 layout 文件未在任何 Kotlin 文件中被引用，也未在其他 XML 文件中被包含。

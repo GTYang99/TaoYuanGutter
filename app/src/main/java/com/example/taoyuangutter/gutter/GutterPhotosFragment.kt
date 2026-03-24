@@ -117,8 +117,9 @@ class GutterPhotosFragment : Fragment() {
         photoFileSlot2?.let { showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, it) }
         photoFileSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, it) }
 
-        val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
-        setEditable(!isViewMode)
+            binding.btnDeletePhoto1.setOnClickListener { clearPhoto(1) }
+        binding.btnDeletePhoto2.setOnClickListener { clearPhoto(2) }
+        binding.btnDeletePhoto3.setOnClickListener { clearPhoto(3) }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -146,18 +147,21 @@ class GutterPhotosFragment : Fragment() {
             binding.photoSlot1.setOnClickListener { requestCameraForSlot(1) }
             binding.photoSlot2.setOnClickListener { requestCameraForSlot(2) }
             binding.photoSlot3.setOnClickListener { requestCameraForSlot(3) }
-            // 無照片時顯示 placeholder（相機 icon）
-            if (photoFileSlot1 == null) binding.placeholderSlot1.visibility = View.VISIBLE
-            if (photoFileSlot2 == null) binding.placeholderSlot2.visibility = View.VISIBLE
-            if (photoFileSlot3 == null) binding.placeholderSlot3.visibility = View.VISIBLE
+            // 無照片時顯示 placeholder（相機 icon），有照片時顯示刪除按鈕
+            if (photoFileSlot1 == null) binding.placeholderSlot1.visibility = View.VISIBLE else binding.btnDeletePhoto1.visibility = View.VISIBLE
+            if (photoFileSlot2 == null) binding.placeholderSlot2.visibility = View.VISIBLE else binding.btnDeletePhoto2.visibility = View.VISIBLE
+            if (photoFileSlot3 == null) binding.placeholderSlot3.visibility = View.VISIBLE else binding.btnDeletePhoto3.visibility = View.VISIBLE
         } else {
             binding.photoSlot1.setOnClickListener(null)
             binding.photoSlot2.setOnClickListener(null)
             binding.photoSlot3.setOnClickListener(null)
-            // 唯讀：沒有照片的格子隱藏 placeholder（不顯示相機圖示）
+            // 唯讀：沒有照片的格子隱藏 placeholder（不顯示相機圖示），同時隱藏刪除按鈕
             if (photoFileSlot1 == null) binding.placeholderSlot1.visibility = View.INVISIBLE
             if (photoFileSlot2 == null) binding.placeholderSlot2.visibility = View.INVISIBLE
             if (photoFileSlot3 == null) binding.placeholderSlot3.visibility = View.INVISIBLE
+            binding.btnDeletePhoto1.visibility = View.GONE
+            binding.btnDeletePhoto2.visibility = View.GONE
+            binding.btnDeletePhoto3.visibility = View.GONE
         }
     }
 
@@ -190,14 +194,41 @@ class GutterPhotosFragment : Fragment() {
         return File(dir, "GUTTER_$ts.jpg")
     }
 
+    private fun clearPhoto(slot: Int) {
+        when (slot) {
+            1 -> {
+                photoFileSlot1 = null
+                binding.ivPhotoSlot1.setImageURI(null)
+                binding.ivPhotoSlot1.visibility = View.GONE
+                binding.placeholderSlot1.visibility = View.VISIBLE
+                binding.btnDeletePhoto1.visibility = View.GONE
+            }
+            2 -> {
+                photoFileSlot2 = null
+                binding.ivPhotoSlot2.setImageURI(null)
+                binding.ivPhotoSlot2.visibility = View.GONE
+                binding.placeholderSlot2.visibility = View.VISIBLE
+                binding.btnDeletePhoto2.visibility = View.GONE
+            }
+            3 -> {
+                photoFileSlot3 = null
+                binding.ivPhotoSlot3.setImageURI(null)
+                binding.ivPhotoSlot3.visibility = View.GONE
+                binding.placeholderSlot3.visibility = View.VISIBLE
+                binding.btnDeletePhoto3.visibility = View.GONE
+            }
+        }
+    }
+
     // ── UI 更新 ──────────────────────────────────────────────────────────
 
-    private fun showPhoto(photoView: android.widget.ImageView, placeholder: View, file: File) {
+    private fun showPhoto(photoView: android.widget.ImageView, placeholder: View, deleteButton: View, file: File) {
         if (!file.exists()) return
         placeholder.visibility = View.GONE
         photoView.visibility   = View.VISIBLE
         photoView.setImageURI(null) // 清除快取
         photoView.setImageURI(Uri.fromFile(file))
+        deleteButton.visibility = View.VISIBLE // 顯示刪除按鈕
     }
 
     // ── 對外 API ─────────────────────────────────────────────────────────

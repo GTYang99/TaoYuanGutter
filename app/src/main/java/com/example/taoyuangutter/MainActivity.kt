@@ -10,6 +10,9 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Toast
@@ -204,7 +207,9 @@ class MainActivity : AppCompatActivity(),
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
         // 關閉 Google 預設底圖，改用 NLSC WMTS 圖層
+        Log.d("MapDebug", "onMapReady called")
         googleMap?.mapType = GoogleMap.MAP_TYPE_NONE
+        //googleMap?.mapType =  GoogleMap.MAP_TYPE_NORMAL
         setMapTiles(MapMode.EMAP)
 
         val taoyuan = LatLng(24.9936, 121.3010)
