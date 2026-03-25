@@ -98,6 +98,25 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
+            <!-- 刪除按鈕（有照片時顯示，預設 GONE） -->
+            <ImageView
+                android:id="@+id/btnDeleteSlot1"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_delete"
+                android:tint="@color/colorPrimary"
+                android:scaleType="centerInside"
+                android:padding="5dp"
+                android:background="@drawable/bg_delete_btn"
+                android:visibility="gone"
+                android:contentDescription="@null"
+                android:clickable="true"
+                android:focusable="true"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- ══════════════════════════════════════════════════════════ -->
@@ -175,6 +194,25 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
+            <!-- 刪除按鈕（有照片時顯示，預設 GONE） -->
+            <ImageView
+                android:id="@+id/btnDeleteSlot2"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_delete"
+                android:tint="@color/colorPrimary"
+                android:scaleType="centerInside"
+                android:padding="5dp"
+                android:background="@drawable/bg_delete_btn"
+                android:visibility="gone"
+                android:contentDescription="@null"
+                android:clickable="true"
+                android:focusable="true"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp" />
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- ══════════════════════════════════════════════════════════ -->
@@ -251,6 +289,25 @@
                 app:layout_constraintBottom_toBottomOf="@id/ratioAnchor3"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- 刪除按鈕（有照片時顯示，預設 GONE） -->
+            <ImageView
+                android:id="@+id/btnDeleteSlot3"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_delete"
+                android:tint="@color/colorPrimary"
+                android:scaleType="centerInside"
+                android:padding="5dp"
+                android:background="@drawable/bg_delete_btn"
+                android:visibility="gone"
+                android:contentDescription="@null"
+                android:clickable="true"
+                android:focusable="true"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:layout_marginTop="8dp"
+                android:layout_marginEnd="8dp" />
 
         </androidx.constraintlayout.widget.ConstraintLayout>
 

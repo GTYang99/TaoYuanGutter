@@ -89,9 +89,18 @@ class GutterPhotosFragment : Fragment() {
             if (success) {
                 // Update UI with the taken photo using the stored URI
                 when (pendingSlot) {
-                    1 -> photoUriSlot1?.let { showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, it) }
-                    2 -> photoUriSlot2?.let { showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, it) }
-                    3 -> photoUriSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, it) }
+                    1 -> photoUriSlot1?.let {
+                        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, it)
+                        binding.btnDeleteSlot1.visibility = View.VISIBLE
+                    }
+                    2 -> photoUriSlot2?.let {
+                        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, it)
+                        binding.btnDeleteSlot2.visibility = View.VISIBLE
+                    }
+                    3 -> photoUriSlot3?.let {
+                        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, it)
+                        binding.btnDeleteSlot3.visibility = View.VISIBLE
+                    }
                 }
             } else {
                 // If capture failed or was cancelled, clean up the URI if it was pre-created.
@@ -142,8 +151,8 @@ class GutterPhotosFragment : Fragment() {
     // ── 可編輯狀態切換 ────────────────────────────────────────────────────
 
     /**
-     * [enabled] = true → 編輯模式，可點選格子拍照；
-     * [enabled] = false → 檢視模式，只顯示既有照片，無法拍照
+     * [enabled] = true → 編輯模式，可點選格子拍照，有照片時顯示刪除按鈕；
+     * [enabled] = false → 檢視模式，只顯示既有照片，無法拍照，不顯示刪除按鈕
      */
     fun setEditable(enabled: Boolean) {
         if (enabled) {
@@ -154,6 +163,14 @@ class GutterPhotosFragment : Fragment() {
             if (photoUriSlot1 == null) binding.placeholderSlot1.visibility = View.VISIBLE
             if (photoUriSlot2 == null) binding.placeholderSlot2.visibility = View.VISIBLE
             if (photoUriSlot3 == null) binding.placeholderSlot3.visibility = View.VISIBLE
+            // 有照片時顯示刪除按鈕
+            if (photoUriSlot1 != null) binding.btnDeleteSlot1.visibility = View.VISIBLE
+            if (photoUriSlot2 != null) binding.btnDeleteSlot2.visibility = View.VISIBLE
+            if (photoUriSlot3 != null) binding.btnDeleteSlot3.visibility = View.VISIBLE
+            // 刪除按鈕點擊邏輯
+            binding.btnDeleteSlot1.setOnClickListener { deletePhoto(1) }
+            binding.btnDeleteSlot2.setOnClickListener { deletePhoto(2) }
+            binding.btnDeleteSlot3.setOnClickListener { deletePhoto(3) }
         } else {
             binding.photoSlot1.setOnClickListener(null)
             binding.photoSlot2.setOnClickListener(null)
@@ -162,6 +179,31 @@ class GutterPhotosFragment : Fragment() {
             if (photoUriSlot1 == null) binding.placeholderSlot1.visibility = View.INVISIBLE
             if (photoUriSlot2 == null) binding.placeholderSlot2.visibility = View.INVISIBLE
             if (photoUriSlot3 == null) binding.placeholderSlot3.visibility = View.INVISIBLE
+            // 唯讀：不顯示刪除按鈕
+            binding.btnDeleteSlot1.visibility = View.GONE
+            binding.btnDeleteSlot2.visibility = View.GONE
+            binding.btnDeleteSlot3.visibility = View.GONE
+        }
+    }
+
+    /** 刪除指定 slot 的照片，還原為空白格子 */
+    private fun deletePhoto(slot: Int) {
+        when (slot) {
+            1 -> {
+                photoUriSlot1 = null
+                showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, null)
+                binding.btnDeleteSlot1.visibility = View.GONE
+            }
+            2 -> {
+                photoUriSlot2 = null
+                showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, null)
+                binding.btnDeleteSlot2.visibility = View.GONE
+            }
+            3 -> {
+                photoUriSlot3 = null
+                showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, null)
+                binding.btnDeleteSlot3.visibility = View.GONE
+            }
         }
     }
 
