@@ -29,21 +29,35 @@ class GutterRepository(
     suspend fun submitGutter(waypoints: List<Waypoint>): ApiResult<SubmitGutterResponse> {
         return try {
             val request = SubmitGutterRequest(
-                waypoints = waypoints.map { wp ->
+                waypoints = waypoints.mapIndexed { idx, wp ->
                     WaypointRequest(
-                        type      = wp.type.name,          // "START" | "NODE" | "END"
-                        label     = wp.label,
-                        latitude  = wp.latLng?.latitude,
-                        longitude = wp.latLng?.longitude,
-                        gutterId  = wp.basicData["gutterId"]   ?: "",
-                        gutterType = wp.basicData["gutterType"] ?: "",
-                        coordX    = wp.basicData["coordX"]     ?: "",
-                        coordY    = wp.basicData["coordY"]     ?: "",
-                        coordZ    = wp.basicData["coordZ"]     ?: "",
-                        measureId = wp.basicData["measureId"]  ?: "",
-                        depth     = wp.basicData["depth"]      ?: "",
-                        topWidth  = wp.basicData["topWidth"]   ?: "",
-                        remarks   = wp.basicData["remarks"]    ?: ""
+                        // 點位識別
+                        nodeId    = wp.basicData["gutterId"]   ?: "",
+                        nodeAtt   = when (wp.type) {           // 1=起點, 2=節點, 3=終點
+                            WaypointType.START -> 1
+                            WaypointType.NODE  -> 2
+                            WaypointType.END   -> 3
+                        },
+                        nodeNum   = idx,
+
+                        // 基本資料
+                        nodeTyP   = wp.basicData["gutterType"] ?: "",
+                        matTyp    = wp.basicData["matTyp"]     ?: "",
+                        nodeX     = wp.latLng?.longitude,      // X = 經度(E)
+                        nodeY     = wp.latLng?.latitude,       // Y = 緯度(N)
+                        nodeLe    = wp.basicData["coordZ"]     ?: "",
+                        xyNum     = wp.basicData["measureId"]  ?: "",
+                        nodeDep   = wp.basicData["depth"]      ?: "",
+                        nodeWid   = wp.basicData["topWidth"]   ?: "",
+                        isBroken  = wp.basicData["isBroken"]   ?: "",
+                        isHanging = wp.basicData["isHanging"]  ?: "",
+                        isSilt    = wp.basicData["isSilt"]     ?: "",
+                        nodeNote  = wp.basicData["remarks"]    ?: "",
+
+                        // 照片 URI（multipart 上傳待實作，暫帶路徑字串）
+                        photoOv   = wp.basicData["photo1"]     ?: "",
+                        photoWid  = wp.basicData["photo2"]     ?: "",
+                        photoDep  = wp.basicData["photo3"]     ?: ""
                     )
                 }
             )
@@ -82,28 +96,40 @@ class GutterRepository(
             if (response.isSuccessful && response.body() != null) {
                 val gutters = response.body()!!.gutters.map { gutterItem ->
                     gutterItem.waypoints.map { wpResp ->
-                        val type = when (wpResp.type.uppercase()) {
-                            "START" -> WaypointType.START
-                            "END"   -> WaypointType.END
-                            else    -> WaypointType.NODE
+                        val type = when (wpResp.nodeAtt) {    // 1=起點, 2=節點, 3=終點
+                            1    -> WaypointType.START
+                            3    -> WaypointType.END
+                            else -> WaypointType.NODE
                         }
-                        val latLng = if (wpResp.latitude != null && wpResp.longitude != null)
-                            LatLng(wpResp.latitude, wpResp.longitude) else null
+                        // NODE_Y = 緯度(N)，NODE_X = 經度(E)
+                        val latLng = if (wpResp.nodeY != null && wpResp.nodeX != null)
+                            LatLng(wpResp.nodeY, wpResp.nodeX) else null
 
                         Waypoint(
                             type      = type,
-                            label     = wpResp.label,
+                            label     = when (type) {
+                                WaypointType.START -> "起點"
+                                WaypointType.END   -> "終點"
+                                WaypointType.NODE  -> "節點${wpResp.nodeNum}"
+                            },
                             latLng    = latLng,
                             basicData = hashMapOf(
-                                "gutterId"   to (wpResp.gutterId   ?: ""),
-                                "gutterType" to (wpResp.gutterType ?: ""),
-                                "coordX"     to (wpResp.coordX     ?: ""),
-                                "coordY"     to (wpResp.coordY     ?: ""),
-                                "coordZ"     to (wpResp.coordZ     ?: ""),
-                                "measureId"  to (wpResp.measureId  ?: ""),
-                                "depth"      to (wpResp.depth      ?: ""),
-                                "topWidth"   to (wpResp.topWidth   ?: ""),
-                                "remarks"    to (wpResp.remarks    ?: "")
+                                "gutterId"   to (wpResp.nodeId    ?: ""),
+                                "gutterType" to (wpResp.nodeTyP   ?: ""),
+                                "matTyp"     to (wpResp.matTyp    ?: ""),
+                                "coordX"     to (wpResp.nodeX?.toString() ?: ""),
+                                "coordY"     to (wpResp.nodeY?.toString() ?: ""),
+                                "coordZ"     to (wpResp.nodeLe    ?: ""),
+                                "measureId"  to (wpResp.xyNum     ?: ""),
+                                "depth"      to (wpResp.nodeDep   ?: ""),
+                                "topWidth"   to (wpResp.nodeWid   ?: ""),
+                                "isBroken"   to (wpResp.isBroken  ?: ""),
+                                "isHanging"  to (wpResp.isHanging ?: ""),
+                                "isSilt"     to (wpResp.isSilt    ?: ""),
+                                "remarks"    to (wpResp.nodeNote  ?: ""),
+                                "photo1"     to (wpResp.photoOv   ?: ""),
+                                "photo2"     to (wpResp.photoWid  ?: ""),
+                                "photo3"     to (wpResp.photoDep  ?: "")
                             )
                         )
                     }
