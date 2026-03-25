@@ -214,7 +214,15 @@ class GutterFormActivity : AppCompatActivity() {
         } else {
             applyFullScreenInsets()
         }
-        setupTitleBar(label)
+
+        // 檢視模式：標題改為「側溝編號 {gutterId}」；其他模式沿用點位 label（起點/節點/終點）
+        val titleText = if (isViewMode) {
+            val gutterId = existingData["gutterId"]?.takeIf { it.isNotEmpty() } ?: "---"
+            "側溝編號 $gutterId"
+        } else {
+            label
+        }
+        setupTitleBar(titleText)
         setupViewPager(lat, lng, existingData)
         setupTabButtons()
         setupFab()
