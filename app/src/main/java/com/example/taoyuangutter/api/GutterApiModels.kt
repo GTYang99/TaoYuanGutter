@@ -108,6 +108,7 @@ data class GetGuttersMapResponse(
 )
 
 // ════════════════════════════════════════════════════════════════
+
 //  POST /api/login  ── 使用者登入
 // ════════════════════════════════════════════════════════════════
 
@@ -143,6 +144,45 @@ data class LogoutResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String?,
     @SerializedName("errors")  val errors: Map<String, List<String>>?
+
+//  GET /api/v1/map/scopeSearch  ── 依地圖可視範圍取得側溝座標
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * scopeSearch 回應最外層
+ * { "success": true, "message": "查詢成功", "data": { "type": "FeatureCollection", "features": [...] } }
+ */
+data class ScopeSearchResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data")    val data: GeoFeatureCollection?,
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+/** GeoJSON FeatureCollection */
+data class GeoFeatureCollection(
+    @SerializedName("type")     val type: String,
+    @SerializedName("features") val features: List<GeoFeature>
+)
+
+/** GeoJSON Feature（每條側溝一個） */
+data class GeoFeature(
+    @SerializedName("type")       val type: String,
+    @SerializedName("geometry")   val geometry: GeoGeometry?,
+    @SerializedName("properties") val properties: GeoProperties?
+)
+
+/** GeoJSON LineString Geometry：coordinates 為 [[lng, lat], [lng, lat], ...] */
+data class GeoGeometry(
+    @SerializedName("type")        val type: String,
+    /** 每個元素為 [longitude, latitude] */
+    @SerializedName("coordinates") val coordinates: List<List<Double>>
+)
+
+/** Feature 附屬屬性 */
+data class GeoProperties(
+    @SerializedName("SPI_NUM")  val spiNum: String?,
+    @SerializedName("group_id") val groupId: String?
 )
 
 // ════════════════════════════════════════════════════════════════
