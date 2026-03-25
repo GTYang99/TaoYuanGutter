@@ -253,6 +253,50 @@ data class NodeImageUrl(
 )
 
 // ════════════════════════════════════════════════════════════════
+//  GET /api/v1/node/nodeDetails  ── 取得點位資料
+// ════════════════════════════════════════════════════════════════
+
+/** 取得點位資料 API 回應最外層 */
+data class NodeDetailsResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data")    val data: NodeDetails?,
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+/** 單一點位完整資料 */
+data class NodeDetails(
+    @SerializedName("ditch_id")   val ditchId: String?,
+    @SerializedName("NODE_NUM")   val nodeNum: String?,
+    /** 點位屬性：1=起點、2=節點、3=終點 */
+    @SerializedName("NODE_ATTR")  val nodeAttr: String?,
+    /** TWD97 X 座標（經度方向） */
+    @SerializedName("NODE_X")     val nodeX: String?,
+    /** TWD97 Y 座標（緯度方向） */
+    @SerializedName("NODE_Y")     val nodeY: String?,
+    /** 高程 */
+    @SerializedName("NODE_LE")    val nodeLe: String?,
+    /** 深度（公分） */
+    @SerializedName("NODE_DEP")   val nodeDep: String?,
+    /** 寬度（公分） */
+    @SerializedName("NODE_WID")   val nodeWid: String?,
+    @SerializedName("NOTE")       val note: String?,
+    /** WGS84 緯度 */
+    @SerializedName("latitude")   val latitude: String?,
+    /** WGS84 經度 */
+    @SerializedName("longitude")  val longitude: String?,
+    /** 已上傳的照片列表 */
+    @SerializedName("node_img")   val nodeImg: List<NodeImg>
+)
+
+/** 點位照片（nodeDetails 回傳格式，僅含 url 與 fileCategory） */
+data class NodeImg(
+    @SerializedName("url")          val url: String,
+    /** 照片類別：1=測量位置及側溝概況、2=側溝內徑寬度尺寸、3=側溝深度尺寸 */
+    @SerializedName("fileCategory") val fileCategory: String?
+)
+
+// ════════════════════════════════════════════════════════════════
 //  通用錯誤包裝
 // ════════════════════════════════════════════════════════════════
 

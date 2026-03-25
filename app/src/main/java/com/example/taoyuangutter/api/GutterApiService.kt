@@ -94,6 +94,22 @@ interface GutterApiService {
         @Query("SPI_NUM")              spiNum: String,
         @Header("Authorization")       authorization: String
     ): Response<DitchDetailsResponse>
+
+    /**
+     * 取得單一點位的完整資料（含照片 URL）。
+     *
+     * GET /api/v1/node/nodeDetails?node_id=418
+     * Authorization: Bearer {token}
+     *
+     * @param nodeId        點位 ID（從線段資料的 nodes 列表取得）
+     * @param authorization Bearer token
+     * Response: [NodeDetailsResponse]
+     */
+    @GET("api/v1/node/nodeDetails")
+    suspend fun getNodeDetails(
+        @Query("node_id")        nodeId: Int,
+        @Header("Authorization") authorization: String
+    ): Response<NodeDetailsResponse>
 }
 
 // ════════════════════════════════════════════════════════════════

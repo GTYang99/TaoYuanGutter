@@ -304,4 +304,44 @@ class GutterRepository(
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
         }
     }
+
+    // ── 取得點位資料 ──────────────────────────────────────────────────────
+
+    /**
+     * 取得單一點位的完整資料（含座標、深度、寬度、照片 URL 等）。
+     *
+     * @param nodeId 點位 ID（從 [getDitchDetails] 回傳的 nodes 列表取得）
+     * @param token  已儲存的 Bearer token
+     * @return [ApiResult.Success] 含 [NodeDetailsResponse]（data 含點位所有欄位）；
+     *         [ApiResult.Error]   含錯誤訊息（401 尚未登入、404 查無點位、422 欄位未填、500 伺服器錯誤）
+     */
+    suspend fun getNodeDetails(nodeId: Int, token: String): ApiResult<NodeDetailsResponse> {
+        return try {
+            val response = api.getNodeDetails(
+                nodeId        = nodeId,
+                authorization = "Bearer $token"
+            )
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.code() == 401 -> ApiResult.Error(
+                    message = "尚未登入，請重新登入",
+                    code    = 401
+                )
+                body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "查詢失敗",
+                        code    = response.code()
+                    )
+                }
+                else -> ApiResult.Error(
+                    message = "查詢失敗（${response.code()}）",
+                    code    = response.code()
+                )
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
 }
