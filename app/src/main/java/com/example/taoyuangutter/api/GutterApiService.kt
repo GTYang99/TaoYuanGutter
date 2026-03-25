@@ -7,6 +7,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
@@ -30,6 +31,19 @@ interface GutterApiService {
     suspend fun login(
         @Body request: LoginRequest
     ): Response<LoginResponse>
+
+    /**
+     * 使用者登出。
+     *
+     * GET /api/logout
+     * Authorization: Bearer {token}
+     *
+     * Response: [LogoutResponse]
+     */
+    @GET("api/logout")
+    suspend fun logout(
+        @Header("Authorization") authorization: String
+    ): Response<LogoutResponse>
 
     /**
      * 上傳單條側溝資料。

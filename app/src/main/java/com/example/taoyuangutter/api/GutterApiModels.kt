@@ -135,6 +135,17 @@ data class LoginResponse(
 )
 
 // ════════════════════════════════════════════════════════════════
+//  GET /api/logout  ── 使用者登出
+// ════════════════════════════════════════════════════════════════
+
+/** 登出 API 回應（200 / 401 / 500 共用同一結構） */
+data class LogoutResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+// ════════════════════════════════════════════════════════════════
 //  通用錯誤包裝
 // ════════════════════════════════════════════════════════════════
 

@@ -410,10 +410,28 @@ class MainActivity : AppCompatActivity(),
 
     private fun setupButtons() {
         binding.btnLogout.setOnClickListener {
-            val intent = Intent(this, LoginActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            val token = LoginActivity.getSavedToken(this)
+            if (token.isNullOrEmpty()) {
+                // 本機無 token，直接跳登入頁
+                goToLogin()
+                return@setOnClickListener
             }
-            startActivity(intent)
+            binding.btnLogout.isEnabled = false
+            lifecycleScope.launch {
+                when (val result = gutterRepository.logout(token)) {
+                    is ApiResult.Success -> {
+                        clearAuthAndGoLogin()
+                    }
+                    is ApiResult.Error -> {
+                        binding.btnLogout.isEnabled = true
+                        Toast.makeText(
+                            this@MainActivity,
+                            result.message,
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
         }
         binding.btnViewDrafts.setOnClickListener { showPendingDraftsSheet() }
         binding.btnLegend.setOnClickListener { showLegendDialog() }
@@ -506,6 +524,26 @@ class MainActivity : AppCompatActivity(),
             marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
         }
+    }
+
+    // ── 登出輔助 ──────────────────────────────────────────────────────────
+
+    /** 清除本機 token 並跳回登入頁（完成登出後呼叫） */
+    private fun clearAuthAndGoLogin() {
+        getSharedPreferences("taoyuan_prefs", MODE_PRIVATE).edit()
+            .remove("auth_token")
+            .remove("user_name")
+            .remove("user_company")
+            .apply()
+        goToLogin()
+    }
+
+    /** 跳回登入頁並清除 Activity 堆疊 */
+    private fun goToLogin() {
+        val intent = Intent(this, LoginActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        startActivity(intent)
     }
 
     private fun clearWorkingMarkers() {

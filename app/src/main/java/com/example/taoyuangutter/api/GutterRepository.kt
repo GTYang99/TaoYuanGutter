@@ -56,6 +56,41 @@ class GutterRepository(
         }
     }
 
+    // ── 登出 ──────────────────────────────────────────────────────────────
+
+    /**
+     * 呼叫登出 API。
+     * 無論 200 或 401（token 已過期），呼叫端都應清除本機 token 並跳回登入頁。
+     * 僅 500 伺服器錯誤時回傳 [ApiResult.Error]。
+     *
+     * @param token 已儲存的 Bearer token
+     */
+    suspend fun logout(token: String): ApiResult<LogoutResponse> {
+        return try {
+            val response = api.logout("Bearer $token")
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.code() == 401 -> {
+                    // token 已失效，視為正常登出（讓 UI 清除本機資料即可）
+                    ApiResult.Success(
+                        LogoutResponse(success = true, message = "尚未登入", errors = null)
+                    )
+                }
+                body != null -> ApiResult.Error(
+                    message = body.message ?: "登出失敗",
+                    code    = response.code()
+                )
+                else -> ApiResult.Error(
+                    message = "登出失敗（${response.code()}）",
+                    code    = response.code()
+                )
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
     // ── 上傳側溝 ──────────────────────────────────────────────────────────
 
     /**
