@@ -1,6 +1,7 @@
 package com.example.taoyuangutter.gutter
 
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -29,20 +30,31 @@ class GutterPhotosFragment : Fragment() {
     private var photoUriSlot2: Uri? = null
     private var photoUriSlot3: Uri? = null
 
+    /** 目前正在等候拍照結果的照片欄位（1/2/3） */
     private var pendingSlot: Int = 0
-    
+
+    /** LandscapeCameraActivity 輸出檔案的絕對路徑（Activity 重建後恢復用） */
+    private var pendingOutputPath: String? = null
 
     // ── ActivityResultLaunchers ──────────────────────────────────────────
 
+    /**
+     * 相機權限請求。
+     * 取得權限後自動以 pendingSlot 開啟 LandscapeCameraActivity。
+     */
     private val cameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) { /* Logic updated in requestCameraForSlot */ }
+        if (granted && pendingSlot > 0) {
+            launchLandscapeCamera(pendingSlot)
+        } else if (!granted) {
+            pendingSlot = 0
+            Toast.makeText(requireContext(), "需要相機權限才能拍照", Toast.LENGTH_SHORT).show()
+        }
     }
 
-    private lateinit var takePictureLauncher: ActivityResultLauncher<Uri>
-
-    // Removed old cameraLauncher: replaced with ActivityResultContracts.TakePicture
+    /** LandscapeCameraActivity 結果接收器 */
+    private lateinit var cameraLauncher: ActivityResultLauncher<Intent>
 
     // ── Lifecycle ────────────────────────────────────────────────────────
 
@@ -53,11 +65,11 @@ class GutterPhotosFragment : Fragment() {
         const val ARG_PHOTO_2      = "arg_photo_2"
         const val ARG_PHOTO_3      = "arg_photo_3"
         // savedInstanceState keys
-        private const val KEY_PHOTO_1      = "photo_1"
-        private const val KEY_PHOTO_2      = "photo_2"
-        private const val KEY_PHOTO_3      = "photo_3"
-        private const val KEY_PENDING_SLOT = "pending_slot"
-        private const val KEY_PENDING_FILE = "pending_file"
+        private const val KEY_PHOTO_1        = "photo_1"
+        private const val KEY_PHOTO_2        = "photo_2"
+        private const val KEY_PHOTO_3        = "photo_3"
+        private const val KEY_PENDING_SLOT   = "pending_slot"
+        private const val KEY_PENDING_PATH   = "pending_path"
 
         fun newInstance(
             viewMode: Boolean = false,
@@ -84,29 +96,35 @@ class GutterPhotosFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // Initialize takePictureLauncher here
-        takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
-            if (success) {
-                // Update UI with the taken photo using the stored URI
-                when (pendingSlot) {
-                    1 -> photoUriSlot1?.let {
-                        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, it)
-                        binding.btnDeleteSlot1.visibility = View.VISIBLE
+        // ── 註冊 LandscapeCameraActivity 結果接收 ──────────────────────
+        cameraLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                // 取回 LandscapeCameraActivity 已儲存的檔案路徑
+                val path = result.data?.getStringExtra(LandscapeCameraActivity.EXTRA_RESULT_PATH)
+                    ?: pendingOutputPath
+                if (path != null) {
+                    val file = File(path)
+                    // 轉為 FileProvider content URI，與其他照片儲存格式一致
+                    val uri = try {
+                        FileProvider.getUriForFile(
+                            requireContext(),
+                            "${requireContext().packageName}.fileprovider",
+                            file
+                        )
+                    } catch (e: Exception) {
+                        Uri.fromFile(file)  // fallback
                     }
-                    2 -> photoUriSlot2?.let {
-                        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, it)
-                        binding.btnDeleteSlot2.visibility = View.VISIBLE
-                    }
-                    3 -> photoUriSlot3?.let {
-                        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, it)
-                        binding.btnDeleteSlot3.visibility = View.VISIBLE
+                    when (pendingSlot) {
+                        1 -> { photoUriSlot1 = uri; showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, uri); binding.btnDeleteSlot1.visibility = View.VISIBLE }
+                        2 -> { photoUriSlot2 = uri; showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, uri); binding.btnDeleteSlot2.visibility = View.VISIBLE }
+                        3 -> { photoUriSlot3 = uri; showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, uri); binding.btnDeleteSlot3.visibility = View.VISIBLE }
                     }
                 }
-            } else {
-                // If capture failed or was cancelled, clean up the URI if it was pre-created.
-                // For now, if success is false, we just reset pendingSlot.
             }
-            pendingSlot = 0 // Reset pending slot
+            pendingSlot = 0
+            pendingOutputPath = null
         }
 
         if (savedInstanceState != null) {
@@ -114,8 +132,8 @@ class GutterPhotosFragment : Fragment() {
             savedInstanceState.getString(KEY_PHOTO_1)?.let { photoUriSlot1 = Uri.parse(it) }
             savedInstanceState.getString(KEY_PHOTO_2)?.let { photoUriSlot2 = Uri.parse(it) }
             savedInstanceState.getString(KEY_PHOTO_3)?.let { photoUriSlot3 = Uri.parse(it) }
-            pendingSlot = savedInstanceState.getInt(KEY_PENDING_SLOT)
-            // pendingFile is removed, so its restoration is also removed.
+            pendingSlot       = savedInstanceState.getInt(KEY_PENDING_SLOT, 0)
+            pendingOutputPath = savedInstanceState.getString(KEY_PENDING_PATH)
         } else {
             // 首次建立 → 從 arguments 帶入既有照片（重新開啟表單時）
             fun tryLoad(uriString: String?): Uri? =
@@ -140,7 +158,7 @@ class GutterPhotosFragment : Fragment() {
         photoUriSlot2?.let { outState.putString(KEY_PHOTO_2, it.toString()) }
         photoUriSlot3?.let { outState.putString(KEY_PHOTO_3, it.toString()) }
         outState.putInt(KEY_PENDING_SLOT, pendingSlot)
-        // pendingFile is removed, so its state saving is also removed.
+        pendingOutputPath?.let { outState.putString(KEY_PENDING_PATH, it) }
     }
 
     override fun onDestroyView() {
@@ -209,43 +227,48 @@ class GutterPhotosFragment : Fragment() {
 
     // ── 相機流程 ─────────────────────────────────────────────────────────
 
+    /**
+     * 點擊照片格後呼叫。
+     * 先確認相機權限，有權限則直接開啟 [LandscapeCameraActivity]（強制橫向）；
+     * 無權限則請求後，授權回呼中再自動開啟。
+     */
     private fun requestCameraForSlot(slot: Int) {
         pendingSlot = slot
         if (ContextCompat.checkSelfPermission(
                 requireContext(), android.Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            val photoUri = createPhotoUriForSlot(slot)
-            if (photoUri != null) {
-                // Store the URI temporarily to be updated upon successful capture
-                when (slot) {
-                    1 -> photoUriSlot1 = photoUri
-                    2 -> photoUriSlot2 = photoUri
-                    3 -> photoUriSlot3 = photoUri
-                }
-                takePictureLauncher.launch(photoUri)
-            } else {
-                Toast.makeText(requireContext(), "無法準備拍照", Toast.LENGTH_SHORT).show()
-            }
+            launchLandscapeCamera(slot)
         } else {
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
     }
 
-    private fun createPhotoUriForSlot(slot: Int): Uri? {
-        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val storageDir: File? = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+    /**
+     * 建立輸出檔案後啟動 [LandscapeCameraActivity]。
+     * Activity 強制鎖定橫向，且未橫放時會顯示「請轉為橫向拍照」遮罩並禁用快門。
+     */
+    private fun launchLandscapeCamera(slot: Int) {
+        val outputFile = createOutputFile(slot)
+        if (outputFile == null) {
+            pendingSlot = 0
+            Toast.makeText(requireContext(), "無法準備拍照檔案", Toast.LENGTH_SHORT).show()
+            return
+        }
+        pendingOutputPath = outputFile.absolutePath
+        val intent = LandscapeCameraActivity.newIntent(requireContext(), outputFile)
+        cameraLauncher.launch(intent)
+    }
+
+    /**
+     * 在 external pictures 目錄建立暫存輸出檔案。
+     * 命名格式：GUTTER_{slot}_{timestamp}.jpg
+     */
+    private fun createOutputFile(slot: Int): File? {
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES)
         return try {
-            val file = File.createTempFile(
-                "GUTTER_${slot}_${timeStamp}_",
-                ".jpg",
-                storageDir
-            )
-            FileProvider.getUriForFile(
-                requireContext(),
-                "${requireContext().packageName}.fileprovider",
-                file
-            )
+            File.createTempFile("GUTTER_${slot}_${timeStamp}_", ".jpg", storageDir)
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -280,7 +303,7 @@ class GutterPhotosFragment : Fragment() {
         return null
     }
 
-    /** 傳回三個照片的絕對路徑（無照片或檔案不存在則為 null）。 */
+    /** 傳回三個照片的 URI 字串（無照片或檔案不存在則為 null）。 */
     fun getPhotoPaths(): Triple<String?, String?, String?> = Triple(
         photoUriSlot1?.toString(),
         photoUriSlot2?.toString(),
