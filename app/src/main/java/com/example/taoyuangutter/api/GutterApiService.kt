@@ -1,14 +1,19 @@
 package com.example.taoyuangutter.api
 
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
+import okhttp3.RequestBody
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
@@ -110,6 +115,60 @@ interface GutterApiService {
         @Query("node_id")        nodeId: Int,
         @Header("Authorization") authorization: String
     ): Response<NodeDetailsResponse>
+
+    /**
+     * 上傳單張點位照片（multipart/form-data）。
+     * 同一 node_id + fileCategory 只保留一張，舊圖會被覆蓋。
+     *
+     * POST /api/v1/node/nodeImage
+     * Authorization: Bearer {token}
+     *
+     * @param nodeId        點位 ID
+     * @param fileCategory  1=測量位置及側溝概況 / 2=側溝內徑寬度尺寸 / 3=側溝深度尺寸
+     * @param file          圖片 MultipartBody.Part（name="file"）
+     * @param authorization Bearer token
+     * Response: [NodeImageUploadResponse]
+     */
+    @Multipart
+    @POST("api/v1/node/nodeImage")
+    suspend fun uploadNodeImage(
+        @Part("node_id")         nodeId: RequestBody,
+        @Part("fileCategory")    fileCategory: RequestBody,
+        @Part                    file: MultipartBody.Part,
+        @Header("Authorization") authorization: String
+    ): Response<NodeImageUploadResponse>
+
+    /**
+     * 新增或更新整條側溝的所有點位。
+     * Body 帶 SPI_NUM 時為更新，省略時為新增。
+     *
+     * POST /api/v1/ditch/storeDitch
+     * Authorization: Bearer {token}
+     *
+     * Body: [StoreDitchRequest]
+     * Response: [StoreDitchResponse]
+     */
+    @POST("api/v1/ditch/storeDitch")
+    suspend fun storeDitch(
+        @Body                    request: StoreDitchRequest,
+        @Header("Authorization") authorization: String
+    ): Response<StoreDitchResponse>
+
+    /**
+     * 刪除指定側溝（含其所有點位）。
+     *
+     * DELETE /api/v1/ditch/deleteDitch?SPI_NUM=...
+     * Authorization: Bearer {token}
+     *
+     * @param spiNum        側溝編號
+     * @param authorization Bearer token
+     * Response: [DeleteDitchResponse]
+     */
+    @DELETE("api/v1/ditch/deleteDitch")
+    suspend fun deleteDitch(
+        @Query("SPI_NUM")        spiNum: String,
+        @Header("Authorization") authorization: String
+    ): Response<DeleteDitchResponse>
 }
 
 // ════════════════════════════════════════════════════════════════

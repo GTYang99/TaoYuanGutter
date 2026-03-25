@@ -1,8 +1,15 @@
 package com.example.taoyuangutter.api
 
+import android.net.Uri
+import android.content.Context
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.google.android.gms.maps.model.LatLng
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import java.io.File
 
 /**
  * GutterRepository
@@ -337,6 +344,147 @@ class GutterRepository(
                 }
                 else -> ApiResult.Error(
                     message = "查詢失敗（${response.code()}）",
+                    code    = response.code()
+                )
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
+    // ── 點位照片上傳 ──────────────────────────────────────────────────────
+
+    /**
+     * 上傳單張點位照片。同一 nodeId + fileCategory 只保留最新一張，舊圖會被覆蓋。
+     *
+     * @param context      用於從 Uri 取得實體檔案路徑
+     * @param nodeId       點位 ID
+     * @param fileCategory 照片類別（1 / 2 / 3）
+     * @param imageUri     已拍攝或選取的圖片 Uri
+     * @param token        已儲存的 Bearer token
+     * @return [ApiResult.Success] 含 [NodeImageUploadResponse]（data.url 為新圖片網址）；
+     *         [ApiResult.Error]   含錯誤訊息（401 尚未登入、422 欄位未填、500 伺服器錯誤）
+     */
+    suspend fun uploadNodeImage(
+        context: Context,
+        nodeId: Int,
+        fileCategory: Int,
+        imageUri: Uri,
+        token: String
+    ): ApiResult<NodeImageUploadResponse> {
+        return try {
+            val file = File(imageUri.path ?: return ApiResult.Error("無效的圖片路徑"))
+            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
+            val filePart = MultipartBody.Part.createFormData("file", file.name, requestFile)
+            val nodeIdBody       = nodeId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+            val fileCategoryBody = fileCategory.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+
+            val response = api.uploadNodeImage(
+                nodeId        = nodeIdBody,
+                fileCategory  = fileCategoryBody,
+                file          = filePart,
+                authorization = "Bearer $token"
+            )
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.code() == 401 -> ApiResult.Error(
+                    message = "尚未登入，請重新登入",
+                    code    = 401
+                )
+                body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "上傳失敗",
+                        code    = response.code()
+                    )
+                }
+                else -> ApiResult.Error(
+                    message = "上傳失敗（${response.code()}）",
+                    code    = response.code()
+                )
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
+    // ── 新增 / 更新全部點位 ────────────────────────────────────────────────
+
+    /**
+     * 新增或更新整條側溝的所有點位。
+     * [request.spiNum] 有值時為更新，null 時為新增。
+     *
+     * @param request 包含 spiNum（可選）及 nodes 列表的 [StoreDitchRequest]
+     * @param token   已儲存的 Bearer token
+     * @return [ApiResult.Success] 含 [StoreDitchResponse]（data 含完整線段資訊及更新後的 nodes）；
+     *         [ApiResult.Error]   含錯誤訊息（401 / 404 / 422 / 500）
+     */
+    suspend fun storeDitch(
+        request: StoreDitchRequest,
+        token: String
+    ): ApiResult<StoreDitchResponse> {
+        return try {
+            val response = api.storeDitch(
+                request       = request,
+                authorization = "Bearer $token"
+            )
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.code() == 401 -> ApiResult.Error(
+                    message = "尚未登入，請重新登入",
+                    code    = 401
+                )
+                body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "儲存失敗",
+                        code    = response.code()
+                    )
+                }
+                else -> ApiResult.Error(
+                    message = "儲存失敗（${response.code()}）",
+                    code    = response.code()
+                )
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
+    // ── 刪除側溝 ──────────────────────────────────────────────────────────
+
+    /**
+     * 刪除指定側溝（含其所有點位）。
+     *
+     * @param spiNum 側溝編號
+     * @param token  已儲存的 Bearer token
+     * @return [ApiResult.Success] 含 [DeleteDitchResponse]；
+     *         [ApiResult.Error]   含錯誤訊息（401 / 422 / 500）
+     */
+    suspend fun deleteDitch(spiNum: String, token: String): ApiResult<DeleteDitchResponse> {
+        return try {
+            val response = api.deleteDitch(
+                spiNum        = spiNum,
+                authorization = "Bearer $token"
+            )
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.code() == 401 -> ApiResult.Error(
+                    message = "尚未登入，請重新登入",
+                    code    = 401
+                )
+                body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "刪除失敗",
+                        code    = response.code()
+                    )
+                }
+                else -> ApiResult.Error(
+                    message = "刪除失敗（${response.code()}）",
                     code    = response.code()
                 )
             }

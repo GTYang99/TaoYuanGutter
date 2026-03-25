@@ -297,6 +297,91 @@ data class NodeImg(
 )
 
 // ════════════════════════════════════════════════════════════════
+//  POST /api/v1/node/nodeImage  ── 點位照片上傳
+// ════════════════════════════════════════════════════════════════
+
+/** 照片上傳成功時 data 欄位（只含新圖片 URL） */
+data class NodeImageUploadData(
+    @SerializedName("url") val url: String
+)
+
+/** 點位照片上傳 API 回應（200 / 401 / 422 / 500 共用） */
+data class NodeImageUploadResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data")    val data: NodeImageUploadData?,
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+// ════════════════════════════════════════════════════════════════
+//  POST /api/v1/ditch/storeDitch  ── 新增 / 更新全部點位
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * 單一點位上傳格式（storeDitch 專用）。
+ * 更新時帶入 [nodeId]；新增時省略（null）。
+ * [nodeNote] 為唯一非必填欄位。
+ */
+data class StoreDitchNodeRequest(
+    /** 僅更新時帶入；新增時省略 */
+    @SerializedName("node_id")    val nodeId: Int?     = null,
+    /** 點位屬性：1=起點、2=節點、3=終點 */
+    @SerializedName("NODE_ATT")   val nodeAtt: Int,
+    @SerializedName("NODE_NUM")   val nodeNum: String? = null,
+    /** 側溝型式：1=U型溝(明溝)、2=U型溝(加蓋)、3=L型溝與暗溝渠併用、4=其他 */
+    @SerializedName("NODE_TYP")   val nodeTyp: Int,
+    /** 側溝材質：1=混凝土、2=卵礫石、3=紅磚 */
+    @SerializedName("MAT_TYP")    val matTyp: Int,
+    @SerializedName("latitude")   val latitude: Double,
+    @SerializedName("longitude")  val longitude: Double,
+    /** 高程（Z 值） */
+    @SerializedName("NODE_LE")    val nodeLe: Double,
+    @SerializedName("XY_NUM")     val xyNum: String,
+    /** 深度（公分） */
+    @SerializedName("NODE_DEP")   val nodeDep: Int,
+    /** 寬度（公分） */
+    @SerializedName("NODE_WID")   val nodeWid: Int,
+    @SerializedName("IS_BROKEN")  val isBroken: Boolean,
+    @SerializedName("IS_HANGING") val isHanging: Boolean,
+    /** 淤積程度：0=無、1=輕度、2=中度、3=嚴重 */
+    @SerializedName("IS_SILT")    val isSilt: Int,
+    /** 補充說明（非必填） */
+    @SerializedName("NODE_NOTE")  val nodeNote: String? = null
+)
+
+/**
+ * storeDitch Request Body。
+ * 更新時帶入 [spiNum]；新增時省略（null）。
+ */
+data class StoreDitchRequest(
+    /** 僅更新時帶入；新增時省略 */
+    @SerializedName("SPI_NUM") val spiNum: String?                  = null,
+    @SerializedName("nodes")   val nodes: List<StoreDitchNodeRequest>
+)
+
+/**
+ * storeDitch 回應。
+ * 新增成功回傳 "新增成功"；更新成功回傳 "修改成功"；data 結構與 [DitchDetails] 相同。
+ */
+data class StoreDitchResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data")    val data: DitchDetails?,
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+// ════════════════════════════════════════════════════════════════
+//  DELETE /api/v1/ditch/deleteDitch  ── 刪除側溝
+// ════════════════════════════════════════════════════════════════
+
+/** 刪除側溝 API 回應（200 / 401 / 422 / 500 共用） */
+data class DeleteDitchResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+// ════════════════════════════════════════════════════════════════
 //  通用錯誤包裝
 // ════════════════════════════════════════════════════════════════
 
