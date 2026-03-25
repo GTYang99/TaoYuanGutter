@@ -338,15 +338,15 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun updateTabUI(selected: Int) {
-        val primary = getColor(com.example.taoyuangutter.R.color.colorPrimary)
-        val white   = getColor(com.example.taoyuangutter.R.color.white)
-        val grey    = getColor(com.example.taoyuangutter.R.color.inputFieldHint)
+        val primary   = getColor(com.example.taoyuangutter.R.color.colorPrimary)
+        val secondary = getColor(com.example.taoyuangutter.R.color.textColorSecondary)
+        val white     = getColor(com.example.taoyuangutter.R.color.white)
         if (selected == 0) {
-            binding.btnTabBasicInfo.setBackgroundColor(primary); binding.btnTabBasicInfo.setTextColor(white)
-            binding.btnTabPhotos.setBackgroundColor(white);      binding.btnTabPhotos.setTextColor(grey)
+            binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabBasicInfo.setTextColor(primary)
+            binding.btnTabPhotos.setBackgroundColor(white);    binding.btnTabPhotos.setTextColor(secondary)
         } else {
-            binding.btnTabBasicInfo.setBackgroundColor(white);   binding.btnTabBasicInfo.setTextColor(grey)
-            binding.btnTabPhotos.setBackgroundColor(primary);    binding.btnTabPhotos.setTextColor(white)
+            binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabBasicInfo.setTextColor(secondary)
+            binding.btnTabPhotos.setBackgroundColor(white);    binding.btnTabPhotos.setTextColor(primary)
         }
     }
 

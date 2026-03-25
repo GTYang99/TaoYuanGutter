@@ -1,6 +1,8 @@
 package com.example.taoyuangutter.gutter
 
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -99,6 +101,7 @@ class GutterBasicInfoFragment : Fragment() {
         prefillData()
         setupReadOnlyCoordinates()
         setEditable(!isViewMode)
+        setupRangeWatchers()
     }
 
     override fun onDestroyView() {
@@ -249,8 +252,13 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     /**
-     * 驗證必填欄位（備註為選填）。
-     * @return 第一個未填欄位的顯示名稱；全部填妥則回傳 null。
+     * 驗證必填欄位，以及深度與頂寬的合理區間（防呆）。
+     *
+     * 規則來源：桃園側溝分析文件_防呆
+     *   NODE_DEP：35 < 值 < 110（公分）
+     *   NODE_WID：值 > 25（公分）
+     *
+     * @return 第一個未填或超出範圍的欄位提示字串；全部通過則回傳 null。
      */
     fun validateRequiredFields(): String? {
         val d = collectData()
@@ -261,12 +269,69 @@ class GutterBasicInfoFragment : Fragment() {
         if (d["coordY"].isNullOrEmpty())      return "側溝Y（N）座標"
         if (d["coordZ"].isNullOrEmpty())      return "側溝Z座標"
         if (d["measureId"].isNullOrEmpty())   return "測量座標編號"
-        if (d["depth"].isNullOrEmpty())       return "側溝測量深度"
-        if (d["topWidth"].isNullOrEmpty())    return "側溝頂寬度"
+
+        // ── NODE_DEP 深度必填 + 區間防呆 ─────────────────────────
+        if (d["depth"].isNullOrEmpty()) return "側溝測量深度"
+        val depth = d["depth"]!!.toDoubleOrNull()
+        if (depth == null || depth <= 35.0 || depth >= 110.0) {
+            binding.tilDepth.error = "合理區間：35～110 公分"
+            return "側溝測量深度（合理區間：35～110 公分）"
+        }
+
+        // ── NODE_WID 頂寬必填 + 區間防呆 ─────────────────────────
+        if (d["topWidth"].isNullOrEmpty()) return "側溝頂寬度"
+        val topWidth = d["topWidth"]!!.toDoubleOrNull()
+        if (topWidth == null || topWidth <= 25.0) {
+            binding.tilTopWidth.error = "需大於 25 公分"
+            return "側溝頂寬度（需大於 25 公分）"
+        }
+
         if (d["isBroken"].isNullOrEmpty())    return "溝體結構受損"
         if (d["isHanging"].isNullOrEmpty())   return "附掛或過路管線"
         if (d["isSilt"].isNullOrEmpty())      return "淤積程度"
         return null
+    }
+
+    /**
+     * 監聽深度與頂寬輸入，使用者開始修改時自動清除錯誤提示，
+     * 並在離開焦點時即時顯示範圍錯誤。
+     */
+    private fun setupRangeWatchers() {
+        // 清除錯誤的通用 TextWatcher
+        fun clearErrorWatcher(clearAction: () -> Unit) = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, st: Int, c: Int, a: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, st: Int, b: Int, c: Int) = clearAction()
+            override fun afterTextChanged(s: Editable?) = Unit
+        }
+
+        binding.etDepth.addTextChangedListener(clearErrorWatcher {
+            binding.tilDepth.error = null
+        })
+        binding.etTopWidth.addTextChangedListener(clearErrorWatcher {
+            binding.tilTopWidth.error = null
+        })
+
+        // 離開焦點時即時驗證
+        binding.etDepth.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val v = binding.etDepth.text?.toString()?.toDoubleOrNull()
+                binding.tilDepth.error = when {
+                    v == null           -> null   // 空值留給 validateRequiredFields 處理
+                    v <= 35.0 || v >= 110.0 -> "合理區間：35～110 公分"
+                    else                -> null
+                }
+            }
+        }
+        binding.etTopWidth.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val v = binding.etTopWidth.text?.toString()?.toDoubleOrNull()
+                binding.tilTopWidth.error = when {
+                    v == null      -> null
+                    v <= 25.0      -> "需大於 25 公分"
+                    else           -> null
+                }
+            }
+        }
     }
 
     /** 收集表單資料（供 GutterFormActivity 提交用） */

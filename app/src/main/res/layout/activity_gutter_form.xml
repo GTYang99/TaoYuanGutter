@@ -22,7 +22,7 @@
             android:layout_height="56dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:background="@color/colorPrimary">
+            android:background="@color/white">
 
             <!-- 左側：返回箭頭（固定） -->
             <ImageButton
@@ -30,6 +30,7 @@
                 android:layout_width="48dp"
                 android:layout_height="48dp"
                 android:src="@drawable/ic_arrow_back"
+                android:tint="@color/colorPrimary"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:contentDescription="返回"
                 android:padding="12dp" />
@@ -41,7 +42,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:gravity="center"
-                android:textColor="@color/white"
+                android:textColor="@color/colorPrimary"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:text="起點" />
@@ -98,8 +99,8 @@
                 android:text="基本資料"
                 android:textSize="15sp"
                 android:textStyle="bold"
-                android:background="@color/colorPrimary"
-                android:textColor="@color/white"
+                android:background="@color/white"
+                android:textColor="@color/colorPrimary"
                 android:clickable="true"
                 android:focusable="true" />
 
@@ -119,7 +120,7 @@
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:background="@color/white"
-                android:textColor="@color/inputFieldHint"
+                android:textColor="@color/textColorSecondary"
                 android:clickable="true"
                 android:focusable="true" />
 
