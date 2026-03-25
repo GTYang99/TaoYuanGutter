@@ -18,6 +18,20 @@ import java.util.concurrent.TimeUnit
 interface GutterApiService {
 
     /**
+     * 使用者登入。
+     *
+     * POST /api/login
+     * Content-Type: application/json
+     *
+     * Body: [LoginRequest]
+     * Response: [LoginResponse]
+     */
+    @POST("api/login")
+    suspend fun login(
+        @Body request: LoginRequest
+    ): Response<LoginResponse>
+
+    /**
      * 上傳單條側溝資料。
      *
      * POST /api/gutters
@@ -61,7 +75,7 @@ object GutterApiClient {
      * 正式環境請替換為真實域名，例如 "https://api.taoyuangutter.gov.tw/"
      * 本機開發（Android Emulator → Host）可改為 "http://10.0.2.2:8080/"
      */
-    private const val BASE_URL = "https://api.taoyuangutter.example.com/"
+    private const val BASE_URL = "http://192.168.10.37/TY_RSGDBIP/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY   // Debug 模式可改 NONE 減少日誌

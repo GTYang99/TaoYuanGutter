@@ -17,6 +17,45 @@ class GutterRepository(
     private val api: GutterApiService = GutterApiClient.instance
 ) {
 
+    // ── 登入 ──────────────────────────────────────────────────────────────
+
+    /**
+     * 呼叫登入 API。
+     *
+     * @param username 帳號
+     * @param password 密碼
+     * @return [ApiResult.Success] 含 [LoginResponse]（success=true 時 data.token 可使用）；
+     *         [ApiResult.Error]   含後端回傳的錯誤訊息（401 帳密錯誤、422 驗證失敗、500 伺服器錯誤）
+     */
+    suspend fun login(username: String, password: String): ApiResult<LoginResponse> {
+        return try {
+            val response = api.login(LoginRequest(username = username, password = password))
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> {
+                    ApiResult.Success(body)
+                }
+                body != null -> {
+                    // 後端回傳 JSON 但 success=false（401/422/500）
+                    // 優先顯示 errors 裡的第一條欄位訊息，否則顯示 message
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "登入失敗",
+                        code    = response.code()
+                    )
+                }
+                else -> {
+                    ApiResult.Error(
+                        message = response.message().ifEmpty { "登入失敗（${response.code()}）" },
+                        code    = response.code()
+                    )
+                }
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
     // ── 上傳側溝 ──────────────────────────────────────────────────────────
 
     /**

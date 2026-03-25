@@ -108,6 +108,33 @@ data class GetGuttersMapResponse(
 )
 
 // ════════════════════════════════════════════════════════════════
+//  POST /api/login  ── 使用者登入
+// ════════════════════════════════════════════════════════════════
+
+/** 登入 Request Body */
+data class LoginRequest(
+    @SerializedName("username")  val username: String,
+    @SerializedName("password")  val password: String,
+    @SerializedName("device_id") val deviceId: String = "android"
+)
+
+/** 登入成功時 data 欄位 */
+data class LoginData(
+    @SerializedName("token")   val token: String,
+    @SerializedName("name")    val name: String?,
+    @SerializedName("company") val company: String?
+)
+
+/** 登入 API 回應（200 / 401 / 422 / 500 共用同一結構） */
+data class LoginResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data")    val data: LoginData?,
+    /** 422 驗證失敗時後端回傳的欄位錯誤清單 */
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+// ════════════════════════════════════════════════════════════════
 //  通用錯誤包裝
 // ════════════════════════════════════════════════════════════════
 
