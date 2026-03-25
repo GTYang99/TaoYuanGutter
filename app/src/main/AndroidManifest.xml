@@ -67,6 +67,13 @@
             android:theme="@style/Theme.TaoYuanGutter"
             android:exported="false" />
 
+        <!-- 側溝唯讀檢視 Activity（半透明浮動，佔下方 3/4 螢幕） -->
+        <activity
+            android:name=".gutter.GutterInspectActivity"
+            android:label="側溝檢視"
+            android:theme="@style/Theme.TaoYuanGutter.FormSheet"
+            android:exported="false" />
+
         <!-- 離線草稿列表 Activity（半螢幕底部彈出） -->
         <activity
             android:name=".offline.OfflineDraftsActivity"

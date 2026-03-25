@@ -27,6 +27,7 @@ import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
 import com.example.taoyuangutter.gutter.GutterFormActivity
+import com.example.taoyuangutter.gutter.GutterInspectActivity
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.LoginActivity
@@ -402,11 +403,9 @@ class MainActivity : AppCompatActivity(),
         if (waypoints.isEmpty()) return
         inspectWaypoints = waypoints.toList()
         refreshWorkingMarkers(inspectWaypoints)
-        val sheet = AddGutterBottomSheet.newInstanceForInspect()
-        inspectSheet = sheet
-        sheet.onWaypointsChanged = { if (it == null) { clearWorkingMarkers(); inspectSheet = null } }
-        sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
         binding.root.post { fitCameraToWaypoints(inspectWaypoints) }
+        val intent = GutterInspectActivity.newIntent(this, inspectWaypoints)
+        startActivity(intent)
     }
 
     private fun setupButtons() {
