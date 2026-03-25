@@ -32,22 +32,24 @@ interface GutterApiService {
     ): Response<SubmitGutterResponse>
 
     /**
-     * 取得地圖上已存在的側溝列表。
+     * 依地圖可視範圍取得側溝座標（GeoJSON）。
      *
-     * GET /api/gutters/map
+     * GET /api/v1/map/scopeSearch
      *
-     * @param lat    地圖中心緯度（可選，後端可依此過濾範圍）
-     * @param lng    地圖中心經度（可選）
-     * @param radius 搜尋半徑（公尺，可選，預設由後端決定）
+     * @param minLat 最小緯度
+     * @param maxLat 最大緯度
+     * @param minLng 最小經度
+     * @param maxLng 最大經度
      *
-     * Response: [GetGuttersMapResponse]
+     * Response: [ScopeSearchResponse]
      */
-    @GET("api/gutters/map")
-    suspend fun getGuttersMap(
-        @Query("lat")    lat: Double? = null,
-        @Query("lng")    lng: Double? = null,
-        @Query("radius") radius: Int? = null
-    ): Response<GetGuttersMapResponse>
+    @GET("api/v1/map/scopeSearch")
+    suspend fun getScopeSearch(
+        @Query("minLat") minLat: Double,
+        @Query("maxLat") maxLat: Double,
+        @Query("minLng") minLng: Double,
+        @Query("maxLng") maxLng: Double
+    ): Response<ScopeSearchResponse>
 }
 
 // ════════════════════════════════════════════════════════════════

@@ -145,4 +145,49 @@ class GutterRepository(
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
         }
     }
+
+    // ── 取得側溝座標（依可視範圍）────────────────────────────────────────
+
+    /**
+     * 依地圖可視範圍查詢側溝 GeoJSON 線段。
+     *
+     * @param minLat 可視範圍最小緯度
+     * @param maxLat 可視範圍最大緯度
+     * @param minLng 可視範圍最小經度
+     * @param maxLng 可視範圍最大經度
+     * @return [ApiResult.Success] 含 [ScopeSearchResponse]（features 可能為空 list）；
+     *         [ApiResult.Error]   含錯誤訊息
+     */
+    suspend fun getGuttersByScope(
+        minLat: Double,
+        maxLat: Double,
+        minLng: Double,
+        maxLng: Double
+    ): ApiResult<ScopeSearchResponse> {
+        return try {
+            val response = api.getScopeSearch(
+                minLat = minLat,
+                maxLat = maxLat,
+                minLng = minLng,
+                maxLng = maxLng
+            )
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "查詢失敗",
+                        code    = response.code()
+                    )
+                }
+                else -> ApiResult.Error(
+                    message = "查詢失敗（${response.code()}）",
+                    code    = response.code()
+                )
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
 }

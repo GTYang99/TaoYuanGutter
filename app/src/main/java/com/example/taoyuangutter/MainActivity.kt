@@ -99,6 +99,8 @@ class MainActivity : AppCompatActivity(),
     private var highlightedMarkerIndex: Int = -1
     private var workingPolyline: Polyline? = null
     private val submittedPolylines = mutableListOf<Polyline>()
+    /** scopeSearch 從後端載入的 Polyline（依 SPI_NUM 索引，方便重繪時移除舊線段） */
+    private val scopePolylines = mutableMapOf<String, Polyline>()
     private var currentWaypoints: List<Waypoint> = emptyList()
 
     private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
@@ -248,6 +250,9 @@ class MainActivity : AppCompatActivity(),
         }
 
         map.setOnPolylineClickListener { polyline -> openInspectBottomSheet(polyline) }
+
+        // 地圖停止移動後，依目前可視範圍向後端查詢側溝線段
+        map.setOnCameraIdleListener { loadGuttersByViewport() }
     }
 
     // ── LocationPickerHost 實作 ───────────────────────────────────────────
@@ -544,6 +549,60 @@ class MainActivity : AppCompatActivity(),
             marker.zIndex = 0f
         }
         highlightedMarkerIndex = -1
+    }
+
+    // ── 側溝座標 API（scopeSearch）────────────────────────────────────────
+
+    /**
+     * 取得目前地圖可視範圍（LatLngBounds）並呼叫 scopeSearch API，
+     * 成功後呼叫 [drawScopePolylines] 更新地圖上的線段。
+     */
+    private fun loadGuttersByViewport() {
+        val map = googleMap ?: return
+        val bounds = map.projection.visibleRegion.latLngBounds
+        lifecycleScope.launch {
+            when (val result = gutterRepository.getGuttersByScope(
+                minLat = bounds.southwest.latitude,
+                maxLat = bounds.northeast.latitude,
+                minLng = bounds.southwest.longitude,
+                maxLng = bounds.northeast.longitude
+            )) {
+                is ApiResult.Success -> {
+                    drawScopePolylines(result.data.data?.features ?: emptyList())
+                }
+                is ApiResult.Error -> {
+                    // 靜默失敗：不打擾使用者，僅在 logcat 留紀錄
+                    android.util.Log.w("ScopeSearch", "查詢失敗: ${result.message}")
+                }
+            }
+        }
+    }
+
+    /**
+     * 將 scopeSearch 回傳的 GeoJSON features 畫成地圖 Polyline。
+     * 已存在的同 SPI_NUM 線段會先移除再重繪，避免重複疊加。
+     */
+    private fun drawScopePolylines(features: List<com.example.taoyuangutter.api.GeoFeature>) {
+        val map = googleMap ?: return
+        features.forEach { feature ->
+            val spiNum = feature.properties?.spiNum ?: return@forEach
+            val coords = feature.geometry?.coordinates ?: return@forEach
+            if (coords.size < 2) return@forEach
+
+            // 移除舊線段
+            scopePolylines.remove(spiNum)?.remove()
+
+            val points = coords.map { LatLng(it[1], it[0]) }   // GeoJSON: [lng, lat]
+            val polyline = map.addPolyline(
+                com.google.android.gms.maps.model.PolylineOptions()
+                    .addAll(points)
+                    .color(android.graphics.Color.parseColor("#6236FF"))
+                    .width(6f)
+                    .clickable(true)
+            )
+            polyline.tag = spiNum
+            scopePolylines[spiNum] = polyline
+        }
     }
 
     private fun createEnlargedMarkerIcon(type: WaypointType): com.google.android.gms.maps.model.BitmapDescriptor {
