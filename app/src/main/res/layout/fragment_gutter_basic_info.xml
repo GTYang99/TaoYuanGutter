@@ -201,13 +201,14 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="測量座標編號"
+            android:text="@string/field_measure_id"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
 
         <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilMeasureId"
+            android:id="@+id/til
+            MeasureId"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

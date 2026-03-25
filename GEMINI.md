@@ -16,11 +16,19 @@
 - **`ActivityGutterForm.kt`**:
     - 修改 `saveAndClose()` 函數，現在會先驗證 `GutterBasicInfoFragment` 的必填欄位，然後再驗證 `FragmentGutterPhotos` 的所有照片。
     - 確保 `buildAndFinishWithResult()` 函數能從基本資料 Fragment 和照片 Fragment 收集資料，並將其包含在結果 Intent 中。
-- **`FragmentGutterPhotos.kt`**:
-    - 實作了照片選擇與顯示功能，最多可新增三張照片。
-    - 新增 `validateAllPhotos()` 方法，用於檢查三個照片欄位是否皆已填寫。
-    - 新增 `getPhotoPaths()` 方法，用於回傳所選照片的 URI。
-    - 調整了 UI 元素的顯示邏輯，以支援編輯模式和檢視模式下的照片操作。
+    - 更新 `fillDataExtras` 以處理照片 URI 作為字符串。
+- **`GutterPhotosFragment.kt`**:
+    - 將照片儲存方式從 `File` 更改為 `Uri`，以更好地與 `ActivityResultContracts.TakePicture` 兼容。
+    - 移除 `pendingFile` 變數。
+    - 替換舊的 `cameraLauncher` 為 `takePictureLauncher` (使用 `ActivityResultContracts.TakePicture`)。
+    - 修改 `cameraPermissionLauncher` 的回調邏輯，在授予權限後直接啟動 `takePictureLauncher`。
+    - 移除 `openLandscapeCamera` 和 `createImageFile` 函數，因為它們已被新的 URI 創建和啟動流程取代。
+    - 更新 `onViewCreated` 和 `onSaveInstanceState` 以使用 `Uri.parse()` 和 `Uri.toString()` 來儲存和恢復照片 URI。
+    - 更新 `setEditable` 函數中的可見性檢查，以檢查 `photoUriSlotX` 是否為空。
+    - 更新 `validateAllPhotos` 以檢查 `photoUriSlotX` 是否為空。
+    - 更新 `getPhotoPaths` 以返回 `photoUriSlotX?.toString()`。
+    - 移除 `getPhotoUris` 函數，因為 `getPhotoPaths` 現在返回 URI 的字符串表示。
+    - 新增 `createPhotoUriForSlot` 函數，用於為每個照片槽創建持久性 URI。
 - **`GutterFormPagerAdapter.kt`**:
     - 更新以正確取得 `GutterBasicInfoFragment` 和 `FragmentGutterPhotos` 的實例。
 - **`PendingDraftsBottomSheet.kt`**:
@@ -44,11 +52,6 @@
 - 使用 ViewBinding
 
 ## 下次待處理事項
-- **照片管理與儲存**:
-    - 進一步完善 `FragmentGutterPhotos` 中的照片處理邏輯，例如：
-        - 考慮加入相機直接拍攝功能。
-        - 實作圖片壓縮或大小限制。
-        - 確保照片 URI 的長期有效性，特別是在不同情境下（如背景儲存、重啟 App）。
 - **資料儲存與 API 整合**:
     - 將收集到的基本資料和照片 URI 實際儲存至 `GutterRepository` 或透過 API 傳送至後端。
 - **UI/UX 優化**:

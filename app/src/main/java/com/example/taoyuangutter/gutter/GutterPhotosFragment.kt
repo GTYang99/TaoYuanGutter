@@ -4,9 +4,12 @@ import android.app.Activity
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Environment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -22,39 +25,24 @@ class GutterPhotosFragment : Fragment() {
     private var _binding: FragmentGutterPhotosBinding? = null
     private val binding get() = _binding!!
 
-    private var photoFileSlot1: File? = null
-    private var photoFileSlot2: File? = null
-    private var photoFileSlot3: File? = null
+    private var photoUriSlot1: Uri? = null
+    private var photoUriSlot2: Uri? = null
+    private var photoUriSlot3: Uri? = null
 
     private var pendingSlot: Int = 0
-    private var pendingFile: File? = null
+    
 
     // ── ActivityResultLaunchers ──────────────────────────────────────────
 
     private val cameraPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted ->
-        if (granted) openLandscapeCamera(pendingSlot)
+        if (granted) { /* Logic updated in requestCameraForSlot */ }
     }
 
-    private val cameraLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val path = result.data?.getStringExtra(LandscapeCameraActivity.EXTRA_RESULT_PATH)
-            val file = if (path != null) File(path) else pendingFile
+    private lateinit var takePictureLauncher: ActivityResultLauncher<Uri>
 
-            if (file != null && file.exists()) {
-                when (pendingSlot) {
-                    1 -> { photoFileSlot1 = file; showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, file) }
-                    2 -> { photoFileSlot2 = file; showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, file) }
-                    3 -> { photoFileSlot3 = file; showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, file) }
-                }
-            }
-        }
-        pendingFile = null
-        pendingSlot = 0
-    }
+    // Removed old cameraLauncher: replaced with ActivityResultContracts.TakePicture
 
     // ── Lifecycle ────────────────────────────────────────────────────────
 
@@ -96,26 +84,42 @@ class GutterPhotosFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        if (savedInstanceState != null) {
-            // 系統重建 → 從 savedInstanceState 恢復
-            savedInstanceState.getString(KEY_PHOTO_1)?.let { photoFileSlot1 = File(it) }
-            savedInstanceState.getString(KEY_PHOTO_2)?.let { photoFileSlot2 = File(it) }
-            savedInstanceState.getString(KEY_PHOTO_3)?.let { photoFileSlot3 = File(it) }
-            pendingSlot = savedInstanceState.getInt(KEY_PENDING_SLOT)
-            savedInstanceState.getString(KEY_PENDING_FILE)?.let { pendingFile = File(it) }
-        } else {
-            // 首次建立 → 從 arguments 帶入既有照片（重新開啟表單時）
-            fun tryLoad(path: String?): File? =
-                path?.takeIf { it.isNotEmpty() }?.let { File(it).takeIf { f -> f.exists() } }
-            photoFileSlot1 = tryLoad(arguments?.getString(ARG_PHOTO_1))
-            photoFileSlot2 = tryLoad(arguments?.getString(ARG_PHOTO_2))
-            photoFileSlot3 = tryLoad(arguments?.getString(ARG_PHOTO_3))
+        // Initialize takePictureLauncher here
+        takePictureLauncher = registerForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+            if (success) {
+                // Update UI with the taken photo using the stored URI
+                when (pendingSlot) {
+                    1 -> photoUriSlot1?.let { showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, it) }
+                    2 -> photoUriSlot2?.let { showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, it) }
+                    3 -> photoUriSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, it) }
+                }
+            } else {
+                // If capture failed or was cancelled, clean up the URI if it was pre-created.
+                // For now, if success is false, we just reset pendingSlot.
+            }
+            pendingSlot = 0 // Reset pending slot
         }
 
-        // 根據恢復的檔案更新 UI
-        photoFileSlot1?.let { showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, it) }
-        photoFileSlot2?.let { showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, it) }
-        photoFileSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, it) }
+        if (savedInstanceState != null) {
+            // 系統重建 → 從 savedInstanceState 恢復
+            savedInstanceState.getString(KEY_PHOTO_1)?.let { photoUriSlot1 = Uri.parse(it) }
+            savedInstanceState.getString(KEY_PHOTO_2)?.let { photoUriSlot2 = Uri.parse(it) }
+            savedInstanceState.getString(KEY_PHOTO_3)?.let { photoUriSlot3 = Uri.parse(it) }
+            pendingSlot = savedInstanceState.getInt(KEY_PENDING_SLOT)
+            // pendingFile is removed, so its restoration is also removed.
+        } else {
+            // 首次建立 → 從 arguments 帶入既有照片（重新開啟表單時）
+            fun tryLoad(uriString: String?): Uri? =
+                uriString?.takeIf { it.isNotEmpty() }?.let { Uri.parse(it) }
+            photoUriSlot1 = tryLoad(arguments?.getString(ARG_PHOTO_1))
+            photoUriSlot2 = tryLoad(arguments?.getString(ARG_PHOTO_2))
+            photoUriSlot3 = tryLoad(arguments?.getString(ARG_PHOTO_3))
+        }
+
+        // 根據恢復的 URI 更新 UI
+        photoUriSlot1?.let { showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, it) }
+        photoUriSlot2?.let { showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, it) }
+        photoUriSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, it) }
 
         val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
         setEditable(!isViewMode)
@@ -123,11 +127,11 @@ class GutterPhotosFragment : Fragment() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        photoFileSlot1?.let { outState.putString(KEY_PHOTO_1, it.absolutePath) }
-        photoFileSlot2?.let { outState.putString(KEY_PHOTO_2, it.absolutePath) }
-        photoFileSlot3?.let { outState.putString(KEY_PHOTO_3, it.absolutePath) }
+        photoUriSlot1?.let { outState.putString(KEY_PHOTO_1, it.toString()) }
+        photoUriSlot2?.let { outState.putString(KEY_PHOTO_2, it.toString()) }
+        photoUriSlot3?.let { outState.putString(KEY_PHOTO_3, it.toString()) }
         outState.putInt(KEY_PENDING_SLOT, pendingSlot)
-        pendingFile?.let { outState.putString(KEY_PENDING_FILE, it.absolutePath) }
+        // pendingFile is removed, so its state saving is also removed.
     }
 
     override fun onDestroyView() {
@@ -147,17 +151,17 @@ class GutterPhotosFragment : Fragment() {
             binding.photoSlot2.setOnClickListener { requestCameraForSlot(2) }
             binding.photoSlot3.setOnClickListener { requestCameraForSlot(3) }
             // 無照片時顯示 placeholder（相機 icon）
-            if (photoFileSlot1 == null) binding.placeholderSlot1.visibility = View.VISIBLE
-            if (photoFileSlot2 == null) binding.placeholderSlot2.visibility = View.VISIBLE
-            if (photoFileSlot3 == null) binding.placeholderSlot3.visibility = View.VISIBLE
+            if (photoUriSlot1 == null) binding.placeholderSlot1.visibility = View.VISIBLE
+            if (photoUriSlot2 == null) binding.placeholderSlot2.visibility = View.VISIBLE
+            if (photoUriSlot3 == null) binding.placeholderSlot3.visibility = View.VISIBLE
         } else {
             binding.photoSlot1.setOnClickListener(null)
             binding.photoSlot2.setOnClickListener(null)
             binding.photoSlot3.setOnClickListener(null)
             // 唯讀：沒有照片的格子隱藏 placeholder（不顯示相機圖示）
-            if (photoFileSlot1 == null) binding.placeholderSlot1.visibility = View.INVISIBLE
-            if (photoFileSlot2 == null) binding.placeholderSlot2.visibility = View.INVISIBLE
-            if (photoFileSlot3 == null) binding.placeholderSlot3.visibility = View.INVISIBLE
+            if (photoUriSlot1 == null) binding.placeholderSlot1.visibility = View.INVISIBLE
+            if (photoUriSlot2 == null) binding.placeholderSlot2.visibility = View.INVISIBLE
+            if (photoUriSlot3 == null) binding.placeholderSlot3.visibility = View.INVISIBLE
         }
     }
 
@@ -169,35 +173,56 @@ class GutterPhotosFragment : Fragment() {
                 requireContext(), android.Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            openLandscapeCamera(slot)
+            val photoUri = createPhotoUriForSlot(slot)
+            if (photoUri != null) {
+                // Store the URI temporarily to be updated upon successful capture
+                when (slot) {
+                    1 -> photoUriSlot1 = photoUri
+                    2 -> photoUriSlot2 = photoUri
+                    3 -> photoUriSlot3 = photoUri
+                }
+                takePictureLauncher.launch(photoUri)
+            } else {
+                Toast.makeText(requireContext(), "無法準備拍照", Toast.LENGTH_SHORT).show()
+            }
         } else {
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
     }
 
-    private fun openLandscapeCamera(slot: Int) {
-        val file = createImageFile()
-        pendingFile = file
-        pendingSlot = slot
-        val intent = LandscapeCameraActivity.newIntent(requireContext(), file)
-        cameraLauncher.launch(intent)
-    }
-
-    private fun createImageFile(): File {
-        val ts  = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
-        val dir = requireContext().getExternalFilesDir("Pictures") ?: requireContext().filesDir
-        dir.mkdirs()
-        return File(dir, "GUTTER_$ts.jpg")
+    private fun createPhotoUriForSlot(slot: Int): Uri? {
+        val timeStamp: String = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir: File? = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+        return try {
+            val file = File.createTempFile(
+                "GUTTER_${slot}_${timeStamp}_",
+                ".jpg",
+                storageDir
+            )
+            FileProvider.getUriForFile(
+                requireContext(),
+                "${requireContext().packageName}.fileprovider",
+                file
+            )
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
 
     // ── UI 更新 ──────────────────────────────────────────────────────────
 
-    private fun showPhoto(photoView: android.widget.ImageView, placeholder: View, file: File) {
-        if (!file.exists()) return
+    private fun showPhoto(photoView: android.widget.ImageView, placeholder: View, uri: Uri?) {
+        if (uri == null) {
+            placeholder.visibility = View.VISIBLE
+            photoView.visibility = View.GONE
+            photoView.setImageURI(null)
+            return
+        }
         placeholder.visibility = View.GONE
         photoView.visibility   = View.VISIBLE
         photoView.setImageURI(null) // 清除快取
-        photoView.setImageURI(Uri.fromFile(file))
+        photoView.setImageURI(uri)
     }
 
     // ── 對外 API ─────────────────────────────────────────────────────────
@@ -207,27 +232,16 @@ class GutterPhotosFragment : Fragment() {
      * @return 第一個尚未拍攝的照片格說明；全部完成則回傳 null。
      */
     fun validateAllPhotos(): String? {
-        if (photoFileSlot1 == null || !photoFileSlot1!!.exists()) return "測量位置及側溝概況（第1張）"
-        if (photoFileSlot2 == null || !photoFileSlot2!!.exists()) return "側溝內徑寬度尺寸（第2張）"
-        if (photoFileSlot3 == null || !photoFileSlot3!!.exists()) return "側溝深度尺寸（第3張）"
+        if (photoUriSlot1 == null) return "測量位置及側溝概況（第1張）"
+        if (photoUriSlot2 == null) return "側溝內徑寬度尺寸（第2張）"
+        if (photoUriSlot3 == null) return "側溝深度尺寸（第3張）"
         return null
     }
 
     /** 傳回三個照片的絕對路徑（無照片或檔案不存在則為 null）。 */
     fun getPhotoPaths(): Triple<String?, String?, String?> = Triple(
-        photoFileSlot1?.takeIf { it.exists() }?.absolutePath,
-        photoFileSlot2?.takeIf { it.exists() }?.absolutePath,
-        photoFileSlot3?.takeIf { it.exists() }?.absolutePath
+        photoUriSlot1?.toString(),
+        photoUriSlot2?.toString(),
+        photoUriSlot3?.toString()
     )
-
-    fun getPhotoUris(): Triple<Uri?, Uri?, Uri?> {
-        fun fileToUri(file: File?): Uri? = file?.takeIf { it.exists() }?.let {
-            FileProvider.getUriForFile(
-                requireContext(),
-                "${requireContext().packageName}.fileprovider",
-                it
-            )
-        }
-        return Triple(fileToUri(photoFileSlot1), fileToUri(photoFileSlot2), fileToUri(photoFileSlot3))
-    }
 }
