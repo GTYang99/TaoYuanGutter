@@ -78,6 +78,22 @@ interface GutterApiService {
         @Query("minLng") minLng: Double,
         @Query("maxLng") maxLng: Double
     ): Response<ScopeSearchResponse>
+
+    /**
+     * 取得單條側溝線段的詳細資料（含各點位摘要與照片 URL）。
+     *
+     * GET /api/v1/ditch/ditchDetails?SPI_NUM=BS0003
+     * Authorization: Bearer {token}
+     *
+     * @param spiNum        側溝編號（必填）
+     * @param authorization Bearer token
+     * Response: [DitchDetailsResponse]
+     */
+    @GET("api/v1/ditch/ditchDetails")
+    suspend fun getDitchDetails(
+        @Query("SPI_NUM")              spiNum: String,
+        @Header("Authorization")       authorization: String
+    ): Response<DitchDetailsResponse>
 }
 
 // ════════════════════════════════════════════════════════════════

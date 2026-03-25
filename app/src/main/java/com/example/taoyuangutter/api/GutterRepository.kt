@@ -264,4 +264,44 @@ class GutterRepository(
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
         }
     }
+
+    // ── 取得線段資料 ──────────────────────────────────────────────────────
+
+    /**
+     * 取得單條側溝線段的詳細資料。
+     *
+     * @param spiNum 側溝編號，例如 "BS0003"
+     * @param token  已儲存的 Bearer token
+     * @return [ApiResult.Success] 含 [DitchDetailsResponse]（data 含線段資訊及 nodes 列表）；
+     *         [ApiResult.Error]   含錯誤訊息（401 尚未登入、404 查無側溝、422 欄位未填、500 伺服器錯誤）
+     */
+    suspend fun getDitchDetails(spiNum: String, token: String): ApiResult<DitchDetailsResponse> {
+        return try {
+            val response = api.getDitchDetails(
+                spiNum        = spiNum,
+                authorization = "Bearer $token"
+            )
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.code() == 401 -> ApiResult.Error(
+                    message = "尚未登入，請重新登入",
+                    code    = 401
+                )
+                body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "查詢失敗",
+                        code    = response.code()
+                    )
+                }
+                else -> ApiResult.Error(
+                    message = "查詢失敗（${response.code()}）",
+                    code    = response.code()
+                )
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
 }

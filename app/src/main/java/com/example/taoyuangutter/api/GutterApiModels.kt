@@ -144,6 +144,7 @@ data class LogoutResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String?,
     @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
 
 //  GET /api/v1/map/scopeSearch  ── 依地圖可視範圍取得側溝座標
 // ════════════════════════════════════════════════════════════════
@@ -183,6 +184,72 @@ data class GeoGeometry(
 data class GeoProperties(
     @SerializedName("SPI_NUM")  val spiNum: String?,
     @SerializedName("group_id") val groupId: String?
+)
+
+// ════════════════════════════════════════════════════════════════
+//  GET /api/v1/ditch/ditchDetails  ── 取得線段資料
+// ════════════════════════════════════════════════════════════════
+
+/** 取得線段資料 API 回應最外層 */
+data class DitchDetailsResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data")    val data: DitchDetails?,
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+/** 線段詳細資料 */
+data class DitchDetails(
+    @SerializedName("ditch_id") val ditchId: Int,
+    @SerializedName("SPI_NUM")  val spiNum: String,
+    @SerializedName("SPI_TYP")  val spiTyp: String?,
+    /** 起點 TWD97 X 座標 */
+    @SerializedName("STR_X")    val strX: String?,
+    /** 起點 TWD97 Y 座標 */
+    @SerializedName("STR_Y")    val strY: String?,
+    /** 終點 TWD97 X 座標 */
+    @SerializedName("END_X")    val endX: String?,
+    /** 終點 TWD97 Y 座標 */
+    @SerializedName("END_Y")    val endY: String?,
+    /** 起點高程 */
+    @SerializedName("STR_LE")   val strLe: String?,
+    /** 終點高程 */
+    @SerializedName("END_LE")   val endLe: String?,
+    @SerializedName("NODE_XY")  val nodeXy: String?,
+    /** 起點深度（公分） */
+    @SerializedName("STR_DEP")  val strDep: Int?,
+    /** 終點深度（公分） */
+    @SerializedName("END_DEP")  val endDep: Int?,
+    /** 起點寬度（公分） */
+    @SerializedName("STR_WID")  val strWid: Int?,
+    /** 終點寬度（公分） */
+    @SerializedName("END_WID")  val endWid: Int?,
+    /** 線段長度（公尺） */
+    @SerializedName("LENG")     val leng: String?,
+    /** 坡度 */
+    @SerializedName("SLOP")     val slop: String?,
+    @SerializedName("NOTE")     val note: String?,
+    /** 所有點位 */
+    @SerializedName("nodes")    val nodes: List<DitchNode>
+)
+
+/** 線段內的單一點位（摘要，不含座標；完整資料請呼叫 nodeDetails） */
+data class DitchNode(
+    @SerializedName("node_id")  val nodeId: Int,
+    /** 點位屬性：1=起點、2=節點、3=終點 */
+    @SerializedName("NODE_ATT") val nodeAtt: String?,
+    @SerializedName("NODE_NUM") val nodeNum: String?,
+    /** 該點位已上傳的照片 URL 列表（可為空） */
+    @SerializedName("url")      val url: List<NodeImageUrl>
+)
+
+/** 點位照片 URL */
+data class NodeImageUrl(
+    @SerializedName("url")          val url: String,
+    @SerializedName("node_id")      val nodeId: String?,
+    /** 照片類別：1=測量位置及側溝概況、2=側溝內徑寬度尺寸、3=側溝深度尺寸 */
+    @SerializedName("fileCategory") val fileCategory: String?,
+    @SerializedName("id")           val id: Int?
 )
 
 // ════════════════════════════════════════════════════════════════
