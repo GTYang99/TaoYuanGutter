@@ -412,6 +412,16 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
+    /** 清除指定點位的座標與基本資料（使用者放棄填寫時呼叫） */
+    fun clearWaypointLocation(index: Int) {
+        if (index in waypoints.indices) {
+            waypoints[index].latLng    = null
+            waypoints[index].basicData = hashMapOf()
+            adapter.notifyItemChanged(index)
+            onWaypointsChanged?.invoke(waypoints.toList())
+        }
+    }
+
     // ── Companion ────────────────────────────────────────────────────────
     companion object {
         const val TAG = "AddGutterBottomSheet"

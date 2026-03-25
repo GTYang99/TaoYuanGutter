@@ -8,6 +8,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
@@ -52,6 +53,9 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_DATA_PHOTO_1     = "ex_photo1"
         const val EXTRA_DATA_PHOTO_2     = "ex_photo2"
         const val EXTRA_DATA_PHOTO_3     = "ex_photo3"
+
+        // 自訂 Result Code：使用者放棄填寫，要求刪除點位座標與資料
+        const val RESULT_DELETE = Activity.RESULT_FIRST_USER
 
         // 回傳 Key（Result Intent）
         const val RESULT_LATITUDE        = "result_lat"
@@ -268,7 +272,7 @@ class GutterFormActivity : AppCompatActivity() {
             binding.btnBack.setOnClickListener { finish() }
         } else {
             binding.btnBack.setOnClickListener {
-                if (!isViewMode) saveDraftAndClose() else finish()
+                if (!isViewMode) confirmOrDiscardAndClose() else finish()
             }
         }
 
@@ -375,7 +379,30 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun saveDraftAndClose() {
-        if (isOfflineMode) saveOfflineAndClose(silent = true) else buildAndFinishWithResult()
+        if (isOfflineMode) saveOfflineAndClose(silent = true) else confirmOrDiscardAndClose()
+    }
+
+    /**
+     * 按下返回時：若資料未填寫完整則顯示確認 Dialog，
+     * 使用者確認後放棄資料（RESULT_CANCELED）；否則直接儲存。
+     */
+    private fun confirmOrDiscardAndClose() {
+        val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
+        val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
+        if (basicError != null || photoError != null) {
+            AlertDialog.Builder(this)
+                .setTitle("資料尚未完成")
+                .setMessage("此點位的資料尚未填寫完整，確定返回嗎？\n已輸入的資料將不會儲存。")
+                .setPositiveButton("確定返回") { _, _ ->
+                    val deleteIntent = Intent().putExtra(RESULT_WAYPOINT_INDEX, waypointIndex)
+                    setResult(RESULT_DELETE, deleteIntent)
+                    finish()
+                }
+                .setNegativeButton("繼續填寫", null)
+                .show()
+        } else {
+            buildAndFinishWithResult()
+        }
     }
 
     private fun buildAndFinishWithResult() {
@@ -472,8 +499,8 @@ class GutterFormActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         when {
-            isOfflineMode -> finish()               // 離線取消：不存草稿
-            !isViewMode   -> saveDraftAndClose()
+            isOfflineMode -> finish()                    // 離線取消：不存草稿
+            !isViewMode   -> confirmOrDiscardAndClose()  // 編輯模式：資料不完整則彈窗確認
             else          -> super.onBackPressed()
         }
     }

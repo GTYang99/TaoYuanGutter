@@ -125,25 +125,31 @@ class MainActivity : AppCompatActivity(),
 
             when {
                 activeSheet != null -> {
-                    if (result.resultCode == Activity.RESULT_OK && pendingWaypointFormIndex >= 0) {
-                        val data = result.data
+                    when (result.resultCode) {
+                        Activity.RESULT_OK -> if (pendingWaypointFormIndex >= 0) {
+                            val data = result.data
 
-                        // ── 更新地圖定位座標 ────────────────────────────────
-                        // 優先使用 GutterFormActivity 回傳的 lat/lng（已保證永遠有值）；
-                        // 若萬一仍為 NaN（例如舊版快取），退回使用 currentWaypoints 中
-                        // 地圖選點時已儲存的座標，確保大頭針不會消失。
-                        val resultLat = data?.getDoubleExtra(GutterFormActivity.RESULT_LATITUDE,  Double.NaN) ?: Double.NaN
-                        val resultLng = data?.getDoubleExtra(GutterFormActivity.RESULT_LONGITUDE, Double.NaN) ?: Double.NaN
-                        val fallbackLatLng = currentWaypoints.getOrNull(pendingWaypointFormIndex)?.latLng
-                        val effectiveLat = if (!resultLat.isNaN()) resultLat else fallbackLatLng?.latitude  ?: Double.NaN
-                        val effectiveLng = if (!resultLng.isNaN()) resultLng else fallbackLatLng?.longitude ?: Double.NaN
-                        if (!effectiveLat.isNaN() && !effectiveLng.isNaN()) {
-                            activeSheet?.updateWaypointLocation(pendingWaypointFormIndex, LatLng(effectiveLat, effectiveLng))
+                            // ── 更新地圖定位座標 ────────────────────────────────
+                            // 優先使用 GutterFormActivity 回傳的 lat/lng（已保證永遠有值）；
+                            // 若萬一仍為 NaN（例如舊版快取），退回使用 currentWaypoints 中
+                            // 地圖選點時已儲存的座標，確保大頭針不會消失。
+                            val resultLat = data?.getDoubleExtra(GutterFormActivity.RESULT_LATITUDE,  Double.NaN) ?: Double.NaN
+                            val resultLng = data?.getDoubleExtra(GutterFormActivity.RESULT_LONGITUDE, Double.NaN) ?: Double.NaN
+                            val fallbackLatLng = currentWaypoints.getOrNull(pendingWaypointFormIndex)?.latLng
+                            val effectiveLat = if (!resultLat.isNaN()) resultLat else fallbackLatLng?.latitude  ?: Double.NaN
+                            val effectiveLng = if (!resultLng.isNaN()) resultLng else fallbackLatLng?.longitude ?: Double.NaN
+                            if (!effectiveLat.isNaN() && !effectiveLng.isNaN()) {
+                                activeSheet?.updateWaypointLocation(pendingWaypointFormIndex, LatLng(effectiveLat, effectiveLng))
+                            }
+
+                            // ── 更新表單填寫的基本資料 ──────────────────────────
+                            val newData = extractBasicData(result.data)
+                            activeSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
                         }
-
-                        // ── 更新表單填寫的基本資料 ──────────────────────────
-                        val newData = extractBasicData(result.data)
-                        activeSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
+                        GutterFormActivity.RESULT_DELETE -> if (pendingWaypointFormIndex >= 0) {
+                            // 使用者放棄填寫 → 清除該點位的座標與資料（同時更新地圖大頭針）
+                            activeSheet?.clearWaypointLocation(pendingWaypointFormIndex)
+                        }
                     }
                     resetHighlightedMarker()
                     pendingWaypointFormIndex = -1
