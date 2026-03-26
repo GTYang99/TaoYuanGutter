@@ -125,6 +125,7 @@ object GutterApiClient {
      * 本機開發（Android Emulator → Host）可改為 "http://10.0.2.2:8080/"
      */
     private const val BASE_URL = "http://192.168.10.37/TY_RSGDBIP/"
+    private const val DEMO_URL = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY   // Debug 模式可改 NONE 減少日誌
@@ -139,7 +140,7 @@ object GutterApiClient {
 
     val instance: GutterApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(DEMO_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

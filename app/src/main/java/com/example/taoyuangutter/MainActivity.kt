@@ -391,12 +391,15 @@ class MainActivity : AppCompatActivity(),
                             "coordX"     to (nd.nodeX   ?: wp.basicData["coordX"] ?: ""),
                             "coordY"     to (nd.nodeY   ?: wp.basicData["coordY"] ?: ""),
                             "coordZ"     to (nd.nodeLe  ?: wp.basicData["coordZ"] ?: ""),
-                            "depth"      to (nd.nodeDep ?: wp.basicData["depth"] ?: ""),
-                            "topWidth"   to (nd.nodeWid ?: wp.basicData["topWidth"] ?: ""),
+                            // nodeDepAsString / nodeWidAsString：API 回傳整數（Double?）→ 轉純數字字串
+                            "depth"      to nd.nodeDepAsString.ifEmpty { wp.basicData["depth"] ?: "" },
+                            "topWidth"   to nd.nodeWidAsString.ifEmpty { wp.basicData["topWidth"] ?: "" },
                             "isBroken"   to (nd.isBroken?.takeIf { it.isNotEmpty() }?.let { isBrokenToText(it) } ?: wp.basicData["isBroken"] ?: ""),
                             "isHanging"  to (nd.isHanging?.takeIf { it.isNotEmpty() }?.let { isHangingToText(it) } ?: wp.basicData["isHanging"] ?: ""),
                             "isSilt"     to (nd.isSilt?.takeIf { it.isNotEmpty() }?.let { isSiltToText(it) } ?: wp.basicData["isSilt"] ?: ""),
                             "remarks"    to (nd.note    ?: wp.basicData["remarks"] ?: ""),
+                            // XY_NUM → measureId（測量座標編號）
+                            "xyNum"      to (nd.xyNum   ?: wp.basicData["xyNum"]   ?: ""),
                             "photo1"     to (p1.takeIf { it.isNotEmpty() } ?: wp.basicData["photo1"] ?: ""),
                             "photo2"     to (p2.takeIf { it.isNotEmpty() } ?: wp.basicData["photo2"] ?: ""),
                             "photo3"     to (p3.takeIf { it.isNotEmpty() } ?: wp.basicData["photo3"] ?: "")
@@ -409,10 +412,10 @@ class MainActivity : AppCompatActivity(),
 
                         currentWaypoints = activeSheet?.getWaypoints() ?: currentWaypoints
                         val updatedWp = currentWaypoints.getOrNull(waypointIndex) ?: return@launch
-                        
+
                         pendingWaypointFormIndex = waypointIndex
                         if (latLng != null) highlightMarker(waypointIndex)
-                        openAddForm(waypointIndex, updatedWp, latLng ?: LatLng(0.0, 0.0))
+                        openAddForm(waypointIndex, updatedWp, latLng ?: LatLng(0.0, 0.0), isEditMode = true)
                     }
                     is ApiResult.Error -> {
                         Toast.makeText(this@MainActivity, "取得點位詳情失敗：${result.message}", Toast.LENGTH_SHORT).show()
@@ -453,12 +456,17 @@ class MainActivity : AppCompatActivity(),
         gutterFormLauncher.launch(intent)
     }
 
-    private fun openAddForm(currentIndex: Int, wp: Waypoint, latLng: LatLng) {
+    private fun openAddForm(
+        currentIndex: Int,
+        wp: Waypoint,
+        latLng: LatLng,
+        isEditMode: Boolean = false
+    ) {
         moveCameraToLatLngOffset(latLng, 0.75)
         val labels = ArrayList(currentWaypoints.map { it.label })
         val lats   = currentWaypoints.map { it.latLng?.latitude ?: 0.0 }.toDoubleArray()
         val lngs   = currentWaypoints.map { it.latLng?.longitude ?: 0.0 }.toDoubleArray()
-        val intent = GutterFormActivity.newIntent(this, labels, lats, lngs, currentIndex, wp.basicData)
+        val intent = GutterFormActivity.newIntent(this, labels, lats, lngs, currentIndex, wp.basicData, isEditMode)
         gutterFormLauncher.launch(intent)
     }
 

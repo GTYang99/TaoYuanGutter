@@ -269,8 +269,8 @@ data class NodeDetailsResponse(
 data class NodeDetails(
     @SerializedName("ditch_id")   val ditchId: String?,
     @SerializedName("NODE_NUM")   val nodeNum: String?,
-    /** 點位屬性：1=起點、2=節點、3=終點 */
-    @SerializedName("NODE_ATTR")  val nodeAttr: String?,
+    /** 點位屬性：1=起點、2=節點、3=終點（API key 為 NODE_ATT，無尾部 R） */
+    @SerializedName("NODE_ATT")   val nodeAttr: String?,
     /** 側溝形式：1=U形溝（明溝）2=U形溝（加蓋）3=L形溝與暗溝渠併用 4=其他 */
     @SerializedName("NODE_TYP")   val nodeTyP: String?,
     /** 側溝材質：1=混凝土 2=卵礫石 3=紅磚 */
@@ -281,10 +281,20 @@ data class NodeDetails(
     @SerializedName("NODE_Y")     val nodeY: String?,
     /** 高程 */
     @SerializedName("NODE_LE")    val nodeLe: String?,
-    /** 深度（公分） */
-    @SerializedName("NODE_DEP")   val nodeDep: String?,
-    /** 寬度（公分） */
-    @SerializedName("NODE_WID")   val nodeWid: String?,
+    /** 測量座標編號 */
+    @SerializedName("XY_NUM")     val xyNum: String?,
+    /**
+     * 深度（公分）。
+     * API 以數值型別回傳（例如 1），宣告為 Double? 讓 Gson 正確解析；
+     * 轉字串時使用 [nodeDepAsString]。
+     */
+    @SerializedName("NODE_DEP")   val nodeDep: Double?,
+    /**
+     * 寬度（公分）。
+     * API 以數值型別回傳（例如 1），宣告為 Double? 讓 Gson 正確解析；
+     * 轉字串時使用 [nodeWidAsString]。
+     */
+    @SerializedName("NODE_WID")   val nodeWid: Double?,
     /** 溝體結構受損：0=否 1=是 */
     @SerializedName("IS_BROKEN")  val isBroken: String?,
     /** 附掛或過路管線：0=無 1=有 */
@@ -297,8 +307,23 @@ data class NodeDetails(
     /** WGS84 經度 */
     @SerializedName("longitude")  val longitude: String?,
     /** 已上傳的照片列表 */
-    @SerializedName("node_img")   val nodeImg: List<NodeImg>
-)
+    @SerializedName("node_img")   val nodeImg: List<NodeImg> = emptyList()
+) {
+    /**
+     * 將深度轉為純數字字串（去掉不必要的小數點，如 1.0 → "1"、1.5 → "1.5"）。
+     * 若 API 未回傳則回傳空字串。
+     */
+    val nodeDepAsString: String
+        get() = nodeDep?.let {
+            if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
+        } ?: ""
+
+    /** 同 [nodeDepAsString]，適用於寬度。 */
+    val nodeWidAsString: String
+        get() = nodeWid?.let {
+            if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
+        } ?: ""
+}
 
 /** 點位照片（nodeDetails 回傳格式，僅含 url 與 fileCategory） */
 data class NodeImg(

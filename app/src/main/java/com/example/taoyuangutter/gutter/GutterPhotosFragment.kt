@@ -15,6 +15,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import com.bumptech.glide.Glide
 import com.example.taoyuangutter.databinding.FragmentGutterPhotosBinding
 import java.io.File
 import java.text.SimpleDateFormat
@@ -280,14 +281,25 @@ class GutterPhotosFragment : Fragment() {
     private fun showPhoto(photoView: android.widget.ImageView, placeholder: View, uri: Uri?) {
         if (uri == null) {
             placeholder.visibility = View.VISIBLE
-            photoView.visibility = View.GONE
-            photoView.setImageURI(null)
+            photoView.visibility   = View.GONE
+            photoView.setImageDrawable(null)
             return
         }
         placeholder.visibility = View.GONE
         photoView.visibility   = View.VISIBLE
-        photoView.setImageURI(null) // 清除快取
-        photoView.setImageURI(uri)
+
+        val scheme = uri.scheme?.lowercase()
+        if (scheme == "http" || scheme == "https") {
+            // 遠端 URL（API 回傳）→ 使用 Glide 載入
+            Glide.with(this)
+                .load(uri.toString())
+                .centerCrop()
+                .into(photoView)
+        } else {
+            // 本機 URI（拍照後的 content:// 或 file://）→ 原本的路徑
+            photoView.setImageURI(null) // 清除快取
+            photoView.setImageURI(uri)
+        }
     }
 
     // ── 對外 API ─────────────────────────────────────────────────────────
