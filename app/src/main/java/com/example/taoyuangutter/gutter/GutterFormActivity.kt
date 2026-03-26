@@ -30,6 +30,7 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_CURRENT_INDEX    = "current_index"
         const val EXTRA_VIEW_MODE        = "view_mode"
         const val EXTRA_WAYPOINT_INDEX   = "waypoint_index"
+        const val EXTRA_IS_EDIT_MODE     = "is_edit_mode" // 新增：是否為編輯模式
 
         /** 離線模式旗標：不向 MainActivity 回傳 result，改儲存至本機草稿。 */
         const val EXTRA_OFFLINE_MODE     = "offline_mode"
@@ -53,6 +54,7 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_DATA_PHOTO_1     = "ex_photo1"
         const val EXTRA_DATA_PHOTO_2     = "ex_photo2"
         const val EXTRA_DATA_PHOTO_3     = "ex_photo3"
+        const val EXTRA_DATA_XY_NUM      = "ex_xyNum" // 新增：傳入 API 的 XY_NUM
 
         // 自訂 Result Code：使用者放棄填寫，要求刪除點位座標與資料
         const val RESULT_DELETE = Activity.RESULT_FIRST_USER
@@ -86,13 +88,15 @@ class GutterFormActivity : AppCompatActivity() {
             lats: DoubleArray,
             lngs: DoubleArray,
             index: Int = 0,
-            basicData: HashMap<String, String>? = null
+            basicData: HashMap<String, String>? = null,
+            isEditMode: Boolean = false // 新增：是否為編輯模式
         ): Intent = Intent(context, GutterFormActivity::class.java).apply {
             putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, labels)
             putExtra(EXTRA_LATITUDES, lats)
             putExtra(EXTRA_LONGITUDES, lngs)
             putExtra(EXTRA_CURRENT_INDEX, index)
             putExtra(EXTRA_VIEW_MODE, false)
+            putExtra(EXTRA_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
             basicData?.let { fillDataExtras(this, it) }
         }
 
@@ -110,6 +114,7 @@ class GutterFormActivity : AppCompatActivity() {
             putExtra(EXTRA_CURRENT_INDEX, 0)
             putExtra(EXTRA_VIEW_MODE, true)
             putExtra(EXTRA_WAYPOINT_INDEX, waypointIndex)
+            putExtra(EXTRA_IS_EDIT_MODE, true) // 編輯模式為 true
             fillDataExtras(this, basicData)
         }
 
@@ -145,6 +150,7 @@ class GutterFormActivity : AppCompatActivity() {
             intent.putExtra(EXTRA_DATA_PHOTO_1,     data["photo1"]     ?: "")
             intent.putExtra(EXTRA_DATA_PHOTO_2,     data["photo2"]     ?: "")
             intent.putExtra(EXTRA_DATA_PHOTO_3,     data["photo3"]     ?: "")
+            intent.putExtra(EXTRA_DATA_XY_NUM,      data["xyNum"]      ?: "") // 傳入 XY_NUM
         }
     }
 
@@ -156,6 +162,7 @@ class GutterFormActivity : AppCompatActivity() {
     private var currentIndex  = 0
     private var waypointIndex = 0
     private var isViewMode    = false
+    private var isEditMode    = false // 新增：是否為編輯模式
 
     /** true → 離線模式，儲存至本機草稿，不向 MainActivity 回傳 result */
     private var isOfflineMode  = false
@@ -177,6 +184,7 @@ class GutterFormActivity : AppCompatActivity() {
         currentIndex  = intent.getIntExtra(EXTRA_CURRENT_INDEX, 0)
         waypointIndex = intent.getIntExtra(EXTRA_WAYPOINT_INDEX, 0)
         isViewMode    = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
+        isEditMode    = intent.getBooleanExtra(EXTRA_IS_EDIT_MODE, false) // 取得編輯模式旗標
         isOfflineMode = intent.getBooleanExtra(EXTRA_OFFLINE_MODE, false)
         offlineDraftId = intent.getLongExtra(EXTRA_OFFLINE_DRAFT_ID, -1L)
 
@@ -208,7 +216,8 @@ class GutterFormActivity : AppCompatActivity() {
                 "remarks"    to (intent.getStringExtra(EXTRA_DATA_REMARKS)     ?: ""),
                 "photo1"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_1)     ?: ""),
                 "photo2"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_2)     ?: ""),
-                "photo3"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_3)     ?: "")
+                "photo3"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_3)     ?: ""),
+                "xyNum"      to (intent.getStringExtra(EXTRA_DATA_XY_NUM)      ?: "") // 取得 XY_NUM
             )
         }
 
@@ -233,7 +242,9 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun buildEmptyData(lat: Double, lng: Double) = hashMapOf(
-        "gutterId"  to "", "gutterType" to "", "matTyp" to "",
+        // 編輯模式下，側溝編號預設為空字串，以符合「不用顯示側溝編號欄位」的需求
+        "gutterId"  to (if (isEditMode) "" else ""), // 將 null 改為空字串
+        "gutterType" to "", "matTyp" to "",
         "coordX"    to if (lng != 0.0) "%.6f".format(lng) else "",
         "coordY"    to if (lat != 0.0) "%.6f".format(lat) else "",
         "coordZ"    to "", "measureId" to "", "depth" to "",
@@ -298,6 +309,7 @@ class GutterFormActivity : AppCompatActivity() {
 
     private fun enterEditMode() {
         isViewMode = false
+        isEditMode = true // 進入編輯模式
         binding.btnEdit.visibility   = View.GONE
         binding.btnDone.visibility   = View.VISIBLE
         binding.fabSubmit.visibility = View.GONE
@@ -312,7 +324,10 @@ class GutterFormActivity : AppCompatActivity() {
             pagerAdapter.getPhotosFragment()?.getPhotoPaths() ?: Triple(null, null, null)
         val resultIntent = Intent().apply {
             putExtra(RESULT_WAYPOINT_INDEX,   waypointIndex)
-            putExtra(RESULT_DATA_GUTTER_ID,   data["gutterId"]   ?: "")
+            // 編輯模式下，側溝編號不回傳
+            if (!isEditMode) {
+                putExtra(RESULT_DATA_GUTTER_ID, data["gutterId"] ?: "")
+            }
             putExtra(RESULT_DATA_GUTTER_TYPE, data["gutterType"] ?: "")
             putExtra(RESULT_DATA_MAT_TYP,     data["matTyp"]     ?: "")
             putExtra(RESULT_DATA_COORD_X,     data["coordX"]     ?: "")
@@ -334,7 +349,7 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun setupViewPager(lat: Double, lng: Double, basicData: HashMap<String, String>) {
-        pagerAdapter = GutterFormPagerAdapter(this, lat, lng, isViewMode, basicData, isOfflineMode)
+        pagerAdapter = GutterFormPagerAdapter(this, lat, lng, isViewMode, basicData, isOfflineMode, isEditMode)
         binding.viewPager.adapter = pagerAdapter
         binding.viewPager.isUserInputEnabled = false
         binding.viewPager.offscreenPageLimit = 1
@@ -357,7 +372,7 @@ class GutterFormActivity : AppCompatActivity() {
             binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabBasicInfo.setTextColor(primary)
             binding.btnTabPhotos.setBackgroundColor(white);    binding.btnTabPhotos.setTextColor(secondary)
         } else {
-            binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabBasicInfo.setTextColor(secondary)
+            binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabPhotos.setTextColor(secondary)
             binding.btnTabPhotos.setBackgroundColor(white);    binding.btnTabPhotos.setTextColor(primary)
         }
     }
@@ -391,23 +406,39 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     /**
-     * 按下返回時：若資料未填寫完整則顯示確認 Dialog，
-     * 使用者確認後放棄資料（RESULT_CANCELED）；否則直接儲存。
+     * 按下返回時：
+     * - 編輯模式（isEditMode）：資料不完整時詢問是否放棄修改，確認後回傳
+     *   RESULT_CANCELED（不清除原有 API 點位資料）；資料完整則直接儲存。
+     * - 新增模式：原邏輯不變，確認後回傳 RESULT_DELETE（清除該點位座標與資料）。
      */
     private fun confirmOrDiscardAndClose() {
         val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
         val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
         if (basicError != null || photoError != null) {
-            AlertDialog.Builder(this)
-                .setTitle("資料尚未完成")
-                .setMessage("此點位的資料尚未填寫完整，確定返回嗎？\n已輸入的資料將不會儲存。")
-                .setPositiveButton("確定返回") { _, _ ->
-                    val deleteIntent = Intent().putExtra(RESULT_WAYPOINT_INDEX, waypointIndex)
-                    setResult(RESULT_DELETE, deleteIntent)
-                    finish()
-                }
-                .setNegativeButton("繼續填寫", null)
-                .show()
+            if (isEditMode) {
+                // 編輯模式：放棄修改 → RESULT_CANCELED，MainActivity 不清除既有點位資料
+                AlertDialog.Builder(this)
+                    .setTitle("放棄修改")
+                    .setMessage("確定要放棄此次修改並返回嗎？")
+                    .setPositiveButton("確定放棄") { _, _ ->
+                        setResult(Activity.RESULT_CANCELED)
+                        finish()
+                    }
+                    .setNegativeButton("繼續填寫", null)
+                    .show()
+            } else {
+                // 新增模式：放棄填寫 → RESULT_DELETE，清除點位座標與資料
+                AlertDialog.Builder(this)
+                    .setTitle("資料尚未完成")
+                    .setMessage("此點位的資料尚未填寫完整，確定返回嗎？\n已輸入的資料將不會儲存。")
+                    .setPositiveButton("確定返回") { _, _ ->
+                        val deleteIntent = Intent().putExtra(RESULT_WAYPOINT_INDEX, waypointIndex)
+                        setResult(RESULT_DELETE, deleteIntent)
+                        finish()
+                    }
+                    .setNegativeButton("繼續填寫", null)
+                    .show()
+            }
         } else {
             buildAndFinishWithResult()
         }
@@ -427,7 +458,10 @@ class GutterFormActivity : AppCompatActivity() {
             putExtra(RESULT_LATITUDE,         effectiveLat)
             putExtra(RESULT_LONGITUDE,        effectiveLng)
             putExtra(RESULT_WAYPOINT_INDEX,   waypointIndex)
-            putExtra(RESULT_DATA_GUTTER_ID,   basicData["gutterId"]   ?: "")
+            // 編輯模式下，側溝編號不回傳
+            if (!isEditMode) {
+                putExtra(RESULT_DATA_GUTTER_ID, basicData["gutterId"] ?: "")
+            }
             putExtra(RESULT_DATA_GUTTER_TYPE, basicData["gutterType"] ?: "")
             putExtra(RESULT_DATA_MAT_TYP,     basicData["matTyp"]     ?: "")
             putExtra(RESULT_DATA_COORD_X,     basicData["coordX"]     ?: "")
@@ -535,3 +569,4 @@ private fun OfflineDraft.toBasicData(): HashMap<String, String> = hashMapOf(
     "photo2"     to photo2,
     "photo3"     to photo3
 )
+

@@ -7,57 +7,72 @@ import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.AbsoluteSizeSpan
 import android.view.Gravity
+import android.view.View
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.databinding.ActivityGutterInspectBinding
+import com.google.gson.Gson
+
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.android.gms.maps.model.LatLng
-import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 
 /**
  * GutterInspectActivity
  *
- * 唯讀檢視整條側溝（多點位）的彙整資料。
- * 以 FormSheet 半透明底部樣式浮現於地圖上（與 GutterFormActivity 一致）。
+ * 唯讀檢視整條側溝（由 API getDitchDetails 取得）的彙整資料。
+ * 以 FormSheet 半透明底部樣式浮現於地圖上。
  *
  * 包含兩個分頁：
  *   0 → 基本資料（[GutterInspectBasicFragment]）
  *   1 → 照片（[GutterInspectPhotosFragment]）
  *
- * 標題格式：「側溝編號 \n {gutterId}」，後者字體較小。
+ * 標題格式：「側溝編號 \n {SPI_NUM}」，後者字體較小。
  */
 class GutterInspectActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityGutterInspectBinding
-    private var waypoints: List<Waypoint> = emptyList()
+    private var ditch: DitchDetails? = null
+    private var wgsLatitudes: DoubleArray = doubleArrayOf()
+    private var wgsLongitudes: DoubleArray = doubleArrayOf()
 
     companion object {
-        private const val EXTRA_WAYPOINTS_JSON = "waypoints_json"
+        private const val EXTRA_DITCH_JSON        = "ditch_json"
+        private const val EXTRA_CAN_EDIT          = "can_edit"
+        private const val EXTRA_LATITUDES         = "latitudes"
+        private const val EXTRA_LONGITUDES        = "longitudes"
+
+        /** setResult code：使用者點擊編輯按鈕，要求 MainActivity 開啟 AddGutterBottomSheet */
+        const val RESULT_EDIT_DITCH               = android.app.Activity.RESULT_FIRST_USER + 10
+        /** result Intent 攜帶的 WaypointSnapshot 列表 JSON */
+        const val EXTRA_RESULT_WAYPOINTS_JSON     = "result_waypoints_json"
+        /** result Intent 攜帶的 SPI_NUM */
+        const val EXTRA_RESULT_SPI_NUM            = "result_spi_num"
 
         /**
          * 建立開啟 GutterInspectActivity 的 Intent。
-         * @param waypoints 整條側溝的點位列表（起點 + 節點… + 終點）
-         *
-         * 使用 [WaypointSnapshot]（純 data class）進行 Gson 序列化，
-         * 避免直接序列化 LatLng（Maps SDK class）造成問題。
+         * @param ditch   getDitchDetails API 回傳的線段詳細資料
+         * @param canEdit 登入者 group_id 與線段 group_id 一致時為 true，顯示編輯按鈕
+         * @param latitudes  線段所有點位的 WGS84 緯度（依起點→終點排序）
+         * @param longitudes 線段所有點位的 WGS84 經度（依起點→終點排序）
          */
-        fun newIntent(context: Context, waypoints: List<Waypoint>): Intent {
-            val snapshots = waypoints.map { wp ->
-                WaypointSnapshot(
-                    type      = wp.type.name,
-                    label     = wp.label,
-                    latitude  = wp.latLng?.latitude,
-                    longitude = wp.latLng?.longitude,
-                    basicData = wp.basicData
-                )
-            }
-            val json = Gson().toJson(snapshots)
+        fun newIntent(
+            context: Context,
+            ditch: DitchDetails,
+            canEdit: Boolean = false,
+            latitudes: DoubleArray = doubleArrayOf(),
+            longitudes: DoubleArray = doubleArrayOf()
+        ): Intent {
+            val json = Gson().toJson(ditch)
             return Intent(context, GutterInspectActivity::class.java).apply {
-                putExtra(EXTRA_WAYPOINTS_JSON, json)
+                putExtra(EXTRA_DITCH_JSON, json)
+                putExtra(EXTRA_CAN_EDIT,   canEdit)
+                putExtra(EXTRA_LATITUDES,  latitudes)
+                putExtra(EXTRA_LONGITUDES, longitudes)
             }
         }
     }
@@ -69,14 +84,24 @@ class GutterInspectActivity : AppCompatActivity() {
         binding = ActivityGutterInspectBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 以 FormSheet 底部浮窗樣式呈現（佔下方 3/4 螢幕）
         applyBottomSheetWindow()
 
-        waypoints = parseWaypoints()
-        setupTitleBar(waypoints)
-        setupViewPager(waypoints)
+        ditch = parseDitch()
+        wgsLatitudes  = intent.getDoubleArrayExtra(EXTRA_LATITUDES)  ?: doubleArrayOf()
+        wgsLongitudes = intent.getDoubleArrayExtra(EXTRA_LONGITUDES) ?: doubleArrayOf()
+
+        setupTitleBar(ditch)
+        setupViewPager(ditch)
         setupTabButtons()
-        setupEditButton()
+
+        // group_id 一致才顯示編輯按鈕並掛載點擊事件
+        val canEdit = intent.getBooleanExtra(EXTRA_CAN_EDIT, false)
+        if (canEdit) {
+            binding.btnEdit.visibility = View.VISIBLE
+            binding.btnEdit.setOnClickListener { openEditForm() }
+        } else {
+            binding.btnEdit.visibility = View.GONE
+        }
     }
 
     // ── Window ──────────────────────────────────────────────────────────
@@ -92,84 +117,39 @@ class GutterInspectActivity : AppCompatActivity() {
 
     // ── 資料解析 ─────────────────────────────────────────────────────────
 
-    private fun parseWaypoints(): List<Waypoint> {
-        val json = intent.getStringExtra(EXTRA_WAYPOINTS_JSON) ?: return emptyList()
+    private fun parseDitch(): DitchDetails? {
+        val json = intent.getStringExtra(EXTRA_DITCH_JSON) ?: return null
         return try {
-            val snapshotType = object : TypeToken<List<WaypointSnapshot>>() {}.type
-            val snapshots: List<WaypointSnapshot> = Gson().fromJson(json, snapshotType) ?: emptyList()
-            snapshots.map { snap ->
-                val wpType = when (snap.type.uppercase()) {
-                    "START" -> WaypointType.START
-                    "END"   -> WaypointType.END
-                    else    -> WaypointType.NODE
-                }
-                val latLng = if (snap.latitude != null && snap.longitude != null)
-                    LatLng(snap.latitude, snap.longitude) else null
-                Waypoint(
-                    type      = wpType,
-                    label     = snap.label,
-                    latLng    = latLng,
-                    basicData = snap.basicData
-                )
-            }
+            Gson().fromJson(json, DitchDetails::class.java)
         } catch (e: Exception) {
-            emptyList()
+            null
         }
     }
 
     // ── 標題列 ───────────────────────────────────────────────────────────
 
-    private fun setupTitleBar(waypoints: List<Waypoint>) {
-        val start    = waypoints.firstOrNull { it.type == WaypointType.START }
-        val gutterId = start?.basicData?.get("gutterId")?.takeIf { it.isNotEmpty() } ?: "---"
-        
-        val line1 = "側溝編號"
-        val fullText = "$line1\n$gutterId"
-        
+    private fun setupTitleBar(ditch: DitchDetails?) {
+        val spiNum   = ditch?.spiNum?.takeIf { it.isNotEmpty() } ?: "---"
+        val line1    = "側溝編號"
+        val fullText = "$line1\n$spiNum"
+
         val spannable = SpannableStringBuilder(fullText)
-        // "側溝編號" 長度為 4，\n 佔 1，所以 gutterId 從 5 開始
+        // "側溝編號" 4字 + "\n" 1字 = 5，spiNum 從 index 5 開始
         spannable.setSpan(
-            AbsoluteSizeSpan(16, true), // 18sp 減 2 = 16sp
+            AbsoluteSizeSpan(16, true),
             5,
             fullText.length,
             Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
         )
-        
+
         binding.tvInspectTitle.text = spannable
         binding.btnBack.setOnClickListener { finish() }
     }
 
-    // ── 編輯按鈕 ─────────────────────────────────────────────────────────
-
-    /**
-     * 點擊鉛筆 icon → 以 GutterFormActivity 的「檢視模式」開啟起點點位，
-     * 使用者可在該畫面再按鉛筆進行逐點編輯。
-     */
-    private fun setupEditButton() {
-        binding.btnEdit.setOnClickListener { openEditForStart() }
-    }
-
-    private fun openEditForStart() {
-        val start = waypoints.firstOrNull { it.type == WaypointType.START } ?: return
-        val lat   = start.latLng?.latitude  ?: 0.0
-        val lng   = start.latLng?.longitude ?: 0.0
-        // waypointIndex：起點在整條 waypoints 列表中的索引（通常為 0）
-        val idx   = waypoints.indexOfFirst { it.type == WaypointType.START }.coerceAtLeast(0)
-        val intent = GutterFormActivity.newViewIntent(
-            context       = this,
-            label         = start.label,
-            lat           = lat,
-            lng           = lng,
-            waypointIndex = idx,
-            basicData     = start.basicData
-        )
-        startActivity(intent)
-    }
-
     // ── ViewPager + 分頁 ─────────────────────────────────────────────────
 
-    private fun setupViewPager(waypoints: List<Waypoint>) {
-        val adapter = InspectPagerAdapter(this, waypoints)
+    private fun setupViewPager(ditch: DitchDetails?) {
+        val adapter = InspectPagerAdapter(this, ditch)
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
         binding.viewPager.offscreenPageLimit = 1
@@ -198,18 +178,133 @@ class GutterInspectActivity : AppCompatActivity() {
         }
     }
 
+    // ── 編輯 ─────────────────────────────────────────────────────────────
+
+    /**
+     * 通知 MainActivity 開啟 AddGutterBottomSheet 進行編輯。
+     * 將 DitchDetails 轉換為 Waypoint 列表快照後，以 setResult 傳回並關閉自身。
+     */
+    private fun openEditForm() {
+        val d = ditch ?: return
+        val waypoints = ditchToWaypoints(d)
+        val snapshots = waypoints.map { wp ->
+            WaypointSnapshot(
+                type      = wp.type.name,
+                label     = wp.label,
+                latitude  = wp.latLng?.latitude,
+                longitude = wp.latLng?.longitude,
+                basicData = wp.basicData
+            )
+        }
+
+        val resultIntent = Intent().apply {
+            putExtra(EXTRA_RESULT_WAYPOINTS_JSON, Gson().toJson(snapshots))
+            putExtra(EXTRA_RESULT_SPI_NUM, d.spiNum)
+        }
+        setResult(RESULT_EDIT_DITCH, resultIntent)
+        finish()
+    }
+
+    /**
+     * 將 API [DitchDetails] 轉換為 [Waypoint] 列表。
+     * 排序規則：NODE_ATT 1(起點) → 2(節點) → 3(終點)。
+     * 並帶入從 Intent 傳入的 WGS84 座標（wgsLatitudes/wgsLongitudes）。
+     */
+    private fun ditchToWaypoints(d: DitchDetails): List<Waypoint> {
+        val result     = mutableListOf<Waypoint>()
+        val gutterType = when (d.spiTyp) {
+            "1" -> "U形溝（明溝）"; "2" -> "U形溝（加蓋）"
+            "3" -> "L形溝與暗溝渠併用"; "4" -> "其他"
+            else -> d.spiTyp ?: ""
+        }
+
+        // 解析 NODE_XY：X1,Y1_X2,Y2_... → List<Pair<X, Y>>
+        val nodeXyList: List<Pair<String, String>> = d.nodeXy
+            ?.split("_")
+            ?.mapNotNull { seg ->
+                val parts = seg.split(",")
+                if (parts.size == 2) Pair(parts[0].trim(), parts[1].trim()) else null
+            } ?: emptyList()
+
+        val sorted = d.nodes.sortedWith(
+            compareBy(
+                { when (it.nodeAtt) { "1" -> 0; "3" -> 2; else -> 1 } },
+                { it.nodeNum?.toIntOrNull() ?: Int.MAX_VALUE }
+            )
+        )
+
+        var midIndex = 0
+        sorted.forEachIndexed { idx, node ->
+            // 依序取得 WGS84 座標（Intent 傳入）
+            val lat = wgsLatitudes.getOrNull(idx)
+            val lng = wgsLongitudes.getOrNull(idx)
+            val latLng = if (lat != null && lng != null) LatLng(lat, lng) else null
+
+            when (node.nodeAtt) {
+                "1" -> result.add(Waypoint(
+                    WaypointType.START, "起點", latLng,
+                    hashMapOf(
+                        "_nodeId"    to node.nodeId.toString(),
+                        "gutterId"   to d.spiNum,
+                        "gutterType" to gutterType,
+                        "coordX"     to (d.strX               ?: ""),
+                        "coordY"     to (d.strY               ?: ""),
+                        "coordZ"     to (d.strLe              ?: ""),
+                        "depth"      to (d.strDep?.toString() ?: ""),
+                        "topWidth"   to (d.strWid?.toString() ?: ""),
+                        "remarks"    to (d.note               ?: "")
+                    )
+                ))
+                "3" -> result.add(Waypoint(
+                    WaypointType.END, "終點", latLng,
+                    hashMapOf(
+                        "_nodeId"    to node.nodeId.toString(),
+                        "gutterId"   to d.spiNum,
+                        "gutterType" to gutterType,
+                        "coordX"     to (d.endX               ?: ""),
+                        "coordY"     to (d.endY               ?: ""),
+                        "coordZ"     to (d.endLe              ?: ""),
+                        "depth"      to (d.endDep?.toString() ?: ""),
+                        "topWidth"   to (d.endWid?.toString() ?: ""),
+                        "remarks"    to ""
+                    )
+                ))
+                else -> {
+                    val xy = nodeXyList.getOrNull(midIndex)
+                    midIndex++
+                    result.add(Waypoint(
+                        WaypointType.NODE, "節點${node.nodeNum ?: "?"}", latLng,
+                        hashMapOf(
+                            "_nodeId"    to node.nodeId.toString(),
+                            "gutterId"   to d.spiNum,
+                            "gutterType" to gutterType,
+                            "coordX"     to (xy?.first  ?: ""),
+                            "coordY"     to (xy?.second ?: ""),
+                            "remarks"    to (d.note     ?: "")
+                        )
+                    ))
+                }
+            }
+        }
+        if (result.isEmpty()) {
+            result.add(Waypoint(WaypointType.START, "起點"))
+            result.add(Waypoint(WaypointType.END,   "終點"))
+        }
+        return result
+    }
+
     // ── 內部 PagerAdapter ────────────────────────────────────────────────
 
     private class InspectPagerAdapter(
         activity: FragmentActivity,
-        private val waypoints: List<Waypoint>
+        private val ditch: DitchDetails?
     ) : FragmentStateAdapter(activity) {
 
         override fun getItemCount(): Int = 2
 
         override fun createFragment(position: Int): Fragment = when (position) {
-            0 -> GutterInspectBasicFragment.newInstance(waypoints)
-            1 -> GutterInspectPhotosFragment.newInstance(waypoints)
+            0    -> GutterInspectBasicFragment.newInstance(ditch)
+            1    -> GutterInspectPhotosFragment.newInstance(ditch?.nodes ?: emptyList())
             else -> throw IllegalArgumentException("Unknown page $position")
         }
     }

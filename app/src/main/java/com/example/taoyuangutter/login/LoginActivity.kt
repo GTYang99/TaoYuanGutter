@@ -21,15 +21,24 @@ class LoginActivity : AppCompatActivity() {
     private val repository = GutterRepository()
 
     companion object {
-        private const val PREFS_NAME  = "taoyuan_prefs"
-        private const val KEY_TOKEN   = "auth_token"
-        private const val KEY_NAME    = "user_name"
-        private const val KEY_COMPANY = "user_company"
+        private const val PREFS_NAME       = "taoyuan_prefs"
+        private const val KEY_TOKEN        = "auth_token"
+        private const val KEY_NAME         = "user_name"
+        private const val KEY_COMPANY      = "user_company"
+        private const val KEY_GROUP_ID     = "group_id"
+        private const val KEY_REMEMBER_ME  = "remember_me"
+        private const val KEY_SAVED_USER   = "saved_username"
+        private const val KEY_SAVED_PWD    = "saved_password"
 
         /** 從 SharedPreferences 取出已儲存的 token（無則回傳 null） */
         fun getSavedToken(context: Context): String? =
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_TOKEN, null)
+
+        /** 從 SharedPreferences 取出登入後的 group_id（無則回傳 -1） */
+        fun getSavedGroupId(context: Context): Int =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getInt(KEY_GROUP_ID, -1)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -39,8 +48,19 @@ class LoginActivity : AppCompatActivity() {
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        loadRememberedAccount()
         setupLoginButtonListener()
         setupOfflineButtons()
+    }
+
+    private fun loadRememberedAccount() {
+        val prefs = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        val isRemembered = prefs.getBoolean(KEY_REMEMBER_ME, false)
+        if (isRemembered) {
+            binding.cbRememberMe.isChecked = true
+            binding.usernameEditText.setText(prefs.getString(KEY_SAVED_USER, ""))
+            binding.passwordEditText.setText(prefs.getString(KEY_SAVED_PWD, ""))
+        }
     }
 
     private fun setupLoginButtonListener() {
@@ -63,14 +83,30 @@ class LoginActivity : AppCompatActivity() {
                 when (val result = repository.login(username, password)) {
                     is ApiResult.Success -> {
                         val loginData = result.data.data
+                        val isRememberMe = binding.cbRememberMe.isChecked
+                        
+                        val editor = getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
+                        
+                        // 儲存 token 與使用者資訊
                         if (loginData != null) {
-                            // 儲存 token 與使用者資訊
-                            getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit()
-                                .putString(KEY_TOKEN,   loginData.token)
+                            editor.putString(KEY_TOKEN,   loginData.token)
                                 .putString(KEY_NAME,    loginData.name    ?: "")
                                 .putString(KEY_COMPANY, loginData.company ?: "")
-                                .apply()
+                                .putInt(KEY_GROUP_ID,   loginData.groupId ?: -1)
                         }
+
+                        // 處理記住密碼邏輯
+                        if (isRememberMe) {
+                            editor.putBoolean(KEY_REMEMBER_ME, true)
+                            editor.putString(KEY_SAVED_USER, username)
+                            editor.putString(KEY_SAVED_PWD, password)
+                        } else {
+                            editor.putBoolean(KEY_REMEMBER_ME, false)
+                            editor.remove(KEY_SAVED_USER)
+                            editor.remove(KEY_SAVED_PWD)
+                        }
+                        editor.apply()
+
                         startActivity(Intent(this@LoginActivity, MainActivity::class.java))
                         finish()
                     }

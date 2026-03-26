@@ -55,9 +55,11 @@
 
         <!-- 標題 -->
         <TextView
+            android:id="@+id/tvSheetTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
+            android:gravity="center"
             android:text="新增側溝"
             android:textColor="@color/text_grey"
             android:textSize="18sp"

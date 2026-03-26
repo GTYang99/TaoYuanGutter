@@ -17,6 +17,11 @@
     - 修改 `saveAndClose()` 函數，現在會先驗證 `GutterBasicInfoFragment` 的必填欄位，然後再驗證 `FragmentGutterPhotos` 的所有照片。
     - 確保 `buildAndFinishWithResult()` 函數能從基本資料 Fragment 和照片 Fragment 收集資料，並將其包含在結果 Intent 中。
     - 更新 `fillDataExtras` 以處理照片 URI 作為字符串。
+    - **新增 `EXTRA_IS_EDIT_MODE` 和 `EXTRA_DATA_XY_NUM` 常數，並在 `newIntent` 和 `newViewIntent` 中傳遞 `isEditMode` 旗標 (編輯模式下為 `true`)。**
+    - **在 `onCreate` 中，獲取 `isEditMode` 旗標和 `xyNum` 資料。**
+    - **調整 `enterEditMode()` 函數，明確設定 `isEditMode = true`。**
+    - **修改 `buildEmptyData()` 函數，在編輯模式下將 `gutterId` 預設為空字串，以符合「不用顯示側溝編號欄位」的需求。**
+    - **更新 `buildAndFinishWithResult`，在編輯模式下不回傳 `RESULT_DATA_GUTTER_ID`。**
 - **`GutterPhotosFragment.kt`**:
     - 將照片儲存方式從 `File` 更改為 `Uri`，以更好地與 `ActivityResultContracts.TakePicture` 兼容。
     - 移除 `pendingFile` 變數。
@@ -31,21 +36,35 @@
     - 新增 `createPhotoUriForSlot` 函數，用於為每個照片槽創建持久性 URI。
 - **`GutterFormPagerAdapter.kt`**:
     - 更新以正確取得 `GutterBasicInfoFragment` 和 `FragmentGutterPhotos` 的實例。
+    - **修改建構子，接收 `isEditMode` 參數並傳遞給 `GutterBasicInfoFragment.newInstance`。**
+- **`GutterBasicInfoFragment.kt`**:
+    - **新增 `ARG_IS_EDIT_MODE` 和 `ARG_DATA_XY_NUM` 常數。**
+    - **更新 `newInstance` 函數，接受 `isEditMode` 和 `xyNum` 參數。**
+    - **在 `onViewCreated` 中，如果 `isEditMode` 為 `true`，則隱藏 `tilGutterId` (側溝編號) 欄位。**
+    - **在 `prefillData` 中，如果 `isEditMode` 為 `true` 且 `xyNum` 非空，則將 `xyNum` 代入 `etMeasureId` (測量座標編號)。**
+    - **調整 `validateRequiredFields` 函數，在編輯模式下不驗證 `gutterId` (側溝編號) 欄位。**
 - **`PendingDraftsBottomSheet.kt`**:
     - 調整 BottomSheet 的最大高度為螢幕的 80%，確保其顯示在鏡頭下方。
     - 修改草稿點擊行為：現在單擊項目會直接恢復草稿到 `AddGutterBottomSheet`。
     - 調整 `showDraftActionDialog` 為僅處理刪除草稿的邏輯，現在透過長按項目觸發。
 - **`PendingDraftAdapter.kt`**:
     - 新增 `onItemLongClick` 監聽器，支援長按項目以觸發刪除草稿功能。
+- **`GutterInspectActivity.kt`**:
+    - 修正了從 `DitchDetails` 讀取的節點資料未能正確轉換為 `Waypoint` 物件並傳遞給 `AddGutterBottomSheet` 以便編輯的問題。
+    - 現在，當點擊編輯按鈕時，`GutterInspectActivity` 會將 `DitchDetails.Node` 列表轉換為 `Waypoint` 列表，然後將此列表序列化為 JSON 字串，並連同 `spiNum` 一起透過 `setResult` 傳遞給呼叫者，確保 `AddGutterBottomSheet` 能夠正確載入編輯前的資料。
 
 ## 本次結論
 - 針對 `fabSubmit` 按鈕的觸發行為，已確認其驗證邏輯（需填寫基本資料與照片）及提示訊息（Toast）已正確實作於 `GutterFormActivity.kt` 的 `saveAndClose()` 函數中。
 - 在 `GutterFormActivity.kt` 的 `buildAndFinishWithResult()` 函數中，`RESULT_LATITUDE` 和 `RESULT_LONGITUDE` 僅在 `basicData["coordY"]` (緯度) 和 `basicData["coordX"]` (經度) 欄位的值能成功透過 `toDoubleOrNull()` 解析為 Double 時才會被加入到回傳的 Intent 中。
 - 若使用者輸入的座標值為空、非數字，或無法解析，`toDoubleOrNull()` 將回傳 `null`，導致 `RESULT_LATITUDE` 和 `RESULT_LONGITUDE` 遺失，進而影響地圖上的點位標記。
-- 關於「編輯完點位後，在 `AddGutterBottomSheet` 中起點資料未正確更新」的問題，經過分析，問題點最可能出在 `MainActivity` (或實作 `LocationPickerHost` 的地方) 未能正確更新其維護的 `Waypoint` 列表，或是 `getInspectWaypoints()` 方法未能返回最新的 `Waypoint` 資料給 `AddGutterBottomSheet`。`AddGutterBottomSheet` 本身接收和顯示資料的邏輯是正確的。
-- `PendingDraftsBottomSheet` 的最大高度已調整為螢幕的 80%，以優化使用者體驗，確保其位於手機鏡頭下方。
-- 點擊 `PendingDraftsBottomSheet` 中的草稿項目現在會直接在 `AddGutterBottomSheet` 中恢復編輯，簡化了操作流程，不再經過中間的選擇對話框。
-- 刪除草稿功能已從單擊動作移至長按動作，提供更直觀和安全的刪除方式。
+- **解決編輯模式下點位資料顯示問題**: 透過以下修改，確保從檢視畫面編輯時，點位資料能正確載入：
+    - **MainActivity**: 調整 `openInspectBottomSheet` 以傳遞 WGS84 座標至 `GutterInspectActivity`。
+    - **MainActivity**: 優化 `inspectLauncher` 來處理 `EXTRA_RESULT_WAYPOINTS_JSON`，確保 `AddGutterBottomSheet.newInstanceForEdit` 被正確呼叫。
+    - **MainActivity**: 重構 `openWaypointForEdit` 以優先從伺服器獲取最新的點位詳情 (`nodeDetails`)，即使地圖上的 `latLng` 已存在，確保表單能完整填入所有資料，包括照片。
+    - **GutterInspectActivity**: 實作了 `ditchToWaypoints` 方法，將 `DitchDetails` 轉換為 `Waypoint` 列表，並包含 WGS84 座標，然後將其以 JSON 格式和 `spiNum` 一起傳回給 `MainActivity`。
+- **編輯模式下的表單行為優化**：
+    - **進入編輯點位時，`GutterBasicInfoFragment` 中的「側溝編號」欄位會被隱藏。**
+    - **「測量座標編號」欄位會自動帶入 API 回傳的 `XY_NUM` 資料。**
 
 ## 注意事項
 - minSdk 26

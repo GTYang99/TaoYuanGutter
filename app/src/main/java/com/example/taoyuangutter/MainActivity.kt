@@ -23,7 +23,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.taoyuangutter.api.ApiResult
+import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.GutterRepository
+import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
 import com.example.taoyuangutter.gutter.GutterFormActivity
@@ -104,6 +106,7 @@ class MainActivity : AppCompatActivity(),
     private var currentWaypoints: List<Waypoint> = emptyList()
 
     private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
+    private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -172,6 +175,52 @@ class MainActivity : AppCompatActivity(),
                     fitCameraToWaypoints(inspectWaypoints)
                 }
                 else -> clearWorkingMarkers()
+            }
+        }
+
+    // ── GutterInspectActivity 的 launcher ────────────────────────────
+        inspectLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == GutterInspectActivity.RESULT_EDIT_DITCH) {
+                val json   = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_WAYPOINTS_JSON) ?: return@registerForActivityResult
+                val spiNum = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_SPI_NUM) ?: ""
+
+                // ── 若 FM 內仍有同 TAG 的舊 sheet（例如先前新增流程的 activeSheet）
+                //    必須先 dismiss 並等待事務完成，否則 show() 會因 TAG 衝突而失敗 ──
+                (supportFragmentManager.findFragmentByTag(AddGutterBottomSheet.TAG)
+                        as? AddGutterBottomSheet)
+                    ?.dismissAllowingStateLoss()
+                supportFragmentManager.executePendingTransactions()
+                activeSheet = null
+
+                // 直接以 WaypointSnapshot JSON 建立編輯模式的 BottomSheet
+                val wpsType = object : com.google.gson.reflect.TypeToken<List<WaypointSnapshot>>() {}.type
+                val snapshots: List<WaypointSnapshot> = try {
+                    Gson().fromJson(json, wpsType)
+                } catch (e: Exception) {
+                    emptyList()
+                }
+
+                val wps = snapshots.map { snap ->
+                    val wpType = WaypointType.entries.firstOrNull { it.name == snap.type } ?: WaypointType.NODE
+                    val latLng = if (snap.latitude != null && snap.longitude != null)
+                        LatLng(snap.latitude, snap.longitude) else null
+                    Waypoint(wpType, snap.label, latLng, snap.basicData)
+                }
+
+                val sheet = AddGutterBottomSheet.newInstanceForEdit(wps, spiNum)
+                sheet.onWaypointsChanged = { updated ->
+                    if (updated == null) {
+                        clearWorkingMarkers()
+                        activeSheet = null
+                    } else {
+                        currentWaypoints = updated.toMutableList()
+                        refreshWorkingMarkers(updated)
+                    }
+                }
+                activeSheet = sheet
+                sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
             }
         }
 
@@ -305,15 +354,91 @@ class MainActivity : AppCompatActivity(),
     override fun getInspectWaypoints(): List<Waypoint> = inspectWaypoints
 
     override fun openWaypointForEdit(sheet: AddGutterBottomSheet, waypointIndex: Int) {
-        // 同步 currentWaypoints，確保 openAddForm 拿到最新座標
         currentWaypoints = sheet.getWaypoints()
-        val wp     = currentWaypoints.getOrNull(waypointIndex) ?: return
-        val latLng = wp.latLng ?: return
-        pendingWaypointFormIndex = waypointIndex
-        highlightMarker(waypointIndex)
-        sheet.hideSelf()
-        binding.btnAddGutter.visibility = View.GONE
-        openAddForm(waypointIndex, wp, latLng)
+        val wp = currentWaypoints.getOrNull(waypointIndex) ?: return
+
+        // ── API 編輯流程：若有 _nodeId，優先呼叫 nodeDetails 取得完整資料 ──────
+        val nodeId = wp.basicData["_nodeId"]?.toIntOrNull()
+        val token  = LoginActivity.getSavedToken(this)
+
+        if (nodeId != null && token != null) {
+            sheet.hideSelf()
+            binding.btnAddGutter.visibility = View.GONE
+
+            lifecycleScope.launch {
+                when (val result = gutterRepository.getNodeDetails(nodeId, token)) {
+                    is ApiResult.Success -> {
+                        val nd = result.data.data ?: run {
+                            Toast.makeText(this@MainActivity, "查無點位資料", Toast.LENGTH_SHORT).show()
+                            sheet.showSelf()
+                            binding.btnAddGutter.visibility = View.VISIBLE
+                            return@launch
+                        }
+                        val lat = nd.latitude?.toDoubleOrNull()
+                        val lng = nd.longitude?.toDoubleOrNull()
+                        val latLng = if (lat != null && lng != null) LatLng(lat, lng) else wp.latLng
+
+                        // 擷取照片：依 fileCategory (1,2,3) 填入 photo1,2,3
+                        val p1 = nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.url ?: ""
+                        val p2 = nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.url ?: ""
+                        val p3 = nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.url ?: ""
+
+                        val updatedData = hashMapOf(
+                            "_nodeId"    to nodeId.toString(),
+                            "gutterId"   to (wp.basicData["gutterId"] ?: ""),
+                            "gutterType" to (nd.nodeTyP?.takeIf { it.isNotEmpty() }?.let { spiTypToText(it) } ?: wp.basicData["gutterType"] ?: ""),
+                            "matTyp"     to (nd.matTyp?.takeIf { it.isNotEmpty() }?.let { matTypToText(it) } ?: wp.basicData["matTyp"] ?: ""),
+                            "coordX"     to (nd.nodeX   ?: wp.basicData["coordX"] ?: ""),
+                            "coordY"     to (nd.nodeY   ?: wp.basicData["coordY"] ?: ""),
+                            "coordZ"     to (nd.nodeLe  ?: wp.basicData["coordZ"] ?: ""),
+                            // nodeDepAsString / nodeWidAsString：API 回傳整數（Double?）→ 轉純數字字串
+                            "depth"      to nd.nodeDepAsString.ifEmpty { wp.basicData["depth"] ?: "" },
+                            "topWidth"   to nd.nodeWidAsString.ifEmpty { wp.basicData["topWidth"] ?: "" },
+                            "isBroken"   to (nd.isBroken?.takeIf { it.isNotEmpty() }?.let { isBrokenToText(it) } ?: wp.basicData["isBroken"] ?: ""),
+                            "isHanging"  to (nd.isHanging?.takeIf { it.isNotEmpty() }?.let { isHangingToText(it) } ?: wp.basicData["isHanging"] ?: ""),
+                            "isSilt"     to (nd.isSilt?.takeIf { it.isNotEmpty() }?.let { isSiltToText(it) } ?: wp.basicData["isSilt"] ?: ""),
+                            "remarks"    to (nd.note    ?: wp.basicData["remarks"] ?: ""),
+                            // XY_NUM → measureId（測量座標編號）
+                            "xyNum"      to (nd.xyNum   ?: wp.basicData["xyNum"]   ?: ""),
+                            "photo1"     to (p1.takeIf { it.isNotEmpty() } ?: wp.basicData["photo1"] ?: ""),
+                            "photo2"     to (p2.takeIf { it.isNotEmpty() } ?: wp.basicData["photo2"] ?: ""),
+                            "photo3"     to (p3.takeIf { it.isNotEmpty() } ?: wp.basicData["photo3"] ?: "")
+                        )
+
+                        if (latLng != null) {
+                            activeSheet?.updateWaypointLocation(waypointIndex, latLng)
+                        }
+                        activeSheet?.updateWaypointBasicData(waypointIndex, updatedData)
+
+                        currentWaypoints = activeSheet?.getWaypoints() ?: currentWaypoints
+                        val updatedWp = currentWaypoints.getOrNull(waypointIndex) ?: return@launch
+
+                        pendingWaypointFormIndex = waypointIndex
+                        if (latLng != null) highlightMarker(waypointIndex)
+                        openAddForm(waypointIndex, updatedWp, latLng ?: LatLng(0.0, 0.0), isEditMode = true)
+                    }
+                    is ApiResult.Error -> {
+                        Toast.makeText(this@MainActivity, "取得點位詳情失敗：${result.message}", Toast.LENGTH_SHORT).show()
+                        sheet.showSelf()
+                        binding.btnAddGutter.visibility = View.VISIBLE
+                    }
+                }
+            }
+            return
+        }
+
+        // ── 新增流程：已有 WGS84 座標，直接開表單 ──────────────────────────
+        val existingLatLng = wp.latLng
+        if (existingLatLng != null) {
+            pendingWaypointFormIndex = waypointIndex
+            highlightMarker(waypointIndex)
+            sheet.hideSelf()
+            binding.btnAddGutter.visibility = View.GONE
+            openAddForm(waypointIndex, wp, existingLatLng)
+            return
+        }
+
+        Toast.makeText(this, "請先在地圖上選取點位位置", Toast.LENGTH_SHORT).show()
     }
 
     override fun openWaypointForInspect(sheet: AddGutterBottomSheet, waypointIndex: Int) {
@@ -331,12 +456,17 @@ class MainActivity : AppCompatActivity(),
         gutterFormLauncher.launch(intent)
     }
 
-    private fun openAddForm(currentIndex: Int, wp: Waypoint, latLng: LatLng) {
+    private fun openAddForm(
+        currentIndex: Int,
+        wp: Waypoint,
+        latLng: LatLng,
+        isEditMode: Boolean = false
+    ) {
         moveCameraToLatLngOffset(latLng, 0.75)
         val labels = ArrayList(currentWaypoints.map { it.label })
         val lats   = currentWaypoints.map { it.latLng?.latitude ?: 0.0 }.toDoubleArray()
         val lngs   = currentWaypoints.map { it.latLng?.longitude ?: 0.0 }.toDoubleArray()
-        val intent = GutterFormActivity.newIntent(this, labels, lats, lngs, currentIndex, wp.basicData)
+        val intent = GutterFormActivity.newIntent(this, labels, lats, lngs, currentIndex, wp.basicData, isEditMode)
         gutterFormLauncher.launch(intent)
     }
 
@@ -404,13 +534,73 @@ class MainActivity : AppCompatActivity(),
 
     @Suppress("UNCHECKED_CAST")
     private fun openInspectBottomSheet(polyline: Polyline) {
-        val waypoints = (polyline.tag as? ArrayList<Waypoint>) ?: return
-        if (waypoints.isEmpty()) return
-        inspectWaypoints = waypoints.toList()
-        refreshWorkingMarkers(inspectWaypoints)
-        binding.root.post { fitCameraToWaypoints(inspectWaypoints) }
-        val intent = GutterInspectActivity.newIntent(this, inspectWaypoints)
-        startActivity(intent)
+        val tag      = polyline.tag as? Pair<*, *> ?: return
+        val spiNum   = tag.first  as? String ?: return
+        val groupId  = tag.second as? String ?: ""
+        val token    = LoginActivity.getSavedToken(this)  ?: return
+
+        // 登入的 group_id 與線段的 group_id 一致時才允許編輯
+        val savedGroupId = LoginActivity.getSavedGroupId(this)
+        val canEdit = savedGroupId != -1 &&
+                groupId.isNotEmpty() &&
+                groupId.toIntOrNull() == savedGroupId
+
+        // 擷取線段點位的 WGS84 座標，供編輯模式預填大頭針位置
+        val lats = polyline.points.map { it.latitude }.toDoubleArray()
+        val lngs = polyline.points.map { it.longitude }.toDoubleArray()
+
+        lifecycleScope.launch {
+            when (val result = gutterRepository.getDitchDetails(spiNum, token)) {
+                is ApiResult.Success -> {
+                    val ditch = result.data.data
+                    if (ditch != null) {
+                        val intent = GutterInspectActivity.newIntent(
+                            context    = this@MainActivity,
+                            ditch      = ditch,
+                            canEdit    = canEdit,
+                            latitudes  = lats,
+                            longitudes = lngs
+                        )
+                        // 若有進行中的新增流程 sheet，先隱藏它（不 dismiss，
+                        // 讓使用者按返回時仍可繼續；若最終進入編輯模式則由 inspectLauncher 清除）
+                        activeSheet?.hideSelf()
+                        inspectLauncher.launch(intent)
+                    } else {
+                        android.widget.Toast.makeText(
+                            this@MainActivity, "查無線段資料", android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                is ApiResult.Error -> {
+                    android.widget.Toast.makeText(
+                        this@MainActivity,
+                        "查詢失敗(${result.code}): ${result.message}",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
+    }
+
+    // ── API code→顯示文字轉換（對應 GutterBasicInfoFragment 下拉選單選項）────
+    private fun spiTypToText(code: String?): String = when (code) {
+        "1" -> "U形溝（明溝）"; "2" -> "U形溝（加蓋）"
+        "3" -> "L形溝與暗溝渠併用"; "4" -> "其他"
+        else -> code ?: ""
+    }
+    private fun matTypToText(code: String?): String = when (code) {
+        "1" -> "混凝土"; "2" -> "卵礫石"; "3" -> "紅磚"
+        else -> code ?: ""
+    }
+    private fun isBrokenToText(code: String?): String = when (code) {
+        "0" -> "否"; "1" -> "是"; else -> code ?: ""
+    }
+    private fun isHangingToText(code: String?): String = when (code) {
+        "0" -> "無"; "1" -> "有"; else -> code ?: ""
+    }
+    private fun isSiltToText(code: String?): String = when (code) {
+        "0" -> "無"; "1" -> "輕度"; "2" -> "中度"; "3" -> "嚴重"
+        else -> code ?: ""
     }
 
     private fun setupButtons() {
@@ -597,13 +787,15 @@ class MainActivity : AppCompatActivity(),
      */
     private fun loadGuttersByViewport() {
         val map = googleMap ?: return
+        val token = LoginActivity.getSavedToken(this) ?: return
         val bounds = map.projection.visibleRegion.latLngBounds
         lifecycleScope.launch {
             when (val result = gutterRepository.getGuttersByScope(
                 minLat = bounds.southwest.latitude,
                 maxLat = bounds.northeast.latitude,
                 minLng = bounds.southwest.longitude,
-                maxLng = bounds.northeast.longitude
+                maxLng = bounds.northeast.longitude,
+                token  = token
             )) {
                 is ApiResult.Success -> {
                     drawScopePolylines(result.data.data?.features ?: emptyList())
@@ -623,8 +815,9 @@ class MainActivity : AppCompatActivity(),
     private fun drawScopePolylines(features: List<com.example.taoyuangutter.api.GeoFeature>) {
         val map = googleMap ?: return
         features.forEach { feature ->
-            val spiNum = feature.properties?.spiNum ?: return@forEach
-            val coords = feature.geometry?.coordinates ?: return@forEach
+            val spiNum  = feature.properties?.spiNum  ?: return@forEach
+            val groupId = feature.properties?.groupId ?: ""
+            val coords  = feature.geometry?.coordinates ?: return@forEach
             if (coords.size < 2) return@forEach
 
             // 移除舊線段
@@ -638,7 +831,8 @@ class MainActivity : AppCompatActivity(),
                     .width(6f)
                     .clickable(true)
             )
-            polyline.tag = spiNum
+            // tag 同時儲存 spiNum 與 groupId，供點擊時比對編輯權限
+            polyline.tag = Pair(spiNum, groupId)
             scopePolylines[spiNum] = polyline
         }
     }

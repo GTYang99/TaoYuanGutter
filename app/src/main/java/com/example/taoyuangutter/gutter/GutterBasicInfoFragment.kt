@@ -20,8 +20,9 @@ class GutterBasicInfoFragment : Fragment() {
     companion object {
         private const val ARG_LAT          = "latitude"
         private const val ARG_LNG          = "longitude"
-        private const val ARG_VIEW_MODE    = "view_mode"
-        private const val ARG_OFFLINE_MODE = "offline_mode"
+        private const val ARG_VIEW_MODE     = "view_mode"
+        private const val ARG_OFFLINE_MODE  = "offline_mode"
+        private const val ARG_IS_EDIT_MODE  = "is_edit_mode" // 新增：是否為編輯模式
 
         // basicData 個別 key
         private const val ARG_DATA_GUTTER_ID   = "d_gutterId"
@@ -37,6 +38,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_DATA_IS_HANGING  = "d_isHanging"
         private const val ARG_DATA_IS_SILT     = "d_isSilt"
         private const val ARG_DATA_REMARKS     = "d_remarks"
+        private const val ARG_DATA_XY_NUM      = "d_xyNum" // 新增：用於編輯模式帶入 measureId
 
         /** 側溝形式選項（NODE_TYP）*/
         val GUTTER_TYPES = listOf(
@@ -63,13 +65,15 @@ class GutterBasicInfoFragment : Fragment() {
             longitude: Double,
             viewMode: Boolean = false,
             basicData: HashMap<String, String> = hashMapOf(),
-            isOfflineMode: Boolean = false
+            isOfflineMode: Boolean = false,
+            isEditMode: Boolean = false // 新增：是否為編輯模式
         ) = GutterBasicInfoFragment().apply {
             arguments = Bundle().apply {
                 putDouble(ARG_LAT, latitude)
                 putDouble(ARG_LNG, longitude)
                 putBoolean(ARG_VIEW_MODE, viewMode)
                 putBoolean(ARG_OFFLINE_MODE, isOfflineMode)
+                putBoolean(ARG_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
                 putString(ARG_DATA_GUTTER_ID,   basicData["gutterId"]   ?: "")
                 putString(ARG_DATA_GUTTER_TYPE, basicData["gutterType"] ?: "")
                 putString(ARG_DATA_MAT_TYP,     basicData["matTyp"]     ?: "")
@@ -83,6 +87,7 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_DATA_IS_HANGING,  basicData["isHanging"]  ?: "")
                 putString(ARG_DATA_IS_SILT,     basicData["isSilt"]     ?: "")
                 putString(ARG_DATA_REMARKS,     basicData["remarks"]    ?: "")
+                putString(ARG_DATA_XY_NUM,      basicData["xyNum"]      ?: "") // 傳入 XY_NUM
             }
         }
     }
@@ -96,12 +101,18 @@ class GutterBasicInfoFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
+        val isViewMode   = arguments?.getBoolean(ARG_VIEW_MODE)   ?: false
+        val isEditMode   = arguments?.getBoolean(ARG_IS_EDIT_MODE) ?: false
         setupDropdowns()
-        prefillData()
+        prefillData(isEditMode)
         setupReadOnlyCoordinates()
-        setEditable(!isViewMode)
+        setEditable(!isViewMode && !isEditMode)
         setupRangeWatchers()
+
+        // 編輯模式下隱藏側溝編號欄位
+        if (isEditMode) {
+            binding.tilGutterId.visibility = View.GONE
+        }
     }
 
     override fun onDestroyView() {
@@ -124,7 +135,7 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     /** 從 args 預填既有資料（有則填，無則走座標預填） */
-    private fun prefillData() {
+    private fun prefillData(isEditMode: Boolean) {
         val args = arguments ?: return
 
         val gutterId   = args.getString(ARG_DATA_GUTTER_ID,   "")
@@ -134,6 +145,7 @@ class GutterBasicInfoFragment : Fragment() {
         val coordY     = args.getString(ARG_DATA_COORD_Y,     "")
         val coordZ     = args.getString(ARG_DATA_COORD_Z,     "")
         val measureId  = args.getString(ARG_DATA_MEASURE_ID,  "")
+        val xyNum      = args.getString(ARG_DATA_XY_NUM,      "") // 新增：API 的 XY_NUM
         val depth      = args.getString(ARG_DATA_DEPTH,       "")
         val topWidth   = args.getString(ARG_DATA_TOP_WIDTH,   "")
         val isBroken   = args.getString(ARG_DATA_IS_BROKEN,   "")
@@ -143,7 +155,7 @@ class GutterBasicInfoFragment : Fragment() {
 
         val hasAnyData = listOf(
             gutterId, gutterType, matTyp, coordX, coordY, coordZ,
-            measureId, depth, topWidth, isBroken, isHanging, isSilt, remarks
+            measureId, depth, topWidth, isBroken, isHanging, isSilt, remarks, xyNum
         ).any { it.isNotEmpty() }
 
         if (hasAnyData) {
@@ -153,7 +165,8 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etCoordX.setText(coordX)
             binding.etCoordY.setText(coordY)
             binding.etCoordZ.setText(coordZ)
-            binding.etMeasureId.setText(measureId)
+            // 編輯模式下，測量座標編號優先使用 xyNum
+            binding.etMeasureId.setText(if (isEditMode && xyNum.isNotEmpty()) xyNum else measureId)
             binding.etDepth.setText(depth)
             binding.etTopWidth.setText(topWidth)
             binding.actvIsBroken.setText(isBroken, false)
@@ -261,8 +274,12 @@ class GutterBasicInfoFragment : Fragment() {
      * @return 第一個未填或超出範圍的欄位提示字串；全部通過則回傳 null。
      */
     fun validateRequiredFields(): String? {
+        val args       = arguments ?: return null
+        val isEditMode = args.getBoolean(ARG_IS_EDIT_MODE)
         val d = collectData()
-        if (d["gutterId"].isNullOrEmpty())   return "側溝編號"
+
+        // 編輯模式不驗證側溝編號
+        if (!isEditMode && d["gutterId"].isNullOrEmpty())   return "側溝編號"
         if (d["gutterType"].isNullOrEmpty())  return "側溝形式"
         if (d["matTyp"].isNullOrEmpty())      return "側溝材質"
         if (d["coordX"].isNullOrEmpty())      return "側溝X（E）座標"

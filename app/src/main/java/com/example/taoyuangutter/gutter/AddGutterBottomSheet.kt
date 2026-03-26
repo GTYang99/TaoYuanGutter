@@ -1,6 +1,9 @@
 package com.example.taoyuangutter.gutter
 
 import android.os.Bundle
+import android.text.Spannable
+import android.text.SpannableStringBuilder
+import android.text.style.AbsoluteSizeSpan
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterBinding
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.WaypointSnapshot
+import com.google.gson.reflect.TypeToken
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -51,6 +55,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private var isOfflineMode = false
     /** 待上傳草稿的 id；非零時表示此 sheet 從草稿恢復 */
     private var draftId: Long = 0L
+    /** 編輯模式時帶入的 SPI_NUM，用於顯示標題；空字串代表新增模式 */
+    private var editSpiNum: String = ""
 
     // ── 資料 ─────────────────────────────────────────────────────────────
     private lateinit var adapter: WaypointAdapter
@@ -65,14 +71,27 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         isInspectMode = arguments?.getBoolean(ARG_INSPECT_MODE,  false) ?: false
         isOfflineMode = arguments?.getBoolean(ARG_OFFLINE_MODE, false) ?: false
         draftId       = arguments?.getLong(ARG_DRAFT_ID, 0L) ?: 0L
+        editSpiNum    = arguments?.getString(ARG_SPI_NUM, "") ?: ""
         // 新增/檢視模式皆允許點選外部區域（dim 遮罩）關閉
         isCancelable = true
-        // 若從草稿恢復，先載入草稿 waypoints
+
+        if (isInspectMode) return   // 檢視模式不需恢復 waypoints
+
+        // ── 優先順序（後者在 Bundle 存在時覆蓋前者）─────────────────────
+        // 1. 從 API DitchDetails 預填（編輯模式，每次開啟都應以 API 資料為主）
+        val editJson = arguments?.getString(ARG_EDIT_WAYPOINTS_JSON)
+        if (editJson != null) {
+            restoreWaypointsFromSnapshotJson(editJson)
+            return
+        }
+        // 2. 從草稿恢復
         val draftJson = arguments?.getString(ARG_DRAFT_JSON)
-        if (draftJson != null && savedInstanceState == null && !isInspectMode) {
+        if (draftJson != null) {
             restoreWaypointsFromDraftJson(draftJson)
-        } else if (savedInstanceState != null && !isInspectMode) {
-            // 新增模式：若 Activity 在表單期間被系統回收，從 savedInstanceState 恢復所有點位資料
+            return
+        }
+        // 3. 系統重建（Activity 被回收後恢復，無 editJson / draftJson）
+        if (savedInstanceState != null) {
             restoreWaypointsState(savedInstanceState)
         }
     }
@@ -116,6 +135,37 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
+    /**
+     * 從 List<WaypointSnapshot> JSON 還原 waypoints（編輯模式，由 API DitchDetails 轉換而來）。
+     * 解析成功時清除預設 [起點,終點] 並替換為 API 資料；失敗時保留預設並 Toast 提示。
+     */
+    private fun restoreWaypointsFromSnapshotJson(json: String) {
+        try {
+            val type = object : TypeToken<List<WaypointSnapshot>>() {}.type
+            val snapshots: List<WaypointSnapshot> = Gson().fromJson(json, type) ?: run {
+                android.util.Log.w("AddGutterSheet", "restoreFromSnapshot: fromJson returned null")
+                return
+            }
+            if (snapshots.isEmpty()) {
+                android.util.Log.w("AddGutterSheet", "restoreFromSnapshot: snapshots is empty")
+                return
+            }
+            waypoints.clear()
+            snapshots.forEach { snap ->
+                val wpType = WaypointType.entries.firstOrNull { it.name == snap.type }
+                    ?: WaypointType.NODE
+                val latLng = if (snap.latitude != null && snap.longitude != null)
+                    LatLng(snap.latitude, snap.longitude) else null
+                waypoints.add(Waypoint(wpType, snap.label, latLng, snap.basicData))
+            }
+            android.util.Log.d("AddGutterSheet", "restoreFromSnapshot: loaded ${waypoints.size} waypoints")
+        } catch (e: Exception) {
+            android.util.Log.e("AddGutterSheet", "restoreFromSnapshot failed: ${e.message}", e)
+            // 解析失敗：保留預設 [起點, 終點]，並在 view 建立後提示
+            arguments?.putString("_restore_error", e.message ?: "unknown")
+        }
+    }
+
     /** 從草稿 JSON 字串恢復 waypoints（首次從 PendingDraftsBottomSheet 恢復時呼叫）。 */
     private fun restoreWaypointsFromDraftJson(json: String) {
         try {
@@ -154,6 +204,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         setupBottomSheetBehavior()
         setupRecyclerView()
         setupButtons()
+        setupTitle()
     }
 
     override fun onStart() {
@@ -176,6 +227,28 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             // 新增模式：以目前 waypoints 狀態通知（保留地圖疊加層）
             onWaypointsChanged?.invoke(waypoints.toList())
         }
+    }
+
+    // ── 標題 ──────────────────────────────────────────────────────────────
+    /**
+     * 編輯模式（editSpiNum 非空）時，將標題改為兩行：
+     *   「側溝編號」（18sp bold）
+     *   「{SPI_NUM}」（14sp）
+     * 新增模式則保留 XML 預設的「新增側溝」文字。
+     */
+    private fun setupTitle() {
+        if (editSpiNum.isEmpty()) return
+        val line1    = "側溝編號"
+        val fullText = "$line1\n$editSpiNum"
+        val spannable = SpannableStringBuilder(fullText)
+        // line1 有 4 個字 + "\n" 共 5 個字元，spiNum 從 index 5 開始
+        spannable.setSpan(
+            AbsoluteSizeSpan(14, true),
+            5,
+            fullText.length,
+            Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
+        )
+        binding.tvSheetTitle.text = spannable
     }
 
     // ── 設定 BottomSheet 行為 ────────────────────────────────────────────
@@ -242,11 +315,16 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun setupRecyclerView() {
         adapter = WaypointAdapter(waypoints) { position ->
             if (isInspectMode) {
-                // 檢視模式：開啟表單檢視
+                // 檢視模式：開啟表單檢視（唯讀）
                 (requireActivity() as? LocationPickerHost)
                     ?.openWaypointForInspect(this, position)
+            } else if (editSpiNum.isNotEmpty()) {
+                // 編輯模式（從 GutterInspectActivity 跳轉）：
+                // 以 _nodeId 呼叫 nodeDetails API 取得完整資料後開表單
+                (requireActivity() as? LocationPickerHost)
+                    ?.openWaypointForEdit(this, position)
             } else {
-                // 新增模式：到地圖選點位座標
+                // 新增模式：先到地圖上選取點位座標
                 (requireActivity() as? LocationPickerHost)
                     ?.startLocationPick(this, position)
             }
@@ -431,6 +509,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         private const val ARG_DRAFT_JSON   = "draft_json"
         private const val KEY_WP_COUNT     = "wp_count"
 
+        private const val ARG_EDIT_WAYPOINTS_JSON = "edit_waypoints_json"
+        private const val ARG_SPI_NUM             = "spi_num"
+
         /** 新增模式（一般地圖流程） */
         fun newInstance() = AddGutterBottomSheet()
 
@@ -442,6 +523,32 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         /** 檢視線段模式（點選 Polyline 後開啟） */
         fun newInstanceForInspect() = AddGutterBottomSheet().apply {
             arguments = Bundle().apply { putBoolean(ARG_INSPECT_MODE, true) }
+        }
+
+        /**
+         * 從 API DitchDetails 轉換而來的 waypoints 預填編輯模式。
+         * 以新增模式（非 inspectMode）開啟，點位資料從 API 資料帶入。
+         *
+         * @param waypoints 由 DitchDetails 轉換而來的點位列表
+         * @param spiNum    DitchDetails.spiNum，用於顯示標題（空字串則顯示預設「新增側溝」）
+         */
+        fun newInstanceForEdit(waypoints: List<Waypoint>, spiNum: String = ""): AddGutterBottomSheet {
+            val snapshots = waypoints.map { wp ->
+                WaypointSnapshot(
+                    type      = wp.type.name,
+                    label     = wp.label,
+                    latitude  = wp.latLng?.latitude,
+                    longitude = wp.latLng?.longitude,
+                    basicData = wp.basicData
+                )
+            }
+            val json = Gson().toJson(snapshots)
+            return AddGutterBottomSheet().apply {
+                arguments = Bundle().apply {
+                    putString(ARG_EDIT_WAYPOINTS_JSON, json)
+                    if (spiNum.isNotEmpty()) putString(ARG_SPI_NUM, spiNum)
+                }
+            }
         }
 
         /**
