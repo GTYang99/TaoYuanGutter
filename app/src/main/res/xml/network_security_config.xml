@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 只允許內部測試伺服器走 HTTP，其餘流量維持預設 HTTPS 限制 -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="false">192.168.10.37</domain>
+    </domain-config>
+</network-security-config>

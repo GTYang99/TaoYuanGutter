@@ -1,22 +1,29 @@
 package com.example.taoyuangutter.gutter
 
-import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import androidx.fragment.app.Fragment
+import com.bumptech.glide.Glide
+import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.databinding.FragmentInspectPhotosBinding
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 
 /**
  * GutterInspectPhotosFragment
  *
- * 顯示整條側溝的起點與終點照片，全程唯讀。
+ * 顯示整條側溝起點與終點的照片，全程唯讀。
+ * 資料來源：DitchDetails.nodes 中 NODE_ATT=1（起點）、NODE_ATT=3（終點）的 url 列表。
  *
- * 對應文件 桃園側溝分析文件_檢視欄位：
- *   起點：STR_PHOTO_OV / STR_PHOTO_WID / STR_PHOTO_DEP（photo1/2/3 from START）
- *   終點：END_PHOTO_OV / END_PHOTO_WID / END_PHOTO_DEP（photo1/2/3 from END）
+ * fileCategory 對應：
+ *   1 → 測量位置及側溝概況（slot1）
+ *   2 → 側溝內徑寬度尺寸（slot2）
+ *   3 → 側溝深度尺寸（slot3）
+ *
+ * 圖片從 HTTP URL 以 Glide 載入。
  */
 class GutterInspectPhotosFragment : Fragment() {
 
@@ -24,28 +31,15 @@ class GutterInspectPhotosFragment : Fragment() {
     private val binding get() = _binding!!
 
     companion object {
-        private const val ARG_STR_PHOTO_1 = "str_photo_1"
-        private const val ARG_STR_PHOTO_2 = "str_photo_2"
-        private const val ARG_STR_PHOTO_3 = "str_photo_3"
-        private const val ARG_END_PHOTO_1 = "end_photo_1"
-        private const val ARG_END_PHOTO_2 = "end_photo_2"
-        private const val ARG_END_PHOTO_3 = "end_photo_3"
+        private const val ARG_NODES_JSON = "nodes_json"
 
         /**
-         * 從 List<Waypoint> 取出起點與終點的照片路徑，建立 Fragment 實例。
+         * 建立 Fragment 實例，傳入 DitchDetails.nodes 列表。
          */
-        fun newInstance(waypoints: List<Waypoint>): GutterInspectPhotosFragment {
-            val start = waypoints.firstOrNull { it.type == WaypointType.START }
-            val end   = waypoints.firstOrNull { it.type == WaypointType.END }
-
+        fun newInstance(nodes: List<DitchNode>): GutterInspectPhotosFragment {
             return GutterInspectPhotosFragment().apply {
                 arguments = Bundle().apply {
-                    putString(ARG_STR_PHOTO_1, start?.basicData?.get("photo1"))
-                    putString(ARG_STR_PHOTO_2, start?.basicData?.get("photo2"))
-                    putString(ARG_STR_PHOTO_3, start?.basicData?.get("photo3"))
-                    putString(ARG_END_PHOTO_1, end?.basicData?.get("photo1"))
-                    putString(ARG_END_PHOTO_2, end?.basicData?.get("photo2"))
-                    putString(ARG_END_PHOTO_3, end?.basicData?.get("photo3"))
+                    putString(ARG_NODES_JSON, Gson().toJson(nodes))
                 }
             }
         }
@@ -73,36 +67,44 @@ class GutterInspectPhotosFragment : Fragment() {
     // ── 照片顯示 ─────────────────────────────────────────────────────────
 
     private fun bindPhotos() {
-        val a = arguments ?: return
+        val json = arguments?.getString(ARG_NODES_JSON) ?: return
+        val nodes: List<DitchNode> = try {
+            val type = object : TypeToken<List<DitchNode>>() {}.type
+            Gson().fromJson(json, type) ?: emptyList()
+        } catch (e: Exception) {
+            emptyList()
+        }
 
-        // 起點
-        loadPhoto(a.getString(ARG_STR_PHOTO_1), binding.ivStrPhotoSlot1, binding.placeholderStrSlot1)
-        loadPhoto(a.getString(ARG_STR_PHOTO_2), binding.ivStrPhotoSlot2, binding.placeholderStrSlot2)
-        loadPhoto(a.getString(ARG_STR_PHOTO_3), binding.ivStrPhotoSlot3, binding.placeholderStrSlot3)
+        // NODE_ATT: "1"=起點、"3"=終點
+        val startNode = nodes.firstOrNull { it.nodeAtt == "1" }
+        val endNode   = nodes.firstOrNull { it.nodeAtt == "3" }
 
-        // 終點
-        loadPhoto(a.getString(ARG_END_PHOTO_1), binding.ivEndPhotoSlot1, binding.placeholderEndSlot1)
-        loadPhoto(a.getString(ARG_END_PHOTO_2), binding.ivEndPhotoSlot2, binding.placeholderEndSlot2)
-        loadPhoto(a.getString(ARG_END_PHOTO_3), binding.ivEndPhotoSlot3, binding.placeholderEndSlot3)
+        // 依 fileCategory 取得對應 URL
+        fun urlByCategory(node: DitchNode?, cat: String): String? =
+            node?.url?.firstOrNull { it.fileCategory == cat }?.url
+
+        // 起點照片
+        loadPhoto(urlByCategory(startNode, "1"), binding.ivStrPhotoSlot1, binding.placeholderStrSlot1)
+        loadPhoto(urlByCategory(startNode, "2"), binding.ivStrPhotoSlot2, binding.placeholderStrSlot2)
+        loadPhoto(urlByCategory(startNode, "3"), binding.ivStrPhotoSlot3, binding.placeholderStrSlot3)
+
+        // 終點照片
+        loadPhoto(urlByCategory(endNode, "1"), binding.ivEndPhotoSlot1, binding.placeholderEndSlot1)
+        loadPhoto(urlByCategory(endNode, "2"), binding.ivEndPhotoSlot2, binding.placeholderEndSlot2)
+        loadPhoto(urlByCategory(endNode, "3"), binding.ivEndPhotoSlot3, binding.placeholderEndSlot3)
     }
 
     /**
-     * 若 uriString 不為空，顯示圖片並隱藏佔位 placeholder；
+     * 若 url 不為空，以 Glide 從 HTTP 載入圖片並顯示 ImageView；
      * 否則保留 placeholder 的「無照片」提示。
      */
-    private fun loadPhoto(uriString: String?, imageView: ImageView, placeholder: View) {
-        if (!uriString.isNullOrEmpty()) {
-            try {
-                val uri = Uri.parse(uriString)
-                imageView.setImageURI(null)   // 清除快取
-                imageView.setImageURI(uri)
-                imageView.visibility = View.VISIBLE
-                placeholder.visibility = View.GONE
-            } catch (e: Exception) {
-                // URI 解析失敗：保留無照片佔位
-                imageView.visibility = View.GONE
-                placeholder.visibility = View.VISIBLE
-            }
+    private fun loadPhoto(url: String?, imageView: ImageView, placeholder: View) {
+        if (!url.isNullOrEmpty()) {
+            Glide.with(this)
+                .load(url)
+                .into(imageView)
+            imageView.visibility = View.VISIBLE
+            placeholder.visibility = View.GONE
         } else {
             imageView.visibility = View.GONE
             placeholder.visibility = View.VISIBLE

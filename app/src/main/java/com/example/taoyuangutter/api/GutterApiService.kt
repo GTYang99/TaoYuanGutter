@@ -76,7 +76,8 @@ interface GutterApiService {
         @Query("minLat") minLat: Double,
         @Query("maxLat") maxLat: Double,
         @Query("minLng") minLng: Double,
-        @Query("maxLng") maxLng: Double
+        @Query("maxLng") maxLng: Double,
+        @Header("Authorization") authorization: String
     ): Response<ScopeSearchResponse>
 
     /**

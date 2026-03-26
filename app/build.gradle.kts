@@ -75,6 +75,8 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging)
     implementation(libs.gson)
+    // Glide（從 URL 載入照片）
+    implementation(libs.glide)
     // Compose (for ui/theme files)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)
