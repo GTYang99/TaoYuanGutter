@@ -5,30 +5,30 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.databinding.FragmentInspectBasicBinding
-import kotlin.math.sqrt
 
 /**
  * GutterInspectBasicFragment
  *
- * 顯示整條側溝（多點位）的彙整基本資料，全程唯讀。
- * 資料來源：由 [GutterInspectActivity] 將 List<Waypoint> 轉換後以 arguments 傳入。
+ * 顯示整條側溝的基本資料，全程唯讀。
+ * 資料來源：由 [GutterInspectActivity] 將 [DitchDetails] 以 arguments 傳入。
  *
- * 欄位對應文件 桃園側溝分析文件_檢視欄位：
- *   SPI_NUM  → 側溝編號（起點 gutterId）
- *   SPI_TYP  → 側溝形式（起點 gutterType，轉為中文）
+ * 欄位對應文件 桃園側溝分析文件_側溝檢視欄位：
+ *   SPI_NUM  → 側溝編號
+ *   SPI_TYP  → 側溝形式（代碼轉中文）
  *   STR_X/Y  → 起點 X(E) / Y(N) 座標
- *   STR_LE   → 起點 Z 座標
+ *   STR_LE   → 起點高程
  *   END_X/Y  → 終點 X(E) / Y(N) 座標
- *   END_LE   → 終點 Z 座標
- *   NODE_XY  → 所有節點座標，格式 "x,y_x,y_…"
- *   STR_DEP  → 起點深度
- *   END_DEP  → 終點深度
- *   STR_WID  → 起點頂寬
- *   END_WID  → 終點頂寬
- *   LENG     → 側溝長度（GPS 直線距離，m）
- *   SLOP     → 坡度（%）
- *   NOTE     → 補充說明（各點位 remarks 合併）
+ *   END_LE   → 終點高程
+ *   NODE_XY  → 所有節點座標
+ *   STR_DEP  → 起點深度（公分）
+ *   END_DEP  → 終點深度（公分）
+ *   STR_WID  → 起點頂寬（公分）
+ *   END_WID  → 終點頂寬（公分）
+ *   LENG     → 側溝長度（公尺）
+ *   SLOP     → 坡度
+ *   NOTE     → 補充說明
  */
 class GutterInspectBasicFragment : Fragment() {
 
@@ -54,102 +54,39 @@ class GutterInspectBasicFragment : Fragment() {
         private const val ARG_SLOP     = "slop"
         private const val ARG_NOTE     = "note"
 
+        /** SPI_TYP 代碼 → 中文對照 */
+        private val SPI_TYP_MAP = mapOf(
+            "1" to "U形溝（明溝）",
+            "2" to "U形溝（加蓋）",
+            "3" to "L形溝與暗溝渠併用",
+            "4" to "其他"
+        )
+
         /**
-         * 從 List<Waypoint> 計算所有彙整欄位後，建立 Fragment 實例。
+         * 從 [DitchDetails] 取出所有欄位，建立 Fragment 實例。
          */
-        fun newInstance(waypoints: List<Waypoint>): GutterInspectBasicFragment {
-            val start = waypoints.firstOrNull { it.type == WaypointType.START }
-            val end   = waypoints.firstOrNull { it.type == WaypointType.END }
-            val nodes = waypoints.filter   { it.type == WaypointType.NODE }
-
-            // ── 彙整各欄位 ────────────────────────────────────────
-            val spiNum  = start?.basicData?.get("gutterId")  ?: ""
-            val spiTyp  = start?.basicData?.get("gutterType") ?: ""
-            val strX    = start?.basicData?.get("coordX")    ?: ""
-            val strY    = start?.basicData?.get("coordY")    ?: ""
-            val strLe   = start?.basicData?.get("coordZ")    ?: ""
-            val endX    = end?.basicData?.get("coordX")      ?: ""
-            val endY    = end?.basicData?.get("coordY")      ?: ""
-            val endLe   = end?.basicData?.get("coordZ")      ?: ""
-            val strDep  = start?.basicData?.get("depth")     ?: ""
-            val endDep  = end?.basicData?.get("depth")       ?: ""
-            val strWid  = start?.basicData?.get("topWidth")  ?: ""
-            val endWid  = end?.basicData?.get("topWidth")    ?: ""
-
-            // NODE_XY：節點座標以 "x,y" 格式，多個節點以底線分隔
-            val nodeXy = if (nodes.isEmpty()) {
-                ""
-            } else {
-                nodes.joinToString("_") { wp ->
-                    val x = wp.basicData["coordX"] ?: ""
-                    val y = wp.basicData["coordY"] ?: ""
-                    "$x,$y"
-                }
-            }
-
-            // LENG：以起點/終點 GPS LatLng 計算平面直線距離（m）
-            val leng = calcLength(start, end)
-
-            // SLOP：(STR_LE − END_LE) / LENG × 100（%）
-            val slop = calcSlope(strLe, endLe, leng)
-
-            // NOTE：所有點位 remarks 過濾空值後合併（換行分隔）
-            val note = waypoints.mapNotNull { wp ->
-                wp.basicData["remarks"]?.takeIf { it.isNotBlank() }
-            }.joinToString("\n")
-
+        fun newInstance(ditch: DitchDetails?): GutterInspectBasicFragment {
             return GutterInspectBasicFragment().apply {
                 arguments = Bundle().apply {
-                    putString(ARG_SPI_NUM, spiNum)
-                    putString(ARG_SPI_TYP, spiTyp)
-                    putString(ARG_STR_X,   strX)
-                    putString(ARG_STR_Y,   strY)
-                    putString(ARG_STR_LE,  strLe)
-                    putString(ARG_END_X,   endX)
-                    putString(ARG_END_Y,   endY)
-                    putString(ARG_END_LE,  endLe)
-                    putString(ARG_NODE_XY, nodeXy)
-                    putString(ARG_STR_DEP, strDep)
-                    putString(ARG_END_DEP, endDep)
-                    putString(ARG_STR_WID, strWid)
-                    putString(ARG_END_WID, endWid)
-                    putString(ARG_LENG,    leng)
-                    putString(ARG_SLOP,    slop)
-                    putString(ARG_NOTE,    note)
+                    putString(ARG_SPI_NUM, ditch?.spiNum ?: "")
+                    // SPI_TYP：先查對照表，查不到則原樣顯示
+                    putString(ARG_SPI_TYP, SPI_TYP_MAP[ditch?.spiTyp] ?: (ditch?.spiTyp ?: ""))
+                    putString(ARG_STR_X,   ditch?.strX  ?: "")
+                    putString(ARG_STR_Y,   ditch?.strY  ?: "")
+                    putString(ARG_STR_LE,  ditch?.strLe ?: "")
+                    putString(ARG_END_X,   ditch?.endX  ?: "")
+                    putString(ARG_END_Y,   ditch?.endY  ?: "")
+                    putString(ARG_END_LE,  ditch?.endLe ?: "")
+                    putString(ARG_NODE_XY, ditch?.nodeXy ?: "")
+                    putString(ARG_STR_DEP, ditch?.strDep?.toString() ?: "")
+                    putString(ARG_END_DEP, ditch?.endDep?.toString() ?: "")
+                    putString(ARG_STR_WID, ditch?.strWid?.toString() ?: "")
+                    putString(ARG_END_WID, ditch?.endWid?.toString() ?: "")
+                    putString(ARG_LENG,    ditch?.leng  ?: "")
+                    putString(ARG_SLOP,    ditch?.slop  ?: "")
+                    putString(ARG_NOTE,    ditch?.note  ?: "")
                 }
             }
-        }
-
-        // ── 計算輔助函式 ───────────────────────────────────────────
-
-        /** 以 LatLng 計算起點到終點 Haversine 距離（公尺），格式化為兩位小數字串。 */
-        private fun calcLength(start: Waypoint?, end: Waypoint?): String {
-            val sLat = start?.latLng?.latitude  ?: return ""
-            val sLng = start.latLng?.longitude  ?: return ""
-            val eLat = end?.latLng?.latitude    ?: return ""
-            val eLng = end?.latLng?.longitude   ?: return ""
-            val R = 6371000.0   // 地球半徑（公尺）
-            val dLat = Math.toRadians(eLat - sLat)
-            val dLng = Math.toRadians(eLng - sLng)
-            val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                    Math.cos(Math.toRadians(sLat)) * Math.cos(Math.toRadians(eLat)) *
-                    Math.sin(dLng / 2) * Math.sin(dLng / 2)
-            val c = 2 * Math.atan2(sqrt(a), sqrt(1 - a))
-            val dist = R * c
-            return "%.2f".format(dist)
-        }
-
-        /**
-         * 坡度 = (STR_LE − END_LE) / LENG × 100
-         * 若任一值為空或 LENG 為 0 則回傳空字串。
-         */
-        private fun calcSlope(strLe: String, endLe: String, leng: String): String {
-            val sZ = strLe.toDoubleOrNull() ?: return ""
-            val eZ = endLe.toDoubleOrNull() ?: return ""
-            val l  = leng.toDoubleOrNull()  ?: return ""
-            if (l == 0.0) return ""
-            val slope = (sZ - eZ) / l * 100.0
-            return "%.4f".format(slope)
         }
     }
 

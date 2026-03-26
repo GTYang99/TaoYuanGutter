@@ -404,13 +404,30 @@ class MainActivity : AppCompatActivity(),
 
     @Suppress("UNCHECKED_CAST")
     private fun openInspectBottomSheet(polyline: Polyline) {
-        val waypoints = (polyline.tag as? ArrayList<Waypoint>) ?: return
-        if (waypoints.isEmpty()) return
-        inspectWaypoints = waypoints.toList()
-        refreshWorkingMarkers(inspectWaypoints)
-        binding.root.post { fitCameraToWaypoints(inspectWaypoints) }
-        val intent = GutterInspectActivity.newIntent(this, inspectWaypoints)
-        startActivity(intent)
+        val spiNum = polyline.tag as? String ?: return
+        val token  = LoginActivity.getSavedToken(this) ?: return
+        lifecycleScope.launch {
+            when (val result = gutterRepository.getDitchDetails(spiNum, token)) {
+                is ApiResult.Success -> {
+                    val ditch = result.data.data
+                    if (ditch != null) {
+                        val intent = GutterInspectActivity.newIntent(this@MainActivity, ditch)
+                        startActivity(intent)
+                    } else {
+                        android.widget.Toast.makeText(
+                            this@MainActivity, "查無線段資料", android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+                is ApiResult.Error -> {
+                    android.widget.Toast.makeText(
+                        this@MainActivity,
+                        "查詢失敗(${result.code}): ${result.message}",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+        }
     }
 
     private fun setupButtons() {
