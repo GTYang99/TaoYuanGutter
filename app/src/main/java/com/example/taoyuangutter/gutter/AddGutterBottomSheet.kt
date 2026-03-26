@@ -69,6 +69,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         Waypoint(WaypointType.END, "終點")
     )
 
+    /**
+     * 編輯模式初始快照：在 setupButtons() 時記錄 API 回填後的原始狀態，
+     * 作為「是否有修改」的基準。
+     */
+    private var originalWaypointsSnapshot: List<WaypointSnapshot> = emptyList()
+
     // ── Lifecycle ────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -400,9 +406,13 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnDeleteGutter.visibility  = View.GONE
         } else if (editSpiNum.isNotEmpty()) {
             // 編輯模式：隱藏「新增節點」、顯示「刪除側溝」（左）＋「更新側溝」（右）
-            binding.btnAddNode.visibility = View.GONE
+            //binding.btnAddNode.visibility = View.GONE
             binding.btnDeleteGutter.visibility = View.VISIBLE
             binding.btnSubmitGutter.text = "更新側溝"
+
+            // 以目前 API 回填的 waypoints 作為基準快照，初始化時按鈕為禁用狀態
+            originalWaypointsSnapshot = takeWaypointSnapshot()
+            updateSubmitButtonState()
 
             binding.btnDeleteGutter.setOnClickListener {
                 (requireActivity() as? LocationPickerHost)?.onDeleteGutter(editSpiNum)
@@ -410,6 +420,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnSubmitGutter.setOnClickListener {
                 (requireActivity() as? LocationPickerHost)?.onUpdateGutter(waypoints.toList(), editSpiNum)
                 dismiss()
+            }
+            binding.btnAddNode.setOnClickListener {
+                val nodeCount  = waypoints.count { it.type == WaypointType.NODE }
+                val insertIdx  = waypoints.size - 1
+                waypoints.add(insertIdx, Waypoint(WaypointType.NODE, "節點${nodeCount + 1}"))
+                adapter.notifyItemInserted(insertIdx)
+                binding.rvWaypoints.scrollToPosition(insertIdx)
+                // 新節點插入後 waypoints index 改變，需通知 MainActivity 刷新大頭針 tag
+                onWaypointsChanged?.invoke(waypoints.toList())
             }
         } else {
             binding.btnAddNode.setOnClickListener {
@@ -486,6 +505,55 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         }
         adapter.notifyDataSetChanged()
         onWaypointsChanged?.invoke(waypoints.toList())
+        updateSubmitButtonState()
+    }
+
+    // ── 編輯模式：變更偵測與按鈕狀態更新 ────────────────────────────────
+
+    /** 將目前 waypoints 轉成 Snapshot 列表（深拷貝），作為比較基準。 */
+    private fun takeWaypointSnapshot(): List<WaypointSnapshot> = waypoints.map { wp ->
+        WaypointSnapshot(
+            type      = wp.type.name,
+            label     = wp.label,
+            latitude  = wp.latLng?.latitude,
+            longitude = wp.latLng?.longitude,
+            basicData = HashMap(wp.basicData)
+        )
+    }
+
+    /**
+     * 比較目前 waypoints 與初始快照，判斷是否有任何變更：
+     * - 點位數量增減
+     * - 任意點位的座標變更
+     * - 任意點位的 basicData 欄位變更
+     */
+    private fun hasEditChanges(): Boolean {
+        if (editSpiNum.isEmpty()) return false
+        if (waypoints.size != originalWaypointsSnapshot.size) return true
+        waypoints.forEachIndexed { i, wp ->
+            val orig = originalWaypointsSnapshot[i]
+            if (wp.latLng?.latitude  != orig.latitude)  return true
+            if (wp.latLng?.longitude != orig.longitude) return true
+            if (wp.basicData != orig.basicData)         return true
+        }
+        return false
+    }
+
+    /**
+     * 根據 [hasEditChanges] 啟用或禁用「更新側溝」按鈕：
+     * - 有變更 → 啟用（colorPrimary 底白字）
+     * - 無變更 → 禁用（灰階底白字）
+     */
+    private fun updateSubmitButtonState() {
+        if (editSpiNum.isEmpty() || _binding == null) return
+        val hasChanges = hasEditChanges()
+        binding.btnSubmitGutter.isEnabled = hasChanges
+        val tint = if (hasChanges)
+            androidx.core.content.ContextCompat.getColor(requireContext(), com.example.taoyuangutter.R.color.colorPrimary)
+        else
+            android.graphics.Color.parseColor("#9E9E9E")
+        binding.btnSubmitGutter.backgroundTintList =
+            android.content.res.ColorStateList.valueOf(tint)
     }
 
     // ── 由 MainActivity 回呼：寫入選定座標 ──────────────────────────────
@@ -497,6 +565,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             waypoints[index].latLng = latLng
             adapter.notifyItemChanged(index)
             onWaypointsChanged?.invoke(waypoints.toList())
+            updateSubmitButtonState()
         }
     }
 
@@ -505,6 +574,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (index in waypoints.indices) {
             waypoints[index].basicData = data
             adapter.notifyItemChanged(index)
+            updateSubmitButtonState()
         }
     }
 

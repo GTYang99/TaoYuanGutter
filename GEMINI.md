@@ -49,9 +49,8 @@
     - 調整 `showDraftActionDialog` 為僅處理刪除草稿的邏輯，現在透過長按項目觸發。
 - **`PendingDraftAdapter.kt`**:
     - 新增 `onItemLongClick` 監聽器，支援長按項目以觸發刪除草稿功能。
-- **`GutterInspectActivity.kt`**:
-    - 修正了從 `DitchDetails` 讀取的節點資料未能正確轉換為 `Waypoint` 物件並傳遞給 `AddGutterBottomSheet` 以便編輯的問題。
-    - 現在，當點擊編輯按鈕時，`GutterInspectActivity` 會將 `DitchDetails.Node` 列表轉換為 `Waypoint` 列表，然後將此列表序列化為 JSON 字串，並連同 `spiNum` 一起透過 `setResult` 傳遞給呼叫者，確保 `AddGutterBottomSheet` 能夠正確載入編輯前的資料。
+- **`AddGutterBottomSheet.kt`**:
+    - **User corrected that the 'Add Node' button is on the top left, and it should remain visible/open.** (The button in question is functionally `btnAddNode`).
 
 ## 本次結論
 - 針對 `fabSubmit` 按鈕的觸發行為，已確認其驗證邏輯（需填寫基本資料與照片）及提示訊息（Toast）已正確實作於 `GutterFormActivity.kt` 的 `saveAndClose()` 函數中。
