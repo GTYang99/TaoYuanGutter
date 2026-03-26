@@ -336,6 +336,50 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    override fun onUpdateGutter(waypoints: List<Waypoint>, spiNum: String) {
+        // TODO: 呼叫更新側溝 API
+        Toast.makeText(this, "更新側溝（$spiNum）— 待實作", Toast.LENGTH_SHORT).show()
+        activeSheet = null
+        clearWorkingMarkers()
+        binding.btnAddGutter.visibility = View.VISIBLE
+    }
+
+    override fun onDeleteGutter(spiNum: String) {
+        AlertDialog.Builder(this)
+            .setTitle("刪除側溝")
+            .setMessage("確定要刪除側溝「$spiNum」及其所有點位嗎？此操作無法復原。")
+            .setPositiveButton("確定刪除") { _, _ ->
+                val token = LoginActivity.getSavedToken(this)
+                if (token.isNullOrEmpty()) {
+                    Toast.makeText(this, "請先登入", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                lifecycleScope.launch {
+                    when (val result = gutterRepository.deleteDitch(spiNum, token)) {
+                        is ApiResult.Success -> {
+                            // 從地圖移除該側溝的線段
+                            scopePolylines.remove(spiNum)?.remove()
+                            // 關閉 BottomSheet 並清除暫存標記
+                            activeSheet?.onWaypointsChanged = null
+                            workingPolyline?.remove()
+                            workingPolyline = null
+                            activeSheet?.dismiss()
+                            activeSheet = null
+                            clearWorkingMarkers()
+                            binding.btnAddGutter.visibility = View.VISIBLE
+                            googleMap?.setPadding(0, 0, 0, 0)
+                            Toast.makeText(this@MainActivity, "側溝「$spiNum」已成功刪除", Toast.LENGTH_SHORT).show()
+                        }
+                        is ApiResult.Error -> {
+                            Toast.makeText(this@MainActivity, "刪除失敗：${result.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     /** 將 waypoints 序列化並存入待上傳草稿 Repository。 */
     private fun saveWaypointsAsPendingDraft(waypoints: List<Waypoint>) {
         val snapshots = waypoints.map { wp ->

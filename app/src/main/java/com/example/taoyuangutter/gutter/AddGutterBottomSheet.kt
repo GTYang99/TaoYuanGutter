@@ -28,7 +28,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     interface LocationPickerHost {
         /** 請求 MainActivity 顯示地圖選點 overlay（新增模式，點位尚無座標） */
         fun startLocationPick(sheet: AddGutterBottomSheet, waypointIndex: Int)
-        /** 點位已有座標，直接開啟 GutterFormActivity 繼續編輯（新增模式） */
+        /** 點位已有座標，直接開啟 GutterFormActivity 繼續編輯（新增模式或編輯模式） */
         fun openWaypointForEdit(sheet: AddGutterBottomSheet, waypointIndex: Int)
         /** 當 BottomSheet 點擊「新增側溝」後的回呼（新增模式） */
         fun onGutterSubmitted(waypoints: List<Waypoint>)
@@ -36,6 +36,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         fun getInspectWaypoints(): List<Waypoint>
         /** 使用者點選某個點位的 cell（檢視模式），開啟 GutterFormActivity 檢視/編輯 */
         fun openWaypointForInspect(sheet: AddGutterBottomSheet, waypointIndex: Int)
+        /** 編輯模式：點擊「更新側溝」，提交修改後的 waypoints */
+        fun onUpdateGutter(waypoints: List<Waypoint>, spiNum: String)
+        /** 編輯模式：點擊「刪除側溝」，刪除指定側溝 */
+        fun onDeleteGutter(spiNum: String)
     }
 
     /**
@@ -390,9 +394,23 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         }
 
         if (isInspectMode) {
-            // 檢視模式：隱藏新增節點與提交按鈕
+            // 檢視模式：隱藏新增節點、提交與刪除按鈕
             binding.btnAddNode.visibility       = View.GONE
             binding.btnSubmitGutter.visibility  = View.GONE
+            binding.btnDeleteGutter.visibility  = View.GONE
+        } else if (editSpiNum.isNotEmpty()) {
+            // 編輯模式：隱藏「新增節點」、顯示「刪除側溝」（左）＋「更新側溝」（右）
+            binding.btnAddNode.visibility = View.GONE
+            binding.btnDeleteGutter.visibility = View.VISIBLE
+            binding.btnSubmitGutter.text = "更新側溝"
+
+            binding.btnDeleteGutter.setOnClickListener {
+                (requireActivity() as? LocationPickerHost)?.onDeleteGutter(editSpiNum)
+            }
+            binding.btnSubmitGutter.setOnClickListener {
+                (requireActivity() as? LocationPickerHost)?.onUpdateGutter(waypoints.toList(), editSpiNum)
+                dismiss()
+            }
         } else {
             binding.btnAddNode.setOnClickListener {
                 val nodeCount  = waypoints.count { it.type == WaypointType.NODE }

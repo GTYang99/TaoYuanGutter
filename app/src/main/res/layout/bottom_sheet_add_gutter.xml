@@ -102,17 +102,48 @@
         android:layout_height="1dp"
         android:background="@color/border_grey" />
 
-    <!-- 新增側溝按鈕 -->
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnSubmitGutter"
+    <!-- 底部按鈕列：新增模式只顯示「新增側溝」（全寬）；
+         編輯模式左側「刪除側溝」＋右側「更新側溝」並排 -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:layout_margin="16dp"
-        android:text="@string/btn_add_gutter"
-        android:textColor="@color/white"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        app:backgroundTint="@color/colorPrimary"
-        app:cornerRadius="12dp" />
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="16dp"
+        android:gravity="center_vertical">
+
+        <!-- 刪除側溝按鈕（編輯模式顯示，預設 GONE） -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDeleteGutter"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="刪除側溝"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            app:backgroundTint="#D32F2F"
+            app:cornerRadius="12dp"
+            app:strokeWidth="0dp" />
+
+        <!-- 新增／更新側溝按鈕 -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSubmitGutter"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
+            android:text="@string/btn_add_gutter"
+            android:textColor="@color/white"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/colorPrimary"
+            app:cornerRadius="12dp"
+            app:strokeWidth="0dp" />
+
+    </LinearLayout>
 
 </LinearLayout>
