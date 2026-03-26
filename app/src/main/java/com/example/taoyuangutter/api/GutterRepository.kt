@@ -3,6 +3,7 @@ package com.example.taoyuangutter.api
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.google.android.gms.maps.model.LatLng
+import com.google.gson.Gson
 
 /**
  * GutterRepository
@@ -32,23 +33,29 @@ class GutterRepository(
             val response = api.login(LoginRequest(username = username, password = password))
             val body = response.body()
             when {
+                // 200 且 success=true → 登入成功
                 response.isSuccessful && body?.success == true -> {
                     ApiResult.Success(body)
                 }
-                body != null -> {
-                    // 後端回傳 JSON 但 success=false（401/422/500）
-                    // 優先顯示 errors 裡的第一條欄位訊息，否則顯示 message
+                // 200 但 success=false（理論上不應出現）→ 取 body 的 message
+                response.isSuccessful && body != null -> {
                     val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
                     ApiResult.Error(
                         message = detail ?: body.message ?: "登入失敗",
                         code    = response.code()
                     )
                 }
+                // 非 200（401/422/500）→ Retrofit 不解析 body()，改從 errorBody() 取 message
                 else -> {
-                    ApiResult.Error(
-                        message = response.message().ifEmpty { "登入失敗（${response.code()}）" },
-                        code    = response.code()
-                    )
+                    val errMsg = try {
+                        val json = response.errorBody()?.string()
+                        val errBody = Gson().fromJson(json, LoginResponse::class.java)
+                        val detail = errBody?.errors?.values?.firstOrNull()?.firstOrNull()
+                        detail ?: errBody?.message ?: "登入失敗（${response.code()}）"
+                    } catch (_: Exception) {
+                        "登入失敗（${response.code()}）"
+                    }
+                    ApiResult.Error(message = errMsg, code = response.code())
                 }
             }
         } catch (e: Exception) {
