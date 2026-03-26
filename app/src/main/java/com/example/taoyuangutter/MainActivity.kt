@@ -597,13 +597,15 @@ class MainActivity : AppCompatActivity(),
      */
     private fun loadGuttersByViewport() {
         val map = googleMap ?: return
+        val token = LoginActivity.getSavedToken(this) ?: return
         val bounds = map.projection.visibleRegion.latLngBounds
         lifecycleScope.launch {
             when (val result = gutterRepository.getGuttersByScope(
                 minLat = bounds.southwest.latitude,
                 maxLat = bounds.northeast.latitude,
                 minLng = bounds.southwest.longitude,
-                maxLng = bounds.northeast.longitude
+                maxLng = bounds.northeast.longitude,
+                token  = token
             )) {
                 is ApiResult.Success -> {
                     drawScopePolylines(result.data.data?.features ?: emptyList())

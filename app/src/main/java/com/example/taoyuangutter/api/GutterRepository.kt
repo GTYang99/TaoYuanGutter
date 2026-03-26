@@ -156,77 +156,6 @@ class GutterRepository(
         }
     }
 
-    // ── 取得地圖側溝列表 ──────────────────────────────────────────────────
-
-    /**
-     * 從後端取得地圖側溝列表，並轉換為 App 內部的 [Waypoint] 格式。
-     *
-     * @param centerLat 地圖中心緯度（可選）
-     * @param centerLng 地圖中心經度（可選）
-     * @param radius    搜尋半徑（公尺，可選）
-     * @return [ApiResult.Success] 含 List<List<Waypoint>>，每條側溝一份列表；
-     *         [ApiResult.Error]   含錯誤訊息
-     */
-    suspend fun getGuttersMap(
-        centerLat: Double? = null,
-        centerLng: Double? = null,
-        radius: Int?       = null
-    ): ApiResult<List<List<Waypoint>>> {
-        return try {
-            val response = api.getGuttersMap(lat = centerLat, lng = centerLng, radius = radius)
-            if (response.isSuccessful && response.body() != null) {
-                val gutters = response.body()!!.gutters.map { gutterItem ->
-                    gutterItem.waypoints.map { wpResp ->
-                        val type = when (wpResp.nodeAtt) {    // 1=起點, 2=節點, 3=終點
-                            1    -> WaypointType.START
-                            3    -> WaypointType.END
-                            else -> WaypointType.NODE
-                        }
-                        // NODE_Y = 緯度(N)，NODE_X = 經度(E)
-                        val latLng = if (wpResp.nodeY != null && wpResp.nodeX != null)
-                            LatLng(wpResp.nodeY, wpResp.nodeX) else null
-
-                        Waypoint(
-                            type      = type,
-                            label     = when (type) {
-                                WaypointType.START -> "起點"
-                                WaypointType.END   -> "終點"
-                                WaypointType.NODE  -> "節點${wpResp.nodeNum}"
-                            },
-                            latLng    = latLng,
-                            basicData = hashMapOf(
-                                "gutterId"   to (wpResp.nodeId    ?: ""),
-                                "gutterType" to (wpResp.nodeTyP   ?: ""),
-                                "matTyp"     to (wpResp.matTyp    ?: ""),
-                                "coordX"     to (wpResp.nodeX?.toString() ?: ""),
-                                "coordY"     to (wpResp.nodeY?.toString() ?: ""),
-                                "coordZ"     to (wpResp.nodeLe    ?: ""),
-                                "measureId"  to (wpResp.xyNum     ?: ""),
-                                "depth"      to (wpResp.nodeDep   ?: ""),
-                                "topWidth"   to (wpResp.nodeWid   ?: ""),
-                                "isBroken"   to (wpResp.isBroken  ?: ""),
-                                "isHanging"  to (wpResp.isHanging ?: ""),
-                                "isSilt"     to (wpResp.isSilt    ?: ""),
-                                "remarks"    to (wpResp.nodeNote  ?: ""),
-                                "photo1"     to (wpResp.photoOv   ?: ""),
-                                "photo2"     to (wpResp.photoWid  ?: ""),
-                                "photo3"     to (wpResp.photoDep  ?: "")
-                            )
-                        )
-                    }
-                }
-                ApiResult.Success(gutters)
-            } else {
-                ApiResult.Error(
-                    message = response.message() ?: "未知錯誤",
-                    code    = response.code()
-                )
-            }
-        } catch (e: Exception) {
-            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
-        }
-    }
-
     // ── 取得側溝座標（依可視範圍）────────────────────────────────────────
 
     /**
@@ -243,14 +172,16 @@ class GutterRepository(
         minLat: Double,
         maxLat: Double,
         minLng: Double,
-        maxLng: Double
+        maxLng: Double,
+        token: String
     ): ApiResult<ScopeSearchResponse> {
         return try {
             val response = api.getScopeSearch(
-                minLat = minLat,
-                maxLat = maxLat,
-                minLng = minLng,
-                maxLng = maxLng
+                minLat        = minLat,
+                maxLat        = maxLat,
+                minLng        = minLng,
+                maxLng        = maxLng,
+                authorization = "Bearer $token"
             )
             val body = response.body()
             when {

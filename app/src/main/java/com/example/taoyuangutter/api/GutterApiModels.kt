@@ -144,6 +144,7 @@ data class LogoutResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String?,
     @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
 
 //  GET /api/v1/map/scopeSearch  ── 依地圖可視範圍取得側溝座標
 // ════════════════════════════════════════════════════════════════
