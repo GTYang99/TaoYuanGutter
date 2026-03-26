@@ -25,6 +25,7 @@ class LoginActivity : AppCompatActivity() {
         private const val KEY_TOKEN        = "auth_token"
         private const val KEY_NAME         = "user_name"
         private const val KEY_COMPANY      = "user_company"
+        private const val KEY_GROUP_ID     = "group_id"
         private const val KEY_REMEMBER_ME  = "remember_me"
         private const val KEY_SAVED_USER   = "saved_username"
         private const val KEY_SAVED_PWD    = "saved_password"
@@ -33,6 +34,11 @@ class LoginActivity : AppCompatActivity() {
         fun getSavedToken(context: Context): String? =
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getString(KEY_TOKEN, null)
+
+        /** 從 SharedPreferences 取出登入後的 group_id（無則回傳 -1） */
+        fun getSavedGroupId(context: Context): Int =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getInt(KEY_GROUP_ID, -1)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -86,6 +92,7 @@ class LoginActivity : AppCompatActivity() {
                             editor.putString(KEY_TOKEN,   loginData.token)
                                 .putString(KEY_NAME,    loginData.name    ?: "")
                                 .putString(KEY_COMPANY, loginData.company ?: "")
+                                .putInt(KEY_GROUP_ID,   loginData.groupId ?: -1)
                         }
 
                         // 處理記住密碼邏輯

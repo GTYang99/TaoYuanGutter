@@ -37,15 +37,19 @@
     - 調整 `showDraftActionDialog` 為僅處理刪除草稿的邏輯，現在透過長按項目觸發。
 - **`PendingDraftAdapter.kt`**:
     - 新增 `onItemLongClick` 監聽器，支援長按項目以觸發刪除草稿功能。
+- **`GutterInspectActivity.kt`**:
+    - 修正了從 `DitchDetails` 讀取的節點資料未能正確轉換為 `Waypoint` 物件並傳遞給 `AddGutterBottomSheet` 以便編輯的問題。
+    - 現在，當點擊編輯按鈕時，`GutterInspectActivity` 會將 `DitchDetails.Node` 列表轉換為 `Waypoint` 列表，然後將此列表序列化為 JSON 字串，並連同 `spiNum` 一起透過 `setResult` 傳遞給呼叫者，確保 `AddGutterBottomSheet` 能夠正確載入編輯前的資料。
 
 ## 本次結論
 - 針對 `fabSubmit` 按鈕的觸發行為，已確認其驗證邏輯（需填寫基本資料與照片）及提示訊息（Toast）已正確實作於 `GutterFormActivity.kt` 的 `saveAndClose()` 函數中。
 - 在 `GutterFormActivity.kt` 的 `buildAndFinishWithResult()` 函數中，`RESULT_LATITUDE` 和 `RESULT_LONGITUDE` 僅在 `basicData["coordY"]` (緯度) 和 `basicData["coordX"]` (經度) 欄位的值能成功透過 `toDoubleOrNull()` 解析為 Double 時才會被加入到回傳的 Intent 中。
 - 若使用者輸入的座標值為空、非數字，或無法解析，`toDoubleOrNull()` 將回傳 `null`，導致 `RESULT_LATITUDE` 和 `RESULT_LONGITUDE` 遺失，進而影響地圖上的點位標記。
-- 關於「編輯完點位後，在 `AddGutterBottomSheet` 中起點資料未正確更新」的問題，經過分析，問題點最可能出在 `MainActivity` (或實作 `LocationPickerHost` 的地方) 未能正確更新其維護的 `Waypoint` 列表，或是 `getInspectWaypoints()` 方法未能返回最新的 `Waypoint` 資料給 `AddGutterBottomSheet`。`AddGutterBottomSheet` 本身接收和顯示資料的邏輯是正確的。
-- `PendingDraftsBottomSheet` 的最大高度已調整為螢幕的 80%，以優化使用者體驗，確保其位於手機鏡頭下方。
-- 點擊 `PendingDraftsBottomSheet` 中的草稿項目現在會直接在 `AddGutterBottomSheet` 中恢復編輯，簡化了操作流程，不再經過中間的選擇對話框。
-- 刪除草稿功能已從單擊動作移至長按動作，提供更直觀和安全的刪除方式。
+- **解決編輯模式下點位資料顯示問題**: 透過以下修改，確保從檢視畫面編輯時，點位資料能正確載入：
+    - **MainActivity**: 調整 `openInspectBottomSheet` 以傳遞 WGS84 座標至 `GutterInspectActivity`。
+    - **MainActivity**: 優化 `inspectLauncher` 來處理 `EXTRA_RESULT_WAYPOINTS_JSON`，確保 `AddGutterBottomSheet.newInstanceForEdit` 被正確呼叫。
+    - **MainActivity**: 重構 `openWaypointForEdit` 以優先從伺服器獲取最新的點位詳情 (`nodeDetails`)，即使地圖上的 `latLng` 已存在，確保表單能完整填入所有資料，包括照片。
+    - **GutterInspectActivity**: 實作了 `ditchToWaypoints` 方法，將 `DitchDetails` 轉換為 `Waypoint` 列表，並包含 WGS84 座標，然後將其以 JSON 格式和 `spiNum` 一起傳回給 `MainActivity`。
 
 ## 注意事項
 - minSdk 26

@@ -121,9 +121,10 @@ data class LoginRequest(
 
 /** 登入成功時 data 欄位 */
 data class LoginData(
-    @SerializedName("token")   val token: String,
-    @SerializedName("name")    val name: String?,
-    @SerializedName("company") val company: String?
+    @SerializedName("token")    val token: String,
+    @SerializedName("name")     val name: String?,
+    @SerializedName("group_id") val groupId: Int?,
+    @SerializedName("company")  val company: String?
 )
 
 /** 登入 API 回應（200 / 401 / 422 / 500 共用同一結構） */
@@ -270,6 +271,10 @@ data class NodeDetails(
     @SerializedName("NODE_NUM")   val nodeNum: String?,
     /** 點位屬性：1=起點、2=節點、3=終點 */
     @SerializedName("NODE_ATTR")  val nodeAttr: String?,
+    /** 側溝形式：1=U形溝（明溝）2=U形溝（加蓋）3=L形溝與暗溝渠併用 4=其他 */
+    @SerializedName("NODE_TYP")   val nodeTyP: String?,
+    /** 側溝材質：1=混凝土 2=卵礫石 3=紅磚 */
+    @SerializedName("MAT_TYP")    val matTyp: String?,
     /** TWD97 X 座標（經度方向） */
     @SerializedName("NODE_X")     val nodeX: String?,
     /** TWD97 Y 座標（緯度方向） */
@@ -280,6 +285,12 @@ data class NodeDetails(
     @SerializedName("NODE_DEP")   val nodeDep: String?,
     /** 寬度（公分） */
     @SerializedName("NODE_WID")   val nodeWid: String?,
+    /** 溝體結構受損：0=否 1=是 */
+    @SerializedName("IS_BROKEN")  val isBroken: String?,
+    /** 附掛或過路管線：0=無 1=有 */
+    @SerializedName("IS_HANGING") val isHanging: String?,
+    /** 淤積程度：0=無 1=輕度 2=中度 3=嚴重 */
+    @SerializedName("IS_SILT")    val isSilt: String?,
     @SerializedName("NOTE")       val note: String?,
     /** WGS84 緯度 */
     @SerializedName("latitude")   val latitude: String?,
