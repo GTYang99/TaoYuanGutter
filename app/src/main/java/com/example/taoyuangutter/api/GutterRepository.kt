@@ -311,39 +311,65 @@ class GutterRepository(
         token: String
     ): ApiResult<NodeImageUploadResponse> {
         return try {
-            val file = File(imageUri.path ?: return ApiResult.Error("無效的圖片路徑"))
-            val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
-            val filePart = MultipartBody.Part.createFormData("file", file.name, requestFile)
-            val nodeIdBody       = nodeId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-            val fileCategoryBody = fileCategory.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+            // 支援 content:// 與 file:// URI，統一先複製到暫存檔再上傳
+            val tempFile = copyUriToTempFile(context, imageUri)
+                ?: return ApiResult.Error("無法讀取圖片檔案")
+            try {
+                val requestFile  = tempFile.asRequestBody("image/*".toMediaTypeOrNull())
+                val filePart     = MultipartBody.Part.createFormData("file", tempFile.name, requestFile)
+                val nodeIdBody       = nodeId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+                val fileCategoryBody = fileCategory.toString().toRequestBody("text/plain".toMediaTypeOrNull())
 
-            val response = api.uploadNodeImage(
-                nodeId        = nodeIdBody,
-                fileCategory  = fileCategoryBody,
-                file          = filePart,
-                authorization = "Bearer $token"
-            )
-            val body = response.body()
-            when {
-                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
-                response.code() == 401 -> ApiResult.Error(
-                    message = "尚未登入，請重新登入",
-                    code    = 401
+                val response = api.uploadNodeImage(
+                    nodeId        = nodeIdBody,
+                    fileCategory  = fileCategoryBody,
+                    file          = filePart,
+                    authorization = "Bearer $token"
                 )
-                body != null -> {
-                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
-                    ApiResult.Error(
-                        message = detail ?: body.message ?: "上傳失敗",
+                val body = response.body()
+                when {
+                    response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                    response.code() == 401 -> ApiResult.Error(
+                        message = "尚未登入，請重新登入",
+                        code    = 401
+                    )
+                    body != null -> {
+                        val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                        ApiResult.Error(
+                            message = detail ?: body.message ?: "上傳失敗",
+                            code    = response.code()
+                        )
+                    }
+                    else -> ApiResult.Error(
+                        message = "上傳失敗（${response.code()}）",
                         code    = response.code()
                     )
                 }
-                else -> ApiResult.Error(
-                    message = "上傳失敗（${response.code()}）",
-                    code    = response.code()
-                )
+            } finally {
+                tempFile.delete()   // 上傳完畢（無論成敗）清除暫存檔
             }
         } catch (e: Exception) {
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
+    /**
+     * 將任意 URI（content:// / file://）複製到 cacheDir 暫存檔並回傳。
+     * 失敗時回傳 null。
+     */
+    private fun copyUriToTempFile(context: Context, uri: Uri): File? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+            val ext = when (context.contentResolver.getType(uri)) {
+                "image/png" -> ".png"
+                else        -> ".jpg"
+            }
+            val tempFile = File.createTempFile("upload_", ext, context.cacheDir)
+            tempFile.outputStream().use { out -> inputStream.use { it.copyTo(out) } }
+            tempFile
+        } catch (e: Exception) {
+            android.util.Log.e("GutterRepository", "copyUriToTempFile failed: ${e.message}")
+            null
         }
     }
 

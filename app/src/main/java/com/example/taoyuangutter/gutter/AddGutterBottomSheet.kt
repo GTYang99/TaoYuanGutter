@@ -75,6 +75,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      */
     private var originalWaypointsSnapshot: List<WaypointSnapshot> = emptyList()
 
+    /** iOS 風格左滑：目前已展開「刪除」按鈕的 item position，-1 代表無 */
+    private var openedSwipePosition: Int = -1
+
     // ── Lifecycle ────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -322,8 +325,26 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     }
 
     // ── RecyclerView + ItemTouchHelper ───────────────────────────────────
+
+    /**
+     * 關閉目前已展開刪除按鈕的 item，動畫收回前景到 0，
+     * 若 ViewHolder 不可見則直接通知 Adapter 重繪。
+     */
+    private fun closeOpenedSwipeItem() {
+        val pos = openedSwipePosition
+        if (pos < 0 || _binding == null) return
+        openedSwipePosition = -1
+        val vh = binding.rvWaypoints.findViewHolderForAdapterPosition(pos) as? WaypointAdapter.ViewHolder
+        if (vh != null) {
+            vh.foreground.animate().translationX(0f).setDuration(150).start()
+        } else {
+            adapter.notifyItemChanged(pos)
+        }
+    }
+
     private fun setupRecyclerView() {
         adapter = WaypointAdapter(waypoints) { position ->
+            closeOpenedSwipeItem()
             if (isInspectMode) {
                 // 檢視模式：開啟表單檢視（唯讀）
                 (requireActivity() as? LocationPickerHost)
@@ -340,16 +361,30 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
         }
 
+        val swipeBtnWidthPx by lazy {
+            (80 * resources.displayMetrics.density).toInt()
+        }
+
         val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
-            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, ItemTouchHelper.LEFT
         ) {
             override fun getMovementFlags(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder
             ): Int {
-                // 檢視模式禁止拖曳
+                // 檢視模式：完全禁止
                 if (isInspectMode) return makeMovementFlags(0, 0)
-                return makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
+                val pos = viewHolder.adapterPosition
+                val wp  = waypoints.getOrNull(pos)
+                // 起點 / 終點：只能拖曳，不能左滑刪除
+                return if (wp?.type == WaypointType.NODE) {
+                    makeMovementFlags(
+                        ItemTouchHelper.UP or ItemTouchHelper.DOWN,
+                        ItemTouchHelper.LEFT
+                    )
+                } else {
+                    makeMovementFlags(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0)
+                }
             }
 
             override fun onMove(
@@ -357,6 +392,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 viewHolder: RecyclerView.ViewHolder,
                 target: RecyclerView.ViewHolder
             ): Boolean {
+                closeOpenedSwipeItem()
                 val from = viewHolder.adapterPosition
                 val to   = target.adapterPosition
                 val moved = waypoints.removeAt(from)
@@ -365,16 +401,98 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 return true
             }
 
-            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                val pos = viewHolder.adapterPosition
+                if (pos < 0 || pos >= waypoints.size) return
+                // 安全檢查：只允許節點展開刪除按鈕
+                if (waypoints[pos].type != WaypointType.NODE) {
+                    adapter.notifyItemChanged(pos)
+                    return
+                }
+                // 關閉上一個已展開的 item
+                val prevPos = openedSwipePosition
+                if (prevPos >= 0 && prevPos != pos) {
+                    val prevVh = binding.rvWaypoints
+                        .findViewHolderForAdapterPosition(prevPos) as? WaypointAdapter.ViewHolder
+                    if (prevVh != null) {
+                        prevVh.foreground.animate().translationX(0f).setDuration(150).start()
+                    } else {
+                        adapter.notifyItemChanged(prevPos)
+                    }
+                }
+                openedSwipePosition = pos
+                // clearView 會負責把前景固定在 -swipeBtnWidthPx
+            }
+
+            override fun onChildDraw(
+                c: android.graphics.Canvas,
+                recyclerView: RecyclerView,
+                viewHolder: RecyclerView.ViewHolder,
+                dX: Float, dY: Float,
+                actionState: Int,
+                isCurrentlyActive: Boolean
+            ) {
+                if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
+                    val holder = viewHolder as? WaypointAdapter.ViewHolder ?: return
+                    val pos = viewHolder.adapterPosition
+
+                    // 若使用者開始滑動另一個 item，先關閉已展開的那個
+                    if (isCurrentlyActive) {
+                        val prev = openedSwipePosition
+                        if (prev >= 0 && prev != pos) {
+                            closeOpenedSwipeItem()
+                        }
+                    }
+
+                    // 僅平移前景層，並根據目前是否已展開來計算位移
+                    // 避免重新觸摸已展開項時 dX 從 0 開始導致畫面閃跳回 0
+                    val translationX = if (pos == openedSwipePosition) {
+                        // 已經是展開狀態，位移從 -swipeBtnWidthPx 開始
+                        (dX - swipeBtnWidthPx).coerceIn(-swipeBtnWidthPx.toFloat(), 0f)
+                    } else {
+                        // 尚未展開
+                        dX.coerceIn(-swipeBtnWidthPx.toFloat(), 0f)
+                    }
+                    holder.foreground.translationX = translationX
+                    // 不呼叫 super，避免整個 itemView 被平移
+                } else {
+                    super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
+                }
+            }
 
             override fun clearView(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder
             ) {
                 super.clearView(recyclerView, viewHolder)
-                if (!isInspectMode) renumberAll()
+                val pos    = viewHolder.adapterPosition
+                val holder = viewHolder as? WaypointAdapter.ViewHolder ?: return
+                
+                // 若位移已經回到 0，代表使用者主動關閉或取消滑動
+                if (holder.foreground.translationX == 0f && pos == openedSwipePosition) {
+                    openedSwipePosition = -1
+                }
+
+                if (pos == openedSwipePosition) {
+                    // 展開狀態：前景固定在 -swipeBtnWidthPx，露出刪除按鈕
+                    holder.foreground.translationX = -swipeBtnWidthPx.toFloat()
+                } else {
+                    holder.foreground.translationX = 0f
+                    if (!isInspectMode) renumberAll()
+                }
             }
         })
+
+        // 點擊「刪除」按鈕：移除節點
+        adapter.onSwipeDeleteClick = { pos ->
+            if (pos in waypoints.indices && waypoints[pos].type == WaypointType.NODE) {
+                openedSwipePosition = -1
+                waypoints.removeAt(pos)
+                adapter.notifyItemRemoved(pos)
+                renumberAll()
+                updateSubmitButtonState()
+            }
+        }
 
         adapter.startDragListener = { if (!isInspectMode) touchHelper.startDrag(it) }
         // 在檢視模式隱藏拖曳把手
@@ -385,6 +503,13 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             layoutManager = LinearLayoutManager(context)
             adapter = this@AddGutterBottomSheet.adapter
             isNestedScrollingEnabled = true
+            // 滾動時關閉已展開的刪除按鈕
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    // 增加閾值，避免點擊刪除按鈕時的微小垂直手震導致按鈕自動收合
+                    if (Math.abs(dy) > 10) closeOpenedSwipeItem()
+                }
+            })
         }
     }
 
@@ -427,8 +552,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 waypoints.add(insertIdx, Waypoint(WaypointType.NODE, "節點${nodeCount + 1}"))
                 adapter.notifyItemInserted(insertIdx)
                 binding.rvWaypoints.scrollToPosition(insertIdx)
-                // 新節點插入後 waypoints index 改變，需通知 MainActivity 刷新大頭針 tag
                 onWaypointsChanged?.invoke(waypoints.toList())
+                updateSubmitButtonState()
             }
         } else {
             binding.btnAddNode.setOnClickListener {
@@ -495,6 +620,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     // ── 依位置重新命名全部 waypoints ──────────────────────────────────────
     private fun renumberAll() {
+        // notifyDataSetChanged 會重繪所有 item，translationX 回歸 0；
+        // 若此時有展開的刪除按鈕，一律關閉（不需要動畫，直接重設）
+        openedSwipePosition = -1
         var nodeCount = 0
         waypoints.forEachIndexed { idx, wp ->
             when (idx) {

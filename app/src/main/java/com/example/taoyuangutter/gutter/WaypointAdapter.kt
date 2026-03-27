@@ -20,8 +20,14 @@ class WaypointAdapter(
     /** false = 隱藏拖曳把手（檢視模式） */
     var showDragHandle: Boolean = true
 
+    /** 點擊「刪除」按鈕的回呼 */
+    var onSwipeDeleteClick: ((position: Int) -> Unit)? = null
+
     inner class ViewHolder(val binding: ItemWaypointBinding) :
-        RecyclerView.ViewHolder(binding.root)
+        RecyclerView.ViewHolder(binding.root) {
+        /** 供 ItemTouchHelper 直接操作前景平移 */
+        val foreground: View get() = binding.layoutForeground
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val binding = ItemWaypointBinding.inflate(
@@ -66,6 +72,33 @@ class WaypointAdapter(
             }
             false
         }
+
+        // 刪除按鈕：NODE 型別設 VISIBLE（白色前景覆蓋，左滑時自然曝光）；其他型別 GONE
+        if (item.type == WaypointType.NODE) {
+            holder.binding.tvDeleteAction.visibility = View.VISIBLE
+            // ── 關鍵修正：ItemTouchHelper 會在 ACTION_DOWN 時搶走觸摸事件，
+            //   導致 click listener 永遠收不到。先呼叫 requestDisallowInterceptTouchEvent
+            //   告知 RecyclerView 及其所有父層（如 BottomSheet）本次觸摸不屬於滑動手勢，讓事件正常派發給按鈕。
+            holder.binding.tvDeleteAction.setOnTouchListener { v, event ->
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                    v.parent?.requestDisallowInterceptTouchEvent(true)
+                }
+                false  // 不消費事件，繼續傳遞給 onClick
+            }
+            holder.binding.tvDeleteAction.setOnClickListener {
+                val pos = holder.adapterPosition
+                if (pos != RecyclerView.NO_POSITION) {
+                    onSwipeDeleteClick?.invoke(pos)
+                }
+            }
+        } else {
+            holder.binding.tvDeleteAction.visibility = View.GONE
+            holder.binding.tvDeleteAction.setOnTouchListener(null)
+            holder.binding.tvDeleteAction.setOnClickListener(null)
+        }
+
+        // 重設前景位移（避免 RecyclerView 重用時殘留位移）
+        holder.binding.layoutForeground.translationX = 0f
 
         // 點選整行 → 請求選點
         holder.binding.root.setOnClickListener {

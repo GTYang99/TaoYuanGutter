@@ -3,6 +3,7 @@ package com.example.taoyuangutter.gutter
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.Gravity
 import android.view.View
@@ -14,9 +15,14 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
+import com.example.taoyuangutter.api.ApiResult
+import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
+import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.offline.OfflineDraft
 import com.example.taoyuangutter.offline.OfflineDraftRepository
+import kotlinx.coroutines.launch
 
 class GutterFormActivity : AppCompatActivity() {
 
@@ -55,6 +61,7 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_DATA_PHOTO_2     = "ex_photo2"
         const val EXTRA_DATA_PHOTO_3     = "ex_photo3"
         const val EXTRA_DATA_XY_NUM      = "ex_xyNum" // 新增：傳入 API 的 XY_NUM
+        const val EXTRA_DATA_NODE_ID     = "ex_nodeId" // 新增：傳入 API 的 node_id（編輯模式）
 
         // 自訂 Result Code：使用者放棄填寫，要求刪除點位座標與資料
         const val RESULT_DELETE = Activity.RESULT_FIRST_USER
@@ -151,6 +158,7 @@ class GutterFormActivity : AppCompatActivity() {
             intent.putExtra(EXTRA_DATA_PHOTO_2,     data["photo2"]     ?: "")
             intent.putExtra(EXTRA_DATA_PHOTO_3,     data["photo3"]     ?: "")
             intent.putExtra(EXTRA_DATA_XY_NUM,      data["xyNum"]      ?: "") // 傳入 XY_NUM
+            intent.putExtra(EXTRA_DATA_NODE_ID,      data["_nodeId"]    ?: "") // 傳入 node_id（編輯模式）
         }
     }
 
@@ -169,6 +177,10 @@ class GutterFormActivity : AppCompatActivity() {
     /** 正在編輯的草稿 ID（-1L 表示新增）*/
     private var offlineDraftId = -1L
 
+    /** 編輯模式：API 的 node_id（有值時儲存才會上傳照片） */
+    private var nodeId: Int? = null
+    private val gutterRepository = GutterRepository()
+
     /** 本點位的原始 GPS 座標（來自地圖選點），永遠保留以確保 result 能帶回正確定位 */
     private var currentLat: Double = 0.0
     private var currentLng: Double = 0.0
@@ -186,6 +198,7 @@ class GutterFormActivity : AppCompatActivity() {
         isViewMode    = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
         isEditMode    = intent.getBooleanExtra(EXTRA_IS_EDIT_MODE, false) // 取得編輯模式旗標
         isOfflineMode = intent.getBooleanExtra(EXTRA_OFFLINE_MODE, false)
+        nodeId        = intent.getStringExtra(EXTRA_DATA_NODE_ID)?.toIntOrNull()
         offlineDraftId = intent.getLongExtra(EXTRA_OFFLINE_DRAFT_ID, -1L)
 
         val label = waypointLabels.getOrElse(currentIndex) { "點位" }
@@ -322,12 +335,28 @@ class GutterFormActivity : AppCompatActivity() {
         val data = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
         val (photo1, photo2, photo3) =
             pagerAdapter.getPhotosFragment()?.getPhotoPaths() ?: Triple(null, null, null)
+        val nId   = nodeId
+        val token = LoginActivity.getSavedToken(this)
+        if (nId != null && token != null) {
+            binding.btnDone.isEnabled = false
+            showUploadLoading(true)
+            lifecycleScope.launch {
+                uploadLocalPhotos(nId, token, photo1, photo2, photo3)
+                showUploadLoading(false)
+                dispatchEditResult(data, photo1, photo2, photo3)
+            }
+        } else {
+            dispatchEditResult(data, photo1, photo2, photo3)
+        }
+    }
+
+    /** 組裝 inspect→edit 模式的 Result Intent 並 finish。 */
+    private fun dispatchEditResult(
+        data: Map<String, String>, photo1: String?, photo2: String?, photo3: String?
+    ) {
         val resultIntent = Intent().apply {
             putExtra(RESULT_WAYPOINT_INDEX,   waypointIndex)
-            // 編輯模式下，側溝編號不回傳
-            if (!isEditMode) {
-                putExtra(RESULT_DATA_GUTTER_ID, data["gutterId"] ?: "")
-            }
+            if (!isEditMode) putExtra(RESULT_DATA_GUTTER_ID, data["gutterId"] ?: "")
             putExtra(RESULT_DATA_GUTTER_TYPE, data["gutterType"] ?: "")
             putExtra(RESULT_DATA_MAT_TYP,     data["matTyp"]     ?: "")
             putExtra(RESULT_DATA_COORD_X,     data["coordX"]     ?: "")
@@ -378,8 +407,19 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun setupFab() {
+        // 編輯模式：FAB 文字改為「完成」
+        if (isEditMode) {
+            binding.fabSubmit.text = "完成"
+        }
         binding.fabSubmit.setOnClickListener {
-            if (isOfflineMode) saveOfflineAndClose() else saveAndClose()
+            when {
+                isOfflineMode -> saveOfflineAndClose()
+                isEditMode && binding.viewPager.currentItem == 1 -> {
+                    // 照片頁面編輯模式：直接上傳照片並完成，不驗證基本資料
+                    buildAndFinishWithResult()
+                }
+                else -> saveAndClose()
+            }
         }
     }
 
@@ -454,32 +494,92 @@ class GutterFormActivity : AppCompatActivity() {
         val effectiveLat = if (formLat != null && formLat in -90.0..90.0)   formLat else currentLat
         val effectiveLng = if (formLng != null && formLng in -180.0..180.0) formLng else currentLng
 
-        val resultIntent = Intent().apply {
-            putExtra(RESULT_LATITUDE,         effectiveLat)
-            putExtra(RESULT_LONGITUDE,        effectiveLng)
-            putExtra(RESULT_WAYPOINT_INDEX,   waypointIndex)
-            // 編輯模式下，側溝編號不回傳
-            if (!isEditMode) {
-                putExtra(RESULT_DATA_GUTTER_ID, basicData["gutterId"] ?: "")
+        val nId   = nodeId
+        val token = LoginActivity.getSavedToken(this)
+
+        fun dispatchResult() {
+            val resultIntent = Intent().apply {
+                putExtra(RESULT_LATITUDE,         effectiveLat)
+                putExtra(RESULT_LONGITUDE,        effectiveLng)
+                putExtra(RESULT_WAYPOINT_INDEX,   waypointIndex)
+                if (!isEditMode) putExtra(RESULT_DATA_GUTTER_ID, basicData["gutterId"] ?: "")
+                putExtra(RESULT_DATA_GUTTER_TYPE, basicData["gutterType"] ?: "")
+                putExtra(RESULT_DATA_MAT_TYP,     basicData["matTyp"]     ?: "")
+                putExtra(RESULT_DATA_COORD_X,     basicData["coordX"]     ?: "")
+                putExtra(RESULT_DATA_COORD_Y,     basicData["coordY"]     ?: "")
+                putExtra(RESULT_DATA_COORD_Z,     basicData["coordZ"]     ?: "")
+                putExtra(RESULT_DATA_MEASURE_ID,  basicData["measureId"]  ?: "")
+                putExtra(RESULT_DATA_DEPTH,       basicData["depth"]      ?: "")
+                putExtra(RESULT_DATA_TOP_WIDTH,   basicData["topWidth"]   ?: "")
+                putExtra(RESULT_DATA_IS_BROKEN,   basicData["isBroken"]   ?: "")
+                putExtra(RESULT_DATA_IS_HANGING,  basicData["isHanging"]  ?: "")
+                putExtra(RESULT_DATA_IS_SILT,     basicData["isSilt"]     ?: "")
+                putExtra(RESULT_DATA_REMARKS,     basicData["remarks"]    ?: "")
+                putExtra(RESULT_DATA_PHOTO_1,     photo1                  ?: "")
+                putExtra(RESULT_DATA_PHOTO_2,     photo2                  ?: "")
+                putExtra(RESULT_DATA_PHOTO_3,     photo3                  ?: "")
             }
-            putExtra(RESULT_DATA_GUTTER_TYPE, basicData["gutterType"] ?: "")
-            putExtra(RESULT_DATA_MAT_TYP,     basicData["matTyp"]     ?: "")
-            putExtra(RESULT_DATA_COORD_X,     basicData["coordX"]     ?: "")
-            putExtra(RESULT_DATA_COORD_Y,     basicData["coordY"]     ?: "")
-            putExtra(RESULT_DATA_COORD_Z,     basicData["coordZ"]     ?: "")
-            putExtra(RESULT_DATA_MEASURE_ID,  basicData["measureId"]  ?: "")
-            putExtra(RESULT_DATA_DEPTH,       basicData["depth"]      ?: "")
-            putExtra(RESULT_DATA_TOP_WIDTH,   basicData["topWidth"]   ?: "")
-            putExtra(RESULT_DATA_IS_BROKEN,   basicData["isBroken"]   ?: "")
-            putExtra(RESULT_DATA_IS_HANGING,  basicData["isHanging"]  ?: "")
-            putExtra(RESULT_DATA_IS_SILT,     basicData["isSilt"]     ?: "")
-            putExtra(RESULT_DATA_REMARKS,     basicData["remarks"]    ?: "")
-            putExtra(RESULT_DATA_PHOTO_1,     photo1                  ?: "")
-            putExtra(RESULT_DATA_PHOTO_2,     photo2                  ?: "")
-            putExtra(RESULT_DATA_PHOTO_3,     photo3                  ?: "")
+            setResult(Activity.RESULT_OK, resultIntent)
+            finish()
         }
-        setResult(Activity.RESULT_OK, resultIntent)
-        finish()
+
+        if (nId != null && token != null) {
+            binding.fabSubmit.isEnabled = false
+            showUploadLoading(true)
+            lifecycleScope.launch {
+                uploadLocalPhotos(nId, token, photo1, photo2, photo3)
+                showUploadLoading(false)
+                dispatchResult()
+            }
+        } else {
+            dispatchResult()
+        }
+    }
+
+    // ── 上傳等待遮罩 ─────────────────────────────────────────────────────
+
+    /**
+     * 顯示或隱藏上傳照片的等待遮罩。
+     * 遮罩期間阻擋所有使用者操作；上傳完成後隱藏並繼續 finish 流程。
+     */
+    private fun showUploadLoading(show: Boolean) {
+        binding.uploadLoadingOverlay.visibility = if (show) View.VISIBLE else View.GONE
+    }
+
+    // ── 照片上傳 ────────────────────────────────────────────────────────
+
+    /**
+     * 將尚未上傳的本機照片（content:// / file:// scheme）依照 fileCategory 上傳至 nodeImage API。
+     * 已是 https:// 的照片（API 已存在）略過不重複上傳。
+     * 失敗時僅寫入 log，不中止流程。
+     *
+     * @param nodeId       點位 ID
+     * @param token        Bearer token
+     * @param photo1-3     照片 URI 字串（null 或空字串表示未拍攝）
+     */
+    private suspend fun uploadLocalPhotos(
+        nodeId: Int,
+        token: String,
+        photo1: String?,
+        photo2: String?,
+        photo3: String?
+    ) {
+        listOf(photo1 to 1, photo2 to 2, photo3 to 3).forEach { (path, category) ->
+            if (path.isNullOrEmpty()) return@forEach
+            val scheme = Uri.parse(path).scheme?.lowercase() ?: return@forEach
+            if (scheme == "http" || scheme == "https") return@forEach   // 已在伺服器，略過
+            when (val result = gutterRepository.uploadNodeImage(
+                context      = this,
+                nodeId       = nodeId,
+                fileCategory = category,
+                imageUri     = Uri.parse(path),
+                token        = token
+            )) {
+                is ApiResult.Error ->
+                    android.util.Log.w("PhotoUpload", "photo$category 上傳失敗: ${result.message}")
+                is ApiResult.Success -> { /* 上傳成功，API 會覆蓋舊圖 */ }
+            }
+        }
     }
 
     // ── 離線模式（儲存至本機草稿）────────────────────────────────────────

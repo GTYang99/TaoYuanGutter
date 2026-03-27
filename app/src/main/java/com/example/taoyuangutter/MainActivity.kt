@@ -22,9 +22,13 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import android.net.Uri
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchDetails
+import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
+import com.example.taoyuangutter.api.StoreDitchNodeRequest
+import com.example.taoyuangutter.api.StoreDitchRequest
 import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
@@ -325,12 +329,94 @@ class MainActivity : AppCompatActivity(),
         drawSubmittedGutter(waypoints)
         googleMap?.setPadding(0, 0, 0, 0)
 
+        val token = LoginActivity.getSavedToken(this) ?: run {
+            Toast.makeText(this, "請先登入", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         lifecycleScope.launch {
-            when (val result = gutterRepository.submitGutter(waypoints)) {
-                is ApiResult.Success -> Toast.makeText(this@MainActivity, "側溝上傳成功", Toast.LENGTH_SHORT).show()
+            val request = buildStoreDitchRequest(waypoints)
+            when (val result = gutterRepository.storeDitch(request, token)) {
+                is ApiResult.Success -> {
+                    Toast.makeText(this@MainActivity, "側溝上傳成功", Toast.LENGTH_SHORT).show()
+                    // storeDitch 回傳的 nodes 列表含各點位的 node_id，依序上傳本機照片
+                    val nodes = result.data.data?.nodes ?: emptyList()
+                    uploadWaypointPhotos(waypoints, nodes, token)
+                }
                 is ApiResult.Error -> {
                     Toast.makeText(this@MainActivity, "上傳失敗，已儲存為待上傳草稿", Toast.LENGTH_LONG).show()
                     saveWaypointsAsPendingDraft(waypoints)
+                }
+            }
+        }
+    }
+
+    /**
+     * 將 waypoints 轉換為 [StoreDitchRequest]（新增模式，spiNum = null）。
+     * basicData 中的字串欄位依 storeDitch API 型別規格轉換。
+     */
+    private fun buildStoreDitchRequest(
+        waypoints: List<Waypoint>,
+        spiNum: String? = null
+    ): StoreDitchRequest {
+        return StoreDitchRequest(
+            spiNum = spiNum,
+            nodes  = waypoints.mapIndexed { idx, wp ->
+                StoreDitchNodeRequest(
+                    nodeId    = wp.basicData["_nodeId"]?.toIntOrNull(),
+                    nodeAtt   = when (wp.type) {
+                        WaypointType.START -> 1
+                        WaypointType.NODE  -> 2
+                        WaypointType.END   -> 3
+                    },
+                    nodeNum   = idx.toString(),
+                    nodeTyp   = wp.basicData["gutterType"]?.toIntOrNull() ?: 1,
+                    matTyp    = wp.basicData["matTyp"]?.toIntOrNull() ?: 1,
+                    latitude  = wp.latLng?.latitude  ?: 0.0,
+                    longitude = wp.latLng?.longitude ?: 0.0,
+                    nodeLe    = wp.basicData["coordZ"]?.toDoubleOrNull() ?: 0.0,
+                    xyNum     = wp.basicData["measureId"] ?: "",
+                    nodeDep   = wp.basicData["depth"]?.toIntOrNull() ?: 0,
+                    nodeWid   = wp.basicData["topWidth"]?.toIntOrNull() ?: 0,
+                    isBroken  = wp.basicData["isBroken"]?.let { it == "true" || it == "1" } ?: false,
+                    isHanging = wp.basicData["isHanging"]?.let { it == "true" || it == "1" } ?: false,
+                    isSilt    = wp.basicData["isSilt"]?.toIntOrNull() ?: 0,
+                    nodeNote  = wp.basicData["remarks"]?.takeIf { it.isNotEmpty() }
+                )
+            }
+        )
+    }
+
+    /**
+     * storeDitch 成功後，依照 API 回傳的 [nodes] 順序，
+     * 找出對應 waypoint 的本機照片（content:// / file:// scheme）並上傳。
+     * https:// 照片代表已在伺服器，略過。
+     */
+    private suspend fun uploadWaypointPhotos(
+        waypoints: List<Waypoint>,
+        nodes: List<DitchNode>,
+        token: String
+    ) {
+        nodes.forEachIndexed { i, node ->
+            val wp = waypoints.getOrNull(i) ?: return@forEachIndexed
+            listOf(
+                wp.basicData["photo1"] to 1,
+                wp.basicData["photo2"] to 2,
+                wp.basicData["photo3"] to 3
+            ).forEach { (path, category) ->
+                if (path.isNullOrEmpty()) return@forEach
+                val scheme = Uri.parse(path).scheme?.lowercase() ?: return@forEach
+                if (scheme == "http" || scheme == "https") return@forEach
+                when (val r = gutterRepository.uploadNodeImage(
+                    context      = this,
+                    nodeId       = node.nodeId,
+                    fileCategory = category,
+                    imageUri     = Uri.parse(path),
+                    token        = token
+                )) {
+                    is ApiResult.Error ->
+                        android.util.Log.w("PhotoUpload", "node${node.nodeId} photo$category 失敗: ${r.message}")
+                    is ApiResult.Success -> { /* OK */ }
                 }
             }
         }
@@ -482,7 +568,8 @@ class MainActivity : AppCompatActivity(),
             return
         }
 
-        Toast.makeText(this, "請先在地圖上選取點位位置", Toast.LENGTH_SHORT).show()
+        // 編輯模式中新增的節點：無 _nodeId 且無座標，進入地圖選點流程（與新增模式相同）
+        startLocationPick(sheet, waypointIndex)
     }
 
     override fun openWaypointForInspect(sheet: AddGutterBottomSheet, waypointIndex: Int) {
