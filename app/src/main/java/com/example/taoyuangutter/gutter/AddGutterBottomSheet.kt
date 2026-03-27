@@ -570,49 +570,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 (requireActivity() as? LocationPickerHost)?.onDeleteGutter(editSpiNum)
             }
             binding.btnSubmitGutter.setOnClickListener {
-                val token = LoginActivity.getSavedToken(requireContext()) ?: run {
-                    Toast.makeText(requireContext(), "請先登入", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                // 禁用按鈕，避免重複送出
-                binding.btnSubmitGutter.isEnabled = false
-                binding.btnSubmitGutter.text = "更新中…"
-
-                lifecycleScope.launch {
-                    // ① 補齊缺少 xyNum 的節點（使用者未逐一開啟編輯時）
-                    waypoints.forEach { wp ->
-                        val nodeId = wp.basicData["_nodeId"]?.toIntOrNull() ?: return@forEach
-                        if (wp.basicData["xyNum"].isNullOrEmpty()) {
-                            val nd = repository.getNodeDetails(nodeId, token)
-                            if (nd is ApiResult.Success) {
-                                wp.basicData["xyNum"] = nd.data.data?.xyNum ?: ""
-                            }
-                        }
-                    }
-
-                    // ② 建立請求並呼叫 storeDitch（帶 SPI_NUM）
-                    val request = buildStoreDitchRequest(waypoints.toList(), editSpiNum)
-                    when (val result = repository.storeDitch(request, token)) {
-                        is ApiResult.Success -> {
-                            val nodes = result.data.data?.nodes ?: emptyList()
-                            // 通知 MainActivity 清除地圖暫存資料，然後上傳照片 / 重載線段
-                            (requireActivity() as? LocationPickerHost)
-                                ?.onUpdateGutter(waypoints.toList(), editSpiNum)
-                            (requireActivity() as? LocationPickerHost)
-                                ?.onGutterSaved(editSpiNum, waypoints.toList(), nodes)
-                            dismiss()
-                        }
-                        is ApiResult.Error -> {
-                            Toast.makeText(
-                                requireContext(),
-                                "更新失敗：${result.message}",
-                                Toast.LENGTH_LONG
-                            ).show()
-                            // 恢復按鈕狀態，讓使用者可以重試
-                            updateSubmitButtonState()
-                        }
-                    }
-                }
+                performEditSubmit()
             }
             binding.btnAddNode.setOnClickListener {
                 val nodeCount  = waypoints.count { it.type == WaypointType.NODE }
@@ -707,8 +665,65 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      */
     fun isAddMode(): Boolean = !isInspectMode
 
+    /** true = 正在編輯既有側溝（editSpiNum 非空）。 */
+    fun isEditMode(): Boolean = editSpiNum.isNotEmpty()
+
     /** 若此 sheet 是從待上傳草稿恢復，回傳其 id；否則回傳 0。 */
     fun getRestoredDraftId(): Long = draftId
+
+    /**
+     * 執行編輯模式的更新流程（storeDitch with SPI_NUM）。
+     * 可由 btnSubmitGutter 點擊觸發，也可由 MainActivity 在節點表單完成後自動觸發。
+     * 呼叫時 sheet 可以是隱藏狀態，此方法會先 showSelf() 顯示進度，
+     * 成功後 dismiss()、失敗後恢復按鈕狀態讓使用者重試。
+     */
+    fun performEditSubmit() {
+        if (_binding == null) return
+        val token = LoginActivity.getSavedToken(requireContext()) ?: run {
+            showSelf()
+            Toast.makeText(requireContext(), "請先登入", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // 顯示 sheet 並鎖定按鈕，讓使用者看到「更新中」進度
+        showSelf()
+        binding.btnSubmitGutter.isEnabled = false
+        binding.btnSubmitGutter.text = "更新中…"
+
+        lifecycleScope.launch {
+            // ① 補齊缺少 xyNum 的既有節點（使用者未逐一開啟編輯時）
+            waypoints.forEach { wp ->
+                val nodeId = wp.basicData["_nodeId"]?.toIntOrNull() ?: return@forEach
+                if (wp.basicData["xyNum"].isNullOrEmpty()) {
+                    val nd = repository.getNodeDetails(nodeId, token)
+                    if (nd is ApiResult.Success) {
+                        wp.basicData["xyNum"] = nd.data.data?.xyNum ?: ""
+                    }
+                }
+            }
+
+            // ② 建立請求並呼叫 storeDitch（帶 SPI_NUM）
+            val request = buildStoreDitchRequest(waypoints.toList(), editSpiNum)
+            when (val result = repository.storeDitch(request, token)) {
+                is ApiResult.Success -> {
+                    val nodes = result.data.data?.nodes ?: emptyList()
+                    (requireActivity() as? LocationPickerHost)
+                        ?.onUpdateGutter(waypoints.toList(), editSpiNum)
+                    (requireActivity() as? LocationPickerHost)
+                        ?.onGutterSaved(editSpiNum, waypoints.toList(), nodes)
+                    dismiss()
+                }
+                is ApiResult.Error -> {
+                    Toast.makeText(
+                        requireContext(),
+                        "更新失敗：${result.message}",
+                        Toast.LENGTH_LONG
+                    ).show()
+                    // 恢復按鈕狀態，讓使用者可以重試
+                    updateSubmitButtonState()
+                }
+            }
+        }
+    }
 
     // ── 依位置重新命名全部 waypoints ──────────────────────────────────────
     private fun renumberAll() {

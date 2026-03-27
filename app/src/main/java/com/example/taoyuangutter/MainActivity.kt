@@ -97,6 +97,8 @@ class MainActivity : AppCompatActivity(),
     // ── 檢視線段模式 ──────────────────────────────────────────────────────
     private var inspectSheet: AddGutterBottomSheet? = null
     private var inspectWaypoints: List<Waypoint> = emptyList()
+    /** 防止連點側溝 Polyline 重複觸發 openInspectBottomSheet */
+    private var isInspecting = false
 
     // ── 地圖疊加層 ────────────────────────────────────────────────────────
     private val workingMarkers = mutableListOf<Marker>()
@@ -184,6 +186,7 @@ class MainActivity : AppCompatActivity(),
         inspectLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
+            isInspecting = false   // GutterInspectActivity 已返回，允許再次點擊側溝
             if (result.resultCode == GutterInspectActivity.RESULT_EDIT_DITCH) {
                 val json   = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_WAYPOINTS_JSON) ?: return@registerForActivityResult
                 val spiNum = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_SPI_NUM) ?: ""
@@ -218,11 +221,16 @@ class MainActivity : AppCompatActivity(),
                         activeSheet = null
                     } else {
                         currentWaypoints = updated.toMutableList()
-                        refreshWorkingMarkers(updated)
+                        refreshWorkingLayer(updated)
                     }
                 }
                 activeSheet = sheet
                 sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
+
+                // 初始化地圖：繪製線段大頭針並將視角自動對齊至整條側溝
+                currentWaypoints = wps.toMutableList()
+                refreshWorkingLayer(wps)
+                fitCameraToWaypoints(wps)
             }
         }
 
@@ -631,10 +639,14 @@ class MainActivity : AppCompatActivity(),
 
     @Suppress("UNCHECKED_CAST")
     private fun openInspectBottomSheet(polyline: Polyline) {
+        // 防止連點：若已在查詢或已有 inspect 畫面，直接忽略
+        if (isInspecting) return
         val tag      = polyline.tag as? Pair<*, *> ?: return
         val spiNum   = tag.first  as? String ?: return
         val groupId  = tag.second as? String ?: ""
         val token    = LoginActivity.getSavedToken(this)  ?: return
+
+        isInspecting = true
 
         // 登入的 group_id 與線段的 group_id 一致時才允許編輯
         val savedGroupId = LoginActivity.getSavedGroupId(this)
@@ -662,13 +674,16 @@ class MainActivity : AppCompatActivity(),
                         // 讓使用者按返回時仍可繼續；若最終進入編輯模式則由 inspectLauncher 清除）
                         activeSheet?.hideSelf()
                         inspectLauncher.launch(intent)
+                        // isInspecting 在 inspectLauncher 結果回呼中重置
                     } else {
+                        isInspecting = false
                         android.widget.Toast.makeText(
                             this@MainActivity, "查無線段資料", android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
                 }
                 is ApiResult.Error -> {
+                    isInspecting = false
                     android.widget.Toast.makeText(
                         this@MainActivity,
                         "查詢失敗(${result.code}): ${result.message}",

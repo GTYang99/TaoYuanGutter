@@ -102,6 +102,7 @@ class GutterFormActivity : AppCompatActivity() {
             putExtra(EXTRA_LATITUDES, lats)
             putExtra(EXTRA_LONGITUDES, lngs)
             putExtra(EXTRA_CURRENT_INDEX, index)
+            putExtra(EXTRA_WAYPOINT_INDEX, index)   // 與 currentIndex 一致，確保 buildAndFinishWithResult 回傳正確索引
             putExtra(EXTRA_VIEW_MODE, false)
             putExtra(EXTRA_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
             basicData?.let { fillDataExtras(this, it) }
