@@ -49,6 +49,12 @@
     - 調整 `showDraftActionDialog` 為僅處理刪除草稿的邏輯，現在透過長按項目觸發。
 - **`PendingDraftAdapter.kt`**:
     - 新增 `onItemLongClick` 監聽器，支援長按項目以觸發刪除草稿功能。
+- **Improved swipe-to-delete reliability in `AddGutterBottomSheet` and `WaypointAdapter`**: 
+    - Addressed issues where the delete button was unreliable or closed unexpectedly.
+    - Implemented logic to prevent accidental closing of the delete button on minor scrolls or touches by adjusting `onScrolled` threshold and improving `onChildDraw` to correctly handle already-open items.
+    - Ensured better touch event handling for the delete button by requesting `requestDisallowInterceptTouchEvent` from parent views.
+    - Updated `item_waypoint.xml` to make the delete button explicitly `clickable` and `focusable`.
+
 - **`AddGutterBottomSheet.kt`**:
     - **User corrected that the 'Add Node' button is on the top left, and it should remain visible/open.** (The button in question is functionally `btnAddNode`).
 

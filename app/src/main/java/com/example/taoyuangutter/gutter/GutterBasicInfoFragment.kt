@@ -106,11 +106,12 @@ class GutterBasicInfoFragment : Fragment() {
         setupDropdowns()
         prefillData(isEditMode)
         setupReadOnlyCoordinates()
-        setEditable(!isViewMode && !isEditMode)
+        setEditable(!isViewMode)
         setupRangeWatchers()
 
         // 編輯模式下隱藏側溝編號欄位
         if (isEditMode) {
+            binding.tilGutterTitle.visibility = View.GONE
             binding.tilGutterId.visibility = View.GONE
         }
     }

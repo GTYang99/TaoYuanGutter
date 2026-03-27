@@ -18,6 +18,7 @@
 
         <!-- ① 側溝編號 ─────────────────────────────────────────── -->
         <TextView
+            android:id="@+id/tilGutterTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="側溝編號"

@@ -233,8 +233,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     override fun onDismiss(dialog: android.content.DialogInterface) {
         super.onDismiss(dialog)
-        if (isInspectMode) {
-            // 檢視模式：null 通知 MainActivity 清除暫時大頭針
+        if (isInspectMode || editSpiNum.isNotEmpty()) {
+            // 檢視模式 / 編輯模式：null 通知 MainActivity 清除暫時大頭針
             onWaypointsChanged?.invoke(null)
         } else {
             // 新增模式：以目前 waypoints 狀態通知（保留地圖疊加層）
