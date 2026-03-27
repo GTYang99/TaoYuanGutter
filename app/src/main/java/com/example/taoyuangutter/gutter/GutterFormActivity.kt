@@ -147,7 +147,7 @@ class GutterFormActivity : AppCompatActivity() {
             intent.putExtra(EXTRA_DATA_COORD_X,     data["coordX"]     ?: "")
             intent.putExtra(EXTRA_DATA_COORD_Y,     data["coordY"]     ?: "")
             intent.putExtra(EXTRA_DATA_COORD_Z,     data["coordZ"]     ?: "")
-            intent.putExtra(EXTRA_DATA_MEASURE_ID,  data["measureId"]  ?: "")
+            intent.putExtra(EXTRA_DATA_MEASURE_ID,  data["xyNum"]      ?: "")
             intent.putExtra(EXTRA_DATA_DEPTH,       data["depth"]      ?: "")
             intent.putExtra(EXTRA_DATA_TOP_WIDTH,   data["topWidth"]   ?: "")
             intent.putExtra(EXTRA_DATA_IS_BROKEN,   data["isBroken"]   ?: "")
@@ -220,7 +220,7 @@ class GutterFormActivity : AppCompatActivity() {
                 "coordX"     to (intent.getStringExtra(EXTRA_DATA_COORD_X)     ?: ""),
                 "coordY"     to (intent.getStringExtra(EXTRA_DATA_COORD_Y)     ?: ""),
                 "coordZ"     to (intent.getStringExtra(EXTRA_DATA_COORD_Z)     ?: ""),
-                "measureId"  to (intent.getStringExtra(EXTRA_DATA_MEASURE_ID)  ?: ""),
+                "xyNum"      to (intent.getStringExtra(EXTRA_DATA_MEASURE_ID)  ?: ""),
                 "depth"      to (intent.getStringExtra(EXTRA_DATA_DEPTH)       ?: ""),
                 "topWidth"   to (intent.getStringExtra(EXTRA_DATA_TOP_WIDTH)   ?: ""),
                 "isBroken"   to (intent.getStringExtra(EXTRA_DATA_IS_BROKEN)   ?: ""),
@@ -260,7 +260,7 @@ class GutterFormActivity : AppCompatActivity() {
         "gutterType" to "", "matTyp" to "",
         "coordX"    to if (lng != 0.0) "%.6f".format(lng) else "",
         "coordY"    to if (lat != 0.0) "%.6f".format(lat) else "",
-        "coordZ"    to "", "measureId" to "", "depth" to "",
+        "coordZ"    to "", "xyNum"     to "", "depth" to "",
         "topWidth"  to "", "isBroken" to "", "isHanging" to "", "isSilt" to "",
         "remarks"   to "",
         "photo1"    to "", "photo2" to "", "photo3" to ""
@@ -362,7 +362,7 @@ class GutterFormActivity : AppCompatActivity() {
             putExtra(RESULT_DATA_COORD_X,     data["coordX"]     ?: "")
             putExtra(RESULT_DATA_COORD_Y,     data["coordY"]     ?: "")
             putExtra(RESULT_DATA_COORD_Z,     data["coordZ"]     ?: "")
-            putExtra(RESULT_DATA_MEASURE_ID,  data["measureId"]  ?: "")
+            putExtra(RESULT_DATA_MEASURE_ID,  data["xyNum"]      ?: "")
             putExtra(RESULT_DATA_DEPTH,       data["depth"]      ?: "")
             putExtra(RESULT_DATA_TOP_WIDTH,   data["topWidth"]   ?: "")
             putExtra(RESULT_DATA_IS_BROKEN,   data["isBroken"]   ?: "")
@@ -400,8 +400,9 @@ class GutterFormActivity : AppCompatActivity() {
         if (selected == 0) {
             binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabBasicInfo.setTextColor(primary)
             binding.btnTabPhotos.setBackgroundColor(white);    binding.btnTabPhotos.setTextColor(secondary)
-        } else {
-            binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabPhotos.setTextColor(secondary)
+        }
+        if (selected == 1) {
+            binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabBasicInfo.setTextColor(secondary)
             binding.btnTabPhotos.setBackgroundColor(white);    binding.btnTabPhotos.setTextColor(primary)
         }
     }
@@ -508,7 +509,7 @@ class GutterFormActivity : AppCompatActivity() {
                 putExtra(RESULT_DATA_COORD_X,     basicData["coordX"]     ?: "")
                 putExtra(RESULT_DATA_COORD_Y,     basicData["coordY"]     ?: "")
                 putExtra(RESULT_DATA_COORD_Z,     basicData["coordZ"]     ?: "")
-                putExtra(RESULT_DATA_MEASURE_ID,  basicData["measureId"]  ?: "")
+                putExtra(RESULT_DATA_MEASURE_ID,  basicData["xyNum"]      ?: "")
                 putExtra(RESULT_DATA_DEPTH,       basicData["depth"]      ?: "")
                 putExtra(RESULT_DATA_TOP_WIDTH,   basicData["topWidth"]   ?: "")
                 putExtra(RESULT_DATA_IS_BROKEN,   basicData["isBroken"]   ?: "")
@@ -618,7 +619,7 @@ class GutterFormActivity : AppCompatActivity() {
             coordX      = basicData["coordX"]     ?: "",
             coordY      = basicData["coordY"]     ?: "",
             coordZ      = basicData["coordZ"]     ?: "",
-            measureId   = basicData["measureId"]  ?: "",
+            xyNum       = basicData["xyNum"]       ?: "",
             depth       = basicData["depth"]      ?: "",
             topWidth    = basicData["topWidth"]   ?: "",
             isBroken    = basicData["isBroken"]   ?: "",
@@ -658,7 +659,7 @@ private fun OfflineDraft.toBasicData(): HashMap<String, String> = hashMapOf(
     "coordX"     to coordX,
     "coordY"     to coordY,
     "coordZ"     to coordZ,
-    "measureId"  to measureId,
+    "xyNum"      to xyNum,
     "depth"      to depth,
     "topWidth"   to topWidth,
     "isBroken"   to isBroken,

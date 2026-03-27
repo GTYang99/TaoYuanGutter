@@ -9,10 +9,17 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.taoyuangutter.api.ApiResult
+import com.example.taoyuangutter.api.DitchNode
+import com.example.taoyuangutter.api.GutterRepository
+import com.example.taoyuangutter.api.StoreDitchNodeRequest
+import com.example.taoyuangutter.api.StoreDitchRequest
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterBinding
+import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.gson.reflect.TypeToken
@@ -21,6 +28,7 @@ import com.google.gson.Gson
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import kotlinx.coroutines.launch
 
 class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
@@ -30,16 +38,32 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         fun startLocationPick(sheet: AddGutterBottomSheet, waypointIndex: Int)
         /** 點位已有座標，直接開啟 GutterFormActivity 繼續編輯（新增模式或編輯模式） */
         fun openWaypointForEdit(sheet: AddGutterBottomSheet, waypointIndex: Int)
-        /** 當 BottomSheet 點擊「新增側溝」後的回呼（新增模式） */
+        /**
+         * 新增模式：storeDitch 呼叫前立即執行（清除地圖暫存資料）。
+         * API 結果由 [onGutterSaved] / [onGutterSaveFailed] 回報。
+         */
         fun onGutterSubmitted(waypoints: List<Waypoint>)
         /** 取得目前要檢視的 waypoints（檢視模式） */
         fun getInspectWaypoints(): List<Waypoint>
         /** 使用者點選某個點位的 cell（檢視模式），開啟 GutterFormActivity 檢視/編輯 */
         fun openWaypointForInspect(sheet: AddGutterBottomSheet, waypointIndex: Int)
-        /** 編輯模式：點擊「更新側溝」，提交修改後的 waypoints */
+        /**
+         * 編輯模式：storeDitch 成功後立即執行（清除地圖暫存資料）。
+         * API 結果由 [onGutterSaved] 回報。
+         */
         fun onUpdateGutter(waypoints: List<Waypoint>, spiNum: String)
         /** 編輯模式：點擊「刪除側溝」，刪除指定側溝 */
         fun onDeleteGutter(spiNum: String)
+        /**
+         * storeDitch 成功後回呼。
+         * @param spiNum null = 新增模式；非空 = 更新模式（帶 SPI_NUM）
+         * @param nodes  後端回傳的 nodes 列表（含 node_id，供上傳照片用）
+         */
+        fun onGutterSaved(spiNum: String?, waypoints: List<Waypoint>, nodes: List<DitchNode>)
+        /**
+         * 新增模式下 storeDitch 失敗時回呼（供 MainActivity 存為待上傳草稿）。
+         */
+        fun onGutterSaveFailed(waypoints: List<Waypoint>)
     }
 
     /**
@@ -61,6 +85,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private var draftId: Long = 0L
     /** 編輯模式時帶入的 SPI_NUM，用於顯示標題；空字串代表新增模式 */
     private var editSpiNum: String = ""
+
+    // ── Repository（storeDitch API） ──────────────────────────────────────
+    private val repository by lazy { GutterRepository() }
 
     // ── 資料 ─────────────────────────────────────────────────────────────
     private lateinit var adapter: WaypointAdapter
@@ -543,8 +570,49 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 (requireActivity() as? LocationPickerHost)?.onDeleteGutter(editSpiNum)
             }
             binding.btnSubmitGutter.setOnClickListener {
-                (requireActivity() as? LocationPickerHost)?.onUpdateGutter(waypoints.toList(), editSpiNum)
-                dismiss()
+                val token = LoginActivity.getSavedToken(requireContext()) ?: run {
+                    Toast.makeText(requireContext(), "請先登入", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                // 禁用按鈕，避免重複送出
+                binding.btnSubmitGutter.isEnabled = false
+                binding.btnSubmitGutter.text = "更新中…"
+
+                lifecycleScope.launch {
+                    // ① 補齊缺少 xyNum 的節點（使用者未逐一開啟編輯時）
+                    waypoints.forEach { wp ->
+                        val nodeId = wp.basicData["_nodeId"]?.toIntOrNull() ?: return@forEach
+                        if (wp.basicData["xyNum"].isNullOrEmpty()) {
+                            val nd = repository.getNodeDetails(nodeId, token)
+                            if (nd is ApiResult.Success) {
+                                wp.basicData["xyNum"] = nd.data.data?.xyNum ?: ""
+                            }
+                        }
+                    }
+
+                    // ② 建立請求並呼叫 storeDitch（帶 SPI_NUM）
+                    val request = buildStoreDitchRequest(waypoints.toList(), editSpiNum)
+                    when (val result = repository.storeDitch(request, token)) {
+                        is ApiResult.Success -> {
+                            val nodes = result.data.data?.nodes ?: emptyList()
+                            // 通知 MainActivity 清除地圖暫存資料，然後上傳照片 / 重載線段
+                            (requireActivity() as? LocationPickerHost)
+                                ?.onUpdateGutter(waypoints.toList(), editSpiNum)
+                            (requireActivity() as? LocationPickerHost)
+                                ?.onGutterSaved(editSpiNum, waypoints.toList(), nodes)
+                            dismiss()
+                        }
+                        is ApiResult.Error -> {
+                            Toast.makeText(
+                                requireContext(),
+                                "更新失敗：${result.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                            // 恢復按鈕狀態，讓使用者可以重試
+                            updateSubmitButtonState()
+                        }
+                    }
+                }
             }
             binding.btnAddNode.setOnClickListener {
                 val nodeCount  = waypoints.count { it.type == WaypointType.NODE }
@@ -580,11 +648,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
 
                 // ② 自動移除「未選座標」或「資料不完整」的節點
-                // 必填欄位：gutterId、gutterType、coordX、coordY、coordZ、measureId、depth、topWidth
+                // 必填欄位：gutterId、gutterType、coordX、coordY、coordZ、xyNum、depth、topWidth
                 // 照片：三張都需拍攝（photo1/2/3 均非空）
                 val requiredBasicKeys = listOf(
-                    "gutterId", "gutterType", "coordX", "coordY", "coordZ",
-                    "measureId", "depth", "topWidth"
+                    "gutterType", "coordX", "coordY", "coordZ", "xyNum", "depth", "topWidth"
                 )
                 val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
                 val validWaypoints = waypoints.filter { wp ->
@@ -603,8 +670,33 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     ).show()
                 }
 
-                (requireActivity() as? LocationPickerHost)?.onGutterSubmitted(validWaypoints)
+                val token = LoginActivity.getSavedToken(requireContext()) ?: run {
+                    Toast.makeText(requireContext(), "請先登入", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                // 立即清除地圖暫存資料（新增模式不可回頭）
+                val host = requireActivity() as? LocationPickerHost
+                host?.onGutterSubmitted(validWaypoints)
+                val activity = requireActivity()
                 dismiss()
+
+                // 呼叫 storeDitch（不帶 SPI_NUM，由後端分配）
+                activity.lifecycleScope.launch {
+                    val request = buildStoreDitchRequest(validWaypoints, null)
+                    when (val result = repository.storeDitch(request, token)) {
+                        is ApiResult.Success -> {
+                            val nodes = result.data.data?.nodes ?: emptyList()
+                            (activity as? LocationPickerHost)
+                                ?.onGutterSaved(null, validWaypoints, nodes)
+                        }
+                        is ApiResult.Error -> {
+                            Toast.makeText(activity, "上傳失敗，已儲存為待上傳草稿", Toast.LENGTH_LONG).show()
+                            (activity as? LocationPickerHost)
+                                ?.onGutterSaveFailed(validWaypoints)
+                        }
+                    }
+                }
             }
         }
     }
@@ -715,6 +807,42 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             onWaypointsChanged?.invoke(waypoints.toList())
         }
     }
+
+    // ── storeDitch 請求建構 ───────────────────────────────────────────────
+
+    /**
+     * 將 waypoints 轉換為 [StoreDitchRequest]。
+     * 更新模式傳入 [spiNum]；新增模式傳入 null（讓後端分配）。
+     */
+    private fun buildStoreDitchRequest(
+        waypoints: List<Waypoint>,
+        spiNum: String? = null
+    ): StoreDitchRequest = StoreDitchRequest(
+        spiNum = spiNum,
+        nodes  = waypoints.mapIndexed { idx, wp ->
+            StoreDitchNodeRequest(
+                nodeId    = wp.basicData["_nodeId"]?.toIntOrNull(),
+                nodeAtt   = when (wp.type) {
+                    WaypointType.START -> 1
+                    WaypointType.NODE  -> 2
+                    WaypointType.END   -> 3
+                },
+                nodeNum   = idx.toString(),
+                nodeTyp   = wp.basicData["gutterType"]?.toIntOrNull() ?: 1,
+                matTyp    = wp.basicData["matTyp"]?.toIntOrNull() ?: 1,
+                latitude  = wp.latLng?.latitude  ?: 0.0,
+                longitude = wp.latLng?.longitude ?: 0.0,
+                nodeLe    = wp.basicData["coordZ"]?.toDoubleOrNull() ?: 0.0,
+                xyNum     = wp.basicData["xyNum"] ?: "",
+                nodeDep   = wp.basicData["depth"]?.toIntOrNull() ?: 0,
+                nodeWid   = wp.basicData["topWidth"]?.toIntOrNull() ?: 0,
+                isBroken  = wp.basicData["isBroken"]?.let { it == "true" || it == "1" || it == "是" } ?: false,
+                isHanging = wp.basicData["isHanging"]?.let { it == "true" || it == "1" || it == "有" } ?: false,
+                isSilt    = wp.basicData["isSilt"]?.toIntOrNull() ?: 0,
+                nodeNote  = wp.basicData["remarks"]?.takeIf { it.isNotEmpty() }
+            )
+        }
+    )
 
     // ── Companion ────────────────────────────────────────────────────────
     companion object {

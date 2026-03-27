@@ -134,7 +134,7 @@ class GutterRepository(
                         nodeX     = wp.latLng?.longitude,      // X = 經度(E)
                         nodeY     = wp.latLng?.latitude,       // Y = 緯度(N)
                         nodeLe    = wp.basicData["coordZ"]     ?: "",
-                        xyNum     = wp.basicData["measureId"]  ?: "",
+                        xyNum     = wp.basicData["xyNum"]      ?: "",
                         nodeDep   = wp.basicData["depth"]      ?: "",
                         nodeWid   = wp.basicData["topWidth"]   ?: "",
                         isBroken  = wp.basicData["isBroken"]   ?: "",

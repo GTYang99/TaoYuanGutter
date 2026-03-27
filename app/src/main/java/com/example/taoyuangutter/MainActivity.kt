@@ -27,8 +27,6 @@ import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
-import com.example.taoyuangutter.api.StoreDitchNodeRequest
-import com.example.taoyuangutter.api.StoreDitchRequest
 import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
@@ -320,6 +318,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onGutterSubmitted(waypoints: List<Waypoint>) {
+        // 立即清除地圖暫存資料；API 結果由 onGutterSaved / onGutterSaveFailed 回報
         activeSheet?.onWaypointsChanged = null
         workingPolyline?.remove()
         workingPolyline = null
@@ -328,63 +327,6 @@ class MainActivity : AppCompatActivity(),
         binding.btnAddGutter.visibility = View.VISIBLE
         drawSubmittedGutter(waypoints)
         googleMap?.setPadding(0, 0, 0, 0)
-
-        val token = LoginActivity.getSavedToken(this) ?: run {
-            Toast.makeText(this, "請先登入", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        lifecycleScope.launch {
-            val request = buildStoreDitchRequest(waypoints)
-            when (val result = gutterRepository.storeDitch(request, token)) {
-                is ApiResult.Success -> {
-                    Toast.makeText(this@MainActivity, "側溝上傳成功", Toast.LENGTH_SHORT).show()
-                    // storeDitch 回傳的 nodes 列表含各點位的 node_id，依序上傳本機照片
-                    val nodes = result.data.data?.nodes ?: emptyList()
-                    uploadWaypointPhotos(waypoints, nodes, token)
-                }
-                is ApiResult.Error -> {
-                    Toast.makeText(this@MainActivity, "上傳失敗，已儲存為待上傳草稿", Toast.LENGTH_LONG).show()
-                    saveWaypointsAsPendingDraft(waypoints)
-                }
-            }
-        }
-    }
-
-    /**
-     * 將 waypoints 轉換為 [StoreDitchRequest]（新增模式，spiNum = null）。
-     * basicData 中的字串欄位依 storeDitch API 型別規格轉換。
-     */
-    private fun buildStoreDitchRequest(
-        waypoints: List<Waypoint>,
-        spiNum: String? = null
-    ): StoreDitchRequest {
-        return StoreDitchRequest(
-            spiNum = spiNum,
-            nodes  = waypoints.mapIndexed { idx, wp ->
-                StoreDitchNodeRequest(
-                    nodeId    = wp.basicData["_nodeId"]?.toIntOrNull(),
-                    nodeAtt   = when (wp.type) {
-                        WaypointType.START -> 1
-                        WaypointType.NODE  -> 2
-                        WaypointType.END   -> 3
-                    },
-                    nodeNum   = idx.toString(),
-                    nodeTyp   = wp.basicData["gutterType"]?.toIntOrNull() ?: 1,
-                    matTyp    = wp.basicData["matTyp"]?.toIntOrNull() ?: 1,
-                    latitude  = wp.latLng?.latitude  ?: 0.0,
-                    longitude = wp.latLng?.longitude ?: 0.0,
-                    nodeLe    = wp.basicData["coordZ"]?.toDoubleOrNull() ?: 0.0,
-                    xyNum     = wp.basicData["measureId"] ?: "",
-                    nodeDep   = wp.basicData["depth"]?.toIntOrNull() ?: 0,
-                    nodeWid   = wp.basicData["topWidth"]?.toIntOrNull() ?: 0,
-                    isBroken  = wp.basicData["isBroken"]?.let { it == "true" || it == "1" } ?: false,
-                    isHanging = wp.basicData["isHanging"]?.let { it == "true" || it == "1" } ?: false,
-                    isSilt    = wp.basicData["isSilt"]?.toIntOrNull() ?: 0,
-                    nodeNote  = wp.basicData["remarks"]?.takeIf { it.isNotEmpty() }
-                )
-            }
-        )
     }
 
     /**
@@ -423,11 +365,35 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onUpdateGutter(waypoints: List<Waypoint>, spiNum: String) {
-        // TODO: 呼叫更新側溝 API
-        Toast.makeText(this, "更新側溝（$spiNum）— 待實作", Toast.LENGTH_SHORT).show()
+        // 斷開 onDismiss 回呼，避免 dismiss 後觸發重複清除；API 結果由 onGutterSaved 回報
+        activeSheet?.onWaypointsChanged = null
+        workingPolyline?.remove()
+        workingPolyline = null
         activeSheet = null
         clearWorkingMarkers()
         binding.btnAddGutter.visibility = View.VISIBLE
+        googleMap?.setPadding(0, 0, 0, 0)
+    }
+
+    override fun onGutterSaved(spiNum: String?, waypoints: List<Waypoint>, nodes: List<DitchNode>) {
+        val token = LoginActivity.getSavedToken(this) ?: return
+        if (spiNum != null) {
+            // 更新模式：移除舊線段，重載可視範圍
+            scopePolylines.remove(spiNum)?.remove()
+            loadGuttersByViewport()
+            Toast.makeText(this, "側溝更新成功", Toast.LENGTH_SHORT).show()
+        } else {
+            // 新增模式
+            Toast.makeText(this, "側溝上傳成功", Toast.LENGTH_SHORT).show()
+        }
+        // 依序上傳各點位的本機照片（已是 https:// 的舊照片會略過）
+        lifecycleScope.launch {
+            uploadWaypointPhotos(waypoints, nodes, token)
+        }
+    }
+
+    override fun onGutterSaveFailed(waypoints: List<Waypoint>) {
+        saveWaypointsAsPendingDraft(waypoints)
     }
 
     override fun onDeleteGutter(spiNum: String) {
@@ -528,7 +494,7 @@ class MainActivity : AppCompatActivity(),
                             "isHanging"  to (nd.isHanging?.takeIf { it.isNotEmpty() }?.let { isHangingToText(it) } ?: wp.basicData["isHanging"] ?: ""),
                             "isSilt"     to (nd.isSilt?.takeIf { it.isNotEmpty() }?.let { isSiltToText(it) } ?: wp.basicData["isSilt"] ?: ""),
                             "remarks"    to (nd.note    ?: wp.basicData["remarks"] ?: ""),
-                            // XY_NUM → measureId（測量座標編號）
+                            // XY_NUM（測量座標編號）
                             "xyNum"      to (nd.xyNum   ?: wp.basicData["xyNum"]   ?: ""),
                             "photo1"     to (p1.takeIf { it.isNotEmpty() } ?: wp.basicData["photo1"] ?: ""),
                             "photo2"     to (p2.takeIf { it.isNotEmpty() } ?: wp.basicData["photo2"] ?: ""),
@@ -1086,7 +1052,7 @@ class MainActivity : AppCompatActivity(),
             "coordX"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_X)     ?: ""),
             "coordY"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Y)     ?: ""),
             "coordZ"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Z)     ?: ""),
-            "measureId"  to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_MEASURE_ID)  ?: ""),
+            "xyNum"      to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_MEASURE_ID)  ?: ""),
             "depth"      to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_DEPTH)       ?: ""),
             "topWidth"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_TOP_WIDTH)   ?: ""),
             "isBroken"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_BROKEN)   ?: ""),

@@ -240,6 +240,11 @@ class GutterInspectActivity : AppCompatActivity() {
             val lng = wgsLongitudes.getOrNull(idx)
             val latLng = if (lat != null && lng != null) LatLng(lat, lng) else null
 
+            // 從 DitchNode.url 依 fileCategory 取得照片 URL
+            val p1 = node.url.firstOrNull { it.fileCategory == "1" }?.url ?: ""
+            val p2 = node.url.firstOrNull { it.fileCategory == "2" }?.url ?: ""
+            val p3 = node.url.firstOrNull { it.fileCategory == "3" }?.url ?: ""
+
             when (node.nodeAtt) {
                 "1" -> result.add(Waypoint(
                     WaypointType.START, "起點", latLng,
@@ -252,7 +257,10 @@ class GutterInspectActivity : AppCompatActivity() {
                         "coordZ"     to (d.strLe              ?: ""),
                         "depth"      to (d.strDep?.toString() ?: ""),
                         "topWidth"   to (d.strWid?.toString() ?: ""),
-                        "remarks"    to (d.note               ?: "")
+                        "remarks"    to (d.note               ?: ""),
+                        "photo1"     to p1,
+                        "photo2"     to p2,
+                        "photo3"     to p3
                     )
                 ))
                 "3" -> result.add(Waypoint(
@@ -266,7 +274,10 @@ class GutterInspectActivity : AppCompatActivity() {
                         "coordZ"     to (d.endLe              ?: ""),
                         "depth"      to (d.endDep?.toString() ?: ""),
                         "topWidth"   to (d.endWid?.toString() ?: ""),
-                        "remarks"    to ""
+                        "remarks"    to "",
+                        "photo1"     to p1,
+                        "photo2"     to p2,
+                        "photo3"     to p3
                     )
                 ))
                 else -> {
@@ -280,7 +291,10 @@ class GutterInspectActivity : AppCompatActivity() {
                             "gutterType" to gutterType,
                             "coordX"     to (xy?.first  ?: ""),
                             "coordY"     to (xy?.second ?: ""),
-                            "remarks"    to (d.note     ?: "")
+                            "remarks"    to (d.note     ?: ""),
+                            "photo1"     to p1,
+                            "photo2"     to p2,
+                            "photo3"     to p3
                         )
                     ))
                 }

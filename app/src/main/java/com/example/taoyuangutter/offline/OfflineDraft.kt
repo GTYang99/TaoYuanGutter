@@ -19,7 +19,7 @@ data class OfflineDraft(
     val coordX:     String = "",   // 待匯入，預設 "0.0"
     val coordY:     String = "",   // 待匯入，預設 "0.0"
     val coordZ:     String = "",
-    val measureId:  String = "",
+    val xyNum:      String = "",
     val depth:      String = "",
     val topWidth:   String = "",
     val isBroken:   String = "",   // 溝體結構受損：否/是
