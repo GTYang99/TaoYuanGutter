@@ -56,7 +56,8 @@
     - Updated `item_waypoint.xml` to make the delete button explicitly `clickable` and `focusable`.
 
 - **`AddGutterBottomSheet.kt`**:
-    - **User corrected that the 'Add Node' button is on the top left, and it should remain visible/open.** (The button in question is functionally `btnAddNode`).
+    - User corrected that the 'Add Node' button is on the top left, and it should remain visible/open. (The button in question is functionally `btnAddNode`).
+- **`AddGutterBottomSheet.kt`**: Implemented map camera adjustment when the bottom sheet is shown to ensure the selected gutter is fully visible. This adjustment is triggered by invoking `onWaypointsChanged` within the `dialog?.setOnShowListener` callback, prompting `MainActivity` to re-center the map with the specified bottom sheet offset (52% of screen height). This ensures better visibility of the selected gutter in add and edit modes.
 
 ## 本次結論
 - 針對 `fabSubmit` 按鈕的觸發行為，已確認其驗證邏輯（需填寫基本資料與照片）及提示訊息（Toast）已正確實作於 `GutterFormActivity.kt` 的 `saveAndClose()` 函數中。

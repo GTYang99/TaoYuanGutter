@@ -590,7 +590,7 @@ class MainActivity : AppCompatActivity(),
         )
     }
 
-    private fun fitCameraToWaypoints(waypoints: List<Waypoint>, bottomOffsetRatio: Double = 0.52) {
+    private fun fitCameraToWaypoints(waypoints: List<Waypoint>, bottomOffsetRatio: Double = 0.8) {
         val map = googleMap ?: return
         val points = waypoints.mapNotNull { it.latLng }
         if (points.isEmpty()) return
@@ -657,6 +657,10 @@ class MainActivity : AppCompatActivity(),
         // 擷取線段點位的 WGS84 座標，供編輯模式預填大頭針位置
         val lats = polyline.points.map { it.latitude }.toDoubleArray()
         val lngs = polyline.points.map { it.longitude }.toDoubleArray()
+
+        // 立即將鏡頭對齊點選的側溝（底部留 52% 給 BottomSheet），不需等 API 回傳
+        val routeWaypoints = polyline.points.map { Waypoint(WaypointType.NODE, "", it, hashMapOf()) }
+        fitCameraToWaypoints(routeWaypoints)
 
         lifecycleScope.launch {
             when (val result = gutterRepository.getDitchDetails(spiNum, token)) {

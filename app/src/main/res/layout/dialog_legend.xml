@@ -105,5 +105,106 @@
                 android:textColor="@color/text_grey"
                 android:textSize="16sp" />
         </LinearLayout>
+
+        <!-- 分隔線 -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="16dp"
+            android:background="#E0E0E0" />
+
+        <!-- 檢視與編輯中側溝圖示 標題 -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="@string/legend_edit_section_title"
+            android:textColor="@color/text_grey"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- 側溝線段 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <View
+                android:layout_width="36dp"
+                android:layout_height="6dp"
+                android:background="@drawable/bg_legend_line"
+                android:backgroundTint="#5C35CC" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="@string/legend_gutter_line"
+                android:textColor="@color/text_grey"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- 起點點位 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="24dp"
+                android:scaleType="center"
+                android:src="@drawable/ic_legend_start" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="@string/legend_start_point"
+                android:textColor="@color/text_grey"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- 節點點位 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="24dp"
+                android:scaleType="center"
+                android:src="@drawable/ic_legend_node" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="@string/legend_node_point"
+                android:textColor="@color/text_grey"
+                android:textSize="16sp" />
+        </LinearLayout>
+
+        <!-- 終點點位 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <ImageView
+                android:layout_width="36dp"
+                android:layout_height="24dp"
+                android:scaleType="center"
+                android:src="@drawable/ic_legend_end" />
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="16dp"
+                android:text="@string/legend_end_point"
+                android:textColor="@color/text_grey"
+                android:textSize="16sp" />
+        </LinearLayout>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

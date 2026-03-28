@@ -33,6 +33,11 @@
     <string name="legend_completed">已完成</string>
     <string name="legend_pending_coords">待匯入座標資訊</string>
     <string name="legend_not_jurisdiction">非本公司管轄</string>
+    <string name="legend_edit_section_title">檢視與編輯中側溝圖示</string>
+    <string name="legend_gutter_line">側溝線段</string>
+    <string name="legend_start_point">起點點位</string>
+    <string name="legend_node_point">節點點位</string>
+    <string name="legend_end_point">終點點位</string>
     <string name="unupload_data">待上傳草稿</string>
 
 

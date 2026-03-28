@@ -121,19 +121,20 @@
             android:layout_marginTop="16dp"
             android:text="@string/remember_me"
             android:textColor="@color/text_grey"
+            android:buttonTint="@color/colorPrimary"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/passwordContainer" />
 
-        <TextView
-            android:id="@+id/forgotPasswordTextView"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/forgot_password"
-            android:textColor="@color/brand_purple"
-            android:textStyle="bold"
-            app:layout_constraintBottom_toBottomOf="@id/cbRememberMe"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@id/cbRememberMe" />
+<!--        <TextView-->
+<!--            android:id="@+id/forgotPasswordTextView"-->
+<!--            android:layout_width="wrap_content"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:text="@string/forgot_password"-->
+<!--            android:textColor="@color/brand_purple"-->
+<!--            android:textStyle="bold"-->
+<!--            app:layout_constraintBottom_toBottomOf="@id/cbRememberMe"-->
+<!--            app:layout_constraintEnd_toEndOf="parent"-->
+<!--            app:layout_constraintTop_toTopOf="@id/cbRememberMe" />-->
 
         <Button
             android:id="@+id/loginButton"
