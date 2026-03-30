@@ -221,7 +221,6 @@
                 android:id="@+id/etMeasureId"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="number"
                 android:textColor="@color/textColorPrimary"
                 android:paddingTop="14dp"
                 android:paddingBottom="14dp" />
