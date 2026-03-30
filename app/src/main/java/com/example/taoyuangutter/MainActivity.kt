@@ -821,7 +821,8 @@ class MainActivity : AppCompatActivity(),
             routePoints.add(latLng)
             val marker = map.addMarker(MarkerOptions()
                 .position(latLng)
-                .icon(getMarkerIconFromXml(wp.type)))
+                .icon(getMarkerIconFromXml(wp.type))
+                .anchor(0.5f, 0.5f))
             marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
         }
@@ -837,7 +838,8 @@ class MainActivity : AppCompatActivity(),
             val latLng = wp.latLng ?: continue
             val marker = map.addMarker(MarkerOptions()
                 .position(latLng)
-                .icon(getMarkerIconFromXml(wp.type)))
+                .icon(getMarkerIconFromXml(wp.type))
+                .anchor(0.5f, 0.5f))
             marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
         }
@@ -886,6 +888,7 @@ class MainActivity : AppCompatActivity(),
         highlightedMarkerIndex = waypointIndex
         workingMarkers.firstOrNull { it.tag == waypointIndex }?.let { marker ->
             marker.setIcon(createEnlargedMarkerIcon(wp.type))
+            marker.setAnchor(0.5f, 1.0f)
             marker.zIndex = 1f
         }
     }
@@ -896,6 +899,7 @@ class MainActivity : AppCompatActivity(),
         val wp = waypoints.getOrNull(highlightedMarkerIndex)
         workingMarkers.firstOrNull { it.tag == highlightedMarkerIndex }?.let { marker ->
             marker.setIcon(getMarkerIconFromXml(wp?.type ?: WaypointType.NODE))
+            marker.setAnchor(0.5f, 0.5f)
             marker.zIndex = 0f
         }
         highlightedMarkerIndex = -1
