@@ -718,6 +718,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         "更新失敗：${result.message}",
                         Toast.LENGTH_LONG
                     ).show()
+                    // 更新失敗 → 存入待上傳草稿，讓使用者可以稍後重試
+                    (requireActivity() as? LocationPickerHost)
+                        ?.onGutterSaveFailed(waypoints.toList())
                     // 恢復按鈕狀態，讓使用者可以重試
                     updateSubmitButtonState()
                 }
@@ -809,6 +812,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (index in waypoints.indices) {
             waypoints[index].basicData = data
             adapter.notifyItemChanged(index)
+            // 表單填寫完成後同樣通知 onWaypointsChanged，讓 MainActivity 觸發自動存檔
+            onWaypointsChanged?.invoke(waypoints.toList())
             updateSubmitButtonState()
         }
     }

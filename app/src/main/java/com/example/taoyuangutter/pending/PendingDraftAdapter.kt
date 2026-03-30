@@ -40,7 +40,7 @@ class PendingDraftAdapter(
             tvPendingDraftTime.text = "建立時間：${dateFormat.format(Date(draft.savedAt))}"
 
             // 副標題2：已存節點數量（不含 START/END）
-            val nodeCount = draft.waypoints.count { it.type == "NODE" }
+            val nodeCount = draft.waypoints.count { it.type == "NODE" } + 2
             tvPendingDraftNodes.text = "已存節點數量：$nodeCount 個"
 
             root.setOnClickListener { onItemClick(draft) }
