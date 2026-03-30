@@ -888,7 +888,7 @@ class MainActivity : AppCompatActivity(),
         highlightedMarkerIndex = waypointIndex
         workingMarkers.firstOrNull { it.tag == waypointIndex }?.let { marker ->
             marker.setIcon(createEnlargedMarkerIcon(wp.type))
-            marker.setAnchor(0.5f, 1.0f)
+            marker.setAnchor(0.5f, 0.5f)
             marker.zIndex = 1f
         }
     }
@@ -964,6 +964,8 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun createEnlargedMarkerIcon(type: WaypointType): com.google.android.gms.maps.model.BitmapDescriptor {
+        /*
+        /// 舊放大的圖標
         val dp = resources.displayMetrics.density
         val w  = (48 * dp).toInt()
         val h  = (76 * dp).toInt()
@@ -981,6 +983,28 @@ class MainActivity : AppCompatActivity(),
         canvas.drawPath(tail, paint)
         paint.color = Color.WHITE
         canvas.drawCircle(r, r, r * 0.38f, paint)
+        return BitmapDescriptorFactory.fromBitmap(bitmap)
+        */
+        // 取得對應的 XML 資源 (建議您可以準備一組放大的版本，或是共用目前的)
+        val resId = when (type) {
+            WaypointType.START -> R.drawable.ic_legend_start // 或者是您的放大版 XML
+            WaypointType.NODE  -> R.drawable.ic_legend_node
+            WaypointType.END   -> R.drawable.ic_legend_end
+        }
+
+        val drawable = ContextCompat.getDrawable(this, resId)
+            ?: return BitmapDescriptorFactory.defaultMarker()
+
+        // 設定放大的尺寸 (例如原始尺寸的 1.5 倍)
+        val scale = 1.5f
+        val width = (drawable.intrinsicWidth * scale).toInt()
+        val height = (drawable.intrinsicHeight * scale).toInt()
+
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+
         return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
