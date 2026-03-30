@@ -1,14 +1,17 @@
 package com.example.taoyuangutter.gutter
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
+import android.widget.EditText
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.taoyuangutter.R
@@ -99,6 +102,7 @@ class GutterBasicInfoFragment : Fragment() {
         return binding.root
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val isViewMode   = arguments?.getBoolean(ARG_VIEW_MODE)   ?: false
@@ -124,6 +128,15 @@ class GutterBasicInfoFragment : Fragment() {
         if (!isViewMode) {
             binding.tilGutterTitle.visibility = View.GONE
             binding.tilGutterId.visibility = View.GONE
+        }
+
+        // 點擊空白處關閉鍵盤
+        view.setOnTouchListener { _, event ->
+            if (event.action == MotionEvent.ACTION_DOWN) {
+                hideKeyboard()
+                clearAllFocus()
+            }
+            false
         }
     }
 
@@ -284,6 +297,18 @@ class GutterBasicInfoFragment : Fragment() {
         val view = activity?.currentFocus ?: return
         val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
         imm?.hideSoftInputFromWindow(view.windowToken, 0)
+    }
+
+    /** 清除所有輸入框的焦點 */
+    private fun clearAllFocus() {
+        listOf(
+            binding.etGutterId,
+            binding.etCoordZ,
+            binding.etMeasureId,
+            binding.etDepth,
+            binding.etTopWidth,
+            binding.etRemarks
+        ).forEach { it.clearFocus() }
     }
 
     /**
