@@ -10,6 +10,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -47,6 +48,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -817,7 +819,9 @@ class MainActivity : AppCompatActivity(),
         for ((idx, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
             routePoints.add(latLng)
-            val marker = map.addMarker(MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.defaultMarker(markerHue(wp.type))))
+            val marker = map.addMarker(MarkerOptions()
+                .position(latLng)
+                .icon(getMarkerIconFromXml(wp.type)))
             marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
         }
@@ -831,7 +835,9 @@ class MainActivity : AppCompatActivity(),
         clearWorkingMarkers()
         for ((idx, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
-            val marker = map.addMarker(MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.defaultMarker(markerHue(wp.type))))
+            val marker = map.addMarker(MarkerOptions()
+                .position(latLng)
+                .icon(getMarkerIconFromXml(wp.type)))
             marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
         }
@@ -889,7 +895,7 @@ class MainActivity : AppCompatActivity(),
         val waypoints = if (inspectSheet != null) inspectWaypoints else currentWaypoints
         val wp = waypoints.getOrNull(highlightedMarkerIndex)
         workingMarkers.firstOrNull { it.tag == highlightedMarkerIndex }?.let { marker ->
-            marker.setIcon(BitmapDescriptorFactory.defaultMarker(markerHue(wp?.type ?: WaypointType.NODE)))
+            marker.setIcon(getMarkerIconFromXml(wp?.type ?: WaypointType.NODE))
             marker.zIndex = 0f
         }
         highlightedMarkerIndex = -1
@@ -974,10 +980,24 @@ class MainActivity : AppCompatActivity(),
         return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
-    private fun markerHue(type: WaypointType): Float = when (type) {
-        WaypointType.START -> BitmapDescriptorFactory.HUE_GREEN
-        WaypointType.NODE  -> BitmapDescriptorFactory.HUE_AZURE
-        WaypointType.END   -> BitmapDescriptorFactory.HUE_RED
+    private fun getMarkerIconFromXml(type: WaypointType): BitmapDescriptor {
+        val resId = when (type) {
+            WaypointType.START -> R.drawable.ic_legend_start
+            WaypointType.NODE  -> R.drawable.ic_legend_node
+            WaypointType.END   -> R.drawable.ic_legend_end
+        }
+        val drawable = ContextCompat.getDrawable(this, resId) ?: return BitmapDescriptorFactory.defaultMarker()
+        
+        // 將 Drawable 轉換成 BitmapDescriptor
+        val bitmap = Bitmap.createBitmap(
+            drawable.intrinsicWidth,
+            drawable.intrinsicHeight,
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
     private fun setupLocationPickerOverlay() {
