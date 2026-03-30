@@ -1,11 +1,13 @@
 package com.example.taoyuangutter.gutter
 
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.ArrayAdapter
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -101,6 +103,17 @@ class GutterBasicInfoFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         val isViewMode   = arguments?.getBoolean(ARG_VIEW_MODE)   ?: false
         val isEditMode   = arguments?.getBoolean(ARG_IS_EDIT_MODE) ?: false
+        
+        val dropdowns = listOf(
+            binding.actvGutterType,
+            binding.actvMatType,
+            binding.actvIsBroken,
+            binding.actvIsHanging,
+            binding.actvIsSilt
+        )
+        // 針對所有下拉選單，強制不跳出鍵盤
+        dropdowns.forEach { it.showSoftInputOnFocus = false }
+
         setupDropdowns()
         prefillData()
         setupReadOnlyCoordinates()
@@ -236,10 +249,15 @@ class GutterBasicInfoFragment : Fragment() {
         )
         dropdowns.forEach { actv ->
             actv.isEnabled = enabled
-            actv.isFocusable = enabled
-            actv.isFocusableInTouchMode = enabled
+            // 下拉選單不應該可以輸入文字，故設為不可聚焦
+            actv.isFocusable = false
+            actv.isFocusableInTouchMode = false
+            
             if (enabled) {
-                actv.setOnClickListener { actv.showDropDown() }
+                actv.setOnClickListener {
+                    hideKeyboard()
+                    actv.showDropDown()
+                }
             } else {
                 actv.setOnClickListener(null)
             }
@@ -259,6 +277,13 @@ class GutterBasicInfoFragment : Fragment() {
             binding.tilIsSilt,
             binding.tilRemarks
         ).forEach { it.alpha = alpha }
+    }
+
+    /** 隱藏虛擬鍵盤 */
+    private fun hideKeyboard() {
+        val view = activity?.currentFocus ?: return
+        val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+        imm?.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
     /**
