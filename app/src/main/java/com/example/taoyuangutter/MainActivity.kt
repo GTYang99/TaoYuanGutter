@@ -10,6 +10,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -47,6 +48,7 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.LatLngBounds
@@ -70,6 +72,7 @@ class MainActivity : AppCompatActivity(),
 
     companion object {
         private const val KEY_PENDING_WP_INDEX = "pending_wp_index"
+        private const val GUTTER_LOAD_DEBOUNCE_MS = 500L
     }
 
     private lateinit var binding: ActivityMainBinding
@@ -108,6 +111,9 @@ class MainActivity : AppCompatActivity(),
     /** scopeSearch 從後端載入的 Polyline（依 SPI_NUM 索引，方便重繪時移除舊線段） */
     private val scopePolylines = mutableMapOf<String, Polyline>()
     private var currentWaypoints: List<Waypoint> = emptyList()
+
+    // ── 防抖機制（避免重複調用 scopeSearch API） ────────────────────
+    private var lastGutterLoadTime = 0L
 
     private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
     private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
@@ -231,6 +237,7 @@ class MainActivity : AppCompatActivity(),
                 currentWaypoints = wps.toMutableList()
                 refreshWorkingLayer(wps)
                 fitCameraToWaypoints(wps)
+                // fitCameraToWaypoints 會觸發 setOnCameraIdleListener → loadGuttersByViewportDebounced()
             }
         }
 
@@ -310,8 +317,8 @@ class MainActivity : AppCompatActivity(),
 
         map.setOnPolylineClickListener { polyline -> openInspectBottomSheet(polyline) }
 
-        // 地圖停止移動後，依目前可視範圍向後端查詢側溝線段
-        map.setOnCameraIdleListener { loadGuttersByViewport() }
+        // 地圖停止移動後，依目前可視範圍向後端查詢側溝線段（使用防抖避免高頻調用）
+        map.setOnCameraIdleListener { loadGuttersByViewportDebounced() }
     }
 
     // ── LocationPickerHost 實作 ───────────────────────────────────────────
@@ -429,6 +436,8 @@ class MainActivity : AppCompatActivity(),
                             binding.btnAddGutter.visibility = View.VISIBLE
                             googleMap?.setPadding(0, 0, 0, 0)
                             Toast.makeText(this@MainActivity, "側溝「$spiNum」已成功刪除", Toast.LENGTH_SHORT).show()
+                            // ── 重新加載地圖可視範圍內的側溝數據 ──
+                            loadGuttersByViewport()
                         }
                         is ApiResult.Error -> {
                             Toast.makeText(this@MainActivity, "刪除失敗：${result.message}", Toast.LENGTH_LONG).show()
@@ -805,6 +814,8 @@ class MainActivity : AppCompatActivity(),
                 if (wps == null) activeSheet = null
             }
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
+            // ── 重新加載地圖可視範圍內的側溝數據 ──
+            loadGuttersByViewport()
         }, 300L)
     }
 
@@ -817,7 +828,10 @@ class MainActivity : AppCompatActivity(),
         for ((idx, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
             routePoints.add(latLng)
-            val marker = map.addMarker(MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.defaultMarker(markerHue(wp.type))))
+            val marker = map.addMarker(MarkerOptions()
+                .position(latLng)
+                .icon(getMarkerIconFromXml(wp.type))
+                .anchor(0.5f, 0.5f))
             marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
         }
@@ -831,7 +845,10 @@ class MainActivity : AppCompatActivity(),
         clearWorkingMarkers()
         for ((idx, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
-            val marker = map.addMarker(MarkerOptions().position(latLng).icon(BitmapDescriptorFactory.defaultMarker(markerHue(wp.type))))
+            val marker = map.addMarker(MarkerOptions()
+                .position(latLng)
+                .icon(getMarkerIconFromXml(wp.type))
+                .anchor(0.5f, 0.5f))
             marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
         }
@@ -880,6 +897,7 @@ class MainActivity : AppCompatActivity(),
         highlightedMarkerIndex = waypointIndex
         workingMarkers.firstOrNull { it.tag == waypointIndex }?.let { marker ->
             marker.setIcon(createEnlargedMarkerIcon(wp.type))
+            marker.setAnchor(0.5f, 0.5f)
             marker.zIndex = 1f
         }
     }
@@ -889,13 +907,27 @@ class MainActivity : AppCompatActivity(),
         val waypoints = if (inspectSheet != null) inspectWaypoints else currentWaypoints
         val wp = waypoints.getOrNull(highlightedMarkerIndex)
         workingMarkers.firstOrNull { it.tag == highlightedMarkerIndex }?.let { marker ->
-            marker.setIcon(BitmapDescriptorFactory.defaultMarker(markerHue(wp?.type ?: WaypointType.NODE)))
+            marker.setIcon(getMarkerIconFromXml(wp?.type ?: WaypointType.NODE))
+            marker.setAnchor(0.5f, 0.5f)
             marker.zIndex = 0f
         }
         highlightedMarkerIndex = -1
     }
 
     // ── 側溝座標 API（scopeSearch）────────────────────────────────────────
+
+    /**
+     * 防抖版本的 loadGuttersByViewport
+     * 避免短時間內多次調用 API（例如快速拖拽地圖時）
+     */
+    private fun loadGuttersByViewportDebounced() {
+        val now = System.currentTimeMillis()
+        if (now - lastGutterLoadTime < GUTTER_LOAD_DEBOUNCE_MS) {
+            return  // 距上次調用不足 500ms，跳過此次請求
+        }
+        lastGutterLoadTime = now
+        loadGuttersByViewport()
+    }
 
     /**
      * 取得目前地圖可視範圍（LatLngBounds）並呼叫 scopeSearch API，
@@ -954,6 +986,8 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun createEnlargedMarkerIcon(type: WaypointType): com.google.android.gms.maps.model.BitmapDescriptor {
+        /*
+        /// 舊放大的圖標
         val dp = resources.displayMetrics.density
         val w  = (48 * dp).toInt()
         val h  = (76 * dp).toInt()
@@ -972,12 +1006,48 @@ class MainActivity : AppCompatActivity(),
         paint.color = Color.WHITE
         canvas.drawCircle(r, r, r * 0.38f, paint)
         return BitmapDescriptorFactory.fromBitmap(bitmap)
+        */
+        // 取得對應的 XML 資源 (建議您可以準備一組放大的版本，或是共用目前的)
+        val resId = when (type) {
+            WaypointType.START -> R.drawable.ic_legend_start // 或者是您的放大版 XML
+            WaypointType.NODE  -> R.drawable.ic_legend_node
+            WaypointType.END   -> R.drawable.ic_legend_end
+        }
+
+        val drawable = ContextCompat.getDrawable(this, resId)
+            ?: return BitmapDescriptorFactory.defaultMarker()
+
+        // 設定放大的尺寸 (例如原始尺寸的 1.5 倍)
+        val scale = 1.5f
+        val width = (drawable.intrinsicWidth * scale).toInt()
+        val height = (drawable.intrinsicHeight * scale).toInt()
+
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+
+        return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
-    private fun markerHue(type: WaypointType): Float = when (type) {
-        WaypointType.START -> BitmapDescriptorFactory.HUE_GREEN
-        WaypointType.NODE  -> BitmapDescriptorFactory.HUE_AZURE
-        WaypointType.END   -> BitmapDescriptorFactory.HUE_RED
+    private fun getMarkerIconFromXml(type: WaypointType): BitmapDescriptor {
+        val resId = when (type) {
+            WaypointType.START -> R.drawable.ic_legend_start
+            WaypointType.NODE  -> R.drawable.ic_legend_node
+            WaypointType.END   -> R.drawable.ic_legend_end
+        }
+        val drawable = ContextCompat.getDrawable(this, resId) ?: return BitmapDescriptorFactory.defaultMarker()
+        
+        // 將 Drawable 轉換成 BitmapDescriptor
+        val bitmap = Bitmap.createBitmap(
+            drawable.intrinsicWidth,
+            drawable.intrinsicHeight,
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
     private fun setupLocationPickerOverlay() {
