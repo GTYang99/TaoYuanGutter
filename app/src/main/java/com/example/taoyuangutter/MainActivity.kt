@@ -90,6 +90,14 @@ class MainActivity : AppCompatActivity(),
     private val gutterRepository = GutterRepository()
     private val sessionDraftRepository by lazy { GutterSessionRepository(this) }
 
+    /**
+     * 目前進行中的新增／編輯 session 所對應的 [GutterSessionDraft] ID。
+     * - LocationPicker 確認座標或表單填寫返回時，由 [autoSaveSessionDraft] 建立並記住此 ID。
+     * - 恢復草稿時設為已知草稿的 ID，讓後續自動更新覆蓋同一筆。
+     * - 成功上傳（[onGutterSaved]）後重設為 null。
+     */
+    private var currentSessionDraftId: Long? = null
+
     // ── 目前存活的 BottomSheet 與正在選點的索引 ───────────────────────────
     private var activeSheet: AddGutterBottomSheet? = null
     private var pickingIndex: Int = -1
@@ -220,6 +228,7 @@ class MainActivity : AppCompatActivity(),
                     Waypoint(wpType, snap.label, latLng, snap.basicData)
                 }
 
+                currentSessionDraftId = null   // 編輯模式開始 → 以新 session ID 追蹤草稿
                 val sheet = AddGutterBottomSheet.newInstanceForEdit(wps, spiNum)
                 sheet.onWaypointsChanged = { updated ->
                     if (updated == null) {
@@ -228,6 +237,7 @@ class MainActivity : AppCompatActivity(),
                     } else {
                         currentWaypoints = updated.toMutableList()
                         refreshWorkingLayer(updated)
+                        autoSaveSessionDraft(updated)
                     }
                 }
                 activeSheet = sheet
@@ -271,7 +281,8 @@ class MainActivity : AppCompatActivity(),
             restoredSheet.onWaypointsChanged = { wps ->
                 currentWaypoints = wps ?: emptyList()
                 refreshWorkingLayer(wps ?: emptyList())
-                if (wps == null) activeSheet = null
+                if (wps != null) autoSaveSessionDraft(wps)
+                else activeSheet = null
             }
         } else {
             // 檢視模式：重新綁定 inspectSheet
@@ -391,6 +402,10 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onGutterSaved(spiNum: String?, waypoints: List<Waypoint>, nodes: List<DitchNode>) {
+        // 上傳成功：刪除對應的待上傳草稿，並重置 session draft 追蹤 ID
+        currentSessionDraftId?.let { sessionDraftRepository.delete(it) }
+        currentSessionDraftId = null
+
         val token = LoginActivity.getSavedToken(this) ?: return
         if (spiNum != null) {
             // 更新模式：移除舊線段，重載可視範圍
@@ -449,8 +464,23 @@ class MainActivity : AppCompatActivity(),
             .show()
     }
 
-    /** 將 waypoints 序列化並存入待上傳草稿 Repository。 */
+    /** 上傳失敗時呼叫：委由 [autoSaveSessionDraft] 存入（或更新）待上傳草稿。 */
     private fun saveWaypointsAsPendingDraft(waypoints: List<Waypoint>) {
+        autoSaveSessionDraft(waypoints)
+    }
+
+    /**
+     * 自動將目前進行中的 session waypoints 儲存（或更新）成 [GutterSessionDraft]。
+     *
+     * - 若 [currentSessionDraftId] 已有值，直接以相同 id 覆寫（更新同一筆草稿）。
+     * - 若 waypoints 中 START 點位帶有 SPI_NUM（gutterId），且 repository 裡已有同 SPI_NUM
+     *   的不同草稿，則沿用其 id，確保每個 SPI_NUM 只會有一份草稿。
+     * - 否則以目前時間戳記建立新草稿 id。
+     *
+     * 每次呼叫都會更新 [currentSessionDraftId] 以追蹤目前 session 所對應的草稿。
+     */
+    private fun autoSaveSessionDraft(waypoints: List<Waypoint>) {
+        if (waypoints.isEmpty()) return
         val snapshots = waypoints.map { wp ->
             WaypointSnapshot(
                 type      = wp.type.name,
@@ -460,8 +490,22 @@ class MainActivity : AppCompatActivity(),
                 basicData = wp.basicData
             )
         }
-        val draft = GutterSessionDraft(waypoints = snapshots)
-        sessionDraftRepository.save(draft)
+        // 從 START 點位取得 SPI_NUM（編輯模式下為伺服器側溝編號）
+        val spiNum = waypoints.firstOrNull { it.type == WaypointType.START }
+            ?.basicData?.get("gutterId")?.takeIf { it.isNotEmpty() }
+        // 若已有相同 SPI_NUM 的草稿（且不是目前 session），沿用其 ID（覆蓋，確保唯一性）
+        val existingId = if (!spiNum.isNullOrEmpty()) {
+            sessionDraftRepository.getAll().firstOrNull { draft ->
+                draft.waypoints.firstOrNull { it.type == WaypointType.START.name }
+                    ?.basicData?.get("gutterId") == spiNum &&
+                draft.id != currentSessionDraftId
+            }?.id
+        } else null
+        val draftId = existingId ?: currentSessionDraftId ?: System.currentTimeMillis()
+        currentSessionDraftId = draftId
+        sessionDraftRepository.save(
+            GutterSessionDraft(id = draftId, savedAt = System.currentTimeMillis(), waypoints = snapshots)
+        )
     }
 
     override fun getInspectWaypoints(): List<Waypoint> = inspectWaypoints
@@ -761,12 +805,14 @@ class MainActivity : AppCompatActivity(),
             workingPolyline?.remove()
             clearWorkingMarkers()
             fitCameraToAllGutters()
+            currentSessionDraftId = null   // 新增流程 → 重置 session draft 追蹤 ID
             val sheet = AddGutterBottomSheet.newInstance()
             activeSheet = sheet
             sheet.onWaypointsChanged = { wps ->
                 currentWaypoints = wps ?: emptyList()
                 refreshWorkingLayer(wps ?: emptyList())
-                if (wps == null) activeSheet = null
+                if (wps != null) autoSaveSessionDraft(wps)
+                else activeSheet = null
             }
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
         }
@@ -799,8 +845,8 @@ class MainActivity : AppCompatActivity(),
         workingPolyline = null
         clearWorkingMarkers()
 
-        // ③ 草稿已取出，立即從 repository 刪除（提交成功才算完成）
-        sessionDraftRepository.delete(draft.id)
+        // ③ 記住此草稿的 ID，讓後續自動更新覆蓋同一筆（草稿在上傳成功前不刪除）
+        currentSessionDraftId = draft.id
 
         // ④ 等待 dismiss 動畫（約 250ms）完全結束後再 show AddGutterBottomSheet，
         //    避免兩個 FragmentTransaction 競爭同一個 FragmentManager 而靜默失敗。
@@ -811,7 +857,8 @@ class MainActivity : AppCompatActivity(),
             sheet.onWaypointsChanged = { wps ->
                 currentWaypoints = wps ?: emptyList()
                 refreshWorkingLayer(wps ?: emptyList())
-                if (wps == null) activeSheet = null
+                if (wps != null) autoSaveSessionDraft(wps)
+                else activeSheet = null
             }
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
             // ── 重新加載地圖可視範圍內的側溝數據 ──
