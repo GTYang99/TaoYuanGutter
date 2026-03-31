@@ -72,6 +72,7 @@ class MainActivity : AppCompatActivity(),
 
     companion object {
         private const val KEY_PENDING_WP_INDEX = "pending_wp_index"
+        private const val GUTTER_LOAD_DEBOUNCE_MS = 500L
     }
 
     private lateinit var binding: ActivityMainBinding
@@ -110,6 +111,9 @@ class MainActivity : AppCompatActivity(),
     /** scopeSearch 從後端載入的 Polyline（依 SPI_NUM 索引，方便重繪時移除舊線段） */
     private val scopePolylines = mutableMapOf<String, Polyline>()
     private var currentWaypoints: List<Waypoint> = emptyList()
+
+    // ── 防抖機制（避免重複調用 scopeSearch API） ────────────────────
+    private var lastGutterLoadTime = 0L
 
     private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
     private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
@@ -233,6 +237,7 @@ class MainActivity : AppCompatActivity(),
                 currentWaypoints = wps.toMutableList()
                 refreshWorkingLayer(wps)
                 fitCameraToWaypoints(wps)
+                // fitCameraToWaypoints 會觸發 setOnCameraIdleListener → loadGuttersByViewportDebounced()
             }
         }
 
@@ -312,8 +317,8 @@ class MainActivity : AppCompatActivity(),
 
         map.setOnPolylineClickListener { polyline -> openInspectBottomSheet(polyline) }
 
-        // 地圖停止移動後，依目前可視範圍向後端查詢側溝線段
-        map.setOnCameraIdleListener { loadGuttersByViewport() }
+        // 地圖停止移動後，依目前可視範圍向後端查詢側溝線段（使用防抖避免高頻調用）
+        map.setOnCameraIdleListener { loadGuttersByViewportDebounced() }
     }
 
     // ── LocationPickerHost 實作 ───────────────────────────────────────────
@@ -431,6 +436,8 @@ class MainActivity : AppCompatActivity(),
                             binding.btnAddGutter.visibility = View.VISIBLE
                             googleMap?.setPadding(0, 0, 0, 0)
                             Toast.makeText(this@MainActivity, "側溝「$spiNum」已成功刪除", Toast.LENGTH_SHORT).show()
+                            // ── 重新加載地圖可視範圍內的側溝數據 ──
+                            loadGuttersByViewport()
                         }
                         is ApiResult.Error -> {
                             Toast.makeText(this@MainActivity, "刪除失敗：${result.message}", Toast.LENGTH_LONG).show()
@@ -807,6 +814,8 @@ class MainActivity : AppCompatActivity(),
                 if (wps == null) activeSheet = null
             }
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
+            // ── 重新加載地圖可視範圍內的側溝數據 ──
+            loadGuttersByViewport()
         }, 300L)
     }
 
@@ -906,6 +915,19 @@ class MainActivity : AppCompatActivity(),
     }
 
     // ── 側溝座標 API（scopeSearch）────────────────────────────────────────
+
+    /**
+     * 防抖版本的 loadGuttersByViewport
+     * 避免短時間內多次調用 API（例如快速拖拽地圖時）
+     */
+    private fun loadGuttersByViewportDebounced() {
+        val now = System.currentTimeMillis()
+        if (now - lastGutterLoadTime < GUTTER_LOAD_DEBOUNCE_MS) {
+            return  // 距上次調用不足 500ms，跳過此次請求
+        }
+        lastGutterLoadTime = now
+        loadGuttersByViewport()
+    }
 
     /**
      * 取得目前地圖可視範圍（LatLngBounds）並呼叫 scopeSearch API，
