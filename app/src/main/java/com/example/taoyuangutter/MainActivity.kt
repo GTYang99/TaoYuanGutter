@@ -439,6 +439,17 @@ class MainActivity : AppCompatActivity(),
                 lifecycleScope.launch {
                     when (val result = gutterRepository.deleteDitch(spiNum, token)) {
                         is ApiResult.Success -> {
+                            sessionDraftRepository.getAll()
+                                .filter { draft ->
+                                    draft.waypoints.firstOrNull { it.type == WaypointType.START.name }
+                                        ?.basicData?.get("SPI_NUM") == spiNum
+                                }
+                                .forEach { draft -> sessionDraftRepository.delete(draft.id) }
+                            if (currentSessionDraftId != null) {
+                                val currentDraft = sessionDraftRepository.getById(currentSessionDraftId!!)
+                                if (currentDraft == null) currentSessionDraftId = null
+                            }
+
                             // 從地圖移除該側溝的線段
                             scopePolylines.remove(spiNum)?.remove()
                             // 關閉 BottomSheet 並清除暫存標記
@@ -503,6 +514,17 @@ class MainActivity : AppCompatActivity(),
         } else null
         val draftId = existingId ?: currentSessionDraftId ?: System.currentTimeMillis()
         currentSessionDraftId = draftId
+
+        if (!spiNum.isNullOrEmpty()) {
+            sessionDraftRepository.getAll()
+                .filter { draft ->
+                    draft.id != draftId &&
+                    draft.waypoints.firstOrNull { it.type == WaypointType.START.name }
+                        ?.basicData?.get("SPI_NUM") == spiNum
+                }
+                .forEach { duplicate -> sessionDraftRepository.delete(duplicate.id) }
+        }
+
         sessionDraftRepository.save(
             GutterSessionDraft(id = draftId, savedAt = System.currentTimeMillis(), waypoints = snapshots)
         )
@@ -554,7 +576,28 @@ class MainActivity : AppCompatActivity(),
         val labels = ArrayList(currentWaypoints.map { it.label })
         val lats   = currentWaypoints.map { it.latLng?.latitude ?: 0.0 }.toDoubleArray()
         val lngs   = currentWaypoints.map { it.latLng?.longitude ?: 0.0 }.toDoubleArray()
-        val intent = GutterFormActivity.newIntent(this, labels, lats, lngs, currentIndex, wp.basicData, isEditMode)
+        val sessionWaypointsJson = Gson().toJson(
+            currentWaypoints.map { waypoint ->
+                WaypointSnapshot(
+                    type = waypoint.type.name,
+                    label = waypoint.label,
+                    latitude = waypoint.latLng?.latitude,
+                    longitude = waypoint.latLng?.longitude,
+                    basicData = HashMap(waypoint.basicData)
+                )
+            }
+        )
+        val intent = GutterFormActivity.newIntent(
+            this,
+            labels,
+            lats,
+            lngs,
+            currentIndex,
+            wp.basicData,
+            isEditMode,
+            currentSessionDraftId ?: 0L,
+            sessionWaypointsJson
+        )
         gutterFormLauncher.launch(intent)
     }
 

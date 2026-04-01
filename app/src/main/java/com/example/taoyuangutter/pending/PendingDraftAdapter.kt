@@ -31,10 +31,10 @@ class PendingDraftAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val draft = items[position]
         with(holder.binding) {
-            // 標題：以 START waypoint 的 SPI_NUM 作為序號；若未填寫則顯示流水序號
+            // 標題：優先顯示 START waypoint 的 SPI_NUM；沒有值時顯示固定文案
             val startWp = draft.waypoints.firstOrNull { it.type == "START" }
             val gutterId = startWp?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() }
-            tvPendingDraftTitle.text = gutterId ?: "草稿 #${position + 1}"
+            tvPendingDraftTitle.text = gutterId ?: "側溝草稿"
 
             // 副標題1：建立時間（精確到分）
             tvPendingDraftTime.text = "建立時間：${dateFormat.format(Date(draft.savedAt))}"

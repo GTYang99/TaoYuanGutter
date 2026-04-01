@@ -22,6 +22,13 @@ import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.offline.OfflineDraft
 import com.example.taoyuangutter.offline.OfflineDraftRepository
+import com.example.taoyuangutter.pending.GutterSessionDraft
+import com.example.taoyuangutter.pending.GutterSessionRepository
+import com.example.taoyuangutter.pending.WaypointSnapshot
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class GutterFormActivity : AppCompatActivity() {
@@ -37,6 +44,8 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_VIEW_MODE        = "view_mode"
         const val EXTRA_WAYPOINT_INDEX   = "waypoint_index"
         const val EXTRA_IS_EDIT_MODE     = "is_edit_mode" // 新增：是否為編輯模式
+        const val EXTRA_SESSION_DRAFT_ID = "session_draft_id"
+        const val EXTRA_SESSION_WAYPOINTS_JSON = "session_waypoints_json"
 
         /** 離線模式旗標：不向 MainActivity 回傳 result，改儲存至本機草稿。 */
         const val EXTRA_OFFLINE_MODE     = "offline_mode"
@@ -96,7 +105,9 @@ class GutterFormActivity : AppCompatActivity() {
             lngs: DoubleArray,
             index: Int = 0,
             basicData: HashMap<String, String>? = null,
-            isEditMode: Boolean = false // 新增：是否為編輯模式
+            isEditMode: Boolean = false,
+            sessionDraftId: Long = 0L,
+            sessionWaypointsJson: String? = null
         ): Intent = Intent(context, GutterFormActivity::class.java).apply {
             putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, labels)
             putExtra(EXTRA_LATITUDES, lats)
@@ -105,6 +116,10 @@ class GutterFormActivity : AppCompatActivity() {
             putExtra(EXTRA_WAYPOINT_INDEX, index)   // 與 currentIndex 一致，確保 buildAndFinishWithResult 回傳正確索引
             putExtra(EXTRA_VIEW_MODE, false)
             putExtra(EXTRA_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
+            putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
+            if (!sessionWaypointsJson.isNullOrEmpty()) {
+                putExtra(EXTRA_SESSION_WAYPOINTS_JSON, sessionWaypointsJson)
+            }
             basicData?.let { fillDataExtras(this, it) }
         }
 
@@ -177,6 +192,12 @@ class GutterFormActivity : AppCompatActivity() {
     private var isOfflineMode  = false
     /** 正在編輯的草稿 ID（-1L 表示新增）*/
     private var offlineDraftId = -1L
+    /** 地圖流程中的 session 草稿 ID；0 表示尚未建立。 */
+    private var sessionDraftId = 0L
+    /** 整條側溝目前的 waypoint 快照，供表單編輯中即時覆寫草稿。 */
+    private val sessionWaypoints = mutableListOf<WaypointSnapshot>()
+    private var draftSyncJob: Job? = null
+    private var originalSessionWaypoint: WaypointSnapshot? = null
 
     /** 編輯模式：API 的 node_id（有值時儲存才會上傳照片） */
     private var nodeId: Int? = null
@@ -201,6 +222,11 @@ class GutterFormActivity : AppCompatActivity() {
         isOfflineMode = intent.getBooleanExtra(EXTRA_OFFLINE_MODE, false)
         nodeId        = intent.getStringExtra(EXTRA_DATA_NODE_ID)?.toIntOrNull()
         offlineDraftId = intent.getLongExtra(EXTRA_OFFLINE_DRAFT_ID, -1L)
+        sessionDraftId = intent.getLongExtra(EXTRA_SESSION_DRAFT_ID, 0L)
+        restoreSessionWaypoints()
+        originalSessionWaypoint = sessionWaypoints.getOrNull(currentIndex)?.copy(
+            basicData = HashMap(sessionWaypoints.getOrNull(currentIndex)?.basicData ?: hashMapOf())
+        )
 
         val label = waypointLabels.getOrElse(currentIndex) { "點位" }
         val lat   = latitudes.getOrElse(currentIndex)  { 0.0 }
@@ -253,6 +279,15 @@ class GutterFormActivity : AppCompatActivity() {
         setupViewPager(lat, lng, existingData)
         setupTabButtons()
         setupFab()
+        binding.viewPager.post { attachDraftSyncCallbacks() }
+    }
+
+    override fun onPause() {
+        if (!isFinishing) {
+            draftSyncJob?.cancel()
+            syncSessionDraftNow()
+        }
+        super.onPause()
     }
 
     private fun buildEmptyData(lat: Double, lng: Double) = hashMapOf(
@@ -336,6 +371,7 @@ class GutterFormActivity : AppCompatActivity() {
         binding.btnDone.setOnClickListener { saveAndFinish() }
         pagerAdapter.getBasicInfoFragment()?.setEditable(true)
         pagerAdapter.getPhotosFragment()?.setEditable(true)
+        attachDraftSyncCallbacks()
     }
 
     private fun saveAndFinish() {
@@ -382,6 +418,11 @@ class GutterFormActivity : AppCompatActivity() {
         })
     }
 
+    private fun attachDraftSyncCallbacks() {
+        pagerAdapter.getBasicInfoFragment()?.onDraftChanged = { queueSessionDraftSync() }
+        pagerAdapter.getPhotosFragment()?.onDraftChanged = { queueSessionDraftSync() }
+    }
+
     private fun setupTabButtons() {
         binding.btnTabBasicInfo.setOnClickListener { binding.viewPager.currentItem = 0 }
         binding.btnTabPhotos.setOnClickListener    { binding.viewPager.currentItem = 1 }
@@ -389,6 +430,7 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun updateTabUI(selected: Int) {
+        attachDraftSyncCallbacks()
         val primary   = getColor(com.example.taoyuangutter.R.color.colorPrimary)
         val secondary = getColor(com.example.taoyuangutter.R.color.textColorSecondary)
         val white     = getColor(com.example.taoyuangutter.R.color.white)
@@ -457,6 +499,7 @@ class GutterFormActivity : AppCompatActivity() {
                     .setTitle("放棄修改")
                     .setMessage("確定要放棄此次修改並返回嗎？")
                     .setPositiveButton("確定放棄") { _, _ ->
+                        restoreCurrentWaypointDraft()
                         setResult(Activity.RESULT_CANCELED)
                         finish()
                     }
@@ -517,6 +560,104 @@ class GutterFormActivity : AppCompatActivity() {
         }
 
         dispatchResult()
+    }
+
+    private fun restoreSessionWaypoints() {
+        if (isOfflineMode) return
+
+        val json = intent.getStringExtra(EXTRA_SESSION_WAYPOINTS_JSON)
+        if (!json.isNullOrEmpty()) {
+            val parsed = runCatching {
+                val type = object : TypeToken<List<WaypointSnapshot>>() {}.type
+                Gson().fromJson<List<WaypointSnapshot>>(json, type)
+            }.getOrNull()
+            if (parsed != null) {
+                sessionWaypoints.clear()
+                sessionWaypoints.addAll(parsed)
+            }
+        }
+
+        if (sessionWaypoints.isEmpty()) {
+            waypointLabels.forEachIndexed { index, label ->
+                sessionWaypoints.add(
+                    WaypointSnapshot(
+                        type = when {
+                            index == 0 -> WaypointType.START.name
+                            index == waypointLabels.lastIndex -> WaypointType.END.name
+                            else -> WaypointType.NODE.name
+                        },
+                        label = label,
+                        latitude = latitudes.getOrNull(index),
+                        longitude = longitudes.getOrNull(index),
+                        basicData = hashMapOf()
+                    )
+                )
+            }
+        }
+    }
+
+    private fun queueSessionDraftSync() {
+        if (isOfflineMode || isViewMode) return
+        if (currentIndex !in sessionWaypoints.indices) return
+        draftSyncJob?.cancel()
+        draftSyncJob = lifecycleScope.launch {
+            delay(400)
+            syncSessionDraftNow()
+        }
+    }
+
+    private fun syncSessionDraftNow() {
+        if (isOfflineMode || isViewMode) return
+        if (currentIndex !in sessionWaypoints.indices) return
+
+        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
+        val (photo1, photo2, photo3) = pagerAdapter.getPhotosFragment()?.getPhotoPaths()
+            ?: Triple(null, null, null)
+
+        val formLat = basicData["NODE_Y"]?.toDoubleOrNull()
+        val formLng = basicData["NODE_X"]?.toDoubleOrNull()
+        val existing = sessionWaypoints[currentIndex]
+        val mergedBasicData = HashMap(existing.basicData).apply {
+            putAll(basicData)
+            put("photo1", photo1 ?: "")
+            put("photo2", photo2 ?: "")
+            put("photo3", photo3 ?: "")
+        }
+
+        sessionWaypoints[currentIndex] = existing.copy(
+            latitude = if (formLat != null && formLat in -90.0..90.0) formLat else existing.latitude,
+            longitude = if (formLng != null && formLng in -180.0..180.0) formLng else existing.longitude,
+            basicData = mergedBasicData
+        )
+
+        val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
+        sessionDraftId = resolvedDraftId
+        GutterSessionRepository(this).save(
+            GutterSessionDraft(
+                id = resolvedDraftId,
+                savedAt = System.currentTimeMillis(),
+                waypoints = sessionWaypoints.toList()
+            )
+        )
+    }
+
+    private fun restoreCurrentWaypointDraft() {
+        if (isOfflineMode) return
+        val original = originalSessionWaypoint ?: return
+        if (currentIndex !in sessionWaypoints.indices) return
+        draftSyncJob?.cancel()
+        sessionWaypoints[currentIndex] = original.copy(
+            basicData = HashMap(original.basicData)
+        )
+        val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
+        sessionDraftId = resolvedDraftId
+        GutterSessionRepository(this).save(
+            GutterSessionDraft(
+                id = resolvedDraftId,
+                savedAt = System.currentTimeMillis(),
+                waypoints = sessionWaypoints.toList()
+            )
+        )
     }
 
     // ── 上傳等待遮罩 ─────────────────────────────────────────────────────

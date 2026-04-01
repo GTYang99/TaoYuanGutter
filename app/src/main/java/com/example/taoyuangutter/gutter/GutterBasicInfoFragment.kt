@@ -21,6 +21,7 @@ class GutterBasicInfoFragment : Fragment() {
 
     private var _binding: FragmentGutterBasicInfoBinding? = null
     private val binding get() = _binding!!
+    var onDraftChanged: (() -> Unit)? = null
 
     companion object {
         private const val ARG_LAT          = "latitude"
@@ -123,6 +124,7 @@ class GutterBasicInfoFragment : Fragment() {
         setupReadOnlyCoordinates()
         setEditable(!isViewMode)
         setupRangeWatchers()
+        setupDraftWatchers()
 
         // 新增與編輯模式下均隱藏側溝編號欄位（僅檢視模式顯示）
         if (!isViewMode) {
@@ -393,6 +395,30 @@ class GutterBasicInfoFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun setupDraftWatchers() {
+        val watcher = object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
+            override fun afterTextChanged(s: Editable?) {
+                onDraftChanged?.invoke()
+            }
+        }
+
+        listOf(
+            binding.etGutterId,
+            binding.etCoordZ,
+            binding.etMeasureId,
+            binding.etDepth,
+            binding.etTopWidth,
+            binding.etRemarks,
+            binding.actvGutterType,
+            binding.actvMatType,
+            binding.actvIsBroken,
+            binding.actvIsHanging,
+            binding.actvIsSilt
+        ).forEach { it.addTextChangedListener(watcher) }
     }
 
     /** 收集表單資料（供 GutterFormActivity 提交用） */

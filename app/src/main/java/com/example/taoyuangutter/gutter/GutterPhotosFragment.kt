@@ -26,6 +26,7 @@ class GutterPhotosFragment : Fragment() {
 
     private var _binding: FragmentGutterPhotosBinding? = null
     private val binding get() = _binding!!
+    var onDraftChanged: (() -> Unit)? = null
 
     private var photoUriSlot1: Uri? = null
     private var photoUriSlot2: Uri? = null
@@ -122,6 +123,7 @@ class GutterPhotosFragment : Fragment() {
                         2 -> { photoUriSlot2 = uri; showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, uri); binding.btnDeleteSlot2.visibility = View.VISIBLE }
                         3 -> { photoUriSlot3 = uri; showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, uri); binding.btnDeleteSlot3.visibility = View.VISIBLE }
                     }
+                    onDraftChanged?.invoke()
                 }
             }
             pendingSlot = 0
@@ -224,6 +226,7 @@ class GutterPhotosFragment : Fragment() {
                 binding.btnDeleteSlot3.visibility = View.GONE
             }
         }
+        onDraftChanged?.invoke()
     }
 
     // ── 相機流程 ─────────────────────────────────────────────────────────
