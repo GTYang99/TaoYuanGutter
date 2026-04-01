@@ -536,19 +536,14 @@ class MainActivity : AppCompatActivity(),
         currentWaypoints = sheet.getWaypoints()
         val wp = currentWaypoints.getOrNull(waypointIndex) ?: return
 
-        // ── 新增流程：已有 WGS84 座標，直接開表單 ──────────────────────────
-        val existingLatLng = wp.latLng
-        if (existingLatLng != null) {
-            pendingWaypointFormIndex = waypointIndex
-            highlightMarker(waypointIndex)
-            sheet.hideSelf()
-            binding.btnAddGutter.visibility = View.GONE
-            openAddForm(waypointIndex, wp, existingLatLng, isEditMode = sheet.isEditMode())
-            return
-        }
-
-        // 編輯模式中新增的節點：無 _nodeId 且無座標，進入地圖選點流程（與新增模式相同）
-        startLocationPick(sheet, waypointIndex)
+        // 直接開表單：若點位尚未選座標，先用目前地圖視角中心作為初始座標，
+        // 讓使用者在表單內點擊 X/Y 欄位再進入選點頁面。
+        val initialLatLng = wp.latLng ?: googleMap?.cameraPosition?.target ?: LatLng(0.0, 0.0)
+        pendingWaypointFormIndex = waypointIndex
+        highlightMarker(waypointIndex)
+        sheet.hideSelf()
+        binding.btnAddGutter.visibility = View.GONE
+        openAddForm(waypointIndex, wp, initialLatLng, isEditMode = sheet.isEditMode())
     }
 
     override fun openWaypointForInspect(sheet: AddGutterBottomSheet, waypointIndex: Int) {
@@ -573,6 +568,11 @@ class MainActivity : AppCompatActivity(),
         isEditMode: Boolean = false
     ) {
         moveCameraToLatLngOffset(latLng, 0.75)
+        // 統一「表單內即時存草稿」與 MainActivity 的 session 草稿 ID：
+        // 若尚未建立，先在這裡建立一次，確保同一條新增/編輯流程只會覆寫同一筆草稿。
+        val ensuredDraftId = currentSessionDraftId ?: System.currentTimeMillis().also {
+            currentSessionDraftId = it
+        }
         val labels = ArrayList(currentWaypoints.map { it.label })
         val lats   = currentWaypoints.map { it.latLng?.latitude ?: 0.0 }.toDoubleArray()
         val lngs   = currentWaypoints.map { it.latLng?.longitude ?: 0.0 }.toDoubleArray()
@@ -595,7 +595,7 @@ class MainActivity : AppCompatActivity(),
             currentIndex,
             wp.basicData,
             isEditMode,
-            currentSessionDraftId ?: 0L,
+            ensuredDraftId,
             sessionWaypointsJson
         )
         gutterFormLauncher.launch(intent)

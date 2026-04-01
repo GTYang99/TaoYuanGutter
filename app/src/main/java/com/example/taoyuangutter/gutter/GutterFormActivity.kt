@@ -9,6 +9,7 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
@@ -202,6 +203,18 @@ class GutterFormActivity : AppCompatActivity() {
     /** 編輯模式：API 的 node_id（有值時儲存才會上傳照片） */
     private var nodeId: Int? = null
     private val gutterRepository = GutterRepository()
+    private val locationPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+        val data = result.data ?: return@registerForActivityResult
+        val latitude = data.getDoubleExtra(MapPointPickerActivity.RESULT_LATITUDE, Double.NaN)
+        val longitude = data.getDoubleExtra(MapPointPickerActivity.RESULT_LONGITUDE, Double.NaN)
+        if (latitude.isNaN() || longitude.isNaN()) return@registerForActivityResult
+        currentLat = latitude
+        currentLng = longitude
+        pagerAdapter.getBasicInfoFragment()?.updateCoordinates(longitude, latitude)
+    }
 
     /** 本點位的原始 GPS 座標（來自地圖選點），永遠保留以確保 result 能帶回正確定位 */
     private var currentLat: Double = 0.0
@@ -280,6 +293,7 @@ class GutterFormActivity : AppCompatActivity() {
         setupTabButtons()
         setupFab()
         binding.viewPager.post { attachDraftSyncCallbacks() }
+        pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
     }
 
     override fun onPause() {
@@ -431,6 +445,7 @@ class GutterFormActivity : AppCompatActivity() {
 
     private fun updateTabUI(selected: Int) {
         attachDraftSyncCallbacks()
+        pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
         val primary   = getColor(com.example.taoyuangutter.R.color.colorPrimary)
         val secondary = getColor(com.example.taoyuangutter.R.color.textColorSecondary)
         val white     = getColor(com.example.taoyuangutter.R.color.white)
@@ -442,6 +457,15 @@ class GutterFormActivity : AppCompatActivity() {
             binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabBasicInfo.setTextColor(secondary)
             binding.btnTabPhotos.setBackgroundColor(white);    binding.btnTabPhotos.setTextColor(primary)
         }
+    }
+
+    private fun launchLocationPicker() {
+        if (isViewMode) return
+        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
+        val initialLat = basicData["NODE_Y"]?.toDoubleOrNull() ?: currentLat
+        val initialLng = basicData["NODE_X"]?.toDoubleOrNull() ?: currentLng
+        val intent = MapPointPickerActivity.newIntent(this, initialLat, initialLng)
+        locationPickerLauncher.launch(intent)
     }
 
     private fun setupFab() {

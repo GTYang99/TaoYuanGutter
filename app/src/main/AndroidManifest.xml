@@ -76,6 +76,11 @@
             android:theme="@style/Theme.TaoYuanGutter.FormSheet"
             android:exported="false" />
 
+        <activity
+            android:name=".gutter.MapPointPickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TaoYuanGutter" />
+
         <!-- 離線草稿列表 Activity（半螢幕底部彈出） -->
         <activity
             android:name=".offline.OfflineDraftsActivity"

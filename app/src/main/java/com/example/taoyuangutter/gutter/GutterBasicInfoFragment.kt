@@ -22,6 +22,7 @@ class GutterBasicInfoFragment : Fragment() {
     private var _binding: FragmentGutterBasicInfoBinding? = null
     private val binding get() = _binding!!
     var onDraftChanged: (() -> Unit)? = null
+    var onRequestLocationPick: (() -> Unit)? = null
 
     companion object {
         private const val ARG_LAT          = "latitude"
@@ -125,6 +126,7 @@ class GutterBasicInfoFragment : Fragment() {
         setEditable(!isViewMode)
         setupRangeWatchers()
         setupDraftWatchers()
+        setupCoordinatePickers()
 
         // 新增與編輯模式下均隱藏側溝編號欄位（僅檢視模式顯示）
         if (!isViewMode) {
@@ -210,13 +212,33 @@ class GutterBasicInfoFragment : Fragment() {
     private fun setupReadOnlyCoordinates() {
         val grayColor = ContextCompat.getColor(requireContext(), R.color.inputFieldHint)
         listOf(binding.etCoordX, binding.etCoordY).forEach { et ->
-            et.isEnabled = false
+            et.isEnabled = true
             et.isFocusable = false
             et.isFocusableInTouchMode = false
+            et.isCursorVisible = false
+            et.isLongClickable = false
+            et.keyListener = null
+            et.setTextIsSelectable(false)
+            et.isClickable = true
             et.setTextColor(grayColor)
         }
+        binding.tilCoordX.isClickable = true
+        binding.tilCoordY.isClickable = true
         binding.tilCoordX.alpha = 1f
         binding.tilCoordY.alpha = 1f
+    }
+
+    private fun setupCoordinatePickers() {
+        val listener = View.OnClickListener {
+            // 檢視模式不允許變更座標
+            val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
+            if (isViewMode) return@OnClickListener
+            onRequestLocationPick?.invoke()
+        }
+        binding.tilCoordX.setOnClickListener(listener)
+        binding.tilCoordY.setOnClickListener(listener)
+        binding.etCoordX.setOnClickListener(listener)
+        binding.etCoordY.setOnClickListener(listener)
     }
 
     /** 將 GPS 座標預填至 X/Y 欄位 */
@@ -437,6 +459,12 @@ class GutterBasicInfoFragment : Fragment() {
         "IS_SILT"     to siltTextToCode(binding.actvIsSilt.text?.toString()),
         "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: "")
     )
+
+    fun updateCoordinates(longitude: Double, latitude: Double) {
+        binding.etCoordX.setText("%.6f".format(longitude))
+        binding.etCoordY.setText("%.6f".format(latitude))
+        onDraftChanged?.invoke()
+    }
 
     private fun nodeTypCodeToText(code: String?): String = when (code) {
         "1" -> GUTTER_TYPES[0]

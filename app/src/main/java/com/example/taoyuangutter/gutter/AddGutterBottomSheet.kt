@@ -387,9 +387,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 (requireActivity() as? LocationPickerHost)
                     ?.openWaypointForEdit(this, position)
             } else {
-                // 新增模式：先到地圖上選取點位座標
+                // 新增模式：直接開表單，座標由表單內點擊 X/Y 欄位再選取
                 (requireActivity() as? LocationPickerHost)
-                    ?.startLocationPick(this, position)
+                    ?.openWaypointForEdit(this, position)
             }
         }
 
