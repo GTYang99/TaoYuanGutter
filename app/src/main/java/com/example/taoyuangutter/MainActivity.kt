@@ -22,8 +22,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
 import androidx.lifecycle.lifecycleScope
 import android.net.Uri
+import com.example.taoyuangutter.common.LocationPickEvents
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.DitchNode
@@ -78,6 +80,32 @@ class MainActivity : AppCompatActivity(),
     private lateinit var binding: ActivityMainBinding
     private var googleMap: GoogleMap? = null
 
+    private val waypointLocationChangedReceiver = object : android.content.BroadcastReceiver() {
+        override fun onReceive(context: android.content.Context?, intent: Intent?) {
+            if (intent?.action != LocationPickEvents.ACTION_WAYPOINT_LOCATION_CHANGED) return
+            val draftId = intent.getLongExtra(LocationPickEvents.EXTRA_SESSION_DRAFT_ID, 0L)
+            val index = intent.getIntExtra(LocationPickEvents.EXTRA_WAYPOINT_INDEX, -1)
+            val lat = intent.getDoubleExtra(LocationPickEvents.EXTRA_LATITUDE, Double.NaN)
+            val lng = intent.getDoubleExtra(LocationPickEvents.EXTRA_LONGITUDE, Double.NaN)
+            if (draftId <= 0L) return
+            if (draftId != currentSessionDraftId) return
+            if (index < 0) return
+            if (lat.isNaN() || lng.isNaN()) return
+            val sheet = activeSheet ?: return
+            sheet.updateWaypointLocation(index, LatLng(lat, lng))
+
+            // 表單仍開著時，把背景地圖鏡頭 fit 到整條工作線段，
+            // 底部預留空間避免被表單遮住（不要立刻重設 padding）。
+            fitCameraToWaypoints(
+                sheet.getWaypoints(),
+                bottomOffsetRatio = 0.8,
+                resetPaddingAfter = false,
+                maxZoom = 19f,
+                paddingDp = 24
+            )
+        }
+    }
+
     // ── NLSC WMTS 底圖 ────────────────────────────────────────────────────
     private var currentTileOverlay: TileOverlay? = null
     private var currentMapMode = MapMode.EMAP
@@ -131,6 +159,13 @@ class MainActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        ContextCompat.registerReceiver(
+            this,
+            waypointLocationChangedReceiver,
+            android.content.IntentFilter(LocationPickEvents.ACTION_WAYPOINT_LOCATION_CHANGED),
+            RECEIVER_NOT_EXPORTED
+        )
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
@@ -261,6 +296,11 @@ class MainActivity : AppCompatActivity(),
         if (savedInstanceState != null) {
             restoreStateAfterRecreation(savedInstanceState)
         }
+    }
+
+    override fun onDestroy() {
+        runCatching { unregisterReceiver(waypointLocationChangedReceiver) }
+        super.onDestroy()
     }
 
     /**
@@ -557,7 +597,19 @@ class MainActivity : AppCompatActivity(),
 
     private fun openInspectForm(waypointIndex: Int, wp: Waypoint, latLng: LatLng) {
         moveCameraToLatLngOffset(latLng, 0.75) 
-        val intent = GutterFormActivity.newViewIntent(this, wp.label, latLng.latitude, latLng.longitude, waypointIndex, wp.basicData)
+        val layer = when (currentMapMode) {
+            MapMode.EMAP -> "EMAP"
+            MapMode.PHOTO2 -> "PHOTO2"
+        }
+        val intent = GutterFormActivity.newViewIntent(
+            this,
+            wp.label,
+            latLng.latitude,
+            latLng.longitude,
+            waypointIndex,
+            wp.basicData,
+            layer
+        )
         gutterFormLauncher.launch(intent)
     }
 
@@ -587,6 +639,10 @@ class MainActivity : AppCompatActivity(),
                 )
             }
         )
+        val layer = when (currentMapMode) {
+            MapMode.EMAP -> "EMAP"
+            MapMode.PHOTO2 -> "PHOTO2"
+        }
         val intent = GutterFormActivity.newIntent(
             this,
             labels,
@@ -596,7 +652,8 @@ class MainActivity : AppCompatActivity(),
             wp.basicData,
             isEditMode,
             ensuredDraftId,
-            sessionWaypointsJson
+            sessionWaypointsJson,
+            layer
         )
         gutterFormLauncher.launch(intent)
     }
@@ -619,14 +676,16 @@ class MainActivity : AppCompatActivity(),
     private fun fitCameraToWaypoints(
         waypoints: List<Waypoint>,
         bottomOffsetRatio: Double = 0.8,
-        resetPaddingAfter: Boolean = true
+        resetPaddingAfter: Boolean = true,
+        maxZoom: Float? = null,
+        paddingDp: Int = 64
     ) {
         val map = googleMap ?: return
         val points = waypoints.mapNotNull { it.latLng }
         if (points.isEmpty()) return
         val dm      = resources.displayMetrics
         val screenH = dm.heightPixels
-        val padding = (64 * dm.density).toInt()
+        val padding = (paddingDp * dm.density).toInt()
         // 暫時設定 padding，讓相機計算範圍時排除底部 BottomSheet 區域；
         // 動畫結束（或被取消）後歸零，避免 Google Maps 縮放鈕 / 羅盤位置偏移。
         map.setPadding(padding, padding, padding, (screenH * bottomOffsetRatio).toInt())
@@ -637,16 +696,27 @@ class MainActivity : AppCompatActivity(),
                 CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding),
                 object : GoogleMap.CancelableCallback {
                     override fun onFinish() {
+                        // bounds 可能把縮放放得太近（點位距離很小時），這裡做一個上限夾住，讓視圖比例尺更適中
+                        val z = map.cameraPosition.zoom
+                        val cap = maxZoom
+                        if (cap != null && z > cap) {
+                            map.animateCamera(CameraUpdateFactory.zoomTo(cap))
+                        }
                         if (resetPaddingAfter) map.setPadding(0, 0, 0, 0)
                     }
                     override fun onCancel() {
+                        val z = map.cameraPosition.zoom
+                        val cap = maxZoom
+                        if (cap != null && z > cap) {
+                            map.animateCamera(CameraUpdateFactory.zoomTo(cap))
+                        }
                         if (resetPaddingAfter) map.setPadding(0, 0, 0, 0)
                     }
                 }
             )
         } catch (e: Exception) {
             if (resetPaddingAfter) map.setPadding(0, 0, 0, 0)
-            map.setOnMapLoadedCallback { fitCameraToWaypoints(waypoints, bottomOffsetRatio, resetPaddingAfter) }
+            map.setOnMapLoadedCallback { fitCameraToWaypoints(waypoints, bottomOffsetRatio, resetPaddingAfter, maxZoom, paddingDp) }
         }
     }
 

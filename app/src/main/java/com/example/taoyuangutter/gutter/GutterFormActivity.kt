@@ -26,6 +26,7 @@ import com.example.taoyuangutter.offline.OfflineDraftRepository
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.WaypointSnapshot
+import com.example.taoyuangutter.common.LocationPickEvents
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Job
@@ -47,6 +48,7 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_IS_EDIT_MODE     = "is_edit_mode" // 新增：是否為編輯模式
         const val EXTRA_SESSION_DRAFT_ID = "session_draft_id"
         const val EXTRA_SESSION_WAYPOINTS_JSON = "session_waypoints_json"
+        const val EXTRA_WMTS_LAYER = "wmts_layer"
 
         /** 離線模式旗標：不向 MainActivity 回傳 result，改儲存至本機草稿。 */
         const val EXTRA_OFFLINE_MODE     = "offline_mode"
@@ -108,7 +110,8 @@ class GutterFormActivity : AppCompatActivity() {
             basicData: HashMap<String, String>? = null,
             isEditMode: Boolean = false,
             sessionDraftId: Long = 0L,
-            sessionWaypointsJson: String? = null
+            sessionWaypointsJson: String? = null,
+            wmtsLayer: String? = null
         ): Intent = Intent(context, GutterFormActivity::class.java).apply {
             putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, labels)
             putExtra(EXTRA_LATITUDES, lats)
@@ -121,6 +124,9 @@ class GutterFormActivity : AppCompatActivity() {
             if (!sessionWaypointsJson.isNullOrEmpty()) {
                 putExtra(EXTRA_SESSION_WAYPOINTS_JSON, sessionWaypointsJson)
             }
+            if (!wmtsLayer.isNullOrEmpty()) {
+                putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
+            }
             basicData?.let { fillDataExtras(this, it) }
         }
 
@@ -130,7 +136,8 @@ class GutterFormActivity : AppCompatActivity() {
             lat: Double,
             lng: Double,
             waypointIndex: Int,
-            basicData: HashMap<String, String>
+            basicData: HashMap<String, String>,
+            wmtsLayer: String? = null
         ): Intent = Intent(context, GutterFormActivity::class.java).apply {
             putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, arrayListOf(label))
             putExtra(EXTRA_LATITUDES, doubleArrayOf(lat))
@@ -139,6 +146,9 @@ class GutterFormActivity : AppCompatActivity() {
             putExtra(EXTRA_VIEW_MODE, true)
             putExtra(EXTRA_WAYPOINT_INDEX, waypointIndex)
             putExtra(EXTRA_IS_EDIT_MODE, true) // 編輯模式為 true
+            if (!wmtsLayer.isNullOrEmpty()) {
+                putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
+            }
             fillDataExtras(this, basicData)
         }
 
@@ -214,6 +224,21 @@ class GutterFormActivity : AppCompatActivity() {
         currentLat = latitude
         currentLng = longitude
         pagerAdapter.getBasicInfoFragment()?.updateCoordinates(longitude, latitude)
+
+        // 表單仍開著時，立即通知 MainActivity 更新背景地圖的點位與線段
+        val draftId = sessionDraftId.takeIf { it > 0L }
+            ?: intent.getLongExtra(EXTRA_SESSION_DRAFT_ID, 0L)
+        if (draftId > 0L) {
+            sendBroadcast(
+                Intent(LocationPickEvents.ACTION_WAYPOINT_LOCATION_CHANGED).apply {
+                    setPackage(packageName)
+                    putExtra(LocationPickEvents.EXTRA_SESSION_DRAFT_ID, draftId)
+                    putExtra(LocationPickEvents.EXTRA_WAYPOINT_INDEX, currentIndex)
+                    putExtra(LocationPickEvents.EXTRA_LATITUDE, latitude)
+                    putExtra(LocationPickEvents.EXTRA_LONGITUDE, longitude)
+                }
+            )
+        }
     }
 
     /** 本點位的原始 GPS 座標（來自地圖選點），永遠保留以確保 result 能帶回正確定位 */
@@ -464,7 +489,17 @@ class GutterFormActivity : AppCompatActivity() {
         val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
         val initialLat = basicData["NODE_Y"]?.toDoubleOrNull() ?: currentLat
         val initialLng = basicData["NODE_X"]?.toDoubleOrNull() ?: currentLng
-        val intent = MapPointPickerActivity.newIntent(this, initialLat, initialLng)
+        val wmtsLayer = intent.getStringExtra(EXTRA_WMTS_LAYER)
+        val waypointsJson = intent.getStringExtra(EXTRA_SESSION_WAYPOINTS_JSON)
+        val intent = MapPointPickerActivity.newIntent(
+            context = this,
+            initialLat = initialLat,
+            initialLng = initialLng,
+            wmtsLayer = wmtsLayer,
+            sessionWaypointsJson = waypointsJson,
+            currentIndex = currentIndex,
+            isEditMode = isEditMode
+        )
         locationPickerLauncher.launch(intent)
     }
 
