@@ -170,6 +170,7 @@
 
         <!-- ⑤ 側溝Z座標 ─────────────────────────────────────────── -->
         <TextView
+            android:id="@+id/tvCoordZTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="側溝Z座標"

@@ -608,10 +608,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
 
                 // ② 自動移除「未選座標」或「資料不完整」的節點
-                // 必填欄位：NODE_TYP、MAT_TYP、NODE_X、NODE_Y、NODE_LE、XY_NUM、NODE_DEP、NODE_WID
+                // 必填欄位：NODE_TYP、MAT_TYP、NODE_X、NODE_Y、XY_NUM、NODE_DEP、NODE_WID
                 // 照片：三張都需拍攝（photo1/2/3 均非空）
                 val requiredBasicKeys = listOf(
-                    "NODE_TYP", "MAT_TYP", "NODE_X", "NODE_Y", "NODE_LE", "XY_NUM", "NODE_DEP", "NODE_WID"
+                    "NODE_TYP", "MAT_TYP", "NODE_X", "NODE_Y", "XY_NUM", "NODE_DEP", "NODE_WID"
                 )
                 val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
                 val validWaypoints = waypoints.filter { wp ->

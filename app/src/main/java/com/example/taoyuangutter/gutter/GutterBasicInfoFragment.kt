@@ -134,6 +134,12 @@ class GutterBasicInfoFragment : Fragment() {
             binding.tilGutterId.visibility = View.GONE
         }
 
+        // 新增/編輯模式隱藏 Z 座標欄位；僅檢視模式顯示（後端提供、不可修改）
+        if (!isViewMode) {
+            binding.tvCoordZTitle.visibility = View.GONE
+            binding.tilCoordZ.visibility = View.GONE
+        }
+
         // 點擊空白處關閉鍵盤
         view.setOnTouchListener { _, event ->
             if (event.action == MotionEvent.ACTION_DOWN) {
@@ -265,7 +271,6 @@ class GutterBasicInfoFragment : Fragment() {
     fun setEditable(enabled: Boolean) {
         val textFields = listOf(
             binding.etGutterId,
-            binding.etCoordZ,
             binding.etMeasureId,
             binding.etDepth,
             binding.etTopWidth,
@@ -305,7 +310,6 @@ class GutterBasicInfoFragment : Fragment() {
             binding.tilGutterId,
             binding.tilGutterType,
             binding.tilMatType,
-            binding.tilCoordZ,
             binding.tilMeasureId,
             binding.tilDepth,
             binding.tilTopWidth,
@@ -314,6 +318,12 @@ class GutterBasicInfoFragment : Fragment() {
             binding.tilIsSilt,
             binding.tilRemarks
         ).forEach { it.alpha = alpha }
+
+        // Z 座標（NODE_LE）由後端提供，可檢視但不可修改
+        binding.etCoordZ.isEnabled = false
+        binding.etCoordZ.isFocusable = false
+        binding.etCoordZ.isFocusableInTouchMode = false
+        binding.tilCoordZ.alpha = 1f
     }
 
     /** 隱藏虛擬鍵盤 */
@@ -352,7 +362,6 @@ class GutterBasicInfoFragment : Fragment() {
         if (d["MAT_TYP"].isNullOrEmpty())     return "側溝材質"
         if (d["NODE_X"].isNullOrEmpty())      return "側溝X（E）座標"
         if (d["NODE_Y"].isNullOrEmpty())      return "側溝Y（N）座標"
-        if (d["NODE_LE"].isNullOrEmpty())     return "側溝Z座標"
         if (d["XY_NUM"].isNullOrEmpty())      return "測量座標編號"
 
         // ── NODE_DEP 深度必填 + 區間防呆 ─────────────────────────
