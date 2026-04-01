@@ -321,8 +321,13 @@ class MainActivity : AppCompatActivity(),
             restoredSheet.onWaypointsChanged = { wps ->
                 currentWaypoints = wps ?: emptyList()
                 refreshWorkingLayer(wps ?: emptyList())
-                if (wps != null) autoSaveSessionDraft(wps)
-                else activeSheet = null
+                if (wps != null) {
+                    autoSaveSessionDraft(wps)
+                } else {
+                    googleMap?.setPadding(0, 0, 0, 0)
+                    fitCameraToAllGutters()
+                    activeSheet = null
+                }
             }
         } else {
             // 檢視模式：重新綁定 inspectSheet
@@ -532,6 +537,12 @@ class MainActivity : AppCompatActivity(),
      */
     private fun autoSaveSessionDraft(waypoints: List<Waypoint>) {
         if (waypoints.isEmpty()) return
+        // 空草稿判斷：沒有任何座標，且所有 basicData 都是空值 → 不存草稿
+        val hasAnyLatLng = waypoints.any { it.latLng != null }
+        val hasAnyBasicData = waypoints.any { wp ->
+            wp.basicData.any { (_, v) -> v.isNotBlank() }
+        }
+        if (!hasAnyLatLng && !hasAnyBasicData) return
         val snapshots = waypoints.map { wp ->
             WaypointSnapshot(
                 type      = wp.type.name,
@@ -862,8 +873,13 @@ class MainActivity : AppCompatActivity(),
             sheet.onWaypointsChanged = { wps ->
                 currentWaypoints = wps ?: emptyList()
                 refreshWorkingLayer(wps ?: emptyList())
-                if (wps != null) autoSaveSessionDraft(wps)
-                else activeSheet = null
+                if (wps != null) {
+                    autoSaveSessionDraft(wps)
+                } else {
+                    googleMap?.setPadding(0, 0, 0, 0)
+                    fitCameraToAllGutters()
+                    activeSheet = null
+                }
             }
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
         }
@@ -908,8 +924,13 @@ class MainActivity : AppCompatActivity(),
             sheet.onWaypointsChanged = { wps ->
                 currentWaypoints = wps ?: emptyList()
                 refreshWorkingLayer(wps ?: emptyList())
-                if (wps != null) autoSaveSessionDraft(wps)
-                else activeSheet = null
+                if (wps != null) {
+                    autoSaveSessionDraft(wps)
+                } else {
+                    googleMap?.setPadding(0, 0, 0, 0)
+                    fitCameraToAllGutters()
+                    activeSheet = null
+                }
             }
             currentWaypoints = draft.waypoints.map { snap ->
                 Waypoint(

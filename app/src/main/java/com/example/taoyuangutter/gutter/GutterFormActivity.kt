@@ -689,6 +689,13 @@ class GutterFormActivity : AppCompatActivity() {
             basicData = mergedBasicData
         )
 
+        // 空草稿判斷：沒有任何座標，且所有 basicData 都是空值 → 不存草稿
+        val hasAnyLatLng = sessionWaypoints.any { it.latitude != null && it.longitude != null }
+        val hasAnyBasicData = sessionWaypoints.any { wp ->
+            wp.basicData.any { (_, v) -> v.isNotBlank() }
+        }
+        if (!hasAnyLatLng && !hasAnyBasicData) return
+
         val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
         sessionDraftId = resolvedDraftId
         GutterSessionRepository(this).save(

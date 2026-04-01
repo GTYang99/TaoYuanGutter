@@ -39,9 +39,14 @@ class PendingDraftAdapter(
             // 副標題1：建立時間（精確到分）
             tvPendingDraftTime.text = "建立時間：${dateFormat.format(Date(draft.savedAt))}"
 
-            // 副標題2：已存節點數量（不含 START/END）
-            val nodeCount = draft.waypoints.count { it.type == "NODE" } + 2
-            tvPendingDraftNodes.text = "已存節點數量：$nodeCount 個"
+            // 副標題2：已存節點數量（以「非空資料」點位數計算）
+            // 規則：任一點位有座標，或 basicData 任一欄位有值，就視為非空。
+            val nonEmptyCount = draft.waypoints.count { wp ->
+                val hasLatLng = wp.latitude != null && wp.longitude != null
+                val hasAnyBasic = wp.basicData.any { (_, v) -> v.isNotBlank() }
+                hasLatLng || hasAnyBasic
+            }
+            tvPendingDraftNodes.text = "已存節點數量：$nonEmptyCount 個"
 
             root.setOnClickListener { onItemClick(draft) }
             root.setOnLongClickListener {
