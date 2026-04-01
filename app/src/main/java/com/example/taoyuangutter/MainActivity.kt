@@ -616,7 +616,11 @@ class MainActivity : AppCompatActivity(),
         )
     }
 
-    private fun fitCameraToWaypoints(waypoints: List<Waypoint>, bottomOffsetRatio: Double = 0.8) {
+    private fun fitCameraToWaypoints(
+        waypoints: List<Waypoint>,
+        bottomOffsetRatio: Double = 0.8,
+        resetPaddingAfter: Boolean = true
+    ) {
         val map = googleMap ?: return
         val points = waypoints.mapNotNull { it.latLng }
         if (points.isEmpty()) return
@@ -632,13 +636,17 @@ class MainActivity : AppCompatActivity(),
             map.animateCamera(
                 CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding),
                 object : GoogleMap.CancelableCallback {
-                    override fun onFinish() { map.setPadding(0, 0, 0, 0) }
-                    override fun onCancel() { map.setPadding(0, 0, 0, 0) }
+                    override fun onFinish() {
+                        if (resetPaddingAfter) map.setPadding(0, 0, 0, 0)
+                    }
+                    override fun onCancel() {
+                        if (resetPaddingAfter) map.setPadding(0, 0, 0, 0)
+                    }
                 }
             )
         } catch (e: Exception) {
-            map.setPadding(0, 0, 0, 0)   // 例外時也立即歸零
-            map.setOnMapLoadedCallback { fitCameraToWaypoints(waypoints, bottomOffsetRatio) }
+            if (resetPaddingAfter) map.setPadding(0, 0, 0, 0)
+            map.setOnMapLoadedCallback { fitCameraToWaypoints(waypoints, bottomOffsetRatio, resetPaddingAfter) }
         }
     }
 
@@ -833,6 +841,18 @@ class MainActivity : AppCompatActivity(),
                 if (wps != null) autoSaveSessionDraft(wps)
                 else activeSheet = null
             }
+            currentWaypoints = draft.waypoints.map { snap ->
+                Waypoint(
+                    type = WaypointType.entries.firstOrNull { it.name == snap.type } ?: WaypointType.NODE,
+                    label = snap.label,
+                    latLng = if (snap.latitude != null && snap.longitude != null) {
+                        LatLng(snap.latitude, snap.longitude)
+                    } else null,
+                    basicData = HashMap(snap.basicData)
+                )
+            }
+            refreshWorkingLayer(currentWaypoints)
+            fitCameraToWaypoints(currentWaypoints, bottomOffsetRatio = 0.5, resetPaddingAfter = false)
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
             // ── 重新加載地圖可視範圍內的側溝數據 ──
             loadGuttersByViewport()
