@@ -389,11 +389,17 @@ class GutterRepository(
         token: String
     ): ApiResult<StoreDitchResponse> {
         return try {
+            android.util.Log.d("StoreDitch", "repository request=${Gson().toJson(request)}")
             val response = api.storeDitch(
                 request       = request,
                 authorization = "Bearer $token"
             )
             val body = response.body()
+            val errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
+            android.util.Log.d(
+                "StoreDitch",
+                "response code=${response.code()}, body=$body, errorBody=$errorBody"
+            )
             when {
                 response.isSuccessful && body?.success == true -> ApiResult.Success(body)
                 response.code() == 401 -> ApiResult.Error(

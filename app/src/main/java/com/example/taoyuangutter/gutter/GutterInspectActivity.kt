@@ -211,20 +211,7 @@ class GutterInspectActivity : AppCompatActivity() {
      * 並帶入從 Intent 傳入的 WGS84 座標（wgsLatitudes/wgsLongitudes）。
      */
     private fun ditchToWaypoints(d: DitchDetails): List<Waypoint> {
-        val result     = mutableListOf<Waypoint>()
-        val gutterType = when (d.spiTyp) {
-            "1" -> "U形溝（明溝）"; "2" -> "U形溝（加蓋）"
-            "3" -> "L形溝與暗溝渠併用"; "4" -> "其他"
-            else -> d.spiTyp ?: ""
-        }
-
-        // 解析 NODE_XY：X1,Y1_X2,Y2_... → List<Pair<X, Y>>
-        val nodeXyList: List<Pair<String, String>> = d.nodeXy
-            ?.split("_")
-            ?.mapNotNull { seg ->
-                val parts = seg.split(",")
-                if (parts.size == 2) Pair(parts[0].trim(), parts[1].trim()) else null
-            } ?: emptyList()
+        val result = mutableListOf<Waypoint>()
 
         val sorted = d.nodes.sortedWith(
             compareBy(
@@ -233,71 +220,34 @@ class GutterInspectActivity : AppCompatActivity() {
             )
         )
 
-        var midIndex = 0
         sorted.forEachIndexed { idx, node ->
             // 依序取得 WGS84 座標（Intent 傳入）
             val lat = wgsLatitudes.getOrNull(idx)
             val lng = wgsLongitudes.getOrNull(idx)
             val latLng = if (lat != null && lng != null) LatLng(lat, lng) else null
 
-            // 從 DitchNode.url 依 fileCategory 取得照片 URL
-            val p1 = node.url.firstOrNull { it.fileCategory == "1" }?.url ?: ""
-            val p2 = node.url.firstOrNull { it.fileCategory == "2" }?.url ?: ""
-            val p3 = node.url.firstOrNull { it.fileCategory == "3" }?.url ?: ""
-
             when (node.nodeAtt) {
                 "1" -> result.add(Waypoint(
                     WaypointType.START, "起點", latLng,
                     hashMapOf(
                         "_nodeId"    to node.nodeId.toString(),
-                        "gutterId"   to d.spiNum,
-                        "gutterType" to gutterType,
-                        "coordX"     to (d.strX               ?: ""),
-                        "coordY"     to (d.strY               ?: ""),
-                        "coordZ"     to (d.strLe              ?: ""),
-                        "depth"      to (d.strDep?.toString() ?: ""),
-                        "topWidth"   to (d.strWid?.toString() ?: ""),
-                        "remarks"    to (d.note               ?: ""),
-                        "photo1"     to p1,
-                        "photo2"     to p2,
-                        "photo3"     to p3
+                        "SPI_NUM"    to d.spiNum
                     )
                 ))
                 "3" -> result.add(Waypoint(
                     WaypointType.END, "終點", latLng,
                     hashMapOf(
                         "_nodeId"    to node.nodeId.toString(),
-                        "gutterId"   to d.spiNum,
-                        "gutterType" to gutterType,
-                        "coordX"     to (d.endX               ?: ""),
-                        "coordY"     to (d.endY               ?: ""),
-                        "coordZ"     to (d.endLe              ?: ""),
-                        "depth"      to (d.endDep?.toString() ?: ""),
-                        "topWidth"   to (d.endWid?.toString() ?: ""),
-                        "remarks"    to "",
-                        "photo1"     to p1,
-                        "photo2"     to p2,
-                        "photo3"     to p3
+                        "SPI_NUM"    to d.spiNum
                     )
                 ))
-                else -> {
-                    val xy = nodeXyList.getOrNull(midIndex)
-                    midIndex++
-                    result.add(Waypoint(
-                        WaypointType.NODE, "節點${node.nodeNum ?: "?"}", latLng,
-                        hashMapOf(
-                            "_nodeId"    to node.nodeId.toString(),
-                            "gutterId"   to d.spiNum,
-                            "gutterType" to gutterType,
-                            "coordX"     to (xy?.first  ?: ""),
-                            "coordY"     to (xy?.second ?: ""),
-                            "remarks"    to (d.note     ?: ""),
-                            "photo1"     to p1,
-                            "photo2"     to p2,
-                            "photo3"     to p3
-                        )
-                    ))
-                }
+                else -> result.add(Waypoint(
+                    WaypointType.NODE, "節點${node.nodeNum ?: "?"}", latLng,
+                    hashMapOf(
+                        "_nodeId"    to node.nodeId.toString(),
+                        "SPI_NUM"    to d.spiNum
+                    )
+                ))
             }
         }
         if (result.isEmpty()) {

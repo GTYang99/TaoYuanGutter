@@ -492,12 +492,12 @@ class MainActivity : AppCompatActivity(),
         }
         // 從 START 點位取得 SPI_NUM（編輯模式下為伺服器側溝編號）
         val spiNum = waypoints.firstOrNull { it.type == WaypointType.START }
-            ?.basicData?.get("gutterId")?.takeIf { it.isNotEmpty() }
+            ?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() }
         // 若已有相同 SPI_NUM 的草稿（且不是目前 session），沿用其 ID（覆蓋，確保唯一性）
         val existingId = if (!spiNum.isNullOrEmpty()) {
             sessionDraftRepository.getAll().firstOrNull { draft ->
                 draft.waypoints.firstOrNull { it.type == WaypointType.START.name }
-                    ?.basicData?.get("gutterId") == spiNum &&
+                    ?.basicData?.get("SPI_NUM") == spiNum &&
                 draft.id != currentSessionDraftId
             }?.id
         } else null
@@ -514,76 +514,6 @@ class MainActivity : AppCompatActivity(),
         currentWaypoints = sheet.getWaypoints()
         val wp = currentWaypoints.getOrNull(waypointIndex) ?: return
 
-        // ── API 編輯流程：若有 _nodeId，優先呼叫 nodeDetails 取得完整資料 ──────
-        val nodeId = wp.basicData["_nodeId"]?.toIntOrNull()
-        val token  = LoginActivity.getSavedToken(this)
-
-        if (nodeId != null && token != null) {
-            sheet.hideSelf()
-            binding.btnAddGutter.visibility = View.GONE
-
-            lifecycleScope.launch {
-                when (val result = gutterRepository.getNodeDetails(nodeId, token)) {
-                    is ApiResult.Success -> {
-                        val nd = result.data.data ?: run {
-                            Toast.makeText(this@MainActivity, "查無點位資料", Toast.LENGTH_SHORT).show()
-                            sheet.showSelf()
-                            binding.btnAddGutter.visibility = View.VISIBLE
-                            return@launch
-                        }
-                        val lat = nd.latitude?.toDoubleOrNull()
-                        val lng = nd.longitude?.toDoubleOrNull()
-                        val latLng = if (lat != null && lng != null) LatLng(lat, lng) else wp.latLng
-
-                        // 擷取照片：依 fileCategory (1,2,3) 填入 photo1,2,3
-                        val p1 = nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.url ?: ""
-                        val p2 = nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.url ?: ""
-                        val p3 = nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.url ?: ""
-
-                        val updatedData = hashMapOf(
-                            "_nodeId"    to nodeId.toString(),
-                            "gutterId"   to (wp.basicData["gutterId"] ?: ""),
-                            "gutterType" to (nd.nodeTyP?.takeIf { it.isNotEmpty() }?.let { spiTypToText(it) } ?: wp.basicData["gutterType"] ?: ""),
-                            "matTyp"     to (nd.matTyp?.takeIf { it.isNotEmpty() }?.let { matTypToText(it) } ?: wp.basicData["matTyp"] ?: ""),
-                            "coordX"     to (nd.nodeX   ?: wp.basicData["coordX"] ?: ""),
-                            "coordY"     to (nd.nodeY   ?: wp.basicData["coordY"] ?: ""),
-                            "coordZ"     to (nd.nodeLe  ?: wp.basicData["coordZ"] ?: ""),
-                            // nodeDepAsString / nodeWidAsString：API 回傳整數（Double?）→ 轉純數字字串
-                            "depth"      to nd.nodeDepAsString.ifEmpty { wp.basicData["depth"] ?: "" },
-                            "topWidth"   to nd.nodeWidAsString.ifEmpty { wp.basicData["topWidth"] ?: "" },
-                            "isBroken"   to (nd.isBroken?.takeIf { it.isNotEmpty() }?.let { isBrokenToText(it) } ?: wp.basicData["isBroken"] ?: ""),
-                            "isHanging"  to (nd.isHanging?.takeIf { it.isNotEmpty() }?.let { isHangingToText(it) } ?: wp.basicData["isHanging"] ?: ""),
-                            "isSilt"     to (nd.isSilt?.takeIf { it.isNotEmpty() }?.let { isSiltToText(it) } ?: wp.basicData["isSilt"] ?: ""),
-                            "remarks"    to (nd.note    ?: wp.basicData["remarks"] ?: ""),
-                            // XY_NUM（測量座標編號）
-                            "xyNum"      to (nd.xyNum   ?: wp.basicData["xyNum"]   ?: ""),
-                            "photo1"     to (p1.takeIf { it.isNotEmpty() } ?: wp.basicData["photo1"] ?: ""),
-                            "photo2"     to (p2.takeIf { it.isNotEmpty() } ?: wp.basicData["photo2"] ?: ""),
-                            "photo3"     to (p3.takeIf { it.isNotEmpty() } ?: wp.basicData["photo3"] ?: "")
-                        )
-
-                        if (latLng != null) {
-                            activeSheet?.updateWaypointLocation(waypointIndex, latLng)
-                        }
-                        activeSheet?.updateWaypointBasicData(waypointIndex, updatedData)
-
-                        currentWaypoints = activeSheet?.getWaypoints() ?: currentWaypoints
-                        val updatedWp = currentWaypoints.getOrNull(waypointIndex) ?: return@launch
-
-                        pendingWaypointFormIndex = waypointIndex
-                        if (latLng != null) highlightMarker(waypointIndex)
-                        openAddForm(waypointIndex, updatedWp, latLng ?: LatLng(0.0, 0.0), isEditMode = true)
-                    }
-                    is ApiResult.Error -> {
-                        Toast.makeText(this@MainActivity, "取得點位詳情失敗：${result.message}", Toast.LENGTH_SHORT).show()
-                        sheet.showSelf()
-                        binding.btnAddGutter.visibility = View.VISIBLE
-                    }
-                }
-            }
-            return
-        }
-
         // ── 新增流程：已有 WGS84 座標，直接開表單 ──────────────────────────
         val existingLatLng = wp.latLng
         if (existingLatLng != null) {
@@ -591,7 +521,7 @@ class MainActivity : AppCompatActivity(),
             highlightMarker(waypointIndex)
             sheet.hideSelf()
             binding.btnAddGutter.visibility = View.GONE
-            openAddForm(waypointIndex, wp, existingLatLng)
+            openAddForm(waypointIndex, wp, existingLatLng, isEditMode = sheet.isEditMode())
             return
         }
 
@@ -1182,19 +1112,19 @@ class MainActivity : AppCompatActivity(),
 
     private fun extractBasicData(data: Intent?): HashMap<String, String> =
         hashMapOf(
-            "gutterId"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_GUTTER_ID)   ?: ""),
-            "gutterType" to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_GUTTER_TYPE) ?: ""),
-            "matTyp"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_MAT_TYP)     ?: ""),
-            "coordX"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_X)     ?: ""),
-            "coordY"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Y)     ?: ""),
-            "coordZ"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Z)     ?: ""),
-            "xyNum"      to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_MEASURE_ID)  ?: ""),
-            "depth"      to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_DEPTH)       ?: ""),
-            "topWidth"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_TOP_WIDTH)   ?: ""),
-            "isBroken"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_BROKEN)   ?: ""),
-            "isHanging"  to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_HANGING)  ?: ""),
-            "isSilt"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_SILT)     ?: ""),
-            "remarks"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS)     ?: ""),
+            "SPI_NUM"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_GUTTER_ID)   ?: ""),
+            "NODE_TYP"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_GUTTER_TYPE) ?: ""),
+            "MAT_TYP"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_MAT_TYP)     ?: ""),
+            "NODE_X"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_X)     ?: ""),
+            "NODE_Y"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Y)     ?: ""),
+            "NODE_LE"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Z)     ?: ""),
+            "XY_NUM"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_MEASURE_ID)  ?: ""),
+            "NODE_DEP"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_DEPTH)       ?: ""),
+            "NODE_WID"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_TOP_WIDTH)   ?: ""),
+            "IS_BROKEN"  to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_BROKEN)   ?: ""),
+            "IS_HANGING" to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_HANGING)  ?: ""),
+            "IS_SILT"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_SILT)     ?: ""),
+            "NODE_NOTE"  to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS)     ?: ""),
             "photo1"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1)     ?: ""),
             "photo2"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2)     ?: ""),
             "photo3"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3)     ?: "")

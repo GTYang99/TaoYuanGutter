@@ -31,9 +31,9 @@ class PendingDraftAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val draft = items[position]
         with(holder.binding) {
-            // 標題：以 START waypoint 的 gutterId 作為序號；若未填寫則顯示流水序號
+            // 標題：以 START waypoint 的 SPI_NUM 作為序號；若未填寫則顯示流水序號
             val startWp = draft.waypoints.firstOrNull { it.type == "START" }
-            val gutterId = startWp?.basicData?.get("gutterId")?.takeIf { it.isNotEmpty() }
+            val gutterId = startWp?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() }
             tvPendingDraftTitle.text = gutterId ?: "草稿 #${position + 1}"
 
             // 副標題1：建立時間（精確到分）

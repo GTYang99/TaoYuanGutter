@@ -30,19 +30,19 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_IS_EDIT_MODE  = "is_edit_mode" // 新增：是否為編輯模式
 
         // basicData 個別 key
-        private const val ARG_DATA_GUTTER_ID   = "d_gutterId"
-        private const val ARG_DATA_GUTTER_TYPE = "d_gutterType"
-        private const val ARG_DATA_MAT_TYP     = "d_matTyp"
-        private const val ARG_DATA_COORD_X     = "d_coordX"
-        private const val ARG_DATA_COORD_Y     = "d_coordY"
-        private const val ARG_DATA_COORD_Z     = "d_coordZ"
-        private const val ARG_DATA_MEASURE_ID  = "d_measureId"
-        private const val ARG_DATA_DEPTH       = "d_depth"
-        private const val ARG_DATA_TOP_WIDTH   = "d_topWidth"
-        private const val ARG_DATA_IS_BROKEN   = "d_isBroken"
-        private const val ARG_DATA_IS_HANGING  = "d_isHanging"
-        private const val ARG_DATA_IS_SILT     = "d_isSilt"
-        private const val ARG_DATA_REMARKS     = "d_remarks"
+        private const val ARG_DATA_SPI_NUM     = "d_spi_num"
+        private const val ARG_DATA_NODE_TYP    = "d_node_typ"
+        private const val ARG_DATA_MAT_TYP     = "d_mat_typ"
+        private const val ARG_DATA_NODE_X      = "d_node_x"
+        private const val ARG_DATA_NODE_Y      = "d_node_y"
+        private const val ARG_DATA_NODE_LE     = "d_node_le"
+        private const val ARG_DATA_XY_NUM      = "d_xy_num"
+        private const val ARG_DATA_NODE_DEP    = "d_node_dep"
+        private const val ARG_DATA_NODE_WID    = "d_node_wid"
+        private const val ARG_DATA_IS_BROKEN   = "d_is_broken"
+        private const val ARG_DATA_IS_HANGING  = "d_is_hanging"
+        private const val ARG_DATA_IS_SILT     = "d_is_silt"
+        private const val ARG_DATA_NODE_NOTE   = "d_node_note"
 
         /** 側溝形式選項（NODE_TYP）*/
         val GUTTER_TYPES = listOf(
@@ -78,19 +78,19 @@ class GutterBasicInfoFragment : Fragment() {
                 putBoolean(ARG_VIEW_MODE, viewMode)
                 putBoolean(ARG_OFFLINE_MODE, isOfflineMode)
                 putBoolean(ARG_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
-                putString(ARG_DATA_GUTTER_ID,   basicData["gutterId"]   ?: "")
-                putString(ARG_DATA_GUTTER_TYPE, basicData["gutterType"] ?: "")
-                putString(ARG_DATA_MAT_TYP,     basicData["matTyp"]     ?: "")
-                putString(ARG_DATA_COORD_X,     basicData["coordX"]     ?: "")
-                putString(ARG_DATA_COORD_Y,     basicData["coordY"]     ?: "")
-                putString(ARG_DATA_COORD_Z,     basicData["coordZ"]     ?: "")
-                putString(ARG_DATA_MEASURE_ID,  basicData["xyNum"]      ?: "")
-                putString(ARG_DATA_DEPTH,       basicData["depth"]      ?: "")
-                putString(ARG_DATA_TOP_WIDTH,   basicData["topWidth"]   ?: "")
-                putString(ARG_DATA_IS_BROKEN,   basicData["isBroken"]   ?: "")
-                putString(ARG_DATA_IS_HANGING,  basicData["isHanging"]  ?: "")
-                putString(ARG_DATA_IS_SILT,     basicData["isSilt"]     ?: "")
-                putString(ARG_DATA_REMARKS,     basicData["remarks"]    ?: "")
+                putString(ARG_DATA_SPI_NUM,     basicData["SPI_NUM"]     ?: basicData["gutterId"] ?: "")
+                putString(ARG_DATA_NODE_TYP,    basicData["NODE_TYP"]    ?: basicData["gutterType"] ?: "")
+                putString(ARG_DATA_MAT_TYP,     basicData["MAT_TYP"]     ?: basicData["matTyp"] ?: "")
+                putString(ARG_DATA_NODE_X,      basicData["NODE_X"]      ?: basicData["coordX"] ?: "")
+                putString(ARG_DATA_NODE_Y,      basicData["NODE_Y"]      ?: basicData["coordY"] ?: "")
+                putString(ARG_DATA_NODE_LE,     basicData["NODE_LE"]     ?: basicData["coordZ"] ?: "")
+                putString(ARG_DATA_XY_NUM,      basicData["XY_NUM"]      ?: basicData["xyNum"] ?: "")
+                putString(ARG_DATA_NODE_DEP,    basicData["NODE_DEP"]    ?: basicData["depth"] ?: "")
+                putString(ARG_DATA_NODE_WID,    basicData["NODE_WID"]    ?: basicData["topWidth"] ?: "")
+                putString(ARG_DATA_IS_BROKEN,   basicData["IS_BROKEN"]   ?: basicData["isBroken"] ?: "")
+                putString(ARG_DATA_IS_HANGING,  basicData["IS_HANGING"]  ?: basicData["isHanging"] ?: "")
+                putString(ARG_DATA_IS_SILT,     basicData["IS_SILT"]     ?: basicData["isSilt"] ?: "")
+                putString(ARG_DATA_NODE_NOTE,   basicData["NODE_NOTE"]   ?: basicData["remarks"] ?: "")
             }
         }
     }
@@ -163,40 +163,40 @@ class GutterBasicInfoFragment : Fragment() {
     private fun prefillData() {
         val args = arguments ?: return
 
-        val gutterId   = args.getString(ARG_DATA_GUTTER_ID,   "")
-        val gutterType = args.getString(ARG_DATA_GUTTER_TYPE, "")
+        val spiNum     = args.getString(ARG_DATA_SPI_NUM,     "")
+        val nodeTyp    = args.getString(ARG_DATA_NODE_TYP,    "")
         val matTyp     = args.getString(ARG_DATA_MAT_TYP,     "")
-        val coordX     = args.getString(ARG_DATA_COORD_X,     "")
-        val coordY     = args.getString(ARG_DATA_COORD_Y,     "")
-        val coordZ     = args.getString(ARG_DATA_COORD_Z,     "")
-        val xyNum      = args.getString(ARG_DATA_MEASURE_ID,  "")
-        val depth      = args.getString(ARG_DATA_DEPTH,       "")
-        val topWidth   = args.getString(ARG_DATA_TOP_WIDTH,   "")
+        val nodeX      = args.getString(ARG_DATA_NODE_X,      "")
+        val nodeY      = args.getString(ARG_DATA_NODE_Y,      "")
+        val nodeLe     = args.getString(ARG_DATA_NODE_LE,     "")
+        val xyNum      = args.getString(ARG_DATA_XY_NUM,      "")
+        val nodeDep    = args.getString(ARG_DATA_NODE_DEP,    "")
+        val nodeWid    = args.getString(ARG_DATA_NODE_WID,    "")
         val isBroken   = args.getString(ARG_DATA_IS_BROKEN,   "")
         val isHanging  = args.getString(ARG_DATA_IS_HANGING,  "")
         val isSilt     = args.getString(ARG_DATA_IS_SILT,     "")
-        val remarks    = args.getString(ARG_DATA_REMARKS,     "")
+        val nodeNote   = args.getString(ARG_DATA_NODE_NOTE,   "")
 
         val hasAnyData = listOf(
-            gutterId, gutterType, matTyp, coordX, coordY, coordZ,
-            xyNum, depth, topWidth, isBroken, isHanging, isSilt, remarks
+            spiNum, nodeTyp, matTyp, nodeX, nodeY, nodeLe,
+            xyNum, nodeDep, nodeWid, isBroken, isHanging, isSilt, nodeNote
         ).any { it.isNotEmpty() }
 
         if (hasAnyData) {
-            binding.etGutterId.setText(gutterId)
-            binding.actvGutterType.setText(gutterType, false)
-            binding.actvMatType.setText(matTyp, false)
-            binding.etCoordX.setText(coordX)
-            binding.etCoordY.setText(coordY)
-            binding.etCoordZ.setText(coordZ)
+            binding.etGutterId.setText(spiNum)
+            binding.actvGutterType.setText(nodeTypCodeToText(nodeTyp), false)
+            binding.actvMatType.setText(matTypCodeToText(matTyp), false)
+            binding.etCoordX.setText(nodeX)
+            binding.etCoordY.setText(nodeY)
+            binding.etCoordZ.setText(nodeLe)
             binding.etMeasureId.setText(xyNum)
-            binding.etDepth.setText(depth)
-            binding.etTopWidth.setText(topWidth)
-            binding.actvIsBroken.setText(isBroken, false)
-            binding.actvIsHanging.setText(isHanging, false)
-            binding.actvIsSilt.setText(isSilt, false)
-            binding.etRemarks.setText(remarks)
-            if (coordX.isEmpty() && coordY.isEmpty()) prefillCoordinates()
+            binding.etDepth.setText(nodeDep)
+            binding.etTopWidth.setText(nodeWid)
+            binding.actvIsBroken.setText(isBrokenCodeToText(isBroken), false)
+            binding.actvIsHanging.setText(isHangingCodeToText(isHanging), false)
+            binding.actvIsSilt.setText(isSiltCodeToText(isSilt), false)
+            binding.etRemarks.setText(nodeNote)
+            if (nodeX.isEmpty() && nodeY.isEmpty()) prefillCoordinates()
         } else {
             prefillCoordinates()
         }
@@ -321,38 +321,35 @@ class GutterBasicInfoFragment : Fragment() {
      * @return 第一個未填或超出範圍的欄位提示字串；全部通過則回傳 null。
      */
     fun validateRequiredFields(): String? {
-        val args       = arguments ?: return null
-        val isEditMode = args.getBoolean(ARG_IS_EDIT_MODE)
         val d = collectData()
 
         // 新增與編輯模式均不驗證側溝編號（欄位已隱藏）
-        if (isEditMode && d["gutterId"].isNullOrEmpty())    return "側溝編號"
-        if (d["gutterType"].isNullOrEmpty())  return "側溝形式"
-        if (d["matTyp"].isNullOrEmpty())      return "側溝材質"
-        if (d["coordX"].isNullOrEmpty())      return "側溝X（E）座標"
-        if (d["coordY"].isNullOrEmpty())      return "側溝Y（N）座標"
-        if (d["coordZ"].isNullOrEmpty())      return "側溝Z座標"
-        if (d["xyNum"].isNullOrEmpty())        return "測量座標編號"
+        if (d["NODE_TYP"].isNullOrEmpty())    return "側溝形式"
+        if (d["MAT_TYP"].isNullOrEmpty())     return "側溝材質"
+        if (d["NODE_X"].isNullOrEmpty())      return "側溝X（E）座標"
+        if (d["NODE_Y"].isNullOrEmpty())      return "側溝Y（N）座標"
+        if (d["NODE_LE"].isNullOrEmpty())     return "側溝Z座標"
+        if (d["XY_NUM"].isNullOrEmpty())      return "測量座標編號"
 
         // ── NODE_DEP 深度必填 + 區間防呆 ─────────────────────────
-        if (d["depth"].isNullOrEmpty()) return "側溝測量深度"
-        val depth = d["depth"]!!.toDoubleOrNull()
+        if (d["NODE_DEP"].isNullOrEmpty()) return "側溝測量深度"
+        val depth = d["NODE_DEP"]!!.toDoubleOrNull()
         if (depth == null || depth <= 35.0 || depth >= 110.0) {
             binding.tilDepth.error = "合理區間：35～110 公分"
             return "側溝測量深度（合理區間：35～110 公分）"
         }
 
         // ── NODE_WID 頂寬必填 + 區間防呆 ─────────────────────────
-        if (d["topWidth"].isNullOrEmpty()) return "側溝頂寬度"
-        val topWidth = d["topWidth"]!!.toDoubleOrNull()
+        if (d["NODE_WID"].isNullOrEmpty()) return "側溝頂寬度"
+        val topWidth = d["NODE_WID"]!!.toDoubleOrNull()
         if (topWidth == null || topWidth <= 25.0) {
             binding.tilTopWidth.error = "需大於 25 公分"
             return "側溝頂寬度（需大於 25 公分）"
         }
 
-        if (d["isBroken"].isNullOrEmpty())    return "溝體結構受損"
-        if (d["isHanging"].isNullOrEmpty())   return "附掛或過路管線"
-        if (d["isSilt"].isNullOrEmpty())      return "淤積程度"
+        if (d["IS_BROKEN"].isNullOrEmpty())   return "溝體結構受損"
+        if (d["IS_HANGING"].isNullOrEmpty())  return "附掛或過路管線"
+        if (d["IS_SILT"].isNullOrEmpty())     return "淤積程度"
         return null
     }
 
@@ -400,18 +397,88 @@ class GutterBasicInfoFragment : Fragment() {
 
     /** 收集表單資料（供 GutterFormActivity 提交用） */
     fun collectData(): Map<String, String> = mapOf(
-        "gutterId"   to (binding.etGutterId.text?.toString()        ?: ""),
-        "gutterType" to (binding.actvGutterType.text?.toString()    ?: ""),
-        "matTyp"     to (binding.actvMatType.text?.toString()       ?: ""),
-        "coordX"     to (binding.etCoordX.text?.toString()          ?: ""),
-        "coordY"     to (binding.etCoordY.text?.toString()          ?: ""),
-        "coordZ"     to (binding.etCoordZ.text?.toString()          ?: ""),
-        "xyNum"      to (binding.etMeasureId.text?.toString()        ?: ""),
-        "depth"      to (binding.etDepth.text?.toString()           ?: ""),
-        "topWidth"   to (binding.etTopWidth.text?.toString()        ?: ""),
-        "isBroken"   to (binding.actvIsBroken.text?.toString()      ?: ""),
-        "isHanging"  to (binding.actvIsHanging.text?.toString()     ?: ""),
-        "isSilt"     to (binding.actvIsSilt.text?.toString()        ?: ""),
-        "remarks"    to (binding.etRemarks.text?.toString()         ?: "")
+        "SPI_NUM"     to (binding.etGutterId.text?.toString()      ?: ""),
+        "NODE_TYP"    to gutterTypeTextToCode(binding.actvGutterType.text?.toString()),
+        "MAT_TYP"     to matTypeTextToCode(binding.actvMatType.text?.toString()),
+        "NODE_X"      to (binding.etCoordX.text?.toString()        ?: ""),
+        "NODE_Y"      to (binding.etCoordY.text?.toString()        ?: ""),
+        "NODE_LE"     to (binding.etCoordZ.text?.toString()        ?: ""),
+        "XY_NUM"      to (binding.etMeasureId.text?.toString()     ?: ""),
+        "NODE_DEP"    to (binding.etDepth.text?.toString()         ?: ""),
+        "NODE_WID"    to (binding.etTopWidth.text?.toString()      ?: ""),
+        "IS_BROKEN"   to brokenTextToCode(binding.actvIsBroken.text?.toString()),
+        "IS_HANGING"  to hangingTextToCode(binding.actvIsHanging.text?.toString()),
+        "IS_SILT"     to siltTextToCode(binding.actvIsSilt.text?.toString()),
+        "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: "")
     )
+
+    private fun nodeTypCodeToText(code: String?): String = when (code) {
+        "1" -> GUTTER_TYPES[0]
+        "2" -> GUTTER_TYPES[1]
+        "3" -> GUTTER_TYPES[2]
+        "4" -> GUTTER_TYPES[3]
+        else -> code ?: ""
+    }
+
+    private fun matTypCodeToText(code: String?): String = when (code) {
+        "1" -> MAT_TYPES[0]
+        "2" -> MAT_TYPES[1]
+        "3" -> MAT_TYPES[2]
+        else -> code ?: ""
+    }
+
+    private fun isBrokenCodeToText(code: String?): String = when (code) {
+        "0" -> BROKEN_OPTIONS[0]
+        "1" -> BROKEN_OPTIONS[1]
+        else -> code ?: ""
+    }
+
+    private fun isHangingCodeToText(code: String?): String = when (code) {
+        "0" -> HANGING_OPTIONS[0]
+        "1" -> HANGING_OPTIONS[1]
+        else -> code ?: ""
+    }
+
+    private fun isSiltCodeToText(code: String?): String = when (code) {
+        "0" -> SILT_OPTIONS[0]
+        "1" -> SILT_OPTIONS[1]
+        "2" -> SILT_OPTIONS[2]
+        "3" -> SILT_OPTIONS[3]
+        else -> code ?: ""
+    }
+
+    private fun gutterTypeTextToCode(text: String?): String = when (text) {
+        GUTTER_TYPES[0] -> "1"
+        GUTTER_TYPES[1] -> "2"
+        GUTTER_TYPES[2] -> "3"
+        GUTTER_TYPES[3] -> "4"
+        else -> text ?: ""
+    }
+
+    private fun matTypeTextToCode(text: String?): String = when (text) {
+        MAT_TYPES[0] -> "1"
+        MAT_TYPES[1] -> "2"
+        MAT_TYPES[2] -> "3"
+        else -> text ?: ""
+    }
+
+    private fun brokenTextToCode(text: String?): String = when (text) {
+        BROKEN_OPTIONS[0] -> "0"
+        BROKEN_OPTIONS[1] -> "1"
+        else -> text ?: ""
+    }
+
+    private fun hangingTextToCode(text: String?): String = when (text) {
+        HANGING_OPTIONS[0] -> "0"
+        HANGING_OPTIONS[1] -> "1"
+        else -> text ?: ""
+    }
+
+    private fun siltTextToCode(text: String?): String = when (text) {
+        SILT_OPTIONS[0] -> "0"
+        SILT_OPTIONS[1] -> "1"
+        SILT_OPTIONS[2] -> "2"
+        SILT_OPTIONS[3] -> "3"
+        else -> text ?: ""
+    }
 }

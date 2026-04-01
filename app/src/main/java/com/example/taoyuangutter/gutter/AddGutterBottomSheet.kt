@@ -101,6 +101,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      * 作為「是否有修改」的基準。
      */
     private var originalWaypointsSnapshot: List<WaypointSnapshot> = emptyList()
+    /** 編輯模式預載 node details 中，阻擋再次抓取與提交流程。 */
+    private var isPreloadingEditDetails: Boolean = false
 
     /** iOS 風格左滑：目前已展開「刪除」按鈕的 item position，-1 代表無 */
     private var openedSwipePosition: Int = -1
@@ -245,6 +247,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         setupRecyclerView()
         setupButtons()
         setupTitle()
+
+        if (editSpiNum.isNotEmpty()) {
+            preloadEditWaypointDetails()
+        }
     }
 
     override fun onStart() {
@@ -377,8 +383,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 (requireActivity() as? LocationPickerHost)
                     ?.openWaypointForInspect(this, position)
             } else if (editSpiNum.isNotEmpty()) {
-                // 編輯模式（從 GutterInspectActivity 跳轉）：
-                // 以 _nodeId 呼叫 nodeDetails API 取得完整資料後開表單
+                // 編輯模式：直接編輯進場時已預載完成的 waypoint 資料
                 (requireActivity() as? LocationPickerHost)
                     ?.openWaypointForEdit(this, position)
             } else {
@@ -561,9 +566,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             //binding.btnAddNode.visibility = View.GONE
             binding.btnDeleteGutter.visibility = View.VISIBLE
             binding.btnSubmitGutter.text = "更新側溝"
-
-            // 以目前 API 回填的 waypoints 作為基準快照，初始化時按鈕為禁用狀態
-            originalWaypointsSnapshot = takeWaypointSnapshot()
             updateSubmitButtonState()
 
             binding.btnDeleteGutter.setOnClickListener {
@@ -606,10 +608,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
 
                 // ② 自動移除「未選座標」或「資料不完整」的節點
-                // 必填欄位：gutterId、gutterType、coordX、coordY、coordZ、xyNum、depth、topWidth
+                // 必填欄位：NODE_TYP、MAT_TYP、NODE_X、NODE_Y、NODE_LE、XY_NUM、NODE_DEP、NODE_WID
                 // 照片：三張都需拍攝（photo1/2/3 均非空）
                 val requiredBasicKeys = listOf(
-                    "gutterType", "coordX", "coordY", "coordZ", "xyNum", "depth", "topWidth"
+                    "NODE_TYP", "MAT_TYP", "NODE_X", "NODE_Y", "NODE_LE", "XY_NUM", "NODE_DEP", "NODE_WID"
                 )
                 val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
                 val validWaypoints = waypoints.filter { wp ->
@@ -642,6 +644,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 // 呼叫 storeDitch（不帶 SPI_NUM，由後端分配）
                 activity.lifecycleScope.launch {
                     val request = buildStoreDitchRequest(validWaypoints, null)
+                    android.util.Log.d("StoreDitch", "add request=$request")
                     when (val result = repository.storeDitch(request, token)) {
                         is ApiResult.Success -> {
                             val nodes = result.data.data?.nodes ?: emptyList()
@@ -649,6 +652,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 ?.onGutterSaved(null, validWaypoints, nodes)
                         }
                         is ApiResult.Error -> {
+                            android.util.Log.e(
+                                "StoreDitch",
+                                "add failed: message=${result.message}, code=${result.code}"
+                            )
                             Toast.makeText(activity, "上傳失敗，已儲存為待上傳草稿", Toast.LENGTH_LONG).show()
                             (activity as? LocationPickerHost)
                                 ?.onGutterSaveFailed(validWaypoints)
@@ -690,19 +697,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         binding.btnSubmitGutter.text = "更新中…"
 
         lifecycleScope.launch {
-            // ① 補齊缺少 xyNum 的既有節點（使用者未逐一開啟編輯時）
-            waypoints.forEach { wp ->
-                val nodeId = wp.basicData["_nodeId"]?.toIntOrNull() ?: return@forEach
-                if (wp.basicData["xyNum"].isNullOrEmpty()) {
-                    val nd = repository.getNodeDetails(nodeId, token)
-                    if (nd is ApiResult.Success) {
-                        wp.basicData["xyNum"] = nd.data.data?.xyNum ?: ""
-                    }
-                }
+            if (isPreloadingEditDetails) {
+                Toast.makeText(requireContext(), "點位資料載入中，請稍候", Toast.LENGTH_SHORT).show()
+                updateSubmitButtonState()
+                return@launch
             }
 
-            // ② 建立請求並呼叫 storeDitch（帶 SPI_NUM）
+            // 建立請求並呼叫 storeDitch（帶 SPI_NUM）
             val request = buildStoreDitchRequest(waypoints.toList(), editSpiNum)
+            android.util.Log.d("StoreDitch", "edit request=$request")
             when (val result = repository.storeDitch(request, token)) {
                 is ApiResult.Success -> {
                     val nodes = result.data.data?.nodes ?: emptyList()
@@ -713,6 +716,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     dismiss()
                 }
                 is ApiResult.Error -> {
+                    android.util.Log.e(
+                        "StoreDitch",
+                        "edit failed: message=${result.message}, code=${result.code}"
+                    )
                     Toast.makeText(
                         requireContext(),
                         "更新失敗：${result.message}",
@@ -767,6 +774,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      */
     private fun hasEditChanges(): Boolean {
         if (editSpiNum.isEmpty()) return false
+        if (isPreloadingEditDetails) return false
         if (waypoints.size != originalWaypointsSnapshot.size) return true
         waypoints.forEachIndexed { i, wp ->
             val orig = originalWaypointsSnapshot[i]
@@ -784,9 +792,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      */
     private fun updateSubmitButtonState() {
         if (editSpiNum.isEmpty() || _binding == null) return
-        val hasChanges = hasEditChanges()
-        binding.btnSubmitGutter.isEnabled = hasChanges
-        val tint = if (hasChanges)
+        val enabled = !isPreloadingEditDetails && hasEditChanges()
+        binding.btnSubmitGutter.isEnabled = enabled
+        val tint = if (enabled)
             androidx.core.content.ContextCompat.getColor(requireContext(), com.example.taoyuangutter.R.color.colorPrimary)
         else
             android.graphics.Color.parseColor("#9E9E9E")
@@ -810,12 +818,88 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     /** 將表單填寫的基本資料存回對應的 waypoint（供新增流程返回後呼叫） */
     fun updateWaypointBasicData(index: Int, data: HashMap<String, String>) {
         if (index in waypoints.indices) {
-            waypoints[index].basicData = data
+            val merged = HashMap(waypoints[index].basicData)
+            merged.putAll(data)
+            waypoints[index].basicData = merged
             adapter.notifyItemChanged(index)
             // 表單填寫完成後同樣通知 onWaypointsChanged，讓 MainActivity 觸發自動存檔
             onWaypointsChanged?.invoke(waypoints.toList())
             updateSubmitButtonState()
         }
+    }
+
+    private fun preloadEditWaypointDetails() {
+        val token = LoginActivity.getSavedToken(requireContext()) ?: return
+        isPreloadingEditDetails = true
+        setEditLoading(true)
+
+        lifecycleScope.launch {
+            var hasError = false
+            waypoints.forEachIndexed { index, wp ->
+                val nodeId = wp.basicData["_nodeId"]?.toIntOrNull() ?: return@forEachIndexed
+                when (val result = repository.getNodeDetails(nodeId, token)) {
+                    is ApiResult.Success -> {
+                        val nd = result.data.data?.firstOrNull() ?: return@forEachIndexed
+                        val lat = nd.latitude?.toDoubleOrNull()
+                        val lng = nd.longitude?.toDoubleOrNull()
+                        if (lat != null && lng != null) {
+                            waypoints[index].latLng = LatLng(lat, lng)
+                        }
+
+                        val p1 = nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.url ?: ""
+                        val p2 = nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.url ?: ""
+                        val p3 = nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.url ?: ""
+
+                        val merged = HashMap(waypoints[index].basicData).apply {
+                            put("_nodeId", nodeId.toString())
+                            put("SPI_NUM", get("SPI_NUM") ?: editSpiNum)
+                            put("NODE_TYP", nd.nodeTyP ?: get("NODE_TYP") ?: "")
+                            put("MAT_TYP", nd.matTyp ?: get("MAT_TYP") ?: "")
+                            put("NODE_X", nd.longitude ?: get("NODE_X") ?: "")
+                            put("NODE_Y", nd.latitude ?: get("NODE_Y") ?: "")
+                            put("NODE_LE", nd.nodeLe ?: get("NODE_LE") ?: "")
+                            put("XY_NUM", nd.xyNum ?: get("XY_NUM") ?: "")
+                            put("NODE_DEP", nd.nodeDepAsString.ifEmpty { get("NODE_DEP") ?: "" })
+                            put("NODE_WID", nd.nodeWidAsString.ifEmpty { get("NODE_WID") ?: "" })
+                            put("IS_BROKEN", nd.isBroken ?: get("IS_BROKEN") ?: "")
+                            put("IS_HANGING", nd.isHanging ?: get("IS_HANGING") ?: "")
+                            put("IS_SILT", nd.isSilt ?: get("IS_SILT") ?: "")
+                            put("NODE_NOTE", nd.note ?: get("NODE_NOTE") ?: "")
+                            if (p1.isNotEmpty()) put("photo1", p1)
+                            if (p2.isNotEmpty()) put("photo2", p2)
+                            if (p3.isNotEmpty()) put("photo3", p3)
+                        }
+                        waypoints[index].basicData = merged
+                    }
+                    is ApiResult.Error -> {
+                        hasError = true
+                        android.util.Log.e(
+                            "AddGutterSheet",
+                            "preload node details failed: nodeId=$nodeId, message=${result.message}, code=${result.code}"
+                        )
+                    }
+                }
+            }
+
+            adapter.notifyDataSetChanged()
+            originalWaypointsSnapshot = takeWaypointSnapshot()
+            isPreloadingEditDetails = false
+            setEditLoading(false)
+            onWaypointsChanged?.invoke(waypoints.toList())
+            updateSubmitButtonState()
+
+            if (hasError) {
+                Toast.makeText(requireContext(), "部分點位資料載入失敗", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setEditLoading(show: Boolean) {
+        if (_binding == null) return
+        binding.loadingOverlay.visibility = if (show) View.VISIBLE else View.GONE
+        binding.btnAddNode.isEnabled = !show
+        binding.btnDeleteGutter.isEnabled = !show
+        binding.rvWaypoints.isEnabled = !show
     }
 
     /** 清除指定點位的座標與基本資料（使用者放棄填寫時呼叫） */
@@ -837,32 +921,37 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun buildStoreDitchRequest(
         waypoints: List<Waypoint>,
         spiNum: String? = null
-    ): StoreDitchRequest = StoreDitchRequest(
-        spiNum = spiNum,
-        nodes  = waypoints.mapIndexed { idx, wp ->
-            StoreDitchNodeRequest(
-                nodeId    = wp.basicData["_nodeId"]?.toIntOrNull(),
-                nodeAtt   = when (wp.type) {
+    ): StoreDitchRequest {
+        var nodeSequence = 1
+
+        return StoreDitchRequest(
+            spiNum = spiNum,
+            nodes = waypoints.map { wp ->
+                val nodeAtt = when (wp.type) {
                     WaypointType.START -> 1
                     WaypointType.NODE  -> 2
                     WaypointType.END   -> 3
-                },
-                nodeNum   = idx.toString(),
-                nodeTyp   = wp.basicData["gutterType"]?.toIntOrNull() ?: 1,
-                matTyp    = wp.basicData["matTyp"]?.toIntOrNull() ?: 1,
-                latitude  = wp.latLng?.latitude  ?: 0.0,
-                longitude = wp.latLng?.longitude ?: 0.0,
-                nodeLe    = wp.basicData["coordZ"]?.toDoubleOrNull() ?: 0.0,
-                xyNum     = wp.basicData["xyNum"] ?: "",
-                nodeDep   = wp.basicData["depth"]?.toIntOrNull() ?: 0,
-                nodeWid   = wp.basicData["topWidth"]?.toIntOrNull() ?: 0,
-                isBroken  = wp.basicData["isBroken"]?.let { it == "true" || it == "1" || it == "是" } ?: false,
-                isHanging = wp.basicData["isHanging"]?.let { it == "true" || it == "1" || it == "有" } ?: false,
-                isSilt    = wp.basicData["isSilt"]?.toIntOrNull() ?: 0,
-                nodeNote  = wp.basicData["remarks"]?.takeIf { it.isNotEmpty() }
-            )
-        }
-    )
+                }
+                StoreDitchNodeRequest(
+                    nodeId    = wp.basicData["_nodeId"]?.toIntOrNull(),
+                    nodeAtt   = nodeAtt,
+                    nodeNum   = if (nodeAtt == 2) nodeSequence++ else null,
+                    nodeTyp   = wp.basicData["NODE_TYP"]?.toIntOrNull() ?: 1,
+                    matTyp    = wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1,
+                    latitude  = wp.latLng?.latitude  ?: 0.0,
+                    longitude = wp.latLng?.longitude ?: 0.0,
+                    nodeLe    = null,
+                    xyNum     = wp.basicData["XY_NUM"] ?: "",
+                    nodeDep   = wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0,
+                    nodeWid   = wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0,
+                    isBroken  = wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0,
+                    isHanging = wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0,
+                    isSilt    = wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0,
+                    nodeNote  = wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() }
+                )
+            }
+        )
+    }
 
     // ── Companion ────────────────────────────────────────────────────────
     companion object {

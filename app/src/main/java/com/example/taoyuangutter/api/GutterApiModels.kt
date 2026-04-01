@@ -261,7 +261,7 @@ data class NodeImageUrl(
 data class NodeDetailsResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String?,
-    @SerializedName("data")    val data: NodeDetails?,
+    @SerializedName("data")    val data: List<NodeDetails>?,
     @SerializedName("errors")  val errors: Map<String, List<String>>?
 )
 
@@ -363,22 +363,22 @@ data class StoreDitchNodeRequest(
     @SerializedName("node_id")    val nodeId: Int?     = null,
     /** 點位屬性：1=起點、2=節點、3=終點 */
     @SerializedName("NODE_ATT")   val nodeAtt: Int,
-    @SerializedName("NODE_NUM")   val nodeNum: String? = null,
+    @SerializedName("NODE_NUM")   val nodeNum: Int? = null,
     /** 側溝型式：1=U型溝(明溝)、2=U型溝(加蓋)、3=L型溝與暗溝渠併用、4=其他 */
     @SerializedName("NODE_TYP")   val nodeTyp: Int,
     /** 側溝材質：1=混凝土、2=卵礫石、3=紅磚 */
     @SerializedName("MAT_TYP")    val matTyp: Int,
     @SerializedName("latitude")   val latitude: Double,
     @SerializedName("longitude")  val longitude: Double,
-    /** 高程（Z 值） */
-    @SerializedName("NODE_LE")    val nodeLe: Double,
+    /** 高程（Z 值）；目前依 API 規則固定送 null */
+    @SerializedName("NODE_LE")    val nodeLe: Double?,
     @SerializedName("XY_NUM")     val xyNum: String,
     /** 深度（公分） */
     @SerializedName("NODE_DEP")   val nodeDep: Int,
     /** 寬度（公分） */
     @SerializedName("NODE_WID")   val nodeWid: Int,
-    @SerializedName("IS_BROKEN")  val isBroken: Boolean,
-    @SerializedName("IS_HANGING") val isHanging: Boolean,
+    @SerializedName("IS_BROKEN")  val isBroken: Int,
+    @SerializedName("IS_HANGING") val isHanging: Int,
     /** 淤積程度：0=無、1=輕度、2=中度、3=嚴重 */
     @SerializedName("IS_SILT")    val isSilt: Int,
     /** 補充說明（非必填） */
