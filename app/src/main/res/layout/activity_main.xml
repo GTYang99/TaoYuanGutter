@@ -72,18 +72,6 @@
         app:layout_constraintTop_toBottomOf="@id/btnLogout"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <!-- 草稿紀錄按鈕 -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/btnViewDrafts"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:contentDescription="@string/unupload_data"
-            android:src="@drawable/ic_tabler_cloud"
-            app:backgroundTint="@color/white"
-            app:tint="@color/colorPrimary"
-            app:fabSize="mini" />
-
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnLegend"
             android:layout_width="wrap_content"
@@ -102,6 +90,18 @@
             android:layout_marginBottom="12dp"
             android:contentDescription="@string/layers_title"
             android:src="@drawable/ic_bx_layer"
+            app:backgroundTint="@color/white"
+            app:tint="@color/colorPrimary"
+            app:fabSize="mini" />
+
+        <!-- 草稿紀錄按鈕 -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnViewDrafts"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:contentDescription="@string/unupload_data"
+            android:src="@drawable/ic_tabler_cloud"
             app:backgroundTint="@color/white"
             app:tint="@color/colorPrimary"
             app:fabSize="mini" />

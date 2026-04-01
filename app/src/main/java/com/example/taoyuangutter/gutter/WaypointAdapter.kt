@@ -7,7 +7,9 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.graphics.ColorUtils
 import com.example.taoyuangutter.databinding.ItemWaypointBinding
+import com.google.android.material.color.MaterialColors
 
 class WaypointAdapter(
     private val items: MutableList<Waypoint>,
@@ -44,10 +46,42 @@ class WaypointAdapter(
         // 節點標籤
         holder.binding.tvWaypointLabel.text = item.label
 
-        // 座標提示文字
-        holder.binding.tvWaypointHint.text = item.latLng?.let {
-            "%.5f, %.5f".format(it.latitude, it.longitude)
-        } ?: "點選以設定位置"
+        // 狀態 badge：暫無資料 / 已填寫資料
+        val requiredBasicKeys = listOf(
+            "NODE_TYP", "MAT_TYP", "NODE_X", "NODE_Y", "XY_NUM", "NODE_DEP", "NODE_WID",
+            "IS_BROKEN", "IS_HANGING", "IS_SILT"
+        )
+        val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
+        val hasFilledData =
+            requiredBasicKeys.all { item.basicData[it]?.isNotEmpty() == true } &&
+                requiredPhotoKeys.all { item.basicData[it]?.isNotEmpty() == true }
+
+        val statusView = holder.binding.tvWaypointStatus
+        if (hasFilledData) {
+            statusView.text = "已填寫資料"
+            // 淺紫底：用既有 theme 的 colorPrimary 做 alpha 淡化
+            val primary = MaterialColors.getColor(
+                holder.itemView,
+                com.google.android.material.R.attr.colorPrimary,
+                Color.parseColor("#6236FF")
+            )
+            val bg = ColorUtils.setAlphaComponent(primary, (0.12f * 255).toInt())
+            val fg = primary
+            statusView.backgroundTintList = android.content.res.ColorStateList.valueOf(bg)
+            statusView.setTextColor(fg)
+        } else {
+            statusView.text = "暫無資料"
+            val bg = ColorUtils.setAlphaComponent(
+                MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOnSurface, Color.BLACK),
+                (0.06f * 255).toInt()
+            )
+            val fg = ColorUtils.setAlphaComponent(
+                MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOnSurface, Color.BLACK),
+                (0.72f * 255).toInt()
+            )
+            statusView.backgroundTintList = android.content.res.ColorStateList.valueOf(bg)
+            statusView.setTextColor(fg)
+        }
 
         // 連接線：第一個隱藏上半，最後一個隱藏下半
         holder.binding.viewLineTop.visibility    = if (isFirst) View.INVISIBLE else View.VISIBLE

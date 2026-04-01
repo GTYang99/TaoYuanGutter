@@ -68,13 +68,14 @@
 
         </FrameLayout>
 
-        <!-- 文字區塊 -->
+        <!-- 文字區塊：左側標籤 + 狀態 badge（緊貼左側文字） -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <TextView
                 android:id="@+id/tvWaypointLabel"
@@ -85,13 +86,15 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tvWaypointHint"
+                android:id="@+id/tvWaypointStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:text="點選以設定位置"
-                android:textColor="@color/hint_grey"
-                android:textSize="12sp" />
+                android:layout_marginStart="10dp"
+                android:background="@color/border_grey"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="6dp"
+                android:text="暫無資料"
+                android:textSize="13sp" />
 
         </LinearLayout>
 
