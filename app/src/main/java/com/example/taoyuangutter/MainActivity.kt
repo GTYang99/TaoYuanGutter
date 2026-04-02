@@ -38,6 +38,8 @@ import com.example.taoyuangutter.gutter.GutterInspectActivity
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.LoginActivity
+import com.example.taoyuangutter.map.LayersBottomSheet
+import com.example.taoyuangutter.map.LegendBottomSheet
 import com.example.taoyuangutter.offline.OfflineDraftsActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -68,7 +70,8 @@ import java.net.URL
 
 class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
-    AddGutterBottomSheet.LocationPickerHost {
+    AddGutterBottomSheet.LocationPickerHost,
+    LayersBottomSheet.Host {
 
     private enum class MapMode { EMAP, PHOTO2 }
 
@@ -1227,41 +1230,24 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun showMapTypeDialog() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_layers, null)
-        val dialog = AlertDialog.Builder(this).setView(dialogView).create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-
-        val ivRadioNormal    = dialogView.findViewById<android.widget.ImageView>(R.id.icRadioNormal)
-        val ivRadioSatellite = dialogView.findViewById<android.widget.ImageView>(R.id.icRadioSatellite)
-
-        fun updateRadio(mode: MapMode) {
-            ivRadioNormal.setImageResource(
-                if (mode == MapMode.EMAP) R.drawable.ic_radio_checked else R.drawable.ic_radio_unchecked
-            )
-            ivRadioSatellite.setImageResource(
-                if (mode == MapMode.PHOTO2) R.drawable.ic_radio_checked else R.drawable.ic_radio_unchecked
-            )
+        val selected = when (currentMapMode) {
+            MapMode.EMAP -> LayersBottomSheet.LAYER_EMAP
+            MapMode.PHOTO2 -> LayersBottomSheet.LAYER_PHOTO2
         }
-        updateRadio(currentMapMode)
-
-        dialogView.findViewById<android.view.View>(R.id.rowNormalMap).setOnClickListener {
-            setMapTiles(MapMode.EMAP)
-            updateRadio(MapMode.EMAP)
-            dialog.dismiss()
-        }
-        dialogView.findViewById<android.view.View>(R.id.rowSatelliteMap).setOnClickListener {
-            setMapTiles(MapMode.PHOTO2)
-            updateRadio(MapMode.PHOTO2)
-            dialog.dismiss()
-        }
-        dialog.show()
+        LayersBottomSheet.newInstance(selected)
+            .show(supportFragmentManager, "LayersBottomSheet")
     }
 
     private fun showLegendDialog() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_legend, null)
-        val dialog = AlertDialog.Builder(this).setView(dialogView).create()
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
-        dialog.show()
+        LegendBottomSheet()
+            .show(supportFragmentManager, "LegendBottomSheet")
+    }
+
+    override fun onLayerSelected(layer: String) {
+        when (layer) {
+            LayersBottomSheet.LAYER_EMAP -> setMapTiles(MapMode.EMAP)
+            LayersBottomSheet.LAYER_PHOTO2 -> setMapTiles(MapMode.PHOTO2)
+        }
     }
 
     private fun extractBasicData(data: Intent?): HashMap<String, String> =
