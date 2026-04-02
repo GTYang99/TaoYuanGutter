@@ -78,36 +78,6 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- ③ 側溝材質 ─────────────────────────────────────────────────── -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="側溝材質"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilMatType"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
-
-            <AutoCompleteTextView
-                android:id="@+id/actvMatType"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="none"
-                android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
         <!-- ④ 側溝X（E）座標 ────────────────────────────────────── -->
         <TextView
             android:layout_width="match_parent"
@@ -229,13 +199,28 @@
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- ⑦ 側溝測量深度 ──────────────────────────────────────── -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝測量深度（公分）"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="側溝測量深度（公分）"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbCantOpen"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:buttonTint="@color/colorPrimary"
+                android:text="無法開蓋" />
+        </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilDepth"
@@ -288,6 +273,36 @@
                 android:layout_height="wrap_content"
                 android:inputType="number"
                 android:digits="0123456789"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ③ 側溝材質 ─────────────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="側溝材質"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilMatType"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <AutoCompleteTextView
+                android:id="@+id/actvMatType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="none"
                 android:textColor="@color/textColorPrimary"
                 android:paddingTop="14dp"
                 android:paddingBottom="14dp" />

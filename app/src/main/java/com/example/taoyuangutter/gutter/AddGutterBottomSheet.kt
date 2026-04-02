@@ -862,6 +862,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             put("XY_NUM", nd.xyNum ?: get("XY_NUM") ?: "")
                             put("NODE_DEP", nd.nodeDepAsString.ifEmpty { get("NODE_DEP") ?: "" })
                             put("NODE_WID", nd.nodeWidAsString.ifEmpty { get("NODE_WID") ?: "" })
+                            put("IS_CANTOPEN", if (nd.isCantOpenAsBoolean) "1" else "0")
                             put("IS_BROKEN", nd.isBroken ?: get("IS_BROKEN") ?: "")
                             put("IS_HANGING", nd.isHanging ?: get("IS_HANGING") ?: "")
                             put("IS_SILT", nd.isSilt ?: get("IS_SILT") ?: "")
@@ -924,6 +925,13 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         spiNum: String? = null
     ): StoreDitchRequest {
         var nodeSequence = 1
+        fun parseLooseBoolean(raw: String?): Boolean {
+            val v = raw?.trim()?.lowercase()
+            return when (v) {
+                "1", "true", "t", "y", "yes" -> true
+                else -> false
+            }
+        }
 
         return StoreDitchRequest(
             spiNum = spiNum,
@@ -933,6 +941,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     WaypointType.NODE  -> 2
                     WaypointType.END   -> 3
                 }
+                val isCantOpenBool = parseLooseBoolean(wp.basicData["IS_CANTOPEN"])
+                val isCantOpenInt = if (isCantOpenBool) 1 else 0
                 StoreDitchNodeRequest(
                     nodeId    = wp.basicData["_nodeId"]?.toIntOrNull(),
                     nodeAtt   = nodeAtt,
@@ -941,8 +951,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     matTyp    = wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1,
                     latitude  = wp.latLng?.latitude  ?: 0.0,
                     longitude = wp.latLng?.longitude ?: 0.0,
-                    nodeLe    = null,
+                    nodeLe    = wp.basicData["NODE_LE"]?.toDoubleOrNull(),
                     xyNum     = wp.basicData["XY_NUM"] ?: "",
+                    isCantOpen = isCantOpenInt,
                     nodeDep   = wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0,
                     nodeWid   = wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0,
                     isBroken  = wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0,

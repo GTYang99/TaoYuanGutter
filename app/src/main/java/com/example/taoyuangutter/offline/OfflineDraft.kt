@@ -16,6 +16,8 @@ data class OfflineDraft(
     val gutterId:   String = "",
     val gutterType: String = "",
     val matTyp:     String = "",   // 側溝材質：混凝土/卵礫石/紅磚
+    /** 無法開蓋：0/1（送出 API 時轉為 boolean） */
+    val isCantOpen: String = "",
     val coordX:     String = "",   // 待匯入，預設 "0.0"
     val coordY:     String = "",   // 待匯入，預設 "0.0"
     val coordZ:     String = "",

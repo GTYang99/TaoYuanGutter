@@ -23,6 +23,7 @@ class GutterBasicInfoFragment : Fragment() {
     private val binding get() = _binding!!
     var onDraftChanged: (() -> Unit)? = null
     var onRequestLocationPick: (() -> Unit)? = null
+    private var isFormEditable: Boolean = true
 
     companion object {
         private const val ARG_LAT          = "latitude"
@@ -44,6 +45,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_DATA_IS_BROKEN   = "d_is_broken"
         private const val ARG_DATA_IS_HANGING  = "d_is_hanging"
         private const val ARG_DATA_IS_SILT     = "d_is_silt"
+        private const val ARG_DATA_IS_CANTOPEN = "d_is_cantopen"
         private const val ARG_DATA_NODE_NOTE   = "d_node_note"
 
         /** 側溝形式選項（NODE_TYP）*/
@@ -92,6 +94,7 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_DATA_IS_BROKEN,   basicData["IS_BROKEN"]   ?: basicData["isBroken"] ?: "")
                 putString(ARG_DATA_IS_HANGING,  basicData["IS_HANGING"]  ?: basicData["isHanging"] ?: "")
                 putString(ARG_DATA_IS_SILT,     basicData["IS_SILT"]     ?: basicData["isSilt"] ?: "")
+                putString(ARG_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: basicData["isCantOpen"] ?: "")
                 putString(ARG_DATA_NODE_NOTE,   basicData["NODE_NOTE"]   ?: basicData["remarks"] ?: "")
             }
         }
@@ -124,6 +127,7 @@ class GutterBasicInfoFragment : Fragment() {
         prefillData()
         setupReadOnlyCoordinates()
         setEditable(!isViewMode)
+        setupCantOpen()
         setupRangeWatchers()
         setupDraftWatchers()
         setupCoordinatePickers()
@@ -185,11 +189,12 @@ class GutterBasicInfoFragment : Fragment() {
         val isBroken   = args.getString(ARG_DATA_IS_BROKEN,   "")
         val isHanging  = args.getString(ARG_DATA_IS_HANGING,  "")
         val isSilt     = args.getString(ARG_DATA_IS_SILT,     "")
+        val isCantOpen = args.getString(ARG_DATA_IS_CANTOPEN, "")
         val nodeNote   = args.getString(ARG_DATA_NODE_NOTE,   "")
 
         val hasAnyData = listOf(
             spiNum, nodeTyp, matTyp, nodeX, nodeY, nodeLe,
-            xyNum, nodeDep, nodeWid, isBroken, isHanging, isSilt, nodeNote
+            xyNum, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote
         ).any { it.isNotEmpty() }
 
         if (hasAnyData) {
@@ -205,11 +210,74 @@ class GutterBasicInfoFragment : Fragment() {
             binding.actvIsBroken.setText(isBrokenCodeToText(isBroken), false)
             binding.actvIsHanging.setText(isHangingCodeToText(isHanging), false)
             binding.actvIsSilt.setText(isSiltCodeToText(isSilt), false)
+            binding.cbCantOpen.isChecked = parseLooseBoolean(isCantOpen)
             binding.etRemarks.setText(nodeNote)
             if (nodeX.isEmpty() && nodeY.isEmpty()) prefillCoordinates()
         } else {
             prefillCoordinates()
         }
+    }
+
+    private fun setupCantOpen() {
+        // 檢視模式：僅展示，不允許互動
+        val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
+        binding.cbCantOpen.isEnabled = !isViewMode
+
+        // 依照目前狀態套用一次
+        applyCantOpenUi(binding.cbCantOpen.isChecked)
+
+        // 之後才開始監聽，避免 prefill 時觸發清空
+        binding.cbCantOpen.setOnCheckedChangeListener { _, checked ->
+            if (checked) {
+                // 不可開蓋：下方欄位不必填，直接清空避免誤送舊值
+                binding.etDepth.setText("")
+                binding.etTopWidth.setText("")
+                binding.actvMatType.setText("", false)
+                binding.actvIsBroken.setText("", false)
+                binding.actvIsHanging.setText("", false)
+                binding.actvIsSilt.setText("", false)
+                binding.tilDepth.error = null
+                binding.tilTopWidth.error = null
+            }
+            applyCantOpenUi(checked)
+            onDraftChanged?.invoke()
+        }
+    }
+
+    private fun applyCantOpenUi(isCantOpen: Boolean) {
+        // 若整個表單不可編輯（檢視模式），就不要額外干預 enable 狀態
+        if (!isFormEditable) {
+            setCantOpenFieldsEnabled(false)
+            return
+        }
+        setCantOpenFieldsEnabled(!isCantOpen)
+    }
+
+    private fun setCantOpenFieldsEnabled(enabled: Boolean) {
+        // 需要被 disable 的欄位：深度、頂寬、材質、受損、附掛、淤積
+        listOf(binding.etDepth, binding.etTopWidth).forEach { et ->
+            et.isEnabled = enabled
+            et.isFocusable = enabled
+            et.isFocusableInTouchMode = enabled
+        }
+        listOf(
+            binding.actvMatType,
+            binding.actvIsBroken,
+            binding.actvIsHanging,
+            binding.actvIsSilt
+        ).forEach { actv ->
+            actv.isEnabled = enabled
+        }
+
+        val alpha = if (enabled) 1f else 0.5f
+        listOf(
+            binding.tilDepth,
+            binding.tilTopWidth,
+            binding.tilMatType,
+            binding.tilIsBroken,
+            binding.tilIsHanging,
+            binding.tilIsSilt
+        ).forEach { it.alpha = alpha }
     }
 
     /**
@@ -269,6 +337,7 @@ class GutterBasicInfoFragment : Fragment() {
      * 切換所有輸入欄位的可編輯狀態。
      */
     fun setEditable(enabled: Boolean) {
+        isFormEditable = enabled
         val textFields = listOf(
             binding.etGutterId,
             binding.etMeasureId,
@@ -319,11 +388,16 @@ class GutterBasicInfoFragment : Fragment() {
             binding.tilRemarks
         ).forEach { it.alpha = alpha }
 
+        binding.cbCantOpen.isEnabled = enabled
+
         // Z 座標（NODE_LE）由後端提供，可檢視但不可修改
         binding.etCoordZ.isEnabled = false
         binding.etCoordZ.isFocusable = false
         binding.etCoordZ.isFocusableInTouchMode = false
         binding.tilCoordZ.alpha = 1f
+
+        // 重新套用「無法開蓋」狀態（例如從檢視進入編輯）
+        applyCantOpenUi(binding.cbCantOpen.isChecked)
     }
 
     /** 隱藏虛擬鍵盤 */
@@ -356,13 +430,18 @@ class GutterBasicInfoFragment : Fragment() {
      */
     fun validateRequiredFields(): String? {
         val d = collectData()
+        val isCantOpen = parseLooseBoolean(d["IS_CANTOPEN"])
 
         // 新增與編輯模式均不驗證側溝編號（欄位已隱藏）
         if (d["NODE_TYP"].isNullOrEmpty())    return "側溝形式"
-        if (d["MAT_TYP"].isNullOrEmpty())     return "側溝材質"
         if (d["NODE_X"].isNullOrEmpty())      return "側溝X（E）座標"
         if (d["NODE_Y"].isNullOrEmpty())      return "側溝Y（N）座標"
         if (d["XY_NUM"].isNullOrEmpty())      return "測量座標編號"
+
+        // 不可開蓋：下方欄位可不填，直接通過
+        if (isCantOpen) return null
+
+        if (d["MAT_TYP"].isNullOrEmpty())     return "側溝材質"
 
         // ── NODE_DEP 深度必填 + 區間防呆 ─────────────────────────
         if (d["NODE_DEP"].isNullOrEmpty()) return "側溝測量深度"
@@ -466,6 +545,8 @@ class GutterBasicInfoFragment : Fragment() {
         "IS_BROKEN"   to brokenTextToCode(binding.actvIsBroken.text?.toString()),
         "IS_HANGING"  to hangingTextToCode(binding.actvIsHanging.text?.toString()),
         "IS_SILT"     to siltTextToCode(binding.actvIsSilt.text?.toString()),
+        // 以 "1"/"" 形式存入 basicData（送出 API 時再轉為 JSON boolean）
+        "IS_CANTOPEN" to (if (binding.cbCantOpen.isChecked) "1" else ""),
         "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: "")
     )
 
@@ -543,5 +624,14 @@ class GutterBasicInfoFragment : Fragment() {
         SILT_OPTIONS[2] -> "2"
         SILT_OPTIONS[3] -> "3"
         else -> text ?: ""
+    }
+
+    private fun parseLooseBoolean(raw: String?): Boolean {
+        val v = raw?.trim()?.lowercase()
+        return when (v) {
+            "1", "true", "t", "y", "yes" -> true
+            "0", "false", "f", "n", "no", "", null -> false
+            else -> false
+        }
     }
 }

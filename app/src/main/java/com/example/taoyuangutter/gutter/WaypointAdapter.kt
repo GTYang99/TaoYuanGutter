@@ -47,10 +47,15 @@ class WaypointAdapter(
         holder.binding.tvWaypointLabel.text = item.label
 
         // 狀態 badge：暫無資料 / 已填寫資料
-        val requiredBasicKeys = listOf(
-            "NODE_TYP", "MAT_TYP", "NODE_X", "NODE_Y", "XY_NUM", "NODE_DEP", "NODE_WID",
-            "IS_BROKEN", "IS_HANGING", "IS_SILT"
-        )
+        val isCantOpen = item.basicData["IS_CANTOPEN"] == "1"
+        val requiredBasicKeys = if (isCantOpen) {
+            listOf("NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM")
+        } else {
+            listOf(
+                "NODE_TYP", "MAT_TYP", "NODE_X", "NODE_Y", "XY_NUM", "NODE_DEP", "NODE_WID",
+                "IS_BROKEN", "IS_HANGING", "IS_SILT"
+            )
+        }
         val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
         val hasFilledData =
             requiredBasicKeys.all { item.basicData[it]?.isNotEmpty() == true } &&

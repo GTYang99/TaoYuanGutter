@@ -68,6 +68,7 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_DATA_IS_BROKEN   = "ex_is_broken"
         const val EXTRA_DATA_IS_HANGING  = "ex_is_hanging"
         const val EXTRA_DATA_IS_SILT     = "ex_is_silt"
+        const val EXTRA_DATA_IS_CANTOPEN = "ex_is_cantopen"
         const val EXTRA_DATA_REMARKS     = "ex_node_note"
         const val EXTRA_DATA_PHOTO_1     = "ex_photo1"
         const val EXTRA_DATA_PHOTO_2     = "ex_photo2"
@@ -94,6 +95,7 @@ class GutterFormActivity : AppCompatActivity() {
         const val RESULT_DATA_IS_BROKEN   = "r_is_broken"
         const val RESULT_DATA_IS_HANGING  = "r_is_hanging"
         const val RESULT_DATA_IS_SILT     = "r_is_silt"
+        const val RESULT_DATA_IS_CANTOPEN = "r_is_cantopen"
         const val RESULT_DATA_REMARKS     = "r_node_note"
         const val RESULT_DATA_PHOTO_1     = "r_photo1"
         const val RESULT_DATA_PHOTO_2     = "r_photo2"
@@ -180,6 +182,7 @@ class GutterFormActivity : AppCompatActivity() {
             intent.putExtra(EXTRA_DATA_IS_BROKEN,   data["IS_BROKEN"]  ?: data["isBroken"] ?: "")
             intent.putExtra(EXTRA_DATA_IS_HANGING,  data["IS_HANGING"] ?: data["isHanging"] ?: "")
             intent.putExtra(EXTRA_DATA_IS_SILT,     data["IS_SILT"]    ?: data["isSilt"] ?: "")
+            intent.putExtra(EXTRA_DATA_IS_CANTOPEN, data["IS_CANTOPEN"] ?: data["isCantOpen"] ?: "")
             intent.putExtra(EXTRA_DATA_REMARKS,     data["NODE_NOTE"]  ?: data["remarks"] ?: "")
             intent.putExtra(EXTRA_DATA_PHOTO_1,     data["photo1"]     ?: "")
             intent.putExtra(EXTRA_DATA_PHOTO_2,     data["photo2"]     ?: "")
@@ -291,6 +294,7 @@ class GutterFormActivity : AppCompatActivity() {
                 "IS_BROKEN"  to (intent.getStringExtra(EXTRA_DATA_IS_BROKEN)   ?: ""),
                 "IS_HANGING" to (intent.getStringExtra(EXTRA_DATA_IS_HANGING)  ?: ""),
                 "IS_SILT"    to (intent.getStringExtra(EXTRA_DATA_IS_SILT)     ?: ""),
+                "IS_CANTOPEN" to (intent.getStringExtra(EXTRA_DATA_IS_CANTOPEN) ?: ""),
                 "NODE_NOTE"  to (intent.getStringExtra(EXTRA_DATA_REMARKS)     ?: ""),
                 "photo1"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_1)     ?: ""),
                 "photo2"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_2)     ?: ""),
@@ -438,6 +442,7 @@ class GutterFormActivity : AppCompatActivity() {
             putExtra(RESULT_DATA_IS_BROKEN,   data["IS_BROKEN"]  ?: "")
             putExtra(RESULT_DATA_IS_HANGING,  data["IS_HANGING"] ?: "")
             putExtra(RESULT_DATA_IS_SILT,     data["IS_SILT"]    ?: "")
+            putExtra(RESULT_DATA_IS_CANTOPEN, data["IS_CANTOPEN"] ?: "")
             putExtra(RESULT_DATA_REMARKS,     data["NODE_NOTE"]  ?: "")
             putExtra(RESULT_DATA_PHOTO_1,     photo1             ?: "")
             putExtra(RESULT_DATA_PHOTO_2,     photo2             ?: "")
@@ -609,6 +614,7 @@ class GutterFormActivity : AppCompatActivity() {
                 putExtra(RESULT_DATA_IS_BROKEN,   basicData["IS_BROKEN"]  ?: "")
                 putExtra(RESULT_DATA_IS_HANGING,  basicData["IS_HANGING"] ?: "")
                 putExtra(RESULT_DATA_IS_SILT,     basicData["IS_SILT"]    ?: "")
+                putExtra(RESULT_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: "")
                 putExtra(RESULT_DATA_REMARKS,     basicData["NODE_NOTE"]  ?: "")
                 putExtra(RESULT_DATA_PHOTO_1,     photo1                  ?: "")
                 putExtra(RESULT_DATA_PHOTO_2,     photo2                  ?: "")
@@ -805,6 +811,7 @@ class GutterFormActivity : AppCompatActivity() {
             gutterId    = basicData["SPI_NUM"]    ?: "",
             gutterType  = basicData["NODE_TYP"]   ?: "",
             matTyp      = basicData["MAT_TYP"]    ?: "",
+            isCantOpen  = basicData["IS_CANTOPEN"] ?: "",
             coordX      = basicData["NODE_X"]     ?: "",
             coordY      = basicData["NODE_Y"]     ?: "",
             coordZ      = basicData["NODE_LE"]    ?: "",
@@ -845,6 +852,7 @@ private fun OfflineDraft.toBasicData(): HashMap<String, String> = hashMapOf(
     "SPI_NUM"    to gutterId,
     "NODE_TYP"   to gutterType,
     "MAT_TYP"    to matTyp,
+    "IS_CANTOPEN" to isCantOpen,
     "NODE_X"     to coordX,
     "NODE_Y"     to coordY,
     "NODE_LE"    to coordZ,

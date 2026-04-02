@@ -295,6 +295,11 @@ data class NodeDetails(
      * 轉字串時使用 [nodeWidAsString]。
      */
     @SerializedName("NODE_WID")   val nodeWid: Double?,
+    /**
+     * 無法開蓋（可能為空字串 / 0 / 1 / true / false）。
+     * 由於型別不穩定，先以 Any? 接住，使用 [isCantOpenAsBoolean] 取值。
+     */
+    @SerializedName("IS_CANTOPEN") val isCantOpen: Any?,
     /** 溝體結構受損：0=否 1=是 */
     @SerializedName("IS_BROKEN")  val isBroken: String?,
     /** 附掛或過路管線：0=無 1=有 */
@@ -323,6 +328,18 @@ data class NodeDetails(
         get() = nodeWid?.let {
             if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
         } ?: ""
+
+    val isCantOpenAsBoolean: Boolean
+        get() = when (val v = isCantOpen) {
+            null -> false
+            is Boolean -> v
+            is Number -> v.toInt() == 1
+            is String -> when (v.trim().lowercase()) {
+                "1", "true", "t", "y", "yes" -> true
+                else -> false
+            }
+            else -> false
+        }
 }
 
 /** 點位照片（nodeDetails 回傳格式，僅含 url 與 fileCategory） */
@@ -367,20 +384,22 @@ data class StoreDitchNodeRequest(
     /** 側溝型式：1=U型溝(明溝)、2=U型溝(加蓋)、3=L型溝與暗溝渠併用、4=其他 */
     @SerializedName("NODE_TYP")   val nodeTyp: Int,
     /** 側溝材質：1=混凝土、2=卵礫石、3=紅磚 */
-    @SerializedName("MAT_TYP")    val matTyp: Int,
+    @SerializedName("MAT_TYP")    val matTyp: Int?,
     @SerializedName("latitude")   val latitude: Double,
     @SerializedName("longitude")  val longitude: Double,
     /** 高程（Z 值）；目前依 API 規則固定送 null */
     @SerializedName("NODE_LE")    val nodeLe: Double?,
     @SerializedName("XY_NUM")     val xyNum: String,
+    /** 無法開蓋：0=false、1=true */
+    @SerializedName("IS_CANTOPEN") val isCantOpen: Int,
     /** 深度（公分） */
-    @SerializedName("NODE_DEP")   val nodeDep: Int,
+    @SerializedName("NODE_DEP")   val nodeDep: Int?,
     /** 寬度（公分） */
-    @SerializedName("NODE_WID")   val nodeWid: Int,
-    @SerializedName("IS_BROKEN")  val isBroken: Int,
-    @SerializedName("IS_HANGING") val isHanging: Int,
+    @SerializedName("NODE_WID")   val nodeWid: Int?,
+    @SerializedName("IS_BROKEN")  val isBroken: Int?,
+    @SerializedName("IS_HANGING") val isHanging: Int?,
     /** 淤積程度：0=無、1=輕度、2=中度、3=嚴重 */
-    @SerializedName("IS_SILT")    val isSilt: Int,
+    @SerializedName("IS_SILT")    val isSilt: Int?,
     /** 補充說明（非必填） */
     @SerializedName("NODE_NOTE")  val nodeNote: String? = null
 )
