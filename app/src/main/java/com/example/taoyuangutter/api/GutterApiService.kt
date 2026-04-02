@@ -1,5 +1,7 @@
 package com.example.taoyuangutter.api
 
+import android.util.Log
+import com.example.taoyuangutter.BuildConfig
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
@@ -118,6 +120,32 @@ interface GutterApiService {
     ): Response<NodeDetailsResponse>
 
     /**
+     * 以測量座標編號（XY_NUM）查詢點位資料。
+     *
+     * GET /api/v1/node/nodeDetails?XY_NUM=A002
+     * Authorization: Bearer {token}
+     */
+    @GET("api/v1/node/nodeDetails")
+    suspend fun getNodeDetailsByXyNum(
+        @Query("XY_NUM")         xyNum: String,
+        @Header("Authorization") authorization: String
+    ): Response<NodeDetailsResponse>
+
+    /**
+     * 取得所有既有點位的列表（不帶任何參數）。
+     *
+     * GET /api/v1/node/nodeDetails
+     * Authorization: Bearer {token}
+     *
+     * @param authorization Bearer token
+     * Response: [AllNodeDetailsResponse]
+     */
+    @GET("api/v1/node/nodeDetails")
+    suspend fun getAllNodeDetails(
+        @Header("Authorization") authorization: String
+    ): Response<AllNodeDetailsResponse>
+
+    /**
      * 上傳單張點位照片（multipart/form-data）。
      * 同一 node_id + fileCategory 只保留一張，舊圖會被覆蓋。
      *
@@ -186,8 +214,17 @@ object GutterApiClient {
     private const val BASE_URL = "http://192.168.10.37/TY_RSGDBIP/"
     private const val DEMO_URL = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/"
 
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY   // Debug 模式可改 NONE 減少日誌
+    private val loggingInterceptor = HttpLoggingInterceptor { message ->
+        Log.d("OkHttp", message)
+    }.apply {
+        // Debug 才印完整 request/response，避免 release 外洩資訊與效能問題
+        level = if (BuildConfig.DEBUG) {
+            HttpLoggingInterceptor.Level.BODY
+        } else {
+            HttpLoggingInterceptor.Level.NONE
+        }
+        // 避免把 token 印出來；若你真的要看 token，可以暫時註解這行
+        redactHeader("Authorization")
     }
 
     private val okHttpClient = OkHttpClient.Builder()

@@ -17,6 +17,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.tabs.TabLayoutMediator
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
@@ -29,6 +30,7 @@ import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.example.taoyuangutter.common.LocationPickEvents
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -244,6 +246,79 @@ class GutterFormActivity : AppCompatActivity() {
         }
     }
 
+    // 導入既有點位的 launcher
+    private val importWaypointLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+        val data = result.data ?: return@registerForActivityResult
+        val json = data.getStringExtra(ImportExistingWaypointActivity.EXTRA_NODE_DETAILS_JSON)
+        if (!json.isNullOrEmpty()) {
+            try {
+                val nodeDetails = Gson().fromJson(json, com.example.taoyuangutter.api.NodeDetails::class.java)
+                pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
+
+                // 匯入時同步下載照片到本機（依序 1→2→3），確保節點可直接滿足上傳條件
+                lifecycleScope.launch {
+                    try {
+                        val photo1Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.url
+                        val photo2Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.url
+                        val photo3Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.url
+
+                        showUploadLoading(true, "正在下載照片（1/3）…")
+                        val p1 = photo1Url?.let {
+                            gutterRepository.downloadImageToLocalContentUri(
+                                context = this@GutterFormActivity,
+                                url = it,
+                                prefix = "IMPORT_1_"
+                            )
+                        }?.toString()
+
+                        showUploadLoading(true, "正在下載照片（2/3）…")
+                        val p2 = photo2Url?.let {
+                            gutterRepository.downloadImageToLocalContentUri(
+                                context = this@GutterFormActivity,
+                                url = it,
+                                prefix = "IMPORT_2_"
+                            )
+                        }?.toString()
+
+                        showUploadLoading(true, "正在下載照片（3/3）…")
+                        val p3 = photo3Url?.let {
+                            gutterRepository.downloadImageToLocalContentUri(
+                                context = this@GutterFormActivity,
+                                url = it,
+                                prefix = "IMPORT_3_"
+                            )
+                        }?.toString()
+
+                        pagerAdapter.getPhotosFragment()?.prefillPhotos(p1, p2, p3)
+                        showUploadLoading(false)
+
+                        val missing = mutableListOf<String>()
+                        if (p1.isNullOrEmpty()) missing.add("第1張")
+                        if (p2.isNullOrEmpty()) missing.add("第2張")
+                        if (p3.isNullOrEmpty()) missing.add("第3張")
+                        if (missing.isNotEmpty()) {
+                            Toast.makeText(
+                                this@GutterFormActivity,
+                                "匯入完成，但${missing.joinToString("、")}照片未取得，請至照片頁補拍",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    } catch (e: CancellationException) {
+                        showUploadLoading(false)
+                    } catch (e: Exception) {
+                        showUploadLoading(false)
+                        Toast.makeText(this@GutterFormActivity, "下載照片失敗：${e.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this, "資料解析失敗", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     /** 本點位的原始 GPS 座標（來自地圖選點），永遠保留以確保 result 能帶回正確定位 */
     private var currentLat: Double = 0.0
     private var currentLng: Double = 0.0
@@ -320,6 +395,7 @@ class GutterFormActivity : AppCompatActivity() {
         setupTitleBar(titleText)
         setupViewPager(lat, lng, existingData)
         setupTabButtons()
+        setupImportWaypointButton()
         setupFab()
         binding.viewPager.post { attachDraftSyncCallbacks() }
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
@@ -468,25 +544,20 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun setupTabButtons() {
-        binding.btnTabBasicInfo.setOnClickListener { binding.viewPager.currentItem = 0 }
-        binding.btnTabPhotos.setOnClickListener    { binding.viewPager.currentItem = 1 }
+        // 使用 TabLayoutMediator 連接 TabLayout 和 ViewPager2
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            tab.text = when (position) {
+                0 -> "基本資料"
+                1 -> "照片上傳"
+                else -> ""
+            }
+        }.attach()
         updateTabUI(0)
     }
 
     private fun updateTabUI(selected: Int) {
         attachDraftSyncCallbacks()
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
-        val primary   = getColor(com.example.taoyuangutter.R.color.colorPrimary)
-        val secondary = getColor(com.example.taoyuangutter.R.color.textColorSecondary)
-        val white     = getColor(com.example.taoyuangutter.R.color.white)
-        if (selected == 0) {
-            binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabBasicInfo.setTextColor(primary)
-            binding.btnTabPhotos.setBackgroundColor(white);    binding.btnTabPhotos.setTextColor(secondary)
-        }
-        if (selected == 1) {
-            binding.btnTabBasicInfo.setBackgroundColor(white); binding.btnTabBasicInfo.setTextColor(secondary)
-            binding.btnTabPhotos.setBackgroundColor(white);    binding.btnTabPhotos.setTextColor(primary)
-        }
     }
 
     private fun launchLocationPicker() {
@@ -506,6 +577,13 @@ class GutterFormActivity : AppCompatActivity() {
             isEditMode = isEditMode
         )
         locationPickerLauncher.launch(intent)
+    }
+
+    private fun setupImportWaypointButton() {
+        binding.btnSelectWaypoint.setOnClickListener {
+            val intent = ImportExistingWaypointActivity.newIntent(this)
+            importWaypointLauncher.launch(intent)
+        }
     }
 
     private fun setupFab() {
@@ -738,8 +816,11 @@ class GutterFormActivity : AppCompatActivity() {
      * 顯示或隱藏上傳照片的等待遮罩。
      * 遮罩期間阻擋所有使用者操作；上傳完成後隱藏並繼續 finish 流程。
      */
-    private fun showUploadLoading(show: Boolean) {
+    private fun showUploadLoading(show: Boolean, message: String? = null) {
         binding.uploadLoadingOverlay.visibility = if (show) View.VISIBLE else View.GONE
+        if (show) {
+            binding.tvUploadLoadingMessage.text = message ?: "正在上傳照片…"
+        }
     }
 
     // ── 照片上傳 ────────────────────────────────────────────────────────

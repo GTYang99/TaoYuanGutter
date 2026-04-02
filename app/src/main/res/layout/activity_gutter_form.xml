@@ -80,56 +80,80 @@
 
         </LinearLayout>
 
-        <!-- 分頁切換按鈕列 -->
+        <!-- 匯入既有點位資料行 -->
         <LinearLayout
-            android:id="@+id/tabBar"
+            android:id="@+id/importWaypointBar"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="50dp"
             android:orientation="horizontal"
-            android:background="@color/white">
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:background="@color/colorBgTitle">
 
+            <!-- 左側：匯入既有點位資料文字 -->
             <TextView
-                android:id="@+id/btnTabBasicInfo"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="center"
-                android:text="基本資料"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:background="@color/white"
-                android:textColor="@color/colorPrimary"
-                android:clickable="true"
-                android:focusable="true" />
+                android:gravity="start"
+                android:text="匯入既有點位資料"
+                android:textSize="14sp"
+                android:textColor="@color/text_grey" />
 
-            <!-- 垂直分隔線 -->
-            <View
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:background="@color/border_grey" />
-
-            <TextView
-                android:id="@+id/btnTabPhotos"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="照片上傳"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:background="@color/white"
-                android:textColor="@color/textColorSecondary"
-                android:clickable="true"
-                android:focusable="true" />
+            <!-- 右側：選擇按鈕 -->
+            <Button
+                android:id="@+id/btnSelectWaypoint"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="選擇"
+                android:textSize="14sp"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:textColor="@color/colorPrimaryVariant"
+                android:background="@android:color/transparent"
+                 />
 
         </LinearLayout>
 
-        <!-- 分頁底部指示條 -->
-        <View
-            android:id="@+id/tabIndicator"
-            android:layout_width="0dp"
-            android:layout_height="3dp"
-            android:background="@color/colorPrimary" />
+        <!-- 分頁切換按鈕列（Switch 開關樣式） -->
+        <!-- 外層：灰色圓角容器，形成整體膠囊輪廓 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:background="@color/white">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_tab_switch_container">
+
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/tabLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    app:tabMode="fixed"
+                    app:tabGravity="fill"
+                    app:tabRippleColor="@android:color/transparent"
+                    app:tabUnboundedRipple="false"
+                    app:tabIndicatorHeight="0dp"
+                    app:tabTextColor="@color/colorPrimary"
+                    app:tabSelectedTextColor="@color/colorPrimary"
+                    app:tabBackground="@drawable/tab_switch_selector"
+                    app:tabTextAppearance="@style/TabTextAppearance.Switch" />
+
+            </FrameLayout>
+
+        </LinearLayout>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -181,6 +205,7 @@
                 app:trackColor="@color/border_grey" />
 
             <TextView
+                android:id="@+id/tvUploadLoadingMessage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"

@@ -81,6 +81,12 @@
             android:exported="false"
             android:theme="@style/Theme.TaoYuanGutter" />
 
+        <!-- 匯入既有點位資料 Activity -->
+        <activity
+            android:name=".gutter.ImportExistingWaypointActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TaoYuanGutter" />
+
         <!-- 離線草稿列表 Activity（半螢幕底部彈出） -->
         <activity
             android:name=".offline.OfflineDraftsActivity"

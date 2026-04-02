@@ -324,4 +324,28 @@ class GutterPhotosFragment : Fragment() {
         photoUriSlot2?.toString(),
         photoUriSlot3?.toString()
     )
+
+    /**
+     * 匯入既有點位資料後，將下載完成的照片 URI 預填入三個欄位。
+     * @param photo1-3 內容 URI（content:// 或 file://），null/空字串表示該欄位仍需補拍
+     */
+    fun prefillPhotos(photo1: String?, photo2: String?, photo3: String?) {
+        if (_binding == null) return
+
+        fun parse(s: String?): Uri? =
+            s?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
+
+        photoUriSlot1 = parse(photo1)
+        photoUriSlot2 = parse(photo2)
+        photoUriSlot3 = parse(photo3)
+
+        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, photoUriSlot1)
+        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, photoUriSlot2)
+        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, photoUriSlot3)
+
+        // 依目前模式更新刪除按鈕狀態
+        val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
+        setEditable(!isViewMode)
+        onDraftChanged?.invoke()
+    }
 }

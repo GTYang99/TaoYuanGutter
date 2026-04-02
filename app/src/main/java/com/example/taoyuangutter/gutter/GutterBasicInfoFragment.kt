@@ -556,6 +556,77 @@ class GutterBasicInfoFragment : Fragment() {
         onDraftChanged?.invoke()
     }
 
+    fun prefillDataFromImport(nodeDetails: com.example.taoyuangutter.api.NodeDetails) {
+        binding.apply {
+            // 基本資訊
+            etMeasureId.setText(nodeDetails.xyNum ?: "")
+
+            // 溝型（API key 為 NODE_TYP，值為字串）
+            val nodeTypText = when (nodeDetails.nodeTyP?.toIntOrNull()) {
+                1 -> GUTTER_TYPES[0]  // U型溝（明溝）
+                2 -> GUTTER_TYPES[1]  // U型溝（加蓋）
+                else -> ""
+            }
+            actvGutterType.setText(nodeTypText)
+
+            // 材質（API key 為 MAT_TYP，值為字串）
+            val matTypText = when (nodeDetails.matTyp?.toIntOrNull()) {
+                1 -> MAT_TYPES[0]  // 混凝土
+                2 -> MAT_TYPES[1]  // 卵礫石
+                else -> ""
+            }
+            actvMatType.setText(matTypText)
+
+            // 深度、寬度（API 回傳 Double，使用 AsString 方法自動轉換）
+            etDepth.setText(nodeDetails.nodeDepAsString)
+            etTopWidth.setText(nodeDetails.nodeWidAsString)
+
+            // 破損狀態（API key 為 IS_BROKEN，值為字串）
+            val brokenText = when (nodeDetails.isBroken?.toIntOrNull()) {
+                0 -> BROKEN_OPTIONS[0]  // 無破損
+                1 -> BROKEN_OPTIONS[1]  // 有破損
+                else -> ""
+            }
+            actvIsBroken.setText(brokenText)
+
+            // 懸掛狀態（API key 為 IS_HANGING，值為字串）
+            val hangingText = when (nodeDetails.isHanging?.toIntOrNull()) {
+                0 -> HANGING_OPTIONS[0]  // 無懸掛
+                1 -> HANGING_OPTIONS[1]  // 有懸掛
+                else -> ""
+            }
+            actvIsHanging.setText(hangingText)
+
+            // 淤積狀態（API key 為 IS_SILT，值為字串）
+            val siltText = when (nodeDetails.isSilt?.toIntOrNull()) {
+                0 -> SILT_OPTIONS[0]  // 無
+                1 -> SILT_OPTIONS[1]  // 輕度
+                2 -> SILT_OPTIONS[2]  // 中度
+                3 -> SILT_OPTIONS[3]  // 嚴重
+                else -> ""
+            }
+            actvIsSilt.setText(siltText)
+
+            // 無法開蓋狀態（使用 isCantOpenAsBoolean 方法處理型別轉換）
+            cbCantOpen.isChecked = nodeDetails.isCantOpenAsBoolean
+
+            // 備註（API key 為 NOTE）
+            etRemarks.setText(nodeDetails.note ?: "")
+
+            // 坐標資訊（WGS84 經緯度，由 API 回傳為字串）
+            if (!nodeDetails.latitude.isNullOrEmpty() && !nodeDetails.longitude.isNullOrEmpty()) {
+                etCoordX.setText(nodeDetails.longitude)
+                etCoordY.setText(nodeDetails.latitude)
+            }
+
+            // Z 坐標（標高，API key 為 NODE_LE，回傳字串）
+            if (!nodeDetails.nodeLe.isNullOrEmpty()) {
+                etCoordZ.setText(nodeDetails.nodeLe)
+            }
+        }
+        onDraftChanged?.invoke()
+    }
+
     private fun nodeTypCodeToText(code: String?): String = when (code) {
         "1" -> GUTTER_TYPES[0]
         "2" -> GUTTER_TYPES[1]

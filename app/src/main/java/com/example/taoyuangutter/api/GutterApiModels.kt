@@ -285,16 +285,16 @@ data class NodeDetails(
     @SerializedName("XY_NUM")     val xyNum: String?,
     /**
      * 深度（公分）。
-     * API 以數值型別回傳（例如 1），宣告為 Double? 讓 Gson 正確解析；
-     * 轉字串時使用 [nodeDepAsString]。
+     * 後端可能回傳：數字 / 字串數字 / 空字串。
+     * 用 Any? 接住，轉字串時使用 [nodeDepAsString]。
      */
-    @SerializedName("NODE_DEP")   val nodeDep: Double?,
+    @SerializedName("NODE_DEP")   val nodeDep: Any?,
     /**
      * 寬度（公分）。
-     * API 以數值型別回傳（例如 1），宣告為 Double? 讓 Gson 正確解析；
-     * 轉字串時使用 [nodeWidAsString]。
+     * 後端可能回傳：數字 / 字串數字 / 空字串。
+     * 用 Any? 接住，轉字串時使用 [nodeWidAsString]。
      */
-    @SerializedName("NODE_WID")   val nodeWid: Double?,
+    @SerializedName("NODE_WID")   val nodeWid: Any?,
     /**
      * 無法開蓋（可能為空字串 / 0 / 1 / true / false）。
      * 由於型別不穩定，先以 Any? 接住，使用 [isCantOpenAsBoolean] 取值。
@@ -319,15 +319,27 @@ data class NodeDetails(
      * 若 API 未回傳則回傳空字串。
      */
     val nodeDepAsString: String
-        get() = nodeDep?.let {
-            if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
-        } ?: ""
+        get() = when (val v = nodeDep) {
+            null -> ""
+            is Number -> {
+                val d = v.toDouble()
+                if (d == d.toLong().toDouble()) d.toLong().toString() else d.toString()
+            }
+            is String -> v.trim()
+            else -> v.toString()
+        }.let { s -> if (s == "null") "" else s }
 
     /** 同 [nodeDepAsString]，適用於寬度。 */
     val nodeWidAsString: String
-        get() = nodeWid?.let {
-            if (it == it.toLong().toDouble()) it.toLong().toString() else it.toString()
-        } ?: ""
+        get() = when (val v = nodeWid) {
+            null -> ""
+            is Number -> {
+                val d = v.toDouble()
+                if (d == d.toLong().toDouble()) d.toLong().toString() else d.toString()
+            }
+            is String -> v.trim()
+            else -> v.toString()
+        }.let { s -> if (s == "null") "" else s }
 
     val isCantOpenAsBoolean: Boolean
         get() = when (val v = isCantOpen) {
@@ -433,6 +445,21 @@ data class StoreDitchResponse(
 data class DeleteDitchResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String?,
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+// ════════════════════════════════════════════════════════════════
+//  GET /api/v1/node/nodeDetails（無參數）── 取得所有點位列表
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * 取得所有點位列表的 API 回應。
+ * 當呼叫 /api/v1/node/nodeDetails 不帶任何參數時，取得所有既有點位。
+ */
+data class AllNodeDetailsResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data")    val data: List<NodeDetails>?,
     @SerializedName("errors")  val errors: Map<String, List<String>>?
 )
 

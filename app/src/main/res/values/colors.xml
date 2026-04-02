@@ -13,6 +13,7 @@
     <color name="colorPrimaryVariant">#4B2ACC</color>
     <color name="colorOnPrimary">#FFFFFF</color>
     <color name="colorOnCancel">#FF1C1C</color>
+    <color name="colorBgTitle">#F8F5FF</color>
 
     <color name="colorSecondary">#03DAC6</color>
     <color name="colorSecondaryVariant">#018786</color>

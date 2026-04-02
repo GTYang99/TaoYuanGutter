@@ -69,6 +69,29 @@
         <item name="android:tint">@color/white</item>
     </style>
 
+    <!-- 胶囊式 TabLayout 樣式（舊） -->
+    <style name="Widget.App.TabLayout.Capsule" parent="Widget.MaterialComponents.TabLayout">
+        <item name="tabTextAppearance">@style/TabTextAppearance.Capsule</item>
+        <item name="tabMinWidth">80dp</item>
+        <item name="tabPaddingStart">8dp</item>
+        <item name="tabPaddingEnd">8dp</item>
+        <item name="tabIndicatorHeight">0dp</item>
+        <item name="tabRippleColor">@android:color/transparent</item>
+    </style>
+
+    <style name="TabTextAppearance.Capsule" parent="TextAppearance.MaterialComponents.Button">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="android:textColor">@color/colorPrimary</item>
+    </style>
+
+    <!-- Switch 開關式 TabLayout 文字樣式 -->
+    <style name="TabTextAppearance.Switch" parent="TextAppearance.MaterialComponents.Button">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">normal</item>
+        <item name="textAllCaps">false</item>
+    </style>
+
     <!-- Styles for Login Screen specific elements -->
     <style name="Login.InputField" parent="Widget.MaterialComponents.TextInputLayout.OutlinedBox">
         <item name="android:layout_width">match_parent</item>

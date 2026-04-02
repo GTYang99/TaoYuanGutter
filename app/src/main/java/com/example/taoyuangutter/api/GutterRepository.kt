@@ -7,10 +7,19 @@ import com.example.taoyuangutter.gutter.WaypointType
 import com.google.android.gms.maps.model.LatLng
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
+import java.io.FileOutputStream
 import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import androidx.core.content.FileProvider
+import android.os.Environment
 
 /**
  * GutterRepository
@@ -24,6 +33,10 @@ import com.google.gson.Gson
 class GutterRepository(
     private val api: GutterApiService = GutterApiClient.instance
 ) {
+    private val rawHttp = OkHttpClient.Builder()
+        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .build()
 
     // ── 登入 ──────────────────────────────────────────────────────────────
 
@@ -266,6 +279,10 @@ class GutterRepository(
                 nodeId        = nodeId,
                 authorization = "Bearer $token"
             )
+            val reqUrl = runCatching { response.raw().request.url.toString() }.getOrNull()
+            if (!reqUrl.isNullOrEmpty()) {
+                android.util.Log.d("GutterRepository", "getNodeDetails request url=$reqUrl")
+            }
             val body = response.body()
             when {
                 response.isSuccessful && body?.success == true -> ApiResult.Success(body)
@@ -275,6 +292,10 @@ class GutterRepository(
                 )
                 body != null -> {
                     val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    android.util.Log.e(
+                        "GutterRepository",
+                        "getNodeDetails failed: nodeId=$nodeId, code=${response.code()}, message=${body.message}, detail=$detail"
+                    )
                     ApiResult.Error(
                         message = detail ?: body.message ?: "查詢失敗",
                         code    = response.code()
@@ -285,8 +306,101 @@ class GutterRepository(
                     code    = response.code()
                 )
             }
+        } catch (e: CancellationException) {
+            // coroutine cancellation is not an API error; propagate to caller
+            throw e
+        } catch (e: JsonSyntaxException) {
+            android.util.Log.e("GutterRepository", "getNodeDetails json parse failed: nodeId=$nodeId", e)
+            ApiResult.Error(message = "資料解析失敗")
         } catch (e: Exception) {
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
+    /**
+     * 以 XY_NUM 查詢點位完整資料。
+     * GET /api/v1/node/nodeDetails?XY_NUM=...
+     */
+    suspend fun getNodeDetailsByXyNum(xyNum: String, token: String): ApiResult<NodeDetailsResponse> {
+        return try {
+            val response = api.getNodeDetailsByXyNum(
+                xyNum        = xyNum,
+                authorization = "Bearer $token"
+            )
+            val reqUrl = runCatching { response.raw().request.url.toString() }.getOrNull()
+            if (!reqUrl.isNullOrEmpty()) {
+                android.util.Log.d("GutterRepository", "getNodeDetailsByXyNum request url=$reqUrl")
+            }
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.code() == 401 -> ApiResult.Error(
+                    message = "尚未登入，請重新登入",
+                    code    = 401
+                )
+                body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    android.util.Log.e(
+                        "GutterRepository",
+                        "getNodeDetailsByXyNum failed: xyNum=$xyNum, code=${response.code()}, message=${body.message}, detail=$detail"
+                    )
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "查詢失敗",
+                        code    = response.code()
+                    )
+                }
+                else -> ApiResult.Error(
+                    message = "查詢失敗（${response.code()}）",
+                    code    = response.code()
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: JsonSyntaxException) {
+            android.util.Log.e("GutterRepository", "getNodeDetailsByXyNum json parse failed: xyNum=$xyNum", e)
+            ApiResult.Error(message = "資料解析失敗")
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
+    /**
+     * 下載遠端圖片到本機，並回傳 FileProvider content URI（供照片頁視為已拍攝照片）。
+     * 下載失敗回傳 null。
+     */
+    suspend fun downloadImageToLocalContentUri(
+        context: Context,
+        url: String,
+        prefix: String = "IMPORT_"
+    ): android.net.Uri? = withContext(Dispatchers.IO) {
+        try {
+            val request = Request.Builder().url(url).get().build()
+            rawHttp.newCall(request).execute().use { resp ->
+                if (!resp.isSuccessful) {
+                    android.util.Log.w("GutterRepository", "download image failed: code=${resp.code}, url=$url")
+                    return@withContext null
+                }
+                val body = resp.body ?: return@withContext null
+                val dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: context.cacheDir
+                val file = File.createTempFile(prefix, ".jpg", dir)
+                FileOutputStream(file).use { out ->
+                    body.byteStream().use { input -> input.copyTo(out) }
+                }
+                return@withContext try {
+                    FileProvider.getUriForFile(
+                        context,
+                        "${context.packageName}.fileprovider",
+                        file
+                    )
+                } catch (_: Exception) {
+                    android.net.Uri.fromFile(file)
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            android.util.Log.e("GutterRepository", "download image exception: url=$url", e)
+            null
         }
     }
 

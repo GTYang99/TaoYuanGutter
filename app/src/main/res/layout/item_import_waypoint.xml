@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?attr/selectableItemBackground">
+
+    <!-- 內容列 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="12dp"
+        android:gravity="center_vertical">
+
+        <!-- 點位資訊：中間部分 -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="start">
+
+            <!-- 座標編號（固定標題 + 代碼） -->
+            <TextView
+                android:id="@+id/tvXyNumTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="座標編號"
+                android:textSize="12sp"
+                android:textColor="@color/black" />
+
+            <TextView
+                android:id="@+id/tvXyNum"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/black" />
+
+        </LinearLayout>
+
+        <!-- RadioButton：右側選擇 -->
+        <RadioButton
+            android:id="@+id/rbSelect"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:buttonTint="@color/colorPrimary"
+            android:clickable="false"
+            android:focusable="false" />
+    </LinearLayout>
+
+    <!-- 分隔線：滿版（不內縮） -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_grey"/>
+</LinearLayout>
