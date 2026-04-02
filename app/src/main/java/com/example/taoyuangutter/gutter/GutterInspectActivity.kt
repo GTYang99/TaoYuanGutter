@@ -16,6 +16,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.databinding.ActivityGutterInspectBinding
 import com.google.gson.Gson
+import com.google.android.material.tabs.TabLayoutMediator
 
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.android.gms.maps.model.LatLng
@@ -92,7 +93,7 @@ class GutterInspectActivity : AppCompatActivity() {
 
         setupTitleBar(ditch)
         setupViewPager(ditch)
-        setupTabButtons()
+        setupTabs()
 
         // group_id 一致才顯示編輯按鈕並掛載點擊事件
         val canEdit = intent.getBooleanExtra(EXTRA_CAN_EDIT, false)
@@ -153,29 +154,16 @@ class GutterInspectActivity : AppCompatActivity() {
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
         binding.viewPager.offscreenPageLimit = 1
-        binding.viewPager.registerOnPageChangeCallback(
-            object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {
-                override fun onPageSelected(position: Int) = updateTabUI(position)
+    }
+
+    private fun setupTabs() {
+        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
+            tab.text = when (position) {
+                0 -> getString(com.example.taoyuangutter.R.string.tab_basic_info)
+                1 -> "照片"
+                else -> ""
             }
-        )
-    }
-
-    private fun setupTabButtons() {
-        binding.btnTabBasicInfo.setOnClickListener { binding.viewPager.currentItem = 0 }
-        binding.btnTabPhotos.setOnClickListener    { binding.viewPager.currentItem = 1 }
-        updateTabUI(0)
-    }
-
-    private fun updateTabUI(selected: Int) {
-        val primary  = getColor(com.example.taoyuangutter.R.color.colorPrimary)
-        val textGrey = getColor(com.example.taoyuangutter.R.color.text_grey)
-        if (selected == 0) {
-            binding.btnTabBasicInfo.setTextColor(primary)
-            binding.btnTabPhotos.setTextColor(textGrey)
-        } else {
-            binding.btnTabBasicInfo.setTextColor(textGrey)
-            binding.btnTabPhotos.setTextColor(primary)
-        }
+        }.attach()
     }
 
     // ── 編輯 ─────────────────────────────────────────────────────────────

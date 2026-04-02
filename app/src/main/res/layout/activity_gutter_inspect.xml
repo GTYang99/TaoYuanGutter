@@ -58,56 +58,40 @@
 
         </LinearLayout>
 
-        <!-- 分頁切換按鈕列 -->
+        <!-- 分頁切換按鈕列（膠囊 switch，與表單頁一致） -->
         <LinearLayout
-            android:id="@+id/tabBar"
             android:layout_width="match_parent"
-            android:layout_height="48dp"
+            android:layout_height="52dp"
             android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:background="@color/white">
 
-            <TextView
-                android:id="@+id/btnTabBasicInfo"
-                android:layout_width="0dp"
+            <FrameLayout
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="@string/tab_basic_info"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:background="@color/white"
-                android:textColor="@color/colorPrimary"
-                android:clickable="true"
-                android:focusable="true" />
+                android:background="@drawable/bg_tab_switch_container">
 
-            <!-- 垂直分隔線 -->
-            <View
-                android:layout_width="1dp"
-                android:layout_height="match_parent"
-                android:background="@color/border_grey" />
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/tabLayout"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@android:color/transparent"
+                    app:tabMode="fixed"
+                    app:tabGravity="fill"
+                    app:tabRippleColor="@android:color/transparent"
+                    app:tabUnboundedRipple="false"
+                    app:tabIndicatorHeight="0dp"
+                    app:tabTextColor="@color/colorPrimary"
+                    app:tabSelectedTextColor="@color/colorPrimary"
+                    app:tabBackground="@drawable/tab_switch_selector"
+                    app:tabTextAppearance="@style/TabTextAppearance.Switch" />
 
-            <TextView
-                android:id="@+id/btnTabPhotos"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="照片"
-                android:textSize="15sp"
-                android:textStyle="bold"
-                android:background="@color/white"
-                android:textColor="@color/text_grey"
-                android:clickable="true"
-                android:focusable="true" />
-
+            </FrameLayout>
         </LinearLayout>
-
-        <!-- 分頁底部指示條 -->
-        <View
-            android:id="@+id/tabIndicator"
-            android:layout_width="0dp"
-            android:layout_height="3dp"
-            android:background="@color/colorPrimary" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
