@@ -40,6 +40,7 @@ import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.map.LayersBottomSheet
 import com.example.taoyuangutter.map.LegendBottomSheet
+import com.example.taoyuangutter.map.Wms3857TileProvider
 import com.example.taoyuangutter.offline.OfflineDraftsActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -73,7 +74,7 @@ class MainActivity : AppCompatActivity(),
     AddGutterBottomSheet.LocationPickerHost,
     LayersBottomSheet.Host {
 
-    private enum class MapMode { EMAP, PHOTO2 }
+    private enum class MapMode { EMAP, EMAP01, PHOTO2 }
 
     companion object {
         private const val KEY_PENDING_WP_INDEX = "pending_wp_index"
@@ -112,6 +113,13 @@ class MainActivity : AppCompatActivity(),
     // ── NLSC WMTS 底圖 ────────────────────────────────────────────────────
     private var currentTileOverlay: TileOverlay? = null
     private var currentMapMode = MapMode.EMAP
+
+    // ── WMS overlays ─────────────────────────────────────────────────────
+    private var showPlanOverlay = true
+    private var showWaterOldOverlay = true
+    private var showPossibleOverlay = true
+    private var planWmsOverlay: TileOverlay? = null
+    private var waterOldWmsOverlay: TileOverlay? = null
 
     // ── 定位 ─────────────────────────────────────────────────────────────
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -350,6 +358,7 @@ class MainActivity : AppCompatActivity(),
         // 關閉 Google 預設底圖，改用 NLSC WMTS 圖層
         googleMap?.mapType = GoogleMap.MAP_TYPE_NONE
         setMapTiles(MapMode.EMAP)
+        applyWmsOverlays()
 
         val taoyuan = LatLng(24.9936, 121.3010)
         googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(taoyuan, 20f))
@@ -611,10 +620,7 @@ class MainActivity : AppCompatActivity(),
 
     private fun openInspectForm(waypointIndex: Int, wp: Waypoint, latLng: LatLng) {
         moveCameraToLatLngOffset(latLng, 0.75) 
-        val layer = when (currentMapMode) {
-            MapMode.EMAP -> "EMAP"
-            MapMode.PHOTO2 -> "PHOTO2"
-        }
+        val layer = currentWmtsLayer()
         val intent = GutterFormActivity.newViewIntent(
             this,
             wp.label,
@@ -653,10 +659,7 @@ class MainActivity : AppCompatActivity(),
                 )
             }
         )
-        val layer = when (currentMapMode) {
-            MapMode.EMAP -> "EMAP"
-            MapMode.PHOTO2 -> "PHOTO2"
-        }
+        val layer = currentWmtsLayer()
         val intent = GutterFormActivity.newIntent(
             this,
             labels,
@@ -671,6 +674,13 @@ class MainActivity : AppCompatActivity(),
         )
         gutterFormLauncher.launch(intent)
     }
+
+    private fun currentWmtsLayer(): String =
+        when (currentMapMode) {
+            MapMode.EMAP -> LayersBottomSheet.LAYER_EMAP
+            MapMode.EMAP01 -> LayersBottomSheet.LAYER_EMAP01
+            MapMode.PHOTO2 -> LayersBottomSheet.LAYER_PHOTO2
+        }
 
     private fun moveCameraToLatLngOffset(latLng: LatLng, offsetRatio: Double) {
         val map = googleMap ?: return
@@ -1214,8 +1224,9 @@ class MainActivity : AppCompatActivity(),
         currentMapMode = mode
 
         val layer = when (mode) {
-            MapMode.EMAP   -> "EMAP"
-            MapMode.PHOTO2 -> "PHOTO2"
+            MapMode.EMAP -> LayersBottomSheet.LAYER_EMAP
+            MapMode.EMAP01 -> LayersBottomSheet.LAYER_EMAP01
+            MapMode.PHOTO2 -> LayersBottomSheet.LAYER_PHOTO2
         }
         val urlTemplate = "https://wmts.nlsc.gov.tw/wmts/$layer/default/GoogleMapsCompatible/%d/%d/%d"
 
@@ -1229,12 +1240,68 @@ class MainActivity : AppCompatActivity(),
         )
     }
 
+    private fun applyWmsOverlays() {
+        val map = googleMap ?: return
+
+        // 可能側溝位置（道路調查 WMS）
+        // 注意：此疊圖要綁在「可能側溝位置」的複選框，而不是「本次計畫調查」。
+        if (showPossibleOverlay) {
+            if (planWmsOverlay == null) {
+                val provider = Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/roadServey/wms",
+                    layers = "roadServey",
+                    styles = "TY_RSGDBIP_道路調查",
+                    // png8 is smaller but may not be available everywhere; png is safe.
+                    format = "image/png"
+                )
+                planWmsOverlay = map.addTileOverlay(
+                    TileOverlayOptions()
+                        .tileProvider(provider)
+                        .zIndex(0f)
+                        .transparency(0f)
+                )
+            }
+        } else {
+            planWmsOverlay?.remove()
+            planWmsOverlay = null
+        }
+
+        // 水務局舊資料
+        if (showWaterOldOverlay) {
+            if (waterOldWmsOverlay == null) {
+                val provider = Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    layers = "legacyDitch",
+                    styles = "TY_RSGDBIP_水務局既有資料",
+                    format = "image/png8"
+                )
+                waterOldWmsOverlay = map.addTileOverlay(
+                    TileOverlayOptions()
+                        .tileProvider(provider)
+                        .zIndex(0.1f)
+                        .transparency(0f)
+                )
+            }
+        } else {
+            waterOldWmsOverlay?.remove()
+            waterOldWmsOverlay = null
+        }
+
+        // 本次計畫調查：目前先保留 UI，待提供對應圖層規格後再接 API/WMS
+    }
+
     private fun showMapTypeDialog() {
         val selected = when (currentMapMode) {
             MapMode.EMAP -> LayersBottomSheet.LAYER_EMAP
+            MapMode.EMAP01 -> LayersBottomSheet.LAYER_EMAP01
             MapMode.PHOTO2 -> LayersBottomSheet.LAYER_PHOTO2
         }
-        LayersBottomSheet.newInstance(selected)
+        LayersBottomSheet.newInstance(
+            selectedLayer = selected,
+            showPlan = showPlanOverlay,
+            showWaterOld = showWaterOldOverlay,
+            showPossible = showPossibleOverlay
+        )
             .show(supportFragmentManager, "LayersBottomSheet")
     }
 
@@ -1246,8 +1313,16 @@ class MainActivity : AppCompatActivity(),
     override fun onLayerSelected(layer: String) {
         when (layer) {
             LayersBottomSheet.LAYER_EMAP -> setMapTiles(MapMode.EMAP)
+            LayersBottomSheet.LAYER_EMAP01 -> setMapTiles(MapMode.EMAP01)
             LayersBottomSheet.LAYER_PHOTO2 -> setMapTiles(MapMode.PHOTO2)
         }
+    }
+
+    override fun onOverlayTogglesChanged(showPlan: Boolean, showWaterOld: Boolean, showPossible: Boolean) {
+        showPlanOverlay = showPlan
+        showWaterOldOverlay = showWaterOld
+        showPossibleOverlay = showPossible
+        applyWmsOverlays()
     }
 
     private fun extractBasicData(data: Intent?): HashMap<String, String> =

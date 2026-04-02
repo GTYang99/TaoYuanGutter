@@ -170,6 +170,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun setWmtsTiles(layer: String) {
         currentTileOverlay?.remove()
         val safeLayer = when (layer.uppercase()) {
+            "EMAP01" -> "EMAP01"
             "PHOTO2" -> "PHOTO2"
             else -> "EMAP"
         }

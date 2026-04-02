@@ -8,6 +8,8 @@
     <color name="text_grey">#333333</color>
     <color name="hint_grey">#CCCCCC</color>
     <color name="border_grey">#E0E0E0</color>
+    <color name="map_selector_grey">#F4F4F5</color>
+    <color name="map_borders_grey">#DEDFE0</color>
 
     <color name="colorPrimary">#6236FF</color>
     <color name="colorPrimaryVariant">#4B2ACC</color>
