@@ -11,6 +11,14 @@ data class GutterSessionDraft(
     val id: Long = System.currentTimeMillis(),
     /** 建立／更新時間（毫秒），供列表排序與時間顯示 */
     val savedAt: Long = System.currentTimeMillis(),
+    /** true = 離線草稿（不打 API，只在本機編輯與保存） */
+    val isOffline: Boolean = false,
+    /**
+     * true = 純單點離線填報（由 GutterFormActivity.newOfflineIntent 建立）。
+     * false = 地圖流程多點草稿（由 AddGutterBottomSheet 建立）。
+     * 舊版草稿預設 false，Gson 反序列化時不影響既有資料。
+     */
+    val isSinglePoint: Boolean = false,
     /** 所有 waypoints 的快照列表（START / NODE / END） */
     val waypoints: List<WaypointSnapshot> = emptyList()
 )

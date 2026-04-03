@@ -284,6 +284,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      * 新增模式則保留 XML 預設的「新增側溝」文字。
      */
     private fun setupTitle() {
+        if (isOfflineMode) {
+            binding.tvSheetTitle.text = "離線草稿"
+            return
+        }
         if (editSpiNum.isEmpty()) return
         val line1    = "側溝編號"
         val fullText = "$line1\n$editSpiNum"
@@ -585,6 +589,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 updateSubmitButtonState()
             }
         } else {
+            if (isOfflineMode) {
+                // 離線新增：提交按鈕只作為「完成」關閉，不打 API
+                binding.btnDeleteGutter.visibility = View.GONE
+                binding.btnSubmitGutter.text = "完成"
+            }
             binding.btnAddNode.setOnClickListener {
                 val nodeCount  = waypoints.count { it.type == WaypointType.NODE }
                 val insertIdx  = waypoints.size - 1
@@ -596,6 +605,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
 
             binding.btnSubmitGutter.setOnClickListener {
+                if (isOfflineMode) {
+                    // 離線填寫：不打 API，不做必填驗證；直接確保草稿更新後關閉。
+                    onWaypointsChanged?.invoke(waypoints.toList())
+                    dismiss()
+                    return@setOnClickListener
+                }
                 // ① 起點與終點必須已設定座標
                 val start = waypoints.firstOrNull { it.type == WaypointType.START }
                 val end   = waypoints.firstOrNull { it.type == WaypointType.END }
@@ -1021,11 +1036,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
          *
          * @param draft 要恢復的草稿，將以 Gson JSON 傳入 Bundle 以跨越 Fragment 邊界。
          */
-        fun newInstanceFromDraft(draft: GutterSessionDraft): AddGutterBottomSheet =
+        fun newInstanceFromDraft(
+            draft: GutterSessionDraft,
+            forceOffline: Boolean = false
+        ): AddGutterBottomSheet =
             AddGutterBottomSheet().apply {
                 arguments = Bundle().apply {
                     putLong(ARG_DRAFT_ID,   draft.id)
                     putString(ARG_DRAFT_JSON, Gson().toJson(draft))
+                    if (draft.isOffline || forceOffline) putBoolean(ARG_OFFLINE_MODE, true)
                 }
             }
     }

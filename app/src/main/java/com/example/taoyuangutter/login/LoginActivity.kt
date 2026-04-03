@@ -12,7 +12,6 @@ import com.example.taoyuangutter.MainActivity
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.databinding.ActivityLoginBinding
-import com.example.taoyuangutter.gutter.GutterFormActivity
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -120,10 +119,13 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun setupOfflineButtons() {
-        // 離線填寫：直接開啟 GutterFormActivity（離線模式，座標 0.0, 0.0）
+        // 離線填寫：進入主畫面，但不打後端 API（可編輯多點位草稿）
         binding.btnOfflineForm.setOnClickListener {
-            val intent = GutterFormActivity.newOfflineIntent(this)
+            val intent = Intent(this, MainActivity::class.java).apply {
+                putExtra(MainActivity.EXTRA_OFFLINE_MAIN, true)
+            }
             startActivity(intent)
+            finish()
         }
     }
 

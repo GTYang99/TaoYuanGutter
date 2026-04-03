@@ -152,9 +152,11 @@ class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
      * 刪除確認對話框。
      */
     private fun showDeleteConfirmDialog(draft: GutterSessionDraft) {
+        val startWp = draft.waypoints.firstOrNull { it.type == "START" }
+        val title = startWp?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() } ?: "離線草稿"
         AlertDialog.Builder(requireContext())
             .setTitle("刪除確認")
-            .setMessage("請確認是否刪除此份草稿？")
+            .setMessage("請確認是否刪除「$title」？")
             .setPositiveButton("刪除") { _, _ ->
                 repo.delete(draft.id)
                 adapter.removeItem(draft)

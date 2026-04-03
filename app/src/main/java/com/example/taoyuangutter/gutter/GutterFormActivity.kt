@@ -22,8 +22,6 @@ import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
 import com.example.taoyuangutter.login.LoginActivity
-import com.example.taoyuangutter.offline.OfflineDraft
-import com.example.taoyuangutter.offline.OfflineDraftRepository
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.WaypointSnapshot
@@ -40,7 +38,7 @@ class GutterFormActivity : AppCompatActivity() {
     private lateinit var binding: ActivityGutterFormBinding
     private lateinit var pagerAdapter: GutterFormPagerAdapter
 
-    companion object {
+	    companion object {
         const val EXTRA_WAYPOINT_LABELS  = "waypoint_labels"
         const val EXTRA_LATITUDES        = "latitudes"
         const val EXTRA_LONGITUDES       = "longitudes"
@@ -48,14 +46,14 @@ class GutterFormActivity : AppCompatActivity() {
         const val EXTRA_VIEW_MODE        = "view_mode"
         const val EXTRA_WAYPOINT_INDEX   = "waypoint_index"
         const val EXTRA_IS_EDIT_MODE     = "is_edit_mode" // 新增：是否為編輯模式
-        const val EXTRA_SESSION_DRAFT_ID = "session_draft_id"
-        const val EXTRA_SESSION_WAYPOINTS_JSON = "session_waypoints_json"
-        const val EXTRA_WMTS_LAYER = "wmts_layer"
+	        const val EXTRA_SESSION_DRAFT_ID = "session_draft_id"
+	        const val EXTRA_SESSION_WAYPOINTS_JSON = "session_waypoints_json"
+	        /** 表單內即時存草稿時，用來保留草稿的 isOffline 屬性（避免被覆蓋回 false）。 */
+	        const val EXTRA_SESSION_IS_OFFLINE = "session_is_offline"
+	        const val EXTRA_WMTS_LAYER = "wmts_layer"
 
-        /** 離線模式旗標：不向 MainActivity 回傳 result，改儲存至本機草稿。 */
+        /** 離線模式旗標：不向 MainActivity 回傳 result，改儲存至 GutterSessionDraft（isOffline=true）。 */
         const val EXTRA_OFFLINE_MODE     = "offline_mode"
-        /** 離線模式：若要開啟既有草稿，帶入此 ID（-1 表示新增）。 */
-        const val EXTRA_OFFLINE_DRAFT_ID = "offline_draft_id"
 
         // 資料 Key（Intent Extra）
         const val EXTRA_DATA_GUTTER_ID   = "ex_spi_num"
@@ -105,30 +103,32 @@ class GutterFormActivity : AppCompatActivity() {
 
         // ── Factory ───────────────────────────────────────────────────────
 
-        fun newIntent(
-            context: Context,
-            labels: ArrayList<String>,
-            lats: DoubleArray,
-            lngs: DoubleArray,
-            index: Int = 0,
-            basicData: HashMap<String, String>? = null,
-            isEditMode: Boolean = false,
-            sessionDraftId: Long = 0L,
-            sessionWaypointsJson: String? = null,
-            wmtsLayer: String? = null
-        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
-            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, labels)
-            putExtra(EXTRA_LATITUDES, lats)
-            putExtra(EXTRA_LONGITUDES, lngs)
-            putExtra(EXTRA_CURRENT_INDEX, index)
-            putExtra(EXTRA_WAYPOINT_INDEX, index)   // 與 currentIndex 一致，確保 buildAndFinishWithResult 回傳正確索引
-            putExtra(EXTRA_VIEW_MODE, false)
-            putExtra(EXTRA_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
-            putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
-            if (!sessionWaypointsJson.isNullOrEmpty()) {
-                putExtra(EXTRA_SESSION_WAYPOINTS_JSON, sessionWaypointsJson)
-            }
-            if (!wmtsLayer.isNullOrEmpty()) {
+	        fun newIntent(
+	            context: Context,
+	            labels: ArrayList<String>,
+	            lats: DoubleArray,
+	            lngs: DoubleArray,
+	            index: Int = 0,
+	            basicData: HashMap<String, String>? = null,
+	            isEditMode: Boolean = false,
+	            sessionDraftId: Long = 0L,
+	            sessionWaypointsJson: String? = null,
+	            wmtsLayer: String? = null,
+	            sessionIsOffline: Boolean = false
+	        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
+	            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, labels)
+	            putExtra(EXTRA_LATITUDES, lats)
+	            putExtra(EXTRA_LONGITUDES, lngs)
+	            putExtra(EXTRA_CURRENT_INDEX, index)
+	            putExtra(EXTRA_WAYPOINT_INDEX, index)   // 與 currentIndex 一致，確保 buildAndFinishWithResult 回傳正確索引
+	            putExtra(EXTRA_VIEW_MODE, false)
+	            putExtra(EXTRA_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
+	            putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
+	            putExtra(EXTRA_SESSION_IS_OFFLINE, sessionIsOffline)
+	            if (!sessionWaypointsJson.isNullOrEmpty()) {
+	                putExtra(EXTRA_SESSION_WAYPOINTS_JSON, sessionWaypointsJson)
+	            }
+	            if (!wmtsLayer.isNullOrEmpty()) {
                 putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
             }
             basicData?.let { fillDataExtras(this, it) }
@@ -158,6 +158,7 @@ class GutterFormActivity : AppCompatActivity() {
 
         /**
          * 離線模式：不需地圖點位，座標固定 (0.0, 0.0)。
+         * 草稿直接儲存為 [GutterSessionDraft]（isOffline=true, isSinglePoint=true）。
          * @param draftId 傳入已存草稿 ID 以開啟既有資料；-1L 表示新增。
          */
         fun newOfflineIntent(context: Context, draftId: Long = -1L): Intent =
@@ -168,7 +169,8 @@ class GutterFormActivity : AppCompatActivity() {
                 putExtra(EXTRA_CURRENT_INDEX, 0)
                 putExtra(EXTRA_VIEW_MODE,     false)
                 putExtra(EXTRA_OFFLINE_MODE,  true)
-                putExtra(EXTRA_OFFLINE_DRAFT_ID, draftId)
+                putExtra(EXTRA_SESSION_IS_OFFLINE, true)
+                if (draftId > 0L) putExtra(EXTRA_SESSION_DRAFT_ID, draftId)
             }
 
         private fun fillDataExtras(intent: Intent, data: HashMap<String, String>) {
@@ -206,8 +208,6 @@ class GutterFormActivity : AppCompatActivity() {
 
     /** true → 離線模式，儲存至本機草稿，不向 MainActivity 回傳 result */
     private var isOfflineMode  = false
-    /** 正在編輯的草稿 ID（-1L 表示新增）*/
-    private var offlineDraftId = -1L
     /** 地圖流程中的 session 草稿 ID；0 表示尚未建立。 */
     private var sessionDraftId = 0L
     /** 整條側溝目前的 waypoint 快照，供表單編輯中即時覆寫草稿。 */
@@ -337,9 +337,18 @@ class GutterFormActivity : AppCompatActivity() {
         isEditMode    = intent.getBooleanExtra(EXTRA_IS_EDIT_MODE, false) // 取得編輯模式旗標
         isOfflineMode = intent.getBooleanExtra(EXTRA_OFFLINE_MODE, false)
         nodeId        = intent.getStringExtra(EXTRA_DATA_NODE_ID)?.toIntOrNull()
-        offlineDraftId = intent.getLongExtra(EXTRA_OFFLINE_DRAFT_ID, -1L)
         sessionDraftId = intent.getLongExtra(EXTRA_SESSION_DRAFT_ID, 0L)
         restoreSessionWaypoints()
+
+        // 離線模式開啟既有草稿：將 repo 中儲存的 basicData 填入 sessionWaypoints[0]，
+        // 確保任何時機觸發的 syncSessionDraftNow() 都有正確基底資料，不會以空值覆寫。
+        if (isOfflineMode && sessionDraftId > 0L && sessionWaypoints.isNotEmpty()) {
+            val savedWp = GutterSessionRepository(this).getById(sessionDraftId)?.waypoints?.firstOrNull()
+            if (savedWp != null) {
+                sessionWaypoints[0] = sessionWaypoints[0].copy(basicData = HashMap(savedWp.basicData))
+            }
+        }
+
         originalSessionWaypoint = sessionWaypoints.getOrNull(currentIndex)?.copy(
             basicData = HashMap(sessionWaypoints.getOrNull(currentIndex)?.basicData ?: hashMapOf())
         )
@@ -351,10 +360,13 @@ class GutterFormActivity : AppCompatActivity() {
         currentLat = lat
         currentLng = lng
 
-        // 離線模式：若有既有草稿 ID，從本機讀取資料
-        val existingData: HashMap<String, String> = if (isOfflineMode && offlineDraftId >= 0) {
-            val draft = OfflineDraftRepository(this).getById(offlineDraftId)
-            draft?.toBasicData() ?: buildEmptyData(lat, lng)
+        // 離線模式：若有既有草稿 ID，從 GutterSessionRepository 讀取 waypoint 資料
+        val existingData: HashMap<String, String> = if (isOfflineMode && sessionDraftId > 0L) {
+            val draft = GutterSessionRepository(this).getById(sessionDraftId)
+            val wp = draft?.waypoints?.firstOrNull()
+            if (wp != null) HashMap(wp.basicData) else buildEmptyData(lat, lng)
+        } else if (isOfflineMode) {
+            buildEmptyData(lat, lng)
         } else {
             hashMapOf(
                 "SPI_NUM"    to (intent.getStringExtra(EXTRA_DATA_GUTTER_ID)   ?: ""),
@@ -459,10 +471,10 @@ class GutterFormActivity : AppCompatActivity() {
         binding.tvFormTitle.text = label
 
         if (isOfflineMode) {
-            // 離線模式：左上角改為 × 取消按鈕，直接 finish 不存草稿
+            // 離線模式：左上角改為 ×，離開表單一律存草稿（不打 API）
             binding.btnBack.setImageResource(com.example.taoyuangutter.R.drawable.ic_close)
             binding.btnBack.contentDescription = "取消"
-            binding.btnBack.setOnClickListener { finish() }
+            binding.btnBack.setOnClickListener { saveOfflineAndClose(silent = true) }
         } else {
             binding.btnBack.setOnClickListener {
                 if (!isViewMode) confirmOrDiscardAndClose() else finish()
@@ -580,6 +592,11 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun setupImportWaypointButton() {
+        if (isOfflineMode) {
+            // 離線模式不打 API，隱藏匯入功能
+            binding.importWaypointBar.visibility = View.GONE
+            return
+        }
         binding.btnSelectWaypoint.setOnClickListener {
             val intent = ImportExistingWaypointActivity.newIntent(this)
             importWaypointLauncher.launch(intent)
@@ -593,7 +610,7 @@ class GutterFormActivity : AppCompatActivity() {
         }
         binding.fabSubmit.setOnClickListener {
             when {
-                isOfflineMode -> saveOfflineAndClose()
+                isOfflineMode -> saveOfflineAndClose(silent = false)
                 isEditMode && binding.viewPager.currentItem == 1 -> {
                     // 照片頁面編輯模式：直接上傳照片並完成，不驗證基本資料
                     buildAndFinishWithResult()
@@ -706,8 +723,6 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun restoreSessionWaypoints() {
-        if (isOfflineMode) return
-
         val json = intent.getStringExtra(EXTRA_SESSION_WAYPOINTS_JSON)
         if (!json.isNullOrEmpty()) {
             val parsed = runCatching {
@@ -740,7 +755,7 @@ class GutterFormActivity : AppCompatActivity() {
     }
 
     private fun queueSessionDraftSync() {
-        if (isOfflineMode || isViewMode) return
+        if (isViewMode) return
         if (currentIndex !in sessionWaypoints.indices) return
         draftSyncJob?.cancel()
         draftSyncJob = lifecycleScope.launch {
@@ -749,9 +764,9 @@ class GutterFormActivity : AppCompatActivity() {
         }
     }
 
-    private fun syncSessionDraftNow() {
-        if (isOfflineMode || isViewMode) return
-        if (currentIndex !in sessionWaypoints.indices) return
+	    private fun syncSessionDraftNow() {
+	        if (isViewMode) return
+	        if (currentIndex !in sessionWaypoints.indices) return
 
         val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
         val (photo1, photo2, photo3) = pagerAdapter.getPhotosFragment()?.getPhotoPaths()
@@ -778,37 +793,53 @@ class GutterFormActivity : AppCompatActivity() {
         val hasAnyBasicData = sessionWaypoints.any { wp ->
             wp.basicData.any { (_, v) -> v.isNotBlank() }
         }
-        if (!hasAnyLatLng && !hasAnyBasicData) return
+	        if (!hasAnyLatLng && !hasAnyBasicData) return
 
-        val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
-        sessionDraftId = resolvedDraftId
-        GutterSessionRepository(this).save(
-            GutterSessionDraft(
-                id = resolvedDraftId,
-                savedAt = System.currentTimeMillis(),
-                waypoints = sessionWaypoints.toList()
-            )
-        )
-    }
+	        val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
+	        sessionDraftId = resolvedDraftId
 
-    private fun restoreCurrentWaypointDraft() {
-        if (isOfflineMode) return
-        val original = originalSessionWaypoint ?: return
-        if (currentIndex !in sessionWaypoints.indices) return
+	        val repo = GutterSessionRepository(this)
+	        val existingDraft = repo.getById(resolvedDraftId)
+	        val preservedIsOffline = existingDraft?.isOffline
+	            ?: (isOfflineMode || intent.getBooleanExtra(EXTRA_SESSION_IS_OFFLINE, false))
+	        val preservedIsSinglePoint = existingDraft?.isSinglePoint ?: isOfflineMode
+	        repo.save(
+	            GutterSessionDraft(
+	                id = resolvedDraftId,
+	                savedAt = System.currentTimeMillis(),
+	                isOffline = isOfflineMode || preservedIsOffline,
+	                isSinglePoint = preservedIsSinglePoint,
+	                waypoints = sessionWaypoints.toList()
+	            )
+	        )
+	    }
+
+	    private fun restoreCurrentWaypointDraft() {
+	        if (isOfflineMode) return
+	        val original = originalSessionWaypoint ?: return
+	        if (currentIndex !in sessionWaypoints.indices) return
         draftSyncJob?.cancel()
         sessionWaypoints[currentIndex] = original.copy(
             basicData = HashMap(original.basicData)
         )
-        val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
-        sessionDraftId = resolvedDraftId
-        GutterSessionRepository(this).save(
-            GutterSessionDraft(
-                id = resolvedDraftId,
-                savedAt = System.currentTimeMillis(),
-                waypoints = sessionWaypoints.toList()
-            )
-        )
-    }
+	        val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
+	        sessionDraftId = resolvedDraftId
+
+	        val repo = GutterSessionRepository(this)
+	        val existingDraft = repo.getById(resolvedDraftId)
+	        val preservedIsOffline = existingDraft?.isOffline
+	            ?: (isOfflineMode || intent.getBooleanExtra(EXTRA_SESSION_IS_OFFLINE, false))
+	        val preservedIsSinglePoint = existingDraft?.isSinglePoint ?: isOfflineMode
+	        repo.save(
+	            GutterSessionDraft(
+	                id = resolvedDraftId,
+	                savedAt = System.currentTimeMillis(),
+	                isOffline = isOfflineMode || preservedIsOffline,
+	                isSinglePoint = preservedIsSinglePoint,
+	                waypoints = sessionWaypoints.toList()
+	            )
+	        )
+	    }
 
     // ── 上傳等待遮罩 ─────────────────────────────────────────────────────
 
@@ -862,13 +893,14 @@ class GutterFormActivity : AppCompatActivity() {
     // ── 離線模式（儲存至本機草稿）────────────────────────────────────────
 
     /**
-     * 將目前填寫內容儲存為本機草稿。
+     * 將目前填寫內容儲存為 GutterSessionDraft（isOffline=true, isSinglePoint=true）。
      * @param silent true → 不驗證、不顯示 Toast、直接 finish（返回鍵自動存草稿）
      *               false → 先驗證所有必填欄位與三張照片，通過才存檔並關閉
      */
     private fun saveOfflineAndClose(silent: Boolean = false) {
+        // 先取消任何排隊中的延遲 sync，避免 finish() 後仍觸發造成非預期寫入
+        draftSyncJob?.cancel()
         if (!silent) {
-            // 離線提交：同正式流程，所有必填欄位與照片都需填寫才能儲存
             val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
             if (basicError != null) {
                 binding.viewPager.currentItem = 0
@@ -882,34 +914,7 @@ class GutterFormActivity : AppCompatActivity() {
                 return
             }
         }
-        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
-        val (photo1, photo2, photo3) =
-            pagerAdapter.getPhotosFragment()?.getPhotoPaths() ?: Triple(null, null, null)
-
-        val draft = OfflineDraft(
-            id          = if (offlineDraftId >= 0) offlineDraftId else System.currentTimeMillis(),
-            savedAt     = System.currentTimeMillis(),
-            gutterId    = basicData["SPI_NUM"]    ?: "",
-            gutterType  = basicData["NODE_TYP"]   ?: "",
-            matTyp      = basicData["MAT_TYP"]    ?: "",
-            isCantOpen  = basicData["IS_CANTOPEN"] ?: "",
-            coordX      = basicData["NODE_X"]     ?: "",
-            coordY      = basicData["NODE_Y"]     ?: "",
-            coordZ      = basicData["NODE_LE"]    ?: "",
-            xyNum       = basicData["XY_NUM"]     ?: "",
-            depth       = basicData["NODE_DEP"]   ?: "",
-            topWidth    = basicData["NODE_WID"]   ?: "",
-            isBroken    = basicData["IS_BROKEN"]  ?: "",
-            isHanging   = basicData["IS_HANGING"] ?: "",
-            isSilt      = basicData["IS_SILT"]    ?: "",
-            remarks     = basicData["NODE_NOTE"]  ?: "",
-            photo1      = photo1                  ?: "",
-            photo2      = photo2                  ?: "",
-            photo3      = photo3                  ?: ""
-        )
-
-        OfflineDraftRepository(this).save(draft)
-
+        syncSessionDraftNow()
         if (!silent) {
             Toast.makeText(this, "草稿已儲存至本機", Toast.LENGTH_SHORT).show()
         }
@@ -919,32 +924,10 @@ class GutterFormActivity : AppCompatActivity() {
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         when {
-            isOfflineMode -> finish()                    // 離線取消：不存草稿
+            isOfflineMode -> saveOfflineAndClose(silent = true) // 離線：離開表單一律存草稿
             !isViewMode   -> confirmOrDiscardAndClose()  // 編輯模式：資料不完整則彈窗確認
             else          -> super.onBackPressed()
         }
     }
 }
 
-// ── OfflineDraft 擴充函式 ─────────────────────────────────────────────────
-
-/** 將 OfflineDraft 轉為 GutterFormActivity 可直接使用的 basicData HashMap。 */
-private fun OfflineDraft.toBasicData(): HashMap<String, String> = hashMapOf(
-    "SPI_NUM"    to gutterId,
-    "NODE_TYP"   to gutterType,
-    "MAT_TYP"    to matTyp,
-    "IS_CANTOPEN" to isCantOpen,
-    "NODE_X"     to coordX,
-    "NODE_Y"     to coordY,
-    "NODE_LE"    to coordZ,
-    "XY_NUM"     to xyNum,
-    "NODE_DEP"   to depth,
-    "NODE_WID"   to topWidth,
-    "IS_BROKEN"  to isBroken,
-    "IS_HANGING" to isHanging,
-    "IS_SILT"    to isSilt,
-    "NODE_NOTE"  to remarks,
-    "photo1"     to photo1,
-    "photo2"     to photo2,
-    "photo3"     to photo3
-)

@@ -7,8 +7,8 @@ import com.google.gson.reflect.TypeToken
 /**
  * 待上傳側溝草稿的本機儲存庫。
  *
- * 使用 SharedPreferences + Gson 序列化，與 [OfflineDraftRepository] 採相同模式，
- * 但儲存的是帶有完整 waypoints 的 [GutterSessionDraft]。
+ * 使用 SharedPreferences + Gson 序列化，儲存帶有完整 waypoints 的 [GutterSessionDraft]。
+ * 同時作為離線單點草稿（isOffline=true, isSinglePoint=true）的唯一儲存後端。
  */
 class GutterSessionRepository(context: Context) {
 

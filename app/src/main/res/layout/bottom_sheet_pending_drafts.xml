@@ -38,7 +38,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="待上傳的草稿"
+            android:text="待上傳草稿"
             android:textColor="@color/text_grey"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -58,7 +58,7 @@
         android:layout_height="wrap_content"
         android:padding="40dp"
         android:gravity="center"
-        android:text="目前沒有待上傳的草稿"
+        android:text="目前沒有離線草稿"
         android:textColor="@color/inputFieldHint"
         android:textSize="14sp"
         android:visibility="gone" />

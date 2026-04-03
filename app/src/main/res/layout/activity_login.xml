@@ -155,9 +155,8 @@
         <!-- 離線填寫按鈕（暫時隱藏，待後續開發） -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnOfflineForm"
-            android:visibility="gone"
             android:layout_width="0dp"
-            android:layout_height="52dp"
+            android:layout_height="64dp"
             android:layout_marginTop="12dp"
             android:text="離線填寫表單"
             android:textAllCaps="false"

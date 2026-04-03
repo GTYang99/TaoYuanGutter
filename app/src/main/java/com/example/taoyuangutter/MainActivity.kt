@@ -41,7 +41,6 @@ import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.map.LayersBottomSheet
 import com.example.taoyuangutter.map.LegendBottomSheet
 import com.example.taoyuangutter.map.Wms3857TileProvider
-import com.example.taoyuangutter.offline.OfflineDraftsActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.PendingDraftsBottomSheet
@@ -79,10 +78,12 @@ class MainActivity : AppCompatActivity(),
     companion object {
         private const val KEY_PENDING_WP_INDEX = "pending_wp_index"
         private const val GUTTER_LOAD_DEBOUNCE_MS = 500L
+        const val EXTRA_OFFLINE_MAIN = "extra_offline_main"
     }
 
     private lateinit var binding: ActivityMainBinding
     private var googleMap: GoogleMap? = null
+    private var isOfflineMainMode: Boolean = false
 
     private val waypointLocationChangedReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: Intent?) {
@@ -136,6 +137,8 @@ class MainActivity : AppCompatActivity(),
      * - 成功上傳（[onGutterSaved]）後重設為 null。
      */
     private var currentSessionDraftId: Long? = null
+    /** true = 此次 session 為離線草稿（只存本機，不打 API） */
+    private var currentSessionIsOffline: Boolean = false
 
     // ── 目前存活的 BottomSheet 與正在選點的索引 ───────────────────────────
     private var activeSheet: AddGutterBottomSheet? = null
@@ -170,6 +173,8 @@ class MainActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        isOfflineMainMode = intent.getBooleanExtra(EXTRA_OFFLINE_MAIN, false)
 
         ContextCompat.registerReceiver(
             this,
@@ -383,10 +388,14 @@ class MainActivity : AppCompatActivity(),
             true
         }
 
-        map.setOnPolylineClickListener { polyline -> openInspectBottomSheet(polyline) }
+        if (!isOfflineMainMode) {
+            map.setOnPolylineClickListener { polyline -> openInspectBottomSheet(polyline) }
+        }
 
         // 地圖停止移動後，依目前可視範圍向後端查詢側溝線段（使用防抖避免高頻調用）
-        map.setOnCameraIdleListener { loadGuttersByViewportDebounced() }
+        if (!isOfflineMainMode) {
+            map.setOnCameraIdleListener { loadGuttersByViewportDebounced() }
+        }
     }
 
     // ── LocationPickerHost 實作 ───────────────────────────────────────────
@@ -567,6 +576,11 @@ class MainActivity : AppCompatActivity(),
         // 從 START 點位取得 SPI_NUM（編輯模式下為伺服器側溝編號）
         val spiNum = waypoints.firstOrNull { it.type == WaypointType.START }
             ?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() }
+
+        // 記住本次呼叫前的 session 草稿 ID：後續若因為 SPI_NUM 去重而「切換」到另一筆既存草稿，
+        // 需要考慮清掉先前產生的「未帶 SPI_NUM」占位草稿，避免清單多出一筆「側溝草稿」。
+        val previousSessionId = currentSessionDraftId
+
         // 若已有相同 SPI_NUM 的草稿（且不是目前 session），沿用其 ID（覆蓋，確保唯一性）
         val existingId = if (!spiNum.isNullOrEmpty()) {
             sessionDraftRepository.getAll().firstOrNull { draft ->
@@ -575,6 +589,21 @@ class MainActivity : AppCompatActivity(),
                 draft.id != currentSessionDraftId
             }?.id
         } else null
+
+        // 若找到既存 SPI_NUM 草稿，且本 session 先前已建立過草稿（通常是 SPI_NUM 還沒填時的占位草稿），
+        // 則後續會「改用」既存草稿 ID；此時要避免占位草稿殘留在清單中。
+        if (existingId != null && previousSessionId != null && previousSessionId != existingId) {
+            val previousDraft = sessionDraftRepository.getById(previousSessionId)
+            val previousSpiNum = previousDraft?.waypoints
+                ?.firstOrNull { it.type == WaypointType.START.name }
+                ?.basicData
+                ?.get("SPI_NUM")
+                ?.takeIf { it.isNotEmpty() }
+            if (previousSpiNum.isNullOrEmpty()) {
+                sessionDraftRepository.delete(previousSessionId)
+            }
+        }
+
         val draftId = existingId ?: currentSessionDraftId ?: System.currentTimeMillis()
         currentSessionDraftId = draftId
 
@@ -589,7 +618,12 @@ class MainActivity : AppCompatActivity(),
         }
 
         sessionDraftRepository.save(
-            GutterSessionDraft(id = draftId, savedAt = System.currentTimeMillis(), waypoints = snapshots)
+            GutterSessionDraft(
+                id = draftId,
+                savedAt = System.currentTimeMillis(),
+                isOffline = currentSessionIsOffline,
+                waypoints = snapshots
+            )
         )
     }
 
@@ -660,20 +694,21 @@ class MainActivity : AppCompatActivity(),
             }
         )
         val layer = currentWmtsLayer()
-        val intent = GutterFormActivity.newIntent(
-            this,
-            labels,
-            lats,
-            lngs,
-            currentIndex,
-            wp.basicData,
-            isEditMode,
-            ensuredDraftId,
-            sessionWaypointsJson,
-            layer
-        )
-        gutterFormLauncher.launch(intent)
-    }
+	        val intent = GutterFormActivity.newIntent(
+	            context = this,
+	            labels = labels,
+	            lats = lats,
+	            lngs = lngs,
+	            index = currentIndex,
+	            basicData = wp.basicData,
+	            isEditMode = isEditMode,
+	            sessionDraftId = ensuredDraftId,
+	            sessionWaypointsJson = sessionWaypointsJson,
+	            wmtsLayer = layer,
+	            sessionIsOffline = currentSessionIsOffline
+	        )
+	        gutterFormLauncher.launch(intent)
+	    }
 
     private fun currentWmtsLayer(): String =
         when (currentMapMode) {
@@ -767,6 +802,7 @@ class MainActivity : AppCompatActivity(),
 
     @Suppress("UNCHECKED_CAST")
     private fun openInspectBottomSheet(polyline: Polyline) {
+        if (isOfflineMainMode) return
         // 防止連點：若已在查詢或已有 inspect 畫面，直接忽略
         if (isInspecting) return
         val tag      = polyline.tag as? Pair<*, *> ?: return
@@ -849,6 +885,11 @@ class MainActivity : AppCompatActivity(),
 
     private fun setupButtons() {
         binding.btnLogout.setOnClickListener {
+            if (isOfflineMainMode) {
+                // 離線填寫：直接回登入頁，不打 logout API
+                clearAuthAndGoLogin()
+                return@setOnClickListener
+            }
             val token = LoginActivity.getSavedToken(this)
             if (token.isNullOrEmpty()) {
                 // 本機無 token，直接跳登入頁
@@ -880,8 +921,15 @@ class MainActivity : AppCompatActivity(),
             workingPolyline?.remove()
             clearWorkingMarkers()
             fitCameraToAllGutters()
-            currentSessionDraftId = null   // 新增流程 → 重置 session draft 追蹤 ID
-            val sheet = AddGutterBottomSheet.newInstance()
+            currentSessionIsOffline = isOfflineMainMode
+            // 新增流程：離線模式下立即建立固定草稿 ID，避免每個動作產生多筆草稿
+            currentSessionDraftId =
+                if (isOfflineMainMode) System.currentTimeMillis() else null
+            val sheet = if (isOfflineMainMode) {
+                AddGutterBottomSheet.newOfflineInstance()
+            } else {
+                AddGutterBottomSheet.newInstance()
+            }
             activeSheet = sheet
             sheet.onWaypointsChanged = { wps ->
                 currentWaypoints = wps ?: emptyList()
@@ -925,14 +973,22 @@ class MainActivity : AppCompatActivity(),
         workingPolyline = null
         clearWorkingMarkers()
 
-        // ③ 記住此草稿的 ID，讓後續自動更新覆蓋同一筆（草稿在上傳成功前不刪除）
-        currentSessionDraftId = draft.id
+        // ③ 單點離線草稿（isSinglePoint=true）：直接開啟全螢幕離線表單，不走地圖流程
+        if (draft.isSinglePoint) {
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (isFinishing || isDestroyed) return@postDelayed
+                startActivity(GutterFormActivity.newOfflineIntent(this, draft.id))
+            }, 300L)
+            return
+        }
 
-        // ④ 等待 dismiss 動畫（約 250ms）完全結束後再 show AddGutterBottomSheet，
-        //    避免兩個 FragmentTransaction 競爭同一個 FragmentManager 而靜默失敗。
+        // ④ 地圖流程多點草稿：記住 ID，再展示 AddGutterBottomSheet
+        currentSessionDraftId = draft.id
+        currentSessionIsOffline = isOfflineMainMode || draft.isOffline
+
         Handler(Looper.getMainLooper()).postDelayed({
             if (isFinishing || isDestroyed) return@postDelayed
-            val sheet = AddGutterBottomSheet.newInstanceFromDraft(draft)
+            val sheet = AddGutterBottomSheet.newInstanceFromDraft(draft, forceOffline = isOfflineMainMode)
             activeSheet = sheet
             sheet.onWaypointsChanged = { wps ->
                 currentWaypoints = wps ?: emptyList()
@@ -958,8 +1014,8 @@ class MainActivity : AppCompatActivity(),
             refreshWorkingLayer(currentWaypoints)
             fitCameraToWaypoints(currentWaypoints, bottomOffsetRatio = 0.5, resetPaddingAfter = false)
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
-            // ── 重新加載地圖可視範圍內的側溝數據 ──
-            loadGuttersByViewport()
+            // ── 重新加載地圖可視範圍內的側溝數據（離線模式不打 API） ──
+            if (!isOfflineMainMode) loadGuttersByViewport()
         }, 300L)
     }
 
@@ -1065,6 +1121,7 @@ class MainActivity : AppCompatActivity(),
      * 避免短時間內多次調用 API（例如快速拖拽地圖時）
      */
     private fun loadGuttersByViewportDebounced() {
+        if (isOfflineMainMode) return
         val now = System.currentTimeMillis()
         if (now - lastGutterLoadTime < GUTTER_LOAD_DEBOUNCE_MS) {
             return  // 距上次調用不足 500ms，跳過此次請求
@@ -1078,6 +1135,7 @@ class MainActivity : AppCompatActivity(),
      * 成功後呼叫 [drawScopePolylines] 更新地圖上的線段。
      */
     private fun loadGuttersByViewport() {
+        if (isOfflineMainMode) return
         val map = googleMap ?: return
         val token = LoginActivity.getSavedToken(this) ?: return
         val bounds = map.projection.visibleRegion.latLngBounds
