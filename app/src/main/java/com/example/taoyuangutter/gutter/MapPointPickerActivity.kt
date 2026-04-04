@@ -1,11 +1,17 @@
 package com.example.taoyuangutter.gutter
 
+import android.Manifest
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import com.example.taoyuangutter.databinding.ActivityMapPointPickerBinding
+import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -31,6 +37,21 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityMapPointPickerBinding
     private var googleMap: GoogleMap? = null
     private var currentTileOverlay: TileOverlay? = null
+
+    // ── 現在位置 ──────────────────────────────────────────────────────────
+    private val fusedLocationClient by lazy { LocationServices.getFusedLocationProviderClient(this) }
+
+    private val locationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        val granted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                      grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        if (granted) {
+            enableMyLocationAndJump()
+        } else {
+            Toast.makeText(this, "需要定位權限才能使用「現在位置」功能", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     companion object {
         private const val EXTRA_INITIAL_LAT = "extra_initial_lat"
@@ -85,6 +106,41 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             setResult(Activity.RESULT_OK, data)
             finish()
         }
+
+        binding.locationPickerOverlay.fabMyLocation.setOnClickListener {
+            onMyLocationButtonClicked()
+        }
+    }
+
+    private fun onMyLocationButtonClicked() {
+        val fineGranted  = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)   == PackageManager.PERMISSION_GRANTED
+        val coarseGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (fineGranted || coarseGranted) {
+            enableMyLocationAndJump()
+        } else {
+            locationPermissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
+    }
+
+    @Suppress("MissingPermission")
+    private fun enableMyLocationAndJump() {
+        val map = googleMap ?: return
+        try {
+            map.isMyLocationEnabled = true
+        } catch (_: SecurityException) { /* permission revoked between check and call */ }
+
+        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
+            if (location != null) {
+                val here = LatLng(location.latitude, location.longitude)
+                map.animateCamera(CameraUpdateFactory.newLatLngZoom(here, 18f))
+            } else {
+                Toast.makeText(this, "尚未取得定位，請稍後再試", Toast.LENGTH_SHORT).show()
+            }
+        }.addOnFailureListener {
+            Toast.makeText(this, "定位失敗：${it.message}", Toast.LENGTH_SHORT).show()
+        }
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -128,34 +184,34 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             val lng = wp.longitude
             if (lat == null || lng == null) return@forEachIndexed
 
-            // 新增模式：只顯示「其他已選好的點位」
-            if (!isEditMode && idx == currentIndex) {
+            val isCurrent = idx == currentIndex
+
+            // 非 edit mode 下，當前點位「尚未選點（0.0/0.0 sentinel）」才跳過。
+            // 若已有有效座標（回頭修改既有點位），仍顯示讓使用者參考。
+            if (!isEditMode && isCurrent && lat == 0.0 && lng == 0.0) {
                 return@forEachIndexed
             }
 
             val pos = LatLng(lat, lng)
-            val isCurrent = idx == currentIndex
             val type = WaypointType.entries.firstOrNull { it.name == wp.type } ?: WaypointType.NODE
-            val icon = when {
-                // 修改狀態下才需要 highlight 當前點位
-                isEditMode && isCurrent -> MarkerIconFactory.enlarged(this, type)
-                else -> MarkerIconFactory.normal(this, type)
-            }
+            // 當前點位一律放大 highlight，無論是否 edit mode
+            val icon = if (isCurrent) MarkerIconFactory.enlarged(this, type)
+                       else           MarkerIconFactory.normal(this, type)
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(pos)
                     .title(wp.label)
                     .icon(icon)
+                    .anchor(0.5f, 0.5f)
             )
             marker?.let { markers.add(it) }
 
-            if (isEditMode) {
-                pointsForLine.add(pos)
-            }
+            // 有效座標的點位都加入 polyline（不限 edit mode）
+            pointsForLine.add(pos)
         }
 
-        // 修改狀態：畫出原本側溝的 polyline（依 waypoint 列表順序連線）
-        if (isEditMode && pointsForLine.size >= 2) {
+        // 有 2 個以上有效點位時，畫出行程線段（不限 edit mode）
+        if (pointsForLine.size >= 2) {
             polyline = map.addPolyline(
                 PolylineOptions()
                     .addAll(pointsForLine)

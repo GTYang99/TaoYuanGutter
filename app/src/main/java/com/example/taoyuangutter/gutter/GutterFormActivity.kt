@@ -578,7 +578,9 @@ class GutterFormActivity : AppCompatActivity() {
         val initialLat = basicData["NODE_Y"]?.toDoubleOrNull() ?: currentLat
         val initialLng = basicData["NODE_X"]?.toDoubleOrNull() ?: currentLng
         val wmtsLayer = intent.getStringExtra(EXTRA_WMTS_LAYER)
-        val waypointsJson = intent.getStringExtra(EXTRA_SESSION_WAYPOINTS_JSON)
+        // 使用即時的 sessionWaypoints（而非啟動時的舊 JSON），
+        // 讓地圖選點頁面能顯示最新的行程線段。單點離線模式只有 1 個 waypoint，不需傳線段。
+        val waypointsJson = if (sessionWaypoints.size > 1) Gson().toJson(sessionWaypoints) else null
         val intent = MapPointPickerActivity.newIntent(
             context = this,
             initialLat = initialLat,
