@@ -5,8 +5,10 @@ import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.AbsoluteSizeSpan
 import android.view.LayoutInflater
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.Window
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
@@ -85,6 +87,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private var draftId: Long = 0L
     /** 編輯模式時帶入的 SPI_NUM，用於顯示標題；空字串代表新增模式 */
     private var editSpiNum: String = ""
+
+    /** Window.Callback touch routing：ACTION_DOWN 落在 sheet 外時設為 true，後續事件轉發給 Activity */
+    private var routeToActivity = false
 
     // ── Repository（storeDitch API） ──────────────────────────────────────
     private val repository by lazy { GutterRepository() }
@@ -255,8 +260,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        // 半透明遮罩，讓地圖背景稍微變暗，凸顯操作介面
-        dialog?.window?.setDimAmount(0.5f)
+        // 降低遮罩不透明度，讓背景地圖更容易看清楚
+        dialog?.window?.setDimAmount(0.15f)
+        // 觸碰 sheet 外部不 dismiss（地圖滑動由 Window.Callback 路由處理）
+        dialog?.setCanceledOnTouchOutside(false)
     }
 
     override fun onDestroyView() {
@@ -319,6 +326,27 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 isHideable     = false
                 skipCollapsed  = true
             }
+
+            // ── 地圖觸碰穿透：Window.Callback 路由 ───────────────────────
+            // ACTION_DOWN 落在 sheet 上方（地圖區）→ 轉發給 MainActivity 讓地圖處理
+            // ACTION_DOWN 落在 sheet 內              → 正常 dispatch，sheet 行為不受影響
+            // 後續 MOVE / UP 跟隨 DOWN 的判斷，確保手勢完整性
+            val originalCb = dialog?.window?.callback ?: return@setOnShowListener
+            dialog?.window?.callback = object : Window.Callback by originalCb {
+                override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+                    if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                        val loc = IntArray(2)
+                        getSheetView()?.getLocationOnScreen(loc)
+                        val sheetTopOnScreen = loc[1]
+                        routeToActivity = event.rawY < sheetTopOnScreen
+                    }
+                    return if (routeToActivity) {
+                        requireActivity().dispatchTouchEvent(event)
+                    } else {
+                        originalCb.dispatchTouchEvent(event)
+                    }
+                }
+            }
         }
     }
 
@@ -358,8 +386,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             .translationY(0f)
             .setDuration(250)
             .start()
-        dialog?.window?.setDimAmount(0.5f)
-        dialog?.setCanceledOnTouchOutside(true)
+        dialog?.window?.setDimAmount(0.15f)
+        dialog?.setCanceledOnTouchOutside(false)
     }
 
     // ── RecyclerView + ItemTouchHelper ───────────────────────────────────
