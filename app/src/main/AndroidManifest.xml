@@ -55,12 +55,12 @@
             android:label="@string/title_activity_main"
             android:theme="@style/Theme.TaoYuanGutter" />
 
-        <!-- Gutter Form Activity（半透明浮動，佔下方 3/4 螢幕） -->
+        <!-- Gutter Form Activity（全螢幕地圖背景 + 底部 3/4 表單面板） -->
         <activity
             android:name=".gutter.GutterFormActivity"
             android:label="@string/gutter_form_title"
-            android:theme="@style/Theme.TaoYuanGutter.FormSheet"
-            android:windowSoftInputMode="adjustResize" />
+            android:theme="@style/Theme.TaoYuanGutter"
+            android:windowSoftInputMode="adjustNothing" />
 
         <!-- 橫向強制相機 Activity（CameraX） -->
         <activity

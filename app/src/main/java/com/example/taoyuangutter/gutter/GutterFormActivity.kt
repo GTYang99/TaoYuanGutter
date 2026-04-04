@@ -5,9 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.view.Gravity
 import android.view.View
-import android.view.WindowManager
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -15,13 +13,21 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.OnMapReadyCallback
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.TileOverlay
+import com.google.android.gms.maps.model.TileOverlayOptions
+import com.google.android.gms.maps.model.UrlTileProvider
 import com.google.android.material.tabs.TabLayoutMediator
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
-import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.WaypointSnapshot
@@ -32,8 +38,10 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.net.MalformedURLException
+import java.net.URL
 
-class GutterFormActivity : AppCompatActivity() {
+class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityGutterFormBinding
     private lateinit var pagerAdapter: GutterFormPagerAdapter
@@ -217,6 +225,10 @@ class GutterFormActivity : AppCompatActivity() {
 
     /** 編輯模式：API 的 node_id（有值時儲存才會上傳照片） */
     private var nodeId: Int? = null
+
+    // ── 背景地圖 ──────────────────────────────────────────────────────────
+    private var formMap: GoogleMap? = null
+    private var formMapTileOverlay: TileOverlay? = null
     private val gutterRepository = GutterRepository()
     private val locationPickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -390,12 +402,9 @@ class GutterFormActivity : AppCompatActivity() {
             )
         }
 
-        // 離線模式直接全螢幕；一般模式保留底部 sheet 3/4 視窗樣式
-        if (!isOfflineMode) {
-            applyBottomSheetWindow()
-        } else {
-            applyFullScreenInsets()
-        }
+        // 全螢幕地圖背景 + 表單面板（不論離線或一般模式皆使用新版佈局）
+        setupFullScreenWithMap()
+        initFormMap()
 
         // 檢視模式：標題改為「側溝編號 {gutterId}」；其他模式沿用點位 label（起點/節點/終點）
         val titleText = if (isViewMode) {
@@ -440,31 +449,90 @@ class GutterFormActivity : AppCompatActivity() {
     )
 
     /**
-     * 離線全螢幕模式：讓 Activity 畫到系統列後方，
-     * 再透過 WindowInsets 給 AppBarLayout 加上 statusBar 高度的 paddingTop，
-     * 並給 FAB 加上 navigationBar 高度的 bottomMargin，確保切頁按鈕與 FAB 都在 safe area 內。
+     * 新版全螢幕地圖 + 表單面板設定：
+     * - Activity 全螢幕（畫到系統列後方）
+     * - formPanel 高度設為螢幕 3/4
+     * - system bar insets 套用至 AppBarLayout（top）與 FAB（bottom）
+     * - 鍵盤出現時 formPanel 向上平移（動畫同步），隱藏時回位
      */
-    private fun applyFullScreenInsets() {
+    private fun setupFullScreenWithMap() {
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.navigationBarColor = android.graphics.Color.TRANSPARENT
+
+        // 設定表單面板高度為螢幕 3/4
+        val screenH = resources.displayMetrics.heightPixels
+        val panelHeight = screenH * 3 / 4
+        binding.formPanel.layoutParams = binding.formPanel.layoutParams.apply {
+            height = panelHeight
+        }
+
+        // 套用 system bar insets
+        ViewCompat.setOnApplyWindowInsetsListener(binding.formPanel) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            // 頂部 safe area：AppBarLayout（含標題列 + 切頁按鈕列）整體下移
             binding.appBarLayout.setPadding(0, bars.top, 0, 0)
-            // 底部 safe area：FAB 離 nav bar 保持 24dp 間距
             val fabParams = binding.fabSubmit.layoutParams as CoordinatorLayout.LayoutParams
             fabParams.bottomMargin = (24 * resources.displayMetrics.density).toInt() + bars.bottom
             binding.fabSubmit.layoutParams = fabParams
             WindowInsetsCompat.CONSUMED
         }
+
+        // 鍵盤動畫：鍵盤升起時 formPanel 向上平移，鍵盤下收時還原
+        ViewCompat.setWindowInsetsAnimationCallback(
+            binding.formPanel,
+            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
+                override fun onProgress(
+                    insets: WindowInsetsCompat,
+                    runningAnimations: List<WindowInsetsAnimationCompat>
+                ): WindowInsetsCompat {
+                    val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+                    val navInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
+                    binding.formPanel.translationY =
+                        -maxOf(0, imeInsets.bottom - navInsets.bottom).toFloat()
+                    return insets
+                }
+            }
+        )
     }
 
-    private fun applyBottomSheetWindow() {
-        window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-        val screenH = resources.displayMetrics.heightPixels
-        window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, screenH * 3 / 4)
-        val attrs = window.attributes
-        attrs.gravity = Gravity.BOTTOM
-        window.attributes = attrs
+    // ── 背景地圖初始化 ────────────────────────────────────────────────────
+
+    private fun initFormMap() {
+        val mapFragment = supportFragmentManager
+            .findFragmentById(binding.formMapContainer.id) as? SupportMapFragment
+        mapFragment?.getMapAsync(this)
+    }
+
+    override fun onMapReady(map: GoogleMap) {
+        formMap = map
+        map.uiSettings.isMyLocationButtonEnabled = false
+        map.uiSettings.isZoomControlsEnabled = false
+        map.mapType = GoogleMap.MAP_TYPE_NONE
+        val wmtsLayer = intent.getStringExtra(EXTRA_WMTS_LAYER) ?: "EMAP"
+        setWmtsTiles(wmtsLayer)
+
+        val lat = if (currentLat != 0.0) currentLat else 25.0330
+        val lng = if (currentLng != 0.0) currentLng else 121.5654
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
+    }
+
+    private fun setWmtsTiles(layer: String) {
+        formMapTileOverlay?.remove()
+        val safeLayer = when (layer.uppercase()) {
+            "EMAP01" -> "EMAP01"
+            "PHOTO2" -> "PHOTO2"
+            else -> "EMAP"
+        }
+        val urlTemplate =
+            "https://wmts.nlsc.gov.tw/wmts/$safeLayer/default/GoogleMapsCompatible/%d/%d/%d"
+        val tileProvider = object : UrlTileProvider(256, 256) {
+            override fun getTileUrl(x: Int, y: Int, zoom: Int): URL? = try {
+                URL(String.format(urlTemplate, zoom, y, x))
+            } catch (e: MalformedURLException) { null }
+        }
+        formMapTileOverlay = formMap?.addTileOverlay(
+            TileOverlayOptions().tileProvider(tileProvider).zIndex(-1f)
+        )
     }
 
     private fun setupTitleBar(label: String) {
