@@ -184,7 +184,9 @@ data class GeoGeometry(
 /** Feature 附屬屬性 */
 data class GeoProperties(
     @SerializedName("SPI_NUM")  val spiNum: String?,
-    @SerializedName("group_id") val groupId: String?
+    @SerializedName("group_id") val groupId: String?,
+    /** 1=已完成、2=待修正、3=待匯入座標紀錄 */
+    @SerializedName("SPI_STATE") val spiState: Int?
 )
 
 // ════════════════════════════════════════════════════════════════

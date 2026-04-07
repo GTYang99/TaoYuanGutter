@@ -1274,9 +1274,11 @@ class MainActivity : AppCompatActivity(),
      */
     private fun drawScopePolylines(features: List<com.example.taoyuangutter.api.GeoFeature>) {
         val map = googleMap ?: return
+        val savedGroupId = LoginActivity.getSavedGroupId(this)
         features.forEach { feature ->
             val spiNum  = feature.properties?.spiNum  ?: return@forEach
             val groupId = feature.properties?.groupId ?: ""
+            val spiState = feature.properties?.spiState
             val coords  = feature.geometry?.coordinates ?: return@forEach
             if (coords.size < 2) return@forEach
 
@@ -1284,10 +1286,23 @@ class MainActivity : AppCompatActivity(),
             scopePolylines.remove(spiNum)?.remove()
 
             val points = coords.map { LatLng(it[1], it[0]) }   // GeoJSON: [lng, lat]
+            val isSameGroup = savedGroupId != -1 &&
+                groupId.isNotBlank() &&
+                groupId.toIntOrNull() == savedGroupId
+            val color = if (!isSameGroup) {
+                android.graphics.Color.parseColor("#73767A") // 非本公司管轄
+            } else {
+                when (spiState) {
+                    1 -> android.graphics.Color.parseColor("#52D5BA") // 已完成
+                    2 -> android.graphics.Color.parseColor("#F56C6C") // 待修正
+                    3 -> android.graphics.Color.parseColor("#E6A23C") // 待匯入座標紀錄
+                    else -> android.graphics.Color.parseColor("#6236FF") // 預設
+                }
+            }
             val polyline = map.addPolyline(
                 com.google.android.gms.maps.model.PolylineOptions()
                     .addAll(points)
-                    .color(android.graphics.Color.parseColor("#6236FF"))
+                    .color(color)
                     .width(6f)
                     .clickable(true)
             )
