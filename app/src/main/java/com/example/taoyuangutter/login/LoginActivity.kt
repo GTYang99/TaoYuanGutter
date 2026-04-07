@@ -3,6 +3,8 @@ package com.example.taoyuangutter.login
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.text.method.HideReturnsTransformationMethod
+import android.text.method.PasswordTransformationMethod
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -49,7 +51,26 @@ class LoginActivity : AppCompatActivity() {
 
         loadRememberedAccount()
         setupLoginButtonListener()
+        setupPasswordToggle()
         setupOfflineButtons()
+    }
+
+    private fun setupPasswordToggle() {
+        var isPasswordVisible = false
+        binding.ivPasswordToggle.setOnClickListener {
+            isPasswordVisible = !isPasswordVisible
+            if (isPasswordVisible) {
+                // 顯示密碼
+                binding.passwordEditText.transformationMethod = HideReturnsTransformationMethod.getInstance()
+                binding.ivPasswordToggle.setImageResource(com.example.taoyuangutter.R.drawable.ic_visibility_off)
+            } else {
+                // 隱藏密碼
+                binding.passwordEditText.transformationMethod = PasswordTransformationMethod.getInstance()
+                binding.ivPasswordToggle.setImageResource(com.example.taoyuangutter.R.drawable.ic_visibility)
+            }
+            // 將游標移至末尾
+            binding.passwordEditText.setSelection(binding.passwordEditText.text?.length ?: 0)
+        }
     }
 
     private fun loadRememberedAccount() {
