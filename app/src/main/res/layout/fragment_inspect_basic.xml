@@ -35,15 +35,14 @@
             android:id="@+id/tvSpiNum"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ② SPI_TYP 側溝形式 -->
@@ -59,15 +58,14 @@
             android:id="@+id/tvSpiTyp"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ③ STR_X 起點X（E）座標 -->
@@ -83,15 +81,14 @@
             android:id="@+id/tvStrX"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ④ STR_Y 起點Y（N）座標 -->
@@ -107,15 +104,14 @@
             android:id="@+id/tvStrY"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑤ STR_LE 起點Z座標 -->
@@ -131,15 +127,14 @@
             android:id="@+id/tvStrLe"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑥ END_X 終點X（E）座標 -->
@@ -155,15 +150,14 @@
             android:id="@+id/tvEndX"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑦ END_Y 終點Y（N）座標 -->
@@ -179,15 +173,14 @@
             android:id="@+id/tvEndY"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑧ END_LE 終點Z座標 -->
@@ -203,15 +196,14 @@
             android:id="@+id/tvEndLe"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑨ NODE_XY 節點座標（X,Y 逗號分隔，多節點以底線分隔） -->
@@ -227,15 +219,14 @@
             android:id="@+id/tvNodeXy"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical|start"
             android:textSize="14sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑩ STR_DEP 起點深度（m） -->
@@ -251,15 +242,14 @@
             android:id="@+id/tvStrDep"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑪ END_DEP 終點深度（m） -->
@@ -275,15 +265,14 @@
             android:id="@+id/tvEndDep"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑫ STR_WID 起點頂寬（m） -->
@@ -299,15 +288,14 @@
             android:id="@+id/tvStrWid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑬ END_WID 終點頂寬（m） -->
@@ -323,15 +311,14 @@
             android:id="@+id/tvEndWid"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑭ LENG 側溝長度（m） -->
@@ -347,15 +334,14 @@
             android:id="@+id/tvLeng"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑮ SLOP 坡度（%） -->
@@ -371,15 +357,14 @@
             android:id="@+id/tvSlop"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="48dp"
+            android:minHeight="32dp"
             android:gravity="center_vertical"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
         <!-- ⑯ NOTE 補充說明 -->
@@ -395,15 +380,14 @@
             android:id="@+id/tvNote"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="80dp"
+            android:minHeight="60dp"
             android:gravity="top|start"
             android:textSize="15sp"
             android:textColor="@color/textColorPrimary"
             android:paddingStart="12dp"
             android:paddingEnd="12dp"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:background="@drawable/bg_inspect_field"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:layout_marginBottom="16dp" />
 
     </LinearLayout>
