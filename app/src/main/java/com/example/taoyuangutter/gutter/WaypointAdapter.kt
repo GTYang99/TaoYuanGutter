@@ -1,6 +1,7 @@
 package com.example.taoyuangutter.gutter
 
 import com.example.taoyuangutter.R
+import android.content.Context
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
@@ -16,6 +17,8 @@ class WaypointAdapter(
     private val items: MutableList<Waypoint>,
     private val onItemClick: (position: Int) -> Unit
 ) : RecyclerView.Adapter<WaypointAdapter.ViewHolder>() {
+
+    private lateinit var ctx: Context
 
     /** 由 AddGutterBottomSheet 注入，用於啟動拖曳 */
     var startDragListener: ((RecyclerView.ViewHolder) -> Unit)? = null
@@ -33,8 +36,9 @@ class WaypointAdapter(
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        ctx = parent.context
         val binding = ItemWaypointBinding.inflate(
-            LayoutInflater.from(parent.context), parent, false
+            LayoutInflater.from(ctx), parent, false
         )
         return ViewHolder(binding)
     }
@@ -64,7 +68,7 @@ class WaypointAdapter(
 
         val statusView = holder.binding.tvWaypointStatus
         if (hasFilledData) {
-            statusView.text = holder.itemView.context.getString(R.string.msg_data_filled)
+            statusView.text = ctx.getString(R.string.msg_data_filled)
             // 淺紫底：用既有 theme 的 colorPrimary 做 alpha 淡化
             val primary = MaterialColors.getColor(
                 holder.itemView,
@@ -76,7 +80,7 @@ class WaypointAdapter(
             statusView.backgroundTintList = android.content.res.ColorStateList.valueOf(bg)
             statusView.setTextColor(fg)
         } else {
-            statusView.text = holder.itemView.context.getString(R.string.msg_no_data)
+            statusView.text = ctx.getString(R.string.msg_no_data)
             val bg = ColorUtils.setAlphaComponent(
                 MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOnSurface, Color.BLACK),
                 (0.06f * 255).toInt()

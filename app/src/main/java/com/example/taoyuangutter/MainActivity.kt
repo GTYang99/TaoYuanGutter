@@ -38,8 +38,10 @@ import com.example.taoyuangutter.gutter.GutterInspectActivity
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.LoginActivity
+import com.example.taoyuangutter.map.DistanceMeasureManager
 import com.example.taoyuangutter.map.LayersBottomSheet
 import com.example.taoyuangutter.map.LegendBottomSheet
+import com.example.taoyuangutter.map.MeasureConfig
 import com.example.taoyuangutter.map.Wms3857TileProvider
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -164,6 +166,18 @@ class MainActivity : AppCompatActivity(),
 
     // ── 防抖機制（避免重複調用 scopeSearch API） ────────────────────
     private var lastGutterLoadTime = 0L
+
+    // ── 測距模式 ──────────────────────────────────────────────────────────────
+    /**
+     * 客製化測距圖示設定。
+     * 若要替換起點大頭針或準星圖示，在此修改即可：
+     *   measureConfig = MeasureConfig(
+     *       startMarkerIcon = BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE),
+     *       crosshairResId  = R.drawable.my_crosshair
+     *   )
+     */
+    var measureConfig = MeasureConfig()
+    private var measureManager: DistanceMeasureManager? = null
 
     private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
     private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
@@ -374,6 +388,11 @@ class MainActivity : AppCompatActivity(),
         }
 
         map.setOnMarkerClickListener { marker ->
+            // 測距模式：大頭針點擊視為設定測距起點，不開啟表單
+            if (measureManager?.isMeasuring == true) {
+                measureManager?.setStartPoint(marker.position)
+                return@setOnMarkerClickListener true
+            }
             val wpIndex = marker.tag as? Int ?: return@setOnMarkerClickListener false
             if (inspectSheet != null) {
                 val wp = inspectWaypoints.getOrNull(wpIndex) ?: return@setOnMarkerClickListener false
@@ -389,12 +408,21 @@ class MainActivity : AppCompatActivity(),
         }
 
         if (!isOfflineMainMode) {
-            map.setOnPolylineClickListener { polyline -> openInspectBottomSheet(polyline) }
+            map.setOnPolylineClickListener { polyline ->
+                // 測距模式：略過側溝線段點擊，避免開啟檢視表單
+                if (measureManager?.isMeasuring == true) return@setOnPolylineClickListener
+                openInspectBottomSheet(polyline)
+            }
         }
 
         // 地圖停止移動後，依目前可視範圍向後端查詢側溝線段（使用防抖避免高頻調用）
         if (!isOfflineMainMode) {
             map.setOnCameraIdleListener { loadGuttersByViewportDebounced() }
+        }
+
+        // ── 測距管理器初始化（需在地圖就緒後才能建立） ────────────────────────
+        measureManager = DistanceMeasureManager(map, measureConfig) { meters ->
+            updateMeasureDistanceDisplay(meters)
         }
     }
 
@@ -917,6 +945,9 @@ class MainActivity : AppCompatActivity(),
         binding.btnLegend.setOnClickListener { showLegendDialog() }
         binding.btnLayers.setOnClickListener { showMapTypeDialog() }
         binding.btnMyLocation.setOnClickListener { requestLocationAndMove() }
+        binding.btnMeasureDistance.setOnClickListener { toggleMeasureMode() }
+        binding.measurePanel.btnMeasureReset.setOnClickListener { measureManager?.reset() }
+        binding.measurePanel.btnMeasureClose.setOnClickListener { exitMeasureMode() }
         binding.btnAddGutter.setOnClickListener {
             workingPolyline?.remove()
             clearWorkingMarkers()
@@ -1403,4 +1434,69 @@ class MainActivity : AppCompatActivity(),
             "photo2"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2)     ?: ""),
             "photo3"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3)     ?: "")
         )
+
+    // ── 測距模式 ──────────────────────────────────────────────────────────────
+
+    /**
+     * 切換測距模式（進入 / 離開）。
+     * 點擊主畫面測距 FAB 時呼叫。
+     */
+    private fun toggleMeasureMode() {
+        val mgr = measureManager ?: return
+        if (mgr.isMeasuring) exitMeasureMode() else enterMeasureMode()
+    }
+
+    /** 進入測距模式：顯示準星與底部面板，並將測距 FAB 切換為 active 樣式。 */
+    private fun enterMeasureMode() {
+        val mgr = measureManager ?: return
+        mgr.enter()
+
+        // 套用 crosshair drawable（支援客製化）
+        binding.ivMeasureCrosshair.setImageResource(measureConfig.crosshairResId)
+        binding.ivMeasureCrosshair.visibility = View.VISIBLE
+        binding.measurePanel.root.visibility = View.VISIBLE
+
+        // FAB active 狀態：底色改為 colorPrimary，圖示改為白色
+        binding.btnMeasureDistance.backgroundTintList =
+            android.content.res.ColorStateList.valueOf(
+                ContextCompat.getColor(this, R.color.colorPrimary)
+            )
+        binding.btnMeasureDistance.imageTintList =
+            android.content.res.ColorStateList.valueOf(
+                ContextCompat.getColor(this, android.R.color.white)
+            )
+    }
+
+    /** 離開測距模式：隱藏準星與底部面板，還原 FAB 樣式。 */
+    private fun exitMeasureMode() {
+        val mgr = measureManager ?: return
+        mgr.exit()
+
+        binding.ivMeasureCrosshair.visibility = View.GONE
+        binding.measurePanel.root.visibility = View.GONE
+        binding.measurePanel.tvMeasureDistance.text = getString(R.string.measure_tap_hint)
+
+        // FAB inactive 狀態：還原白底、colorPrimary 圖示
+        binding.btnMeasureDistance.backgroundTintList =
+            android.content.res.ColorStateList.valueOf(
+                ContextCompat.getColor(this, R.color.white)
+            )
+        binding.btnMeasureDistance.imageTintList =
+            android.content.res.ColorStateList.valueOf(
+                ContextCompat.getColor(this, R.color.colorPrimary)
+            )
+    }
+
+    /**
+     * 更新底部面板距離文字。
+     * - [meters] 為 null → 顯示提示（尚未設定起點）
+     * - [meters] 有值 → 格式化後顯示
+     */
+    private fun updateMeasureDistanceDisplay(meters: Double?) {
+        binding.measurePanel.tvMeasureDistance.text = if (meters == null) {
+            getString(R.string.measure_tap_hint)
+        } else {
+            DistanceMeasureManager.formatDistance(meters)
+        }
+    }
 }

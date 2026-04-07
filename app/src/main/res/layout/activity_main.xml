@@ -109,13 +109,49 @@
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnMyLocation"
             android:layout_width="wrap_content"
-            android:layout_height="82dp"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
             android:contentDescription="@string/my_location_title"
             android:src="@drawable/ic_my_location"
             app:backgroundTint="@color/white"
             app:fabSize="mini"
             app:tint="@color/colorPrimary" />
 
+        <!-- 測距模式按鈕（toggle） -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnMeasureDistance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="@string/measure_mode_title"
+            android:src="@drawable/ic_ruler"
+            app:backgroundTint="@color/white"
+            app:tint="@color/colorPrimary"
+            app:fabSize="mini" />
+
     </LinearLayout>
+
+    <!-- 測距準星（畫面正中央，測距模式時才顯示） -->
+    <ImageView
+        android:id="@+id/ivMeasureCrosshair"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:src="@drawable/ic_crosshair"
+        android:visibility="gone"
+        android:contentDescription="@string/measure_crosshair_desc"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- 測距底部面板（測距模式時才顯示） -->
+    <include
+        android:id="@+id/measurePanel"
+        layout="@layout/panel_measure_distance"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -224,4 +224,12 @@
     <string name="waypoint_start_alt">起點</string>
     <string name="waypoint_end_alt">終點</string>
 
+    <!-- 測距模式 -->
+    <string name="measure_mode_title">測量距離</string>
+    <string name="measure_distance_label">距離</string>
+    <string name="measure_tap_hint">點擊地圖設定起點</string>
+    <string name="measure_reset">重設起點</string>
+    <string name="measure_close">關閉測距模式</string>
+    <string name="measure_crosshair_desc">測距準星</string>
+
 </resources>
