@@ -40,7 +40,7 @@
                 android:textColor="@color/colorPrimary"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:text="選擇點位" />
+                android:text="@string/label_select_waypoint" />
 
             <View
                 android:layout_width="48dp"
@@ -104,7 +104,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="暫無點位資料"
+            android:text="@string/msg_no_waypoint_data"
             android:textColor="@color/text_grey"
             android:textSize="16sp" />
 
@@ -117,7 +117,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="24dp"
-        android:text="匯入"
+        android:text="@string/insert_waypoint"
         android:textAlignment="center"
         android:textColor="@color/white"
         android:enabled="false"
@@ -154,7 +154,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="正在載入點位資料…"
+                android:text="@string/msg_loading_waypoint"
                 android:textColor="@color/text_grey"
                 android:textSize="14sp" />
 

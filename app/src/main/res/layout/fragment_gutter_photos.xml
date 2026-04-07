@@ -21,7 +21,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="測量位置及側溝概況"
+            android:text="@string/photo_slot_overview"
             android:textSize="14sp"
             android:textColor="@color/textColorSecondary"
             android:textStyle="bold"
@@ -78,7 +78,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="點擊拍照"
+                    android:text="@string/label_take_photo"
                     android:textSize="12sp"
                     android:textColor="@color/inputFieldHint"
                     android:layout_marginTop="6dp" />
@@ -125,7 +125,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝內徑寬度尺寸"
+            android:text="@string/label_photo_width"
             android:textSize="14sp"
             android:textColor="@color/textColorSecondary"
             android:textStyle="bold"
@@ -175,7 +175,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="點擊拍照"
+                    android:text="@string/label_take_photo"
                     android:textSize="12sp"
                     android:textColor="@color/inputFieldHint"
                     android:layout_marginTop="6dp" />
@@ -221,7 +221,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝深度尺寸"
+            android:text="@string/label_photo_depth"
             android:textSize="14sp"
             android:textColor="@color/textColorSecondary"
             android:textStyle="bold"
@@ -271,7 +271,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="點擊拍照"
+                    android:text="@string/label_take_photo"
                     android:textSize="12sp"
                     android:textColor="@color/inputFieldHint"
                     android:layout_marginTop="6dp" />

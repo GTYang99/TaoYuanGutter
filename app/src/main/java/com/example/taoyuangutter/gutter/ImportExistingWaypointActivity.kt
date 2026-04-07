@@ -139,7 +139,7 @@ class ImportExistingWaypointActivity : AppCompatActivity() {
 
         val token = LoginActivity.getSavedToken(this)
         if (token.isNullOrEmpty()) {
-            Toast.makeText(this, "請先登入", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
             finish()
             return
         }

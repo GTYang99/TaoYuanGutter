@@ -477,10 +477,10 @@ class MainActivity : AppCompatActivity(),
             // 更新模式：移除舊線段，重載可視範圍
             scopePolylines.remove(spiNum)?.remove()
             loadGuttersByViewport()
-            Toast.makeText(this, "側溝更新成功", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.msg_gutter_updated), Toast.LENGTH_SHORT).show()
         } else {
             // 新增模式
-            Toast.makeText(this, "側溝上傳成功", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.msg_gutter_uploaded), Toast.LENGTH_SHORT).show()
         }
         // 依序上傳各點位的本機照片（已是 https:// 的舊照片會略過）
         lifecycleScope.launch {
@@ -499,7 +499,7 @@ class MainActivity : AppCompatActivity(),
             .setPositiveButton("確定刪除") { _, _ ->
                 val token = LoginActivity.getSavedToken(this)
                 if (token.isNullOrEmpty()) {
-                    Toast.makeText(this, "請先登入", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
                 lifecycleScope.launch {
@@ -527,12 +527,12 @@ class MainActivity : AppCompatActivity(),
                             clearWorkingMarkers()
                             binding.btnAddGutter.visibility = View.VISIBLE
                             googleMap?.setPadding(0, 0, 0, 0)
-                            Toast.makeText(this@MainActivity, "側溝「$spiNum」已成功刪除", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this@MainActivity, String.format(getString(R.string.msg_delete_success), spiNum), Toast.LENGTH_SHORT).show()
                             // ── 重新加載地圖可視範圍內的側溝數據 ──
                             loadGuttersByViewport()
                         }
                         is ApiResult.Error -> {
-                            Toast.makeText(this@MainActivity, "刪除失敗：${result.message}", Toast.LENGTH_LONG).show()
+                            Toast.makeText(this@MainActivity, String.format(getString(R.string.msg_delete_failed), result.message), Toast.LENGTH_LONG).show()
                         }
                     }
                 }
@@ -846,7 +846,7 @@ class MainActivity : AppCompatActivity(),
                     } else {
                         isInspecting = false
                         android.widget.Toast.makeText(
-                            this@MainActivity, "查無線段資料", android.widget.Toast.LENGTH_SHORT
+                            this@MainActivity, getString(R.string.msg_no_line_data), android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
                 }

@@ -21,7 +21,7 @@
             android:id="@+id/tilGutterTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝編號"
+            android:text="@string/field_gutter_id"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginTop="4dp"
@@ -52,7 +52,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝形式"
+            android:text="@string/field_gutter_type"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -73,7 +73,7 @@
                 android:id="@+id/rbGutterType0"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="U形溝（明溝）"
+                android:text="@string/gutter_type_u_open"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -84,7 +84,7 @@
                 android:id="@+id/rbGutterType1"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="U形溝（加蓋）"
+                android:text="@string/gutter_type_u_covered"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -95,7 +95,7 @@
                 android:id="@+id/rbGutterType2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="L形溝與暗溝渠併用"
+                android:text="@string/gutter_type_l_mixed"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -106,7 +106,7 @@
                 android:id="@+id/rbGutterType3"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="其他"
+                android:text="@string/gutter_type_other"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -119,7 +119,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝X（E）座標"
+            android:text="@string/field_coord_x"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -149,7 +149,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝Y（N）座標"
+            android:text="@string/field_coord_y"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -180,7 +180,7 @@
             android:id="@+id/tvCoordZTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝Z座標"
+            android:text="@string/field_coord_z"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -247,7 +247,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="側溝測量深度（公分）"
+                android:text="@string/field_depth_cm"
                 android:textSize="13sp"
                 android:textColor="@color/textColorSecondary" />
 
@@ -256,7 +256,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 app:buttonTint="@color/colorPrimary"
-                android:text="無法開蓋" />
+                android:text="@string/field_cannot_open" />
         </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -287,7 +287,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝頂寬度（公分）"
+            android:text="@string/field_width_cm"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -320,7 +320,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝材質"
+            android:text="@string/field_gutter_material"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -341,7 +341,7 @@
                 android:id="@+id/rbMatType0"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="混凝土"
+                android:text="@string/material_concrete"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -353,7 +353,7 @@
                 android:id="@+id/rbMatType1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="卵礫石"
+                android:text="@string/material_gravel"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -365,7 +365,7 @@
                 android:id="@+id/rbMatType2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="紅磚"
+                android:text="@string/material_brick"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -378,7 +378,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="溝體結構受損"
+            android:text="@string/label_broken"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -399,7 +399,7 @@
                 android:id="@+id/rbIsBroken0"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="否"
+                android:text="@string/damage_no"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -411,7 +411,7 @@
                 android:id="@+id/rbIsBroken1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="是"
+                android:text="@string/damage_yes"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -424,7 +424,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="附掛或過路管線"
+            android:text="@string/label_hanging"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -445,7 +445,7 @@
                 android:id="@+id/rbIsHanging0"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="無"
+                android:text="@string/hanging_no"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -457,7 +457,7 @@
                 android:id="@+id/rbIsHanging1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="有"
+                android:text="@string/hanging_yes"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -470,7 +470,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="淤積程度"
+            android:text="@string/label_silt"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -491,7 +491,7 @@
                 android:id="@+id/rbIsSilt0"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="無"
+                android:text="@string/silt_none"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -503,7 +503,7 @@
                 android:id="@+id/rbIsSilt1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="輕度"
+                android:text="@string/silt_light"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -515,7 +515,7 @@
                 android:id="@+id/rbIsSilt2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="中度"
+                android:text="@string/silt_medium"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -527,7 +527,7 @@
                 android:id="@+id/rbIsSilt3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="嚴重"
+                android:text="@string/silt_severe"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
                 android:textSize="14sp"
@@ -540,7 +540,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="補充說明"
+            android:text="@string/label_remarks"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />

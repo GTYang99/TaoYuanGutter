@@ -56,7 +56,7 @@
     <string name="layers_sheet_water_old">水務局舊資料</string>
     <string name="layers_sheet_possible">可能側溝位置</string>
     <string name="layers_sheet_emap_name">台灣通用電子地圖</string>
-    <string name="layers_sheet_emap_gray_name">電子地圖(灰階)</string>
+    <string name="layers_sheet_emap_gray_name">台灣通用電子地圖(灰階)</string>
     <string name="layers_sheet_photo2_name">正射影像圖(台灣通用)</string>
     <string name="layers_sheet_layer_code">圖層代碼：%1$s</string>
     <string name="unupload_data">待上傳草稿</string>
@@ -116,4 +116,112 @@
     <string name="app_version">版本：1.0</string>
     <string name="confirm">確定</string>
     <string name="cancel">取消</string>
+    <string name="insert_waypoint">匯入</string>
+
+    <!-- 新增/修改按鈕文字 -->
+    <string name="btn_update_gutter">更新側溝</string>
+    <string name="btn_delete_gutter">刪除側溝</string>
+
+    <!-- Toast 和提示消息 -->
+    <string name="msg_gutter_updated">側溝更新成功</string>
+    <string name="msg_gutter_uploaded">側溝上傳成功</string>
+    <string name="msg_login_first">請先登入</string>
+    <string name="msg_delete_success">側溝「%1$s」已成功刪除</string>
+    <string name="msg_delete_failed">刪除失敗：%1$s</string>
+    <string name="msg_no_line_data">查無線段資料</string>
+    <string name="msg_uploading_photos">正在上傳照片…</string>
+    <string name="msg_import_waypoint_title">匯入既有點位資料</string>
+    <string name="msg_select_button">選擇</string>
+    <string name="msg_no_waypoint_data">暫無點位資料</string>
+    <string name="msg_loading_waypoint">正在載入點位資料…</string>
+    <string name="msg_landscape_camera_title">請轉為橫向拍照</string>
+    <string name="msg_landscape_camera_hint">請將手機旋轉至橫向後即可拍照</string>
+    <string name="msg_offline_form">離線填寫表單</string>
+    <string name="msg_logout">登出</string>
+    <string name="msg_loading_waypoint_data">載入點位資料中...</string>
+    <string name="msg_no_offline_draft">目前沒有離線草稿</string>
+    <string name="msg_offline_draft_title">離線草稿</string>
+    <string name="msg_data_filled">已填寫資料</string>
+    <string name="msg_no_data">暫無資料</string>
+    <string name="msg_no_position_data">---</string>
+    <string name="msg_camera_init_failed">相機初始化失敗</string>
+    <string name="msg_camera_capture_failed">拍照失敗</string>
+    <string name="msg_camera_permission_required">需要相機權限才能拍照</string>
+    <string name="msg_photo_prepare_failed">無法準備拍照檔案</string>
+    <string name="msg_photo_download_failed">下載照片失敗：%1$s</string>
+    <string name="msg_data_parse_failed">資料解析失敗</string>
+    <string name="msg_fill_required">請填寫「%1$s」</string>
+    <string name="msg_take_photo_required">請拍攝「%1$s」照片</string>
+    <string name="msg_draft_saved">草稿已儲存至本機</string>
+    <string name="msg_start_point_required">請先設定起點座標</string>
+    <string name="msg_end_point_required">請先設定終點座標</string>
+    <string name="msg_upload_failed_saved_draft">上傳失敗，已儲存為待上傳草稿</string>
+    <string name="msg_waypoint_loading">點位資料載入中，請稍候</string>
+    <string name="msg_waypoint_load_partial_failed">部分點位資料載入失敗</string>
+    <string name="msg_location_permission_required">需要定位權限才能使用「現在位置」功能</string>
+    <string name="msg_location_not_available">尚未取得定位，請稍後再試</string>
+    <string name="msg_location_failed">定位失敗：%1$s</string>
+
+    <!-- 表單欄位標籤 -->
+    <string name="field_gutter_material">側溝材質</string>
+    <string name="field_depth_cm">側溝測量深度（公分）</string>
+    <string name="field_width_cm">側溝頂寬度（公分）</string>
+    <string name="field_cannot_open">無法開蓋</string>
+
+    <!-- 側溝材質選項 -->
+    <string name="material_concrete">混凝土</string>
+    <string name="material_gravel">卵礫石</string>
+    <string name="material_brick">紅磚</string>
+
+    <!-- 受損狀態選項 -->
+    <string name="damage_no">否</string>
+    <string name="damage_yes">是</string>
+
+    <!-- 附掛管線選項 -->
+    <string name="hanging_no">無</string>
+    <string name="hanging_yes">有</string>
+
+    <!-- 淤積程度選項 -->
+    <string name="silt_none">無</string>
+    <string name="silt_light">輕度</string>
+    <string name="silt_medium">中度</string>
+    <string name="silt_severe">嚴重</string>
+
+    <!-- 其他標籤 -->
+    <string name="label_broken">溝體結構受損</string>
+    <string name="label_hanging">附掛或過路管線</string>
+    <string name="label_silt">淤積程度</string>
+    <string name="label_remarks">補充說明</string>
+    <string name="label_inspect_title">側溝檢視</string>
+    <string name="label_select_waypoint">選擇點位</string>
+    <string name="label_photo_width">側溝內徑寬度尺寸</string>
+    <string name="label_photo_depth">側溝深度尺寸</string>
+    <string name="label_take_photo">點擊拍照</string>
+    <string name="label_form_title">側溝資料填寫</string>
+
+    <!-- 查看模式 (Inspect) 標籤 -->
+    <string name="label_start_x">起點X（E）座標</string>
+    <string name="label_start_y">起點Y（N）座標</string>
+    <string name="label_start_z">起點Z座標</string>
+    <string name="label_end_x">終點X（E）座標</string>
+    <string name="label_end_y">終點Y（N）座標</string>
+    <string name="label_end_z">終點Z座標</string>
+    <string name="label_node_coord">節點座標</string>
+    <string name="label_start_depth">起點深度（m）</string>
+    <string name="label_end_depth">終點深度（m）</string>
+    <string name="label_start_width">起點頂寬（m）</string>
+    <string name="label_end_width">終點頂寬（m）</string>
+    <string name="label_gutter_length">側溝長度（m）</string>
+    <string name="label_slope">坡度（%）</string>
+
+    <!-- 其他 UI 文字 -->
+    <string name="silt_none_alt">無</string>
+    <string name="hanging_yes_alt">有</string>
+    <string name="no_photo">無照片</string>
+    <string name="delete_button">刪除</string>
+    <string name="no_data_alt">無資料</string>
+    <string name="coord_number">座標編號</string>
+    <string name="waypoint_start_alt">起點</string>
+    <string name="waypoint_end_alt">終點</string>
+
 </resources>

@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.gutter
 
+import com.example.taoyuangutter.R
 import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableStringBuilder
@@ -292,7 +293,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      */
     private fun setupTitle() {
         if (isOfflineMode) {
-            binding.tvSheetTitle.text = "離線草稿"
+            binding.tvSheetTitle.text = getString(R.string.msg_offline_draft_title)
             return
         }
         if (editSpiNum.isEmpty()) return
@@ -598,7 +599,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             // 編輯模式：隱藏「新增節點」、顯示「刪除側溝」（左）＋「更新側溝」（右）
             //binding.btnAddNode.visibility = View.GONE
             binding.btnDeleteGutter.visibility = View.VISIBLE
-            binding.btnSubmitGutter.text = "更新側溝"
+            binding.btnSubmitGutter.text = getString(R.string.btn_update_gutter)
             updateSubmitButtonState()
 
             binding.btnDeleteGutter.setOnClickListener {
@@ -620,7 +621,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             if (isOfflineMode) {
                 // 離線新增：提交按鈕只作為「完成」關閉，不打 API
                 binding.btnDeleteGutter.visibility = View.GONE
-                binding.btnSubmitGutter.text = "完成"
+                binding.btnSubmitGutter.text = getString(R.string.form_finish_button)
             }
             binding.btnAddNode.setOnClickListener {
                 val nodeCount  = waypoints.count { it.type == WaypointType.NODE }
@@ -643,11 +644,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 val start = waypoints.firstOrNull { it.type == WaypointType.START }
                 val end   = waypoints.firstOrNull { it.type == WaypointType.END }
                 if (start?.latLng == null) {
-                    Toast.makeText(requireContext(), "請先設定起點座標", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.msg_start_point_required), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
                 if (end?.latLng == null) {
-                    Toast.makeText(requireContext(), "請先設定終點座標", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.msg_end_point_required), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 
@@ -675,7 +676,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
 
                 val token = LoginActivity.getSavedToken(requireContext()) ?: run {
-                    Toast.makeText(requireContext(), "請先登入", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 
@@ -700,7 +701,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 "StoreDitch",
                                 "add failed: message=${result.message}, code=${result.code}"
                             )
-                            Toast.makeText(activity, "上傳失敗，已儲存為待上傳草稿", Toast.LENGTH_LONG).show()
+                            Toast.makeText(activity, getString(R.string.msg_upload_failed_saved_draft), Toast.LENGTH_LONG).show()
                             (activity as? LocationPickerHost)
                                 ?.onGutterSaveFailed(validWaypoints)
                         }
@@ -732,7 +733,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (_binding == null) return
         val token = LoginActivity.getSavedToken(requireContext()) ?: run {
             showSelf()
-            Toast.makeText(requireContext(), "請先登入", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
             return
         }
         // 顯示 sheet 並鎖定按鈕，讓使用者看到「更新中」進度
@@ -742,7 +743,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
         lifecycleScope.launch {
             if (isPreloadingEditDetails) {
-                Toast.makeText(requireContext(), "點位資料載入中，請稍候", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.msg_waypoint_loading), Toast.LENGTH_SHORT).show()
                 updateSubmitButtonState()
                 return@launch
             }
@@ -934,7 +935,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             updateSubmitButtonState()
 
             if (hasError) {
-                Toast.makeText(requireContext(), "部分點位資料載入失敗", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), getString(R.string.msg_waypoint_load_partial_failed), Toast.LENGTH_SHORT).show()
             }
         }
     }

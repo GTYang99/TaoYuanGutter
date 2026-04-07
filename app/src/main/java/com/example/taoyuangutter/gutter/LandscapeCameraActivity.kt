@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.gutter
 
+import com.example.taoyuangutter.R
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -128,7 +129,7 @@ class LandscapeCameraActivity : AppCompatActivity() {
             cameraProvider.unbindAll()
             cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture)
         } catch (e: Exception) {
-            Toast.makeText(this, "相機初始化失敗", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.msg_camera_init_failed), Toast.LENGTH_SHORT).show()
             setResult(Activity.RESULT_CANCELED)
             finish()
         }
@@ -165,7 +166,7 @@ class LandscapeCameraActivity : AppCompatActivity() {
                 override fun onError(exception: ImageCaptureException) {
                     binding.btnCapture.isEnabled = deviceIsLandscape
                     binding.btnCapture.alpha = if (deviceIsLandscape) 1f else 0.4f
-                    Toast.makeText(this@LandscapeCameraActivity, "拍照失敗", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@LandscapeCameraActivity, getString(R.string.msg_camera_capture_failed), Toast.LENGTH_SHORT).show()
                 }
             }
         )

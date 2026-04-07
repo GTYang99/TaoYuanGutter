@@ -44,7 +44,7 @@
                 android:textColor="@color/black"
                 android:textSize="18sp"
                 android:textStyle="bold"
-                android:text="側溝檢視" />
+                android:text="@string/label_inspect_title" />
 
             <!-- 右側：編輯按鈕 -->
             <ImageButton

@@ -36,7 +36,7 @@
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:gravity="center"
-        android:text="登出"
+        android:text="@string/msg_logout"
         android:textColor="#333333"
         android:textSize="14sp"
         android:textStyle="bold"

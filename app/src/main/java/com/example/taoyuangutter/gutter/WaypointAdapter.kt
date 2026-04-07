@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.gutter
 
+import com.example.taoyuangutter.R
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.LayoutInflater
@@ -63,7 +64,7 @@ class WaypointAdapter(
 
         val statusView = holder.binding.tvWaypointStatus
         if (hasFilledData) {
-            statusView.text = "已填寫資料"
+            statusView.text = holder.itemView.context.getString(R.string.msg_data_filled)
             // 淺紫底：用既有 theme 的 colorPrimary 做 alpha 淡化
             val primary = MaterialColors.getColor(
                 holder.itemView,
@@ -75,7 +76,7 @@ class WaypointAdapter(
             statusView.backgroundTintList = android.content.res.ColorStateList.valueOf(bg)
             statusView.setTextColor(fg)
         } else {
-            statusView.text = "暫無資料"
+            statusView.text = holder.itemView.context.getString(R.string.msg_no_data)
             val bg = ColorUtils.setAlphaComponent(
                 MaterialColors.getColor(holder.itemView, com.google.android.material.R.attr.colorOnSurface, Color.BLACK),
                 (0.06f * 255).toInt()

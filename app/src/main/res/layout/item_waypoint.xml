@@ -13,7 +13,7 @@
         android:layout_gravity="end"
         android:background="#D32F2F"
         android:gravity="center"
-        android:text="刪除"
+        android:text="@string/delete_button"
         android:textColor="#FFFFFF"
         android:textSize="15sp"
         android:textStyle="bold"
@@ -93,7 +93,7 @@
                 android:background="@color/border_grey"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="6dp"
-                android:text="暫無資料"
+                android:text="@string/msg_no_data"
                 android:textSize="13sp" />
 
         </LinearLayout>

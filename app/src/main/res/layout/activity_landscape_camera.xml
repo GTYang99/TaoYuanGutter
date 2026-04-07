@@ -93,7 +93,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="請轉為橫向拍照"
+                android:text="@string/msg_landscape_camera_title"
                 android:textColor="#FFFFFF"
                 android:textSize="18sp"
                 android:textStyle="bold"
@@ -102,7 +102,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="請將手機旋轉至橫向後即可拍照"
+                android:text="@string/msg_landscape_camera_hint"
                 android:textColor="#CCCCCC"
                 android:textSize="13sp"
                 android:layout_marginTop="6dp" />

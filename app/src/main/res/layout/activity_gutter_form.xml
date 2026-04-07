@@ -73,7 +73,7 @@
                     android:textColor="@color/colorPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold"
-                    android:text="起點" />
+                    android:text="@string/waypoint_start" />
 
                 <!-- 右側按鈕槽：編輯 icon（檢視模式）或完成文字（編輯模式），預設隱藏 -->
                 <FrameLayout
@@ -97,7 +97,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:gravity="center"
-                        android:text="完成"
+                        android:text="@string/form_finish_button"
                         android:textColor="@color/white"
                         android:textSize="15sp"
                         android:textStyle="bold"
@@ -126,7 +126,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:gravity="start"
-                    android:text="匯入既有點位資料"
+                    android:text="@string/msg_import_waypoint_title"
                     android:textSize="14sp"
                     android:textColor="@color/text_grey" />
 
@@ -134,7 +134,7 @@
                     android:id="@+id/btnSelectWaypoint"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="選擇"
+                    android:text="@string/msg_select_button"
                     android:textSize="14sp"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
@@ -197,7 +197,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="bottom|center_horizontal"
             android:layout_marginBottom="24dp"
-            android:text="@string/btn_add_point"
+            android:text="@string/form_finish_button"
             android:textColor="@color/white"
             android:textAlignment="center"
             app:backgroundTint="@color/colorPrimary"
@@ -235,7 +235,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:text="正在上傳照片…"
+                    android:text="@string/msg_uploading_photos"
                     android:textColor="@color/text_grey"
                     android:textSize="14sp" />
 

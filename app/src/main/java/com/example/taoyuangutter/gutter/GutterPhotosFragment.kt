@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.gutter
 
+import com.example.taoyuangutter.R
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -51,7 +52,7 @@ class GutterPhotosFragment : Fragment() {
             launchLandscapeCamera(pendingSlot)
         } else if (!granted) {
             pendingSlot = 0
-            Toast.makeText(requireContext(), "需要相機權限才能拍照", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.msg_camera_permission_required), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -256,7 +257,7 @@ class GutterPhotosFragment : Fragment() {
         val outputFile = createOutputFile(slot)
         if (outputFile == null) {
             pendingSlot = 0
-            Toast.makeText(requireContext(), "無法準備拍照檔案", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), getString(R.string.msg_photo_prepare_failed), Toast.LENGTH_SHORT).show()
             return
         }
         pendingOutputPath = outputFile.absolutePath

@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.gutter
 
+import com.example.taoyuangutter.R
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -49,7 +50,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         if (granted) {
             enableMyLocationAndJump()
         } else {
-            Toast.makeText(this, "需要定位權限才能使用「現在位置」功能", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.msg_location_permission_required), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -136,10 +137,10 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
                 val here = LatLng(location.latitude, location.longitude)
                 map.animateCamera(CameraUpdateFactory.newLatLngZoom(here, 18f))
             } else {
-                Toast.makeText(this, "尚未取得定位，請稍後再試", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.msg_location_not_available), Toast.LENGTH_SHORT).show()
             }
         }.addOnFailureListener {
-            Toast.makeText(this, "定位失敗：${it.message}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, String.format(getString(R.string.msg_location_failed), it.message), Toast.LENGTH_SHORT).show()
         }
     }
 

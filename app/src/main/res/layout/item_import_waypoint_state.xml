@@ -14,7 +14,7 @@
         android:id="@+id/tvMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="無資料"
+        android:text="@string/no_data_alt"
         android:textColor="@color/text_grey"
         android:textSize="15sp" />
 

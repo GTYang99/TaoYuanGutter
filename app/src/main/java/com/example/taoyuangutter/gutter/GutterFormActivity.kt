@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.gutter
 
+import com.example.taoyuangutter.R
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
@@ -322,11 +323,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
                         showUploadLoading(false)
                     } catch (e: Exception) {
                         showUploadLoading(false)
-                        Toast.makeText(this@GutterFormActivity, "下載照片失敗：${e.message}", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(this@GutterFormActivity, String.format(getString(R.string.msg_photo_download_failed), e.message), Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
-                Toast.makeText(this, "資料解析失敗", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.msg_data_parse_failed), Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -676,7 +677,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun setupFab() {
         // 編輯模式：FAB 文字改為「完成」
         if (isEditMode) {
-            binding.fabSubmit.text = "完成"
+            binding.fabSubmit.text = getString(R.string.form_finish_button)
         }
         binding.fabSubmit.setOnClickListener {
             when {
@@ -696,13 +697,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
         if (basicError != null) {
             binding.viewPager.currentItem = 0
-            Toast.makeText(this, "請填寫「$basicError」", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, String.format(getString(R.string.msg_fill_required), basicError), Toast.LENGTH_SHORT).show()
             return
         }
         val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
         if (photoError != null) {
             binding.viewPager.currentItem = 1
-            Toast.makeText(this, "請拍攝「$photoError」照片", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, String.format(getString(R.string.msg_take_photo_required), photoError), Toast.LENGTH_SHORT).show()
             return
         }
         buildAndFinishWithResult()
@@ -920,7 +921,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun showUploadLoading(show: Boolean, message: String? = null) {
         binding.uploadLoadingOverlay.visibility = if (show) View.VISIBLE else View.GONE
         if (show) {
-            binding.tvUploadLoadingMessage.text = message ?: "正在上傳照片…"
+            binding.tvUploadLoadingMessage.text = message ?: getString(R.string.msg_uploading_photos)
         }
     }
 
@@ -974,19 +975,19 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
             val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
             if (basicError != null) {
                 binding.viewPager.currentItem = 0
-                Toast.makeText(this, "請填寫「$basicError」", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, String.format(getString(R.string.msg_fill_required), basicError), Toast.LENGTH_SHORT).show()
                 return
             }
             val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
             if (photoError != null) {
                 binding.viewPager.currentItem = 1
-                Toast.makeText(this, "請拍攝「$photoError」照片", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, String.format(getString(R.string.msg_take_photo_required), photoError), Toast.LENGTH_SHORT).show()
                 return
             }
         }
         syncSessionDraftNow()
         if (!silent) {
-            Toast.makeText(this, "草稿已儲存至本機", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.msg_draft_saved), Toast.LENGTH_SHORT).show()
         }
         finish()
     }

@@ -26,7 +26,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝編號"
+            android:text="@string/field_gutter_id"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -50,7 +50,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝形式"
+            android:text="@string/field_gutter_type"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -74,7 +74,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="起點X（E）座標"
+            android:text="@string/label_start_x"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -98,7 +98,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="起點Y（N）座標"
+            android:text="@string/label_start_y"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -122,7 +122,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="起點Z座標"
+            android:text="@string/label_start_z"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -146,7 +146,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="終點X（E）座標"
+            android:text="@string/label_end_x"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -170,7 +170,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="終點Y（N）座標"
+            android:text="@string/label_end_y"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -194,7 +194,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="終點Z座標"
+            android:text="@string/label_end_z"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -218,7 +218,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="節點座標"
+            android:text="@string/label_node_coord"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -242,7 +242,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="起點深度（m）"
+            android:text="@string/label_start_depth"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -266,7 +266,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="終點深度（m）"
+            android:text="@string/label_end_depth"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -290,7 +290,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="起點頂寬（m）"
+            android:text="@string/label_start_width"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -314,7 +314,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="終點頂寬（m）"
+            android:text="@string/label_end_width"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -338,7 +338,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝長度（m）"
+            android:text="@string/label_gutter_length"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -362,7 +362,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="坡度（%）"
+            android:text="@string/label_slope"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
@@ -386,7 +386,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="補充說明"
+            android:text="@string/label_remarks"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />

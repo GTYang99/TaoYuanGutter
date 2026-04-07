@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.pending
 
+import com.example.taoyuangutter.R
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
@@ -35,7 +36,7 @@ class PendingDraftAdapter(
             // - 離線草稿：固定顯示「離線草稿」
             // - 其他：優先顯示 START waypoint 的 SPI_NUM；沒有值時顯示「側溝草稿」
             if (draft.isOffline) {
-                tvPendingDraftTitle.text = "離線草稿"
+                tvPendingDraftTitle.text = holder.itemView.context.getString(R.string.msg_offline_draft_title)
             } else {
                 val startWp = draft.waypoints.firstOrNull { it.type == "START" }
                 val gutterId = startWp?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() }
