@@ -1,8 +1,33 @@
+import java.io.FileInputStream
+import java.util.Properties
+import kotlin.toString
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
+}
+
+fun getVersionCode(): Int {
+    val propertiesFile = project.file("version.properties")
+    if (!propertiesFile.canRead()) {
+        throw GradleException("Could not read ${propertiesFile.name}")
+    }
+
+    val properties = Properties()
+    properties.load(FileInputStream(propertiesFile))
+    return properties["P0_VERSION_CODE"].toString().toInt()
+}
+
+fun getVersionName(): String {
+    val propertiesFile = project.file("version.properties")
+    if (!propertiesFile.canRead()) {
+        throw GradleException("Could not read ${propertiesFile.name}")
+    }
+    val properties = Properties()
+    properties.load(FileInputStream(propertiesFile))
+    return "${properties["P1_VERSION_NAME_MAJOR"]}.${properties["P2_VERSION_NAME_MINOR"]}.${properties["P3_VERSION_NAME_BUILD"]}"
 }
 
 android {
@@ -13,8 +38,8 @@ android {
         applicationId = "com.example.taoyuangutter"
         minSdk = 24
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = getVersionCode()
+        versionName = getVersionName()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
