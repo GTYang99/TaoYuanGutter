@@ -57,26 +57,63 @@
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilGutterType"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        <RadioGroup
+            android:id="@+id/rgGutterType"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
+            android:orientation="vertical"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
 
-            <AutoCompleteTextView
-                android:id="@+id/actvGutterType"
+            <RadioButton
+                android:id="@+id/rbGutterType0"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="none"
+                android:text="U形溝（明溝）"
+                android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+            <RadioButton
+                android:id="@+id/rbGutterType1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="U形溝（加蓋）"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+            <RadioButton
+                android:id="@+id/rbGutterType2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="L形溝與暗溝渠併用"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+            <RadioButton
+                android:id="@+id/rbGutterType3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="其他"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+        </RadioGroup>
 
         <!-- ④ 側溝X（E）座標 ────────────────────────────────────── -->
         <TextView
@@ -288,26 +325,54 @@
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilMatType"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        <RadioGroup
+            android:id="@+id/rgMatType"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
+            android:orientation="horizontal"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
 
-            <AutoCompleteTextView
-                android:id="@+id/actvMatType"
-                android:layout_width="match_parent"
+            <RadioButton
+                android:id="@+id/rbMatType0"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:inputType="none"
+                android:text="混凝土"
+                android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="20dp" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+            <RadioButton
+                android:id="@+id/rbMatType1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="卵礫石"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="20dp" />
+
+            <RadioButton
+                android:id="@+id/rbMatType2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="紅磚"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+        </RadioGroup>
 
         <!-- ⑨ 溝體結構受損 ──────────────────────────────────────────────── -->
         <TextView
@@ -318,26 +383,42 @@
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilIsBroken"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        <RadioGroup
+            android:id="@+id/rgIsBroken"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
+            android:orientation="horizontal"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
 
-            <AutoCompleteTextView
-                android:id="@+id/actvIsBroken"
-                android:layout_width="match_parent"
+            <RadioButton
+                android:id="@+id/rbIsBroken0"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:inputType="none"
+                android:text="否"
+                android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="32dp" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+            <RadioButton
+                android:id="@+id/rbIsBroken1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="是"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+        </RadioGroup>
 
         <!-- ⑩ 附掛或過路管線 ─────────────────────────────────────────────── -->
         <TextView
@@ -348,26 +429,42 @@
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilIsHanging"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        <RadioGroup
+            android:id="@+id/rgIsHanging"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
+            android:orientation="horizontal"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
 
-            <AutoCompleteTextView
-                android:id="@+id/actvIsHanging"
-                android:layout_width="match_parent"
+            <RadioButton
+                android:id="@+id/rbIsHanging0"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:inputType="none"
+                android:text="無"
+                android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="32dp" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+            <RadioButton
+                android:id="@+id/rbIsHanging1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="有"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+        </RadioGroup>
 
         <!-- ⑪ 淤積程度 ──────────────────────────────────────────────────── -->
         <TextView
@@ -378,26 +475,66 @@
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilIsSilt"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        <RadioGroup
+            android:id="@+id/rgIsSilt"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
+            android:orientation="horizontal"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
 
-            <AutoCompleteTextView
-                android:id="@+id/actvIsSilt"
-                android:layout_width="match_parent"
+            <RadioButton
+                android:id="@+id/rbIsSilt0"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:inputType="none"
+                android:text="無"
+                android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="20dp" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+            <RadioButton
+                android:id="@+id/rbIsSilt1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="輕度"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="20dp" />
+
+            <RadioButton
+                android:id="@+id/rbIsSilt2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="中度"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="20dp" />
+
+            <RadioButton
+                android:id="@+id/rbIsSilt3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="嚴重"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+        </RadioGroup>
 
         <!-- ⑫ 補充說明 ─────────────────────────────────────────── -->
         <TextView

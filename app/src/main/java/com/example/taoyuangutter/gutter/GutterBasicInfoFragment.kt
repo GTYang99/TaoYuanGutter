@@ -10,8 +10,8 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
-import android.widget.ArrayAdapter
-import android.widget.EditText
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.taoyuangutter.R
@@ -112,18 +112,7 @@ class GutterBasicInfoFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         val isViewMode   = arguments?.getBoolean(ARG_VIEW_MODE)   ?: false
         val isEditMode   = arguments?.getBoolean(ARG_IS_EDIT_MODE) ?: false
-        
-        val dropdowns = listOf(
-            binding.actvGutterType,
-            binding.actvMatType,
-            binding.actvIsBroken,
-            binding.actvIsHanging,
-            binding.actvIsSilt
-        )
-        // 針對所有下拉選單，強制不跳出鍵盤
-        dropdowns.forEach { it.showSoftInputOnFocus = false }
 
-        setupDropdowns()
         prefillData()
         setupReadOnlyCoordinates()
         setEditable(!isViewMode)
@@ -159,18 +148,28 @@ class GutterBasicInfoFragment : Fragment() {
         _binding = null
     }
 
-    /** 設定所有下拉選單的 Adapter */
-    private fun setupDropdowns() {
-        fun adapter(options: List<String>) = ArrayAdapter(
-            requireContext(),
-            android.R.layout.simple_dropdown_item_1line,
-            options
-        )
-        binding.actvGutterType.setAdapter(adapter(GUTTER_TYPES))
-        binding.actvMatType.setAdapter(adapter(MAT_TYPES))
-        binding.actvIsBroken.setAdapter(adapter(BROKEN_OPTIONS))
-        binding.actvIsHanging.setAdapter(adapter(HANGING_OPTIONS))
-        binding.actvIsSilt.setAdapter(adapter(SILT_OPTIONS))
+    // ── RadioGroup 工具函式 ───────────────────────────────────────────────
+
+    /** 依文字找到對應 RadioButton 並勾選；找不到則清除選取。 */
+    private fun RadioGroup.setCheckedByText(text: String?) {
+        if (text.isNullOrEmpty()) { clearCheck(); return }
+        for (i in 0 until childCount) {
+            val rb = getChildAt(i) as? RadioButton ?: continue
+            if (rb.text == text) { check(rb.id); return }
+        }
+        clearCheck()
+    }
+
+    /** 取得目前勾選 RadioButton 的文字；無勾選回傳空字串。 */
+    private fun RadioGroup.getCheckedText(): String {
+        val id = checkedRadioButtonId
+        if (id == -1) return ""
+        return (findViewById<RadioButton>(id))?.text?.toString() ?: ""
+    }
+
+    /** 設定 RadioGroup 所有子 RadioButton 的 isEnabled。 */
+    private fun RadioGroup.setChildrenEnabled(enabled: Boolean) {
+        for (i in 0 until childCount) { getChildAt(i)?.isEnabled = enabled }
     }
 
     /** 從 args 預填既有資料（有則填，無則走座標預填） */
@@ -199,17 +198,17 @@ class GutterBasicInfoFragment : Fragment() {
 
         if (hasAnyData) {
             binding.etGutterId.setText(spiNum)
-            binding.actvGutterType.setText(nodeTypCodeToText(nodeTyp), false)
-            binding.actvMatType.setText(matTypCodeToText(matTyp), false)
+            binding.rgGutterType.setCheckedByText(nodeTypCodeToText(nodeTyp))
+            binding.rgMatType.setCheckedByText(matTypCodeToText(matTyp))
             binding.etCoordX.setText(nodeX)
             binding.etCoordY.setText(nodeY)
             binding.etCoordZ.setText(nodeLe)
             binding.etMeasureId.setText(xyNum)
             binding.etDepth.setText(nodeDep)
             binding.etTopWidth.setText(nodeWid)
-            binding.actvIsBroken.setText(isBrokenCodeToText(isBroken), false)
-            binding.actvIsHanging.setText(isHangingCodeToText(isHanging), false)
-            binding.actvIsSilt.setText(isSiltCodeToText(isSilt), false)
+            binding.rgIsBroken.setCheckedByText(isBrokenCodeToText(isBroken))
+            binding.rgIsHanging.setCheckedByText(isHangingCodeToText(isHanging))
+            binding.rgIsSilt.setCheckedByText(isSiltCodeToText(isSilt))
             binding.cbCantOpen.isChecked = parseLooseBoolean(isCantOpen)
             binding.etRemarks.setText(nodeNote)
             if (nodeX.isEmpty() && nodeY.isEmpty()) prefillCoordinates()
@@ -232,10 +231,10 @@ class GutterBasicInfoFragment : Fragment() {
                 // 不可開蓋：下方欄位不必填，直接清空避免誤送舊值
                 binding.etDepth.setText("")
                 binding.etTopWidth.setText("")
-                binding.actvMatType.setText("", false)
-                binding.actvIsBroken.setText("", false)
-                binding.actvIsHanging.setText("", false)
-                binding.actvIsSilt.setText("", false)
+                binding.rgMatType.clearCheck()
+                binding.rgIsBroken.clearCheck()
+                binding.rgIsHanging.clearCheck()
+                binding.rgIsSilt.clearCheck()
                 binding.tilDepth.error = null
                 binding.tilTopWidth.error = null
             }
@@ -261,22 +260,20 @@ class GutterBasicInfoFragment : Fragment() {
             et.isFocusableInTouchMode = enabled
         }
         listOf(
-            binding.actvMatType,
-            binding.actvIsBroken,
-            binding.actvIsHanging,
-            binding.actvIsSilt
-        ).forEach { actv ->
-            actv.isEnabled = enabled
-        }
+            binding.rgMatType,
+            binding.rgIsBroken,
+            binding.rgIsHanging,
+            binding.rgIsSilt
+        ).forEach { rg -> rg.setChildrenEnabled(enabled) }
 
         val alpha = if (enabled) 1f else 0.5f
         listOf(
             binding.tilDepth,
             binding.tilTopWidth,
-            binding.tilMatType,
-            binding.tilIsBroken,
-            binding.tilIsHanging,
-            binding.tilIsSilt
+            binding.rgMatType,
+            binding.rgIsBroken,
+            binding.rgIsHanging,
+            binding.rgIsSilt
         ).forEach { it.alpha = alpha }
     }
 
@@ -351,40 +348,25 @@ class GutterBasicInfoFragment : Fragment() {
             et.isFocusableInTouchMode = enabled
         }
 
-        val dropdowns = listOf(
-            binding.actvGutterType,
-            binding.actvMatType,
-            binding.actvIsBroken,
-            binding.actvIsHanging,
-            binding.actvIsSilt
-        )
-        dropdowns.forEach { actv ->
-            actv.isEnabled = enabled
-            // 下拉選單不應該可以輸入文字，故設為不可聚焦
-            actv.isFocusable = false
-            actv.isFocusableInTouchMode = false
-            
-            if (enabled) {
-                actv.setOnClickListener {
-                    hideKeyboard()
-                    actv.showDropDown()
-                }
-            } else {
-                actv.setOnClickListener(null)
-            }
-        }
+        listOf(
+            binding.rgGutterType,
+            binding.rgMatType,
+            binding.rgIsBroken,
+            binding.rgIsHanging,
+            binding.rgIsSilt
+        ).forEach { rg -> rg.setChildrenEnabled(enabled) }
 
         val alpha = if (enabled) 1f else 0.5f
         listOf(
             binding.tilGutterId,
-            binding.tilGutterType,
-            binding.tilMatType,
+            binding.rgGutterType,
+            binding.rgMatType,
             binding.tilMeasureId,
             binding.tilDepth,
             binding.tilTopWidth,
-            binding.tilIsBroken,
-            binding.tilIsHanging,
-            binding.tilIsSilt,
+            binding.rgIsBroken,
+            binding.rgIsHanging,
+            binding.rgIsSilt,
             binding.tilRemarks
         ).forEach { it.alpha = alpha }
 
@@ -522,29 +504,34 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etMeasureId,
             binding.etDepth,
             binding.etTopWidth,
-            binding.etRemarks,
-            binding.actvGutterType,
-            binding.actvMatType,
-            binding.actvIsBroken,
-            binding.actvIsHanging,
-            binding.actvIsSilt
+            binding.etRemarks
         ).forEach { it.addTextChangedListener(watcher) }
+
+        // RadioGroup 選取變更時通知草稿更新
+        val radioListener = RadioGroup.OnCheckedChangeListener { _, _ -> onDraftChanged?.invoke() }
+        listOf(
+            binding.rgGutterType,
+            binding.rgMatType,
+            binding.rgIsBroken,
+            binding.rgIsHanging,
+            binding.rgIsSilt
+        ).forEach { it.setOnCheckedChangeListener(radioListener) }
     }
 
     /** 收集表單資料（供 GutterFormActivity 提交用） */
     fun collectData(): Map<String, String> = mapOf(
         "SPI_NUM"     to (binding.etGutterId.text?.toString()      ?: ""),
-        "NODE_TYP"    to gutterTypeTextToCode(binding.actvGutterType.text?.toString()),
-        "MAT_TYP"     to matTypeTextToCode(binding.actvMatType.text?.toString()),
+        "NODE_TYP"    to gutterTypeTextToCode(binding.rgGutterType.getCheckedText()),
+        "MAT_TYP"     to matTypeTextToCode(binding.rgMatType.getCheckedText()),
         "NODE_X"      to (binding.etCoordX.text?.toString()        ?: ""),
         "NODE_Y"      to (binding.etCoordY.text?.toString()        ?: ""),
         "NODE_LE"     to (binding.etCoordZ.text?.toString()        ?: ""),
         "XY_NUM"      to (binding.etMeasureId.text?.toString()     ?: ""),
         "NODE_DEP"    to (binding.etDepth.text?.toString()         ?: ""),
         "NODE_WID"    to (binding.etTopWidth.text?.toString()      ?: ""),
-        "IS_BROKEN"   to brokenTextToCode(binding.actvIsBroken.text?.toString()),
-        "IS_HANGING"  to hangingTextToCode(binding.actvIsHanging.text?.toString()),
-        "IS_SILT"     to siltTextToCode(binding.actvIsSilt.text?.toString()),
+        "IS_BROKEN"   to brokenTextToCode(binding.rgIsBroken.getCheckedText()),
+        "IS_HANGING"  to hangingTextToCode(binding.rgIsHanging.getCheckedText()),
+        "IS_SILT"     to siltTextToCode(binding.rgIsSilt.getCheckedText()),
         // 以 "1"/"" 形式存入 basicData（送出 API 時再轉為 JSON boolean）
         "IS_CANTOPEN" to (if (binding.cbCantOpen.isChecked) "1" else ""),
         "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: "")
@@ -567,7 +554,7 @@ class GutterBasicInfoFragment : Fragment() {
                 2 -> GUTTER_TYPES[1]  // U型溝（加蓋）
                 else -> ""
             }
-            actvGutterType.setText(nodeTypText)
+            rgGutterType.setCheckedByText(nodeTypText)
 
             // 材質（API key 為 MAT_TYP，值為字串）
             val matTypText = when (nodeDetails.matTyp?.toIntOrNull()) {
@@ -575,7 +562,7 @@ class GutterBasicInfoFragment : Fragment() {
                 2 -> MAT_TYPES[1]  // 卵礫石
                 else -> ""
             }
-            actvMatType.setText(matTypText)
+            rgMatType.setCheckedByText(matTypText)
 
             // 深度、寬度（API 回傳 Double，使用 AsString 方法自動轉換）
             etDepth.setText(nodeDetails.nodeDepAsString)
@@ -587,7 +574,7 @@ class GutterBasicInfoFragment : Fragment() {
                 1 -> BROKEN_OPTIONS[1]  // 有破損
                 else -> ""
             }
-            actvIsBroken.setText(brokenText)
+            rgIsBroken.setCheckedByText(brokenText)
 
             // 懸掛狀態（API key 為 IS_HANGING，值為字串）
             val hangingText = when (nodeDetails.isHanging?.toIntOrNull()) {
@@ -595,7 +582,7 @@ class GutterBasicInfoFragment : Fragment() {
                 1 -> HANGING_OPTIONS[1]  // 有懸掛
                 else -> ""
             }
-            actvIsHanging.setText(hangingText)
+            rgIsHanging.setCheckedByText(hangingText)
 
             // 淤積狀態（API key 為 IS_SILT，值為字串）
             val siltText = when (nodeDetails.isSilt?.toIntOrNull()) {
@@ -605,7 +592,7 @@ class GutterBasicInfoFragment : Fragment() {
                 3 -> SILT_OPTIONS[3]  // 嚴重
                 else -> ""
             }
-            actvIsSilt.setText(siltText)
+            rgIsSilt.setCheckedByText(siltText)
 
             // 無法開蓋狀態（使用 isCantOpenAsBoolean 方法處理型別轉換）
             cbCantOpen.isChecked = nodeDetails.isCantOpenAsBoolean
