@@ -155,6 +155,10 @@ class MainActivity : AppCompatActivity(),
     /** 防止連點側溝 Polyline 重複觸發 openInspectBottomSheet */
     private var isInspecting = false
 
+    // ── 編輯/檢視/新增模式標誌（防止自動加載polylines） ────────────────────
+    /** true = 正在編輯/檢視/新增模式，禁止 loadGuttersByViewport 自動加載 */
+    private var isInEditingMode = false
+
     // ── 地圖疊加層 ────────────────────────────────────────────────────────
     private val workingMarkers = mutableListOf<Marker>()
     private var highlightedMarkerIndex: Int = -1
@@ -294,11 +298,23 @@ class MainActivity : AppCompatActivity(),
                 }
 
                 currentSessionDraftId = null   // 編輯模式開始 → 以新 session ID 追蹤草稿
+
+                // ── 進入編輯模式時：隱藏所有其他已存在的線段，只顯示正在編輯的側溝 ──
+                isInEditingMode = true  // 禁止自動加載 polylines
+                scopePolylines.values.forEach { it.remove() }
+                scopePolylines.clear()
+                submittedPolylines.forEach { it.remove() }
+                submittedPolylines.clear()
+
                 val sheet = AddGutterBottomSheet.newInstanceForEdit(wps, spiNum)
                 sheet.onWaypointsChanged = { updated ->
                     if (updated == null) {
+                        // ── 編輯 Sheet 被 dismiss（關閉）時，清除工作層並恢復其他線段顯示 ──
+                        isInEditingMode = false  // 允許自動加載 polylines
                         clearWorkingMarkers()
                         activeSheet = null
+                        // 重新加載所有線段（scopePolylines 與 submittedPolylines）
+                        loadGuttersByViewport()
                     } else {
                         currentWaypoints = updated.toMutableList()
                         refreshWorkingLayer(updated)
@@ -313,6 +329,12 @@ class MainActivity : AppCompatActivity(),
                 refreshWorkingLayer(wps)
                 fitCameraToWaypoints(wps)
                 // fitCameraToWaypoints 會觸發 setOnCameraIdleListener → loadGuttersByViewportDebounced()
+            } else {
+                // ── 從檢視模式返回（不編輯）時，清除工作層並恢復其他線段顯示 ──
+                isInEditingMode = false  // 允許自動加載 polylines
+                // 不要清除 markers 和 polyline，因為 GutterInspectActivity 中沒有修改任何數據
+                // clearWorkingMarkers() 會導致地圖上的所有線段消失，應該直接重新加載 polylines
+                loadGuttersByViewport()
             }
         }
 
@@ -347,6 +369,7 @@ class MainActivity : AppCompatActivity(),
 
         if (restoredSheet.isAddMode()) {
             // 新增模式：重新綁定 activeSheet 與 onWaypointsChanged
+            isInEditingMode = true  // 保持禁止自動加載 polylines
             activeSheet = restoredSheet
             restoredSheet.onWaypointsChanged = { wps ->
                 currentWaypoints = wps ?: emptyList()
@@ -354,15 +377,26 @@ class MainActivity : AppCompatActivity(),
                 if (wps != null) {
                     autoSaveSessionDraft(wps)
                 } else {
+                    // ── 取消新增模式時，清除工作層並恢復其他線段顯示 ──
+                    isInEditingMode = false  // 允許自動加載 polylines
                     googleMap?.setPadding(0, 0, 0, 0)
-                    fitCameraToAllGutters()
                     activeSheet = null
+                    // 重新加載所有線段（scopePolylines 與 submittedPolylines）
+                    loadGuttersByViewport()
                 }
             }
         } else {
             // 檢視模式：重新綁定 inspectSheet
+            isInEditingMode = true  // 保持禁止自動加載 polylines
             inspectSheet = restoredSheet
-            restoredSheet.onWaypointsChanged = { if (it == null) { clearWorkingMarkers(); inspectSheet = null } }
+            restoredSheet.onWaypointsChanged = { if (it == null) {
+                // ── 檢視 Sheet 被 dismiss（關閉）時，清除工作層並恢復其他線段顯示 ──
+                isInEditingMode = false  // 允許自動加載 polylines
+                clearWorkingMarkers()
+                inspectSheet = null
+                // 重新加載所有線段（scopePolylines 與 submittedPolylines）
+                loadGuttersByViewport()
+            } }
         }
     }
 
@@ -445,6 +479,7 @@ class MainActivity : AppCompatActivity(),
         activeSheet = null
         clearWorkingMarkers()
         binding.btnAddGutter.visibility = View.VISIBLE
+        isInEditingMode = false  // 允許自動加載 polylines
         drawSubmittedGutter(waypoints)
         googleMap?.setPadding(0, 0, 0, 0)
     }
@@ -493,6 +528,10 @@ class MainActivity : AppCompatActivity(),
         clearWorkingMarkers()
         binding.btnAddGutter.visibility = View.VISIBLE
         googleMap?.setPadding(0, 0, 0, 0)
+
+        // ── 退出編輯模式時：重新加載所有線段 ──
+        isInEditingMode = false  // 允許自動加載 polylines
+        loadGuttersByViewport()
     }
 
     override fun onGutterSaved(spiNum: String?, waypoints: List<Waypoint>, nodes: List<DitchNode>) {
@@ -839,6 +878,8 @@ class MainActivity : AppCompatActivity(),
         val token    = LoginActivity.getSavedToken(this)  ?: return
 
         isInspecting = true
+        // ── 進入檢視流程立即禁止自動加載（避免 fitCamera 觸發 cameraIdle 後又把線段重畫回來）──
+        isInEditingMode = true
 
         // 登入的 group_id 與線段的 group_id 一致時才允許編輯
         val savedGroupId = LoginActivity.getSavedGroupId(this)
@@ -859,6 +900,17 @@ class MainActivity : AppCompatActivity(),
                 is ApiResult.Success -> {
                     val ditch = result.data.data
                     if (ditch != null) {
+                        // ── 進入檢視模式時：隱藏所有其他已存在的線段，只顯示正在檢視的側溝 ──
+                        // 保留使用者點選的 polyline（spiNum 對應那條），其餘全部移除。
+                        scopePolylines.entries.toList().forEach { (key, p) ->
+                            if (key != spiNum) {
+                                p.remove()
+                                scopePolylines.remove(key)
+                            }
+                        }
+                        submittedPolylines.forEach { it.remove() }
+                        submittedPolylines.clear()
+
                         val intent = GutterInspectActivity.newIntent(
                             context    = this@MainActivity,
                             ditch      = ditch,
@@ -873,6 +925,7 @@ class MainActivity : AppCompatActivity(),
                         // isInspecting 在 inspectLauncher 結果回呼中重置
                     } else {
                         isInspecting = false
+                        isInEditingMode = false  // 允許自動加載 polylines
                         android.widget.Toast.makeText(
                             this@MainActivity, getString(R.string.msg_no_line_data), android.widget.Toast.LENGTH_SHORT
                         ).show()
@@ -880,6 +933,7 @@ class MainActivity : AppCompatActivity(),
                 }
                 is ApiResult.Error -> {
                     isInspecting = false
+                    isInEditingMode = false  // 允許自動加載 polylines
                     android.widget.Toast.makeText(
                         this@MainActivity,
                         "查詢失敗(${result.code}): ${result.message}",
@@ -952,6 +1006,14 @@ class MainActivity : AppCompatActivity(),
             workingPolyline?.remove()
             clearWorkingMarkers()
             fitCameraToAllGutters()
+
+            // ── 進入新增模式時：隱藏所有已存在的線段，只顯示新增中的側溝 ──
+            isInEditingMode = true  // 禁止自動加載 polylines
+            scopePolylines.values.forEach { it.remove() }
+            scopePolylines.clear()
+            submittedPolylines.forEach { it.remove() }
+            submittedPolylines.clear()
+
             currentSessionIsOffline = isOfflineMainMode
             // 新增流程：離線模式下立即建立固定草稿 ID，避免每個動作產生多筆草稿
             currentSessionDraftId =
@@ -968,9 +1030,12 @@ class MainActivity : AppCompatActivity(),
                 if (wps != null) {
                     autoSaveSessionDraft(wps)
                 } else {
+                    // ── 取消新增模式時，清除工作層並恢復其他線段顯示 ──
+                    isInEditingMode = false  // 允許自動加載 polylines
                     googleMap?.setPadding(0, 0, 0, 0)
-                    fitCameraToAllGutters()
                     activeSheet = null
+                    // 重新加載所有線段（scopePolylines 與 submittedPolylines）
+                    loadGuttersByViewport()
                 }
             }
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
@@ -1019,6 +1084,14 @@ class MainActivity : AppCompatActivity(),
 
         Handler(Looper.getMainLooper()).postDelayed({
             if (isFinishing || isDestroyed) return@postDelayed
+
+            // ── 進入草稿編輯模式時：隱藏所有已存在的線段，只顯示編輯中的側溝 ──
+            isInEditingMode = true  // 禁止自動加載 polylines
+            scopePolylines.values.forEach { it.remove() }
+            scopePolylines.clear()
+            submittedPolylines.forEach { it.remove() }
+            submittedPolylines.clear()
+
             val sheet = AddGutterBottomSheet.newInstanceFromDraft(draft, forceOffline = isOfflineMainMode)
             activeSheet = sheet
             sheet.onWaypointsChanged = { wps ->
@@ -1027,9 +1100,12 @@ class MainActivity : AppCompatActivity(),
                 if (wps != null) {
                     autoSaveSessionDraft(wps)
                 } else {
+                    // ── 取消草稿編輯模式時，清除工作層並恢復其他線段顯示 ──
+                    isInEditingMode = false  // 允許自動加載 polylines
                     googleMap?.setPadding(0, 0, 0, 0)
-                    fitCameraToAllGutters()
                     activeSheet = null
+                    // 重新加載所有線段（scopePolylines 與 submittedPolylines）
+                    if (!isOfflineMainMode) loadGuttersByViewport()
                 }
             }
             currentWaypoints = draft.waypoints.map { snap ->
@@ -1045,7 +1121,8 @@ class MainActivity : AppCompatActivity(),
             refreshWorkingLayer(currentWaypoints)
             fitCameraToWaypoints(currentWaypoints, bottomOffsetRatio = 0.5, resetPaddingAfter = false)
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
-            // ── 重新加載地圖可視範圍內的側溝數據（離線模式不打 API） ──
+            // ── 編輯模式中已禁止自動加載，此呼叫會被忽略 ──
+            // （保留此呼叫以便未來模式更改時使用，但因 isInEditingMode = true 會立即返回）
             if (!isOfflineMainMode) loadGuttersByViewport()
         }, 300L)
     }
@@ -1167,6 +1244,8 @@ class MainActivity : AppCompatActivity(),
      */
     private fun loadGuttersByViewport() {
         if (isOfflineMainMode) return
+        // ── 編輯/檢視/新增模式中禁止自動加載，避免重新顯示隱藏的線段 ──
+        if (isInEditingMode) return
         val map = googleMap ?: return
         val token = LoginActivity.getSavedToken(this) ?: return
         val bounds = map.projection.visibleRegion.latLngBounds
