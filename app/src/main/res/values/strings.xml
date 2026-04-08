@@ -224,6 +224,18 @@
     <string name="waypoint_start_alt">起點</string>
     <string name="waypoint_end_alt">終點</string>
 
+    <!-- 新增選項彈窗 -->
+    <string name="add_option_title">選擇新增類型</string>
+    <string name="btn_add_curve">新增曲線</string>
+
+    <!-- 新增曲線畫面 -->
+    <string name="curve_start_xy_num">起點座標編號</string>
+    <string name="curve_end_xy_num">終點座標編號</string>
+    <string name="curve_xy_num_hint">請輸入 XY_NUM</string>
+    <string name="curve_xy_num_required">請填寫座標編號</string>
+    <string name="curve_query_btn">查詢</string>
+    <string name="curve_result_title">查詢結果</string>
+
     <!-- 測距模式 -->
     <string name="measure_mode_title">測量距離</string>
     <string name="measure_distance_label">距離</string>

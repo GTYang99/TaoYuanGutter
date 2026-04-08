@@ -33,7 +33,9 @@ import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
 import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
+import com.example.taoyuangutter.gutter.AddCurveActivity
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
+import com.example.taoyuangutter.gutter.AddOptionBottomSheet
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.GutterInspectActivity
 import com.example.taoyuangutter.gutter.Waypoint
@@ -1024,43 +1026,66 @@ class MainActivity : AppCompatActivity(),
         binding.measurePanel.btnMeasureReset.setOnClickListener { measureManager?.reset() }
         binding.measurePanel.btnMeasureClose.setOnClickListener { exitMeasureMode() }
         binding.btnAddGutter.setOnClickListener {
-            workingPolyline?.remove()
-            clearWorkingMarkers()
-            fitCameraToAllGutters()
-
-            // ── 進入新增模式時：隱藏所有已存在的線段，只顯示新增中的側溝 ──
-            isInEditingMode = true  // 禁止自動加載 polylines
-            scopePolylines.values.forEach { it.remove() }
-            scopePolylines.clear()
-            submittedPolylines.forEach { it.remove() }
-            submittedPolylines.clear()
-
-            currentSessionIsOffline = isOfflineMainMode
-            // 新增流程：離線模式下立即建立固定草稿 ID，避免每個動作產生多筆草稿
-            currentSessionDraftId =
-                if (isOfflineMainMode) System.currentTimeMillis() else null
-            val sheet = if (isOfflineMainMode) {
-                AddGutterBottomSheet.newOfflineInstance()
-            } else {
-                AddGutterBottomSheet.newInstance()
-            }
-            activeSheet = sheet
-            sheet.onWaypointsChanged = { wps ->
-                currentWaypoints = wps ?: emptyList()
-                refreshWorkingLayer(wps ?: emptyList())
-                if (wps != null) {
-                    autoSaveSessionDraft(wps)
-                } else {
-                    // ── 取消新增模式時，清除工作層並恢復其他線段顯示 ──
-                    isInEditingMode = false  // 允許自動加載 polylines
-                    googleMap?.setPadding(0, 0, 0, 0)
-                    activeSheet = null
-                    // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                    loadGuttersByViewport()
-                }
-            }
-            sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
+            showAddOptionSheet()
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  新增選項彈窗（新增側溝 / 新增曲線）
+    // ═══════════════════════════════════════════════════════════════
+
+    /** 顯示「新增選項」BottomSheet，讓使用者選擇「新增側溝」或「新增曲線」。 */
+    private fun showAddOptionSheet() {
+        val optionSheet = AddOptionBottomSheet()
+        optionSheet.onAddGutterClicked = { openAddGutterFlow() }
+        optionSheet.onAddCurveClicked = { openAddCurveFlow() }
+        optionSheet.show(supportFragmentManager, AddOptionBottomSheet.TAG)
+    }
+
+    /** 原本的「新增側溝」流程，從 FAB 移入獨立方法。 */
+    private fun openAddGutterFlow() {
+        workingPolyline?.remove()
+        clearWorkingMarkers()
+        fitCameraToAllGutters()
+
+        // ── 進入新增模式時：隱藏所有已存在的線段，只顯示新增中的側溝 ──
+        isInEditingMode = true  // 禁止自動加載 polylines
+        scopePolylines.values.forEach { it.remove() }
+        scopePolylines.clear()
+        submittedPolylines.forEach { it.remove() }
+        submittedPolylines.clear()
+
+        currentSessionIsOffline = isOfflineMainMode
+        // 新增流程：離線模式下立即建立固定草稿 ID，避免每個動作產生多筆草稿
+        currentSessionDraftId =
+            if (isOfflineMainMode) System.currentTimeMillis() else null
+        val sheet = if (isOfflineMainMode) {
+            AddGutterBottomSheet.newOfflineInstance()
+        } else {
+            AddGutterBottomSheet.newInstance()
+        }
+        activeSheet = sheet
+        sheet.onWaypointsChanged = { wps ->
+            currentWaypoints = wps ?: emptyList()
+            refreshWorkingLayer(wps ?: emptyList())
+            if (wps != null) {
+                autoSaveSessionDraft(wps)
+            } else {
+                // ── 取消新增模式時，清除工作層並恢復其他線段顯示 ──
+                isInEditingMode = false  // 允許自動加載 polylines
+                googleMap?.setPadding(0, 0, 0, 0)
+                activeSheet = null
+                // 重新加載所有線段（scopePolylines 與 submittedPolylines）
+                loadGuttersByViewport()
+            }
+        }
+        sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
+    }
+
+    /** 開啟「新增曲線」畫面。 */
+    private fun openAddCurveFlow() {
+        val intent = Intent(this, AddCurveActivity::class.java)
+        startActivity(intent)
     }
 
     /** 顯示「待上傳草稿」BottomSheet，並處理「繼續編輯」回呼。 */

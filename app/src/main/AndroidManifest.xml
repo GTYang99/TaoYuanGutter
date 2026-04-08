@@ -81,6 +81,13 @@
             android:exported="false"
             android:theme="@style/Theme.TaoYuanGutter" />
 
+        <!-- 新增曲線 Activity -->
+        <activity
+            android:name=".gutter.AddCurveActivity"
+            android:label="@string/btn_add_curve"
+            android:exported="false"
+            android:theme="@style/Theme.TaoYuanGutter" />
+
         <!-- 匯入既有點位資料 Activity -->
         <activity
             android:name=".gutter.ImportExistingWaypointActivity"
