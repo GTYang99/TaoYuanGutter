@@ -334,10 +334,9 @@ class MainActivity : AppCompatActivity(),
                 fitCameraToWaypoints(wps)
                 // fitCameraToWaypoints 會觸發 setOnCameraIdleListener → loadGuttersByViewportDebounced()
             } else {
-                // ── 從檢視模式返回（不編輯）時，清除工作層並恢復其他線段顯示 ──
+                // ── 從檢視模式返回（不編輯）時，清除起終點標記並恢復其他線段顯示 ──
                 isInEditingMode = false  // 允許自動加載 polylines
-                // 不要清除 markers 和 polyline，因為 GutterInspectActivity 中沒有修改任何數據
-                // clearWorkingMarkers() 會導致地圖上的所有線段消失，應該直接重新加載 polylines
+                clearWorkingMarkers()   // 移除檢視模式新增的起點／節點／終點標記
                 loadGuttersByViewport()
             }
         }
@@ -934,6 +933,12 @@ class MainActivity : AppCompatActivity(),
                         submittedPolylines.forEach { it.remove() }
                         submittedPolylines.clear()
 
+                        // ── 點選的側溝高亮為主配色，與其他線段做視覺區隔 ──
+                        scopePolylines[spiNum]?.color = android.graphics.Color.parseColor("#6236FF")
+
+                        // ── 在地圖上顯示起點／節點／終點標記 ──
+                        showInspectMarkers(ditch.nodes, polyline.points)
+
                         val intent = GutterInspectActivity.newIntent(
                             context    = this@MainActivity,
                             ditch      = ditch,
@@ -1232,6 +1237,52 @@ class MainActivity : AppCompatActivity(),
         workingMarkers.forEach { it.remove() }
         workingMarkers.clear()
         highlightedMarkerIndex = -1
+    }
+
+    /**
+     * 點選已提交側溝線段後，在地圖上顯示起點／節點／終點標記。
+     *
+     * 座標來自 [points]（polyline.points，WGS84），
+     * 點位類型來自 [nodes] 的 nodeAtt（"1"=起點、"2"=節點、"3"=終點）。
+     * 若 nodes 數量與 points 不符，則依位置回退判斷（首=起點、尾=終點、其餘=節點）。
+     *
+     * 標記加入 [workingMarkers]，可透過 [clearWorkingMarkers] 統一清除。
+     */
+    private fun showInspectMarkers(
+        nodes: List<com.example.taoyuangutter.api.DitchNode>,
+        points: List<com.google.android.gms.maps.model.LatLng>
+    ) {
+        val map = googleMap ?: return
+        clearWorkingMarkers()
+        if (points.isEmpty()) return
+
+        val countMatch = nodes.size == points.size
+
+        points.forEachIndexed { idx, latLng ->
+            val wpType = if (countMatch) {
+                when (nodes[idx].nodeAtt) {
+                    "1"  -> WaypointType.START
+                    "3"  -> WaypointType.END
+                    else -> WaypointType.NODE
+                }
+            } else {
+                // 回退：首點=起點、末點=終點、其餘=節點
+                when (idx) {
+                    0              -> WaypointType.START
+                    points.lastIndex -> WaypointType.END
+                    else           -> WaypointType.NODE
+                }
+            }
+
+            val marker = map.addMarker(
+                com.google.android.gms.maps.model.MarkerOptions()
+                    .position(latLng)
+                    .icon(getMarkerIconFromXml(wpType))
+                    .anchor(0.5f, 0.5f)
+            )
+            marker?.tag = idx
+            marker?.let { workingMarkers.add(it) }
+        }
     }
 
     private fun drawSubmittedGutter(waypoints: List<Waypoint>) {
