@@ -122,6 +122,7 @@ class GutterInspectPhotosFragment : Fragment() {
             placeholder.visibility = View.GONE
             Glide.with(this)
                 .load(url)
+                .thumbnail(0.25f)
                 .listener(object : RequestListener<Drawable> {
                     override fun onLoadFailed(
                         e: GlideException?,

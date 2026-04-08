@@ -21,6 +21,7 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
 import androidx.lifecycle.lifecycleScope
@@ -188,6 +189,7 @@ class MainActivity : AppCompatActivity(),
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -419,6 +421,7 @@ class MainActivity : AppCompatActivity(),
             isZoomControlsEnabled = true
             isCompassEnabled      = true
             isMapToolbarEnabled   = false
+            isZoomControlsEnabled = false
         }
 
         map.setOnMarkerClickListener { marker ->
@@ -455,6 +458,10 @@ class MainActivity : AppCompatActivity(),
         }
 
         // ── 測距管理器初始化（需在地圖就緒後才能建立） ────────────────────────
+        // 起點大頭針使用 colorPrimary（紫色），與 App 配色一致
+        measureConfig = MeasureConfig(
+            startMarkerIcon = BitmapDescriptorFactory.defaultMarker(256f)
+        )
         measureManager = DistanceMeasureManager(map, measureConfig) { meters ->
             updateMeasureDistanceDisplay(meters)
         }
@@ -720,7 +727,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun openInspectForm(waypointIndex: Int, wp: Waypoint, latLng: LatLng) {
-        moveCameraToLatLngOffset(latLng, 0.75) 
+        moveCameraToLatLngOffset(latLng, 0.75, zoomForGutterSize(wp.basicData))
         val layer = currentWmtsLayer()
         val intent = GutterFormActivity.newViewIntent(
             this,
@@ -740,7 +747,7 @@ class MainActivity : AppCompatActivity(),
         latLng: LatLng,
         isEditMode: Boolean = false
     ) {
-        moveCameraToLatLngOffset(latLng, 0.75)
+        moveCameraToLatLngOffset(latLng, 0.75, zoomForGutterSize(wp.basicData))
         // 統一「表單內即時存草稿」與 MainActivity 的 session 草稿 ID：
         // 若尚未建立，先在這裡建立一次，確保同一條新增/編輯流程只會覆寫同一筆草稿。
         val ensuredDraftId = currentSessionDraftId ?: System.currentTimeMillis().also {
@@ -784,14 +791,28 @@ class MainActivity : AppCompatActivity(),
             MapMode.PHOTO2 -> LayersBottomSheet.LAYER_PHOTO2
         }
 
-    private fun moveCameraToLatLngOffset(latLng: LatLng, offsetRatio: Double) {
+    /**
+     * 依側溝頂寬（NODE_WID，公分）動態計算縮放級數。
+     *   NODE_WID ≤  50cm → zoom 20f（小溝，貼近查看）
+     *   NODE_WID ≥ 200cm → zoom 18f（大溝，稍微拉遠）
+     *   中間值線性插值；無資料或無法解析時預設 20f。
+     */
+    private fun zoomForGutterSize(basicData: Map<String, String>): Float {
+        val wid = basicData["NODE_WID"]?.toFloatOrNull() ?: return 20f
+        val minWid  = 50f;  val maxWid  = 200f
+        val minZoom = 18f;  val maxZoom = 20f
+        val clamped = wid.coerceIn(minWid, maxWid)
+        return maxZoom - (clamped - minWid) / (maxWid - minWid) * (maxZoom - minZoom)
+    }
+
+    private fun moveCameraToLatLngOffset(latLng: LatLng, offsetRatio: Double, zoom: Float = 20f) {
         val map = googleMap ?: return
         val screenH = resources.displayMetrics.heightPixels
         // 暫時設定底部 padding，讓地圖移動時把點位顯示在視窗上半段；
         // 動畫結束（或被取消）後立即歸零，確保地圖始終佔滿全螢幕。
         map.setPadding(0, 0, 0, (screenH * offsetRatio).toInt())
         map.animateCamera(
-            CameraUpdateFactory.newLatLngZoom(latLng, 20f),
+            CameraUpdateFactory.newLatLngZoom(latLng, zoom),
             object : GoogleMap.CancelableCallback {
                 override fun onFinish() { map.setPadding(0, 0, 0, 0) }
                 override fun onCancel() { map.setPadding(0, 0, 0, 0) }
@@ -1540,14 +1561,14 @@ class MainActivity : AppCompatActivity(),
         if (mgr.isMeasuring) exitMeasureMode() else enterMeasureMode()
     }
 
-    /** 進入測距模式：顯示準星與底部面板，並將測距 FAB 切換為 active 樣式。 */
+    /** 進入測距模式：顯示底部面板，準心暫時隱藏，等使用者點選起點後才顯示。 */
     private fun enterMeasureMode() {
         val mgr = measureManager ?: return
         mgr.enter()
 
-        // 套用 crosshair drawable（支援客製化）
+        // 套用 crosshair drawable（支援客製化），但先隱藏——有起點後才由 updateMeasureDistanceDisplay 顯示
         binding.ivMeasureCrosshair.setImageResource(measureConfig.crosshairResId)
-        binding.ivMeasureCrosshair.visibility = View.VISIBLE
+        binding.ivMeasureCrosshair.visibility = View.GONE
         binding.measurePanel.root.visibility = View.VISIBLE
 
         // FAB active 狀態：底色改為 colorPrimary，圖示改為白色
@@ -1582,15 +1603,17 @@ class MainActivity : AppCompatActivity(),
     }
 
     /**
-     * 更新底部面板距離文字。
-     * - [meters] 為 null → 顯示提示（尚未設定起點）
-     * - [meters] 有值 → 格式化後顯示
+     * 更新底部面板距離文字，並同步控制準心顯示。
+     * - [meters] 為 null → 無起點，隱藏準心，顯示提示文字
+     * - [meters] 有值  → 有起點，顯示準心，顯示距離數值
      */
     private fun updateMeasureDistanceDisplay(meters: Double?) {
-        binding.measurePanel.tvMeasureDistance.text = if (meters == null) {
-            getString(R.string.measure_tap_hint)
+        if (meters == null) {
+            binding.ivMeasureCrosshair.visibility = View.GONE
+            binding.measurePanel.tvMeasureDistance.text = getString(R.string.measure_tap_hint)
         } else {
-            DistanceMeasureManager.formatDistance(meters)
+            binding.ivMeasureCrosshair.visibility = View.VISIBLE
+            binding.measurePanel.tvMeasureDistance.text = DistanceMeasureManager.formatDistance(meters)
         }
     }
 }

@@ -43,7 +43,7 @@
     <string name="legend_dialog_plan_title">本次計畫調查圖示</string>
     <string name="legend_dialog_default_subtitle">預設</string>
     <string name="legend_dialog_view_edit_title">檢視與編輯中</string>
-    <string name="legend_dialog_water_dept_title">水務局營管資料圖示</string>
+    <string name="legend_dialog_water_dept_title">水務局舊資料圖示</string>
     <string name="legend_dialog_water_dept_item">水務局舊資料</string>
     <string name="legend_dialog_possible_gutter_title">可能側溝位置圖示</string>
     <string name="legend_dialog_possible_gutter_item">可能側溝位置</string>

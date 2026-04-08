@@ -13,7 +13,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
+import com.bumptech.glide.Glide
 import com.example.taoyuangutter.api.DitchDetails
+import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.databinding.ActivityGutterInspectBinding
 import com.google.gson.Gson
 import com.google.android.material.tabs.TabLayoutMediator
@@ -91,6 +93,9 @@ class GutterInspectActivity : AppCompatActivity() {
         wgsLatitudes  = intent.getDoubleArrayExtra(EXTRA_LATITUDES)  ?: doubleArrayOf()
         wgsLongitudes = intent.getDoubleArrayExtra(EXTRA_LONGITUDES) ?: doubleArrayOf()
 
+        // 預先快取照片（避免使用者切到照片分頁時卡頓）
+        preloadInspectPhotos(ditch?.nodes ?: emptyList())
+
         setupTitleBar(ditch)
         setupViewPager(ditch)
         setupTabs()
@@ -102,6 +107,40 @@ class GutterInspectActivity : AppCompatActivity() {
             binding.btnEdit.setOnClickListener { openEditForm() }
         } else {
             binding.btnEdit.visibility = View.GONE
+        }
+    }
+
+    private fun preloadInspectPhotos(nodes: List<DitchNode>) {
+        if (nodes.isEmpty()) return
+
+        val startNode = nodes.firstOrNull { it.nodeAtt == "1" }
+        val endNode   = nodes.firstOrNull { it.nodeAtt == "3" }
+
+        fun urlByCategory(node: DitchNode?, cat: String): String? =
+            node?.url?.firstOrNull { it.fileCategory == cat }?.url
+
+        val urls = listOf(
+            urlByCategory(startNode, "1"),
+            urlByCategory(startNode, "2"),
+            urlByCategory(startNode, "3"),
+            urlByCategory(endNode, "1"),
+            urlByCategory(endNode, "2"),
+            urlByCategory(endNode, "3")
+        )
+            .filterNotNull()
+            .filter { it.isNotBlank() }
+
+        if (urls.isEmpty()) return
+
+        // 使用 downloadOnly()：先把檔案下載進 Glide cache（較少解碼成本），
+        // 使用者切換到照片分頁時就能更快顯示。
+        urls.forEach { url ->
+            runCatching {
+                Glide.with(this)
+                    .downloadOnly()
+                    .load(url)
+                    .preload()
+            }
         }
     }
 

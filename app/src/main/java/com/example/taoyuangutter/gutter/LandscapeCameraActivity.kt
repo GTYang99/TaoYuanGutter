@@ -12,6 +12,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.AspectRatio
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -115,12 +116,15 @@ class LandscapeCameraActivity : AppCompatActivity() {
     }
 
     private fun bindUseCases(cameraProvider: ProcessCameraProvider) {
-        val preview = Preview.Builder().build().also {
-            it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
-        }
+        val preview = Preview.Builder()
+            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+            .build().also {
+                it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
+            }
 
         val rotation = binding.viewFinder.display?.rotation ?: Surface.ROTATION_0
         imageCapture = ImageCapture.Builder()
+            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .setTargetRotation(rotation)
             .build()

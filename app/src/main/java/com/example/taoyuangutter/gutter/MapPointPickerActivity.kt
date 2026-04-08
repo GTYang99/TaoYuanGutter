@@ -147,6 +147,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(map: GoogleMap) {
         googleMap = map
         map.uiSettings.isMyLocationButtonEnabled = false
+        map.uiSettings.isZoomControlsEnabled = false
 
         // 跟主地圖一致：關閉 Google 預設底圖，改用 NLSC WMTS 圖層
         map.mapType = GoogleMap.MAP_TYPE_NONE
