@@ -66,7 +66,8 @@ class GutterBasicInfoFragment : Fragment() {
         val HANGING_OPTIONS = listOf("無", "有")
 
         /** 淤積程度選項（IS_SILT）*/
-        val SILT_OPTIONS = listOf("無", "輕度", "中度", "嚴重")
+        // 0=無、1=輕度、2=嚴重（中度已移除；若收到舊資料 3 也一律顯示為嚴重作為緩衝）
+        val SILT_OPTIONS = listOf("無", "輕度", "嚴重")
 
         fun newInstance(
             latitude: Double,
@@ -588,8 +589,8 @@ class GutterBasicInfoFragment : Fragment() {
             val siltText = when (nodeDetails.isSilt?.toIntOrNull()) {
                 0 -> SILT_OPTIONS[0]  // 無
                 1 -> SILT_OPTIONS[1]  // 輕度
-                2 -> SILT_OPTIONS[2]  // 中度
-                3 -> SILT_OPTIONS[3]  // 嚴重
+                2 -> SILT_OPTIONS[2]  // 嚴重
+                3 -> SILT_OPTIONS[2]  // 舊資料緩衝：一律視為嚴重
                 else -> ""
             }
             rgIsSilt.setCheckedByText(siltText)
@@ -645,7 +646,7 @@ class GutterBasicInfoFragment : Fragment() {
         "0" -> SILT_OPTIONS[0]
         "1" -> SILT_OPTIONS[1]
         "2" -> SILT_OPTIONS[2]
-        "3" -> SILT_OPTIONS[3]
+        "3" -> SILT_OPTIONS[2]  // 舊資料緩衝：一律視為嚴重
         else -> code ?: ""
     }
 
@@ -680,7 +681,6 @@ class GutterBasicInfoFragment : Fragment() {
         SILT_OPTIONS[0] -> "0"
         SILT_OPTIONS[1] -> "1"
         SILT_OPTIONS[2] -> "2"
-        SILT_OPTIONS[3] -> "3"
         else -> text ?: ""
     }
 

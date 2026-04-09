@@ -185,7 +185,6 @@
     <!-- 淤積程度選項 -->
     <string name="silt_none">無</string>
     <string name="silt_light">輕度</string>
-    <string name="silt_medium">中度</string>
     <string name="silt_severe">嚴重</string>
 
     <!-- 其他標籤 -->

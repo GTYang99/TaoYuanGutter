@@ -16,6 +16,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
@@ -24,6 +25,9 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import android.net.Uri
 import com.example.taoyuangutter.common.LocationPickEvents
@@ -77,6 +81,7 @@ import kotlinx.coroutines.launch
 import java.net.MalformedURLException
 import java.net.URL
 import kotlin.collections.map
+import kotlin.math.max
 
 class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
@@ -195,12 +200,16 @@ class MainActivity : AppCompatActivity(),
     private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
     private lateinit var addCurveLauncher: ActivityResultLauncher<Intent>
 
+    private var measurePanelBaseBottomMarginPx: Int? = null
+
     // ── Lifecycle ─────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        setupMeasurePanelInsets()
 
         isOfflineMainMode = intent.getBooleanExtra(EXTRA_OFFLINE_MAIN, false)
 
@@ -379,6 +388,35 @@ class MainActivity : AppCompatActivity(),
     override fun onDestroy() {
         runCatching { unregisterReceiver(waypointLocationChangedReceiver) }
         super.onDestroy()
+    }
+
+    /**
+     * 測距面板固定貼齊「系統導覽列上緣」：
+     * 某些手機在全螢幕/透明導覽列時，Constraint 到 parent bottom 會被畫到導覽列底下，
+     * 造成看起來像是對齊到 tabbar bottom（透明區域）。
+     *
+     * 這裡用 WindowInsets 動態把底部 margin 往上推，確保各機型視覺一致。
+     */
+    private fun setupMeasurePanelInsets() {
+        if (!::binding.isInitialized) return
+        val panel = binding.measurePanel.root
+
+        if (measurePanelBaseBottomMarginPx == null) {
+            val lp = panel.layoutParams as? ViewGroup.MarginLayoutParams
+            measurePanelBaseBottomMarginPx = lp?.bottomMargin ?: 0
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val ime = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val extra = max(bars, ime)
+            val base = measurePanelBaseBottomMarginPx ?: 0
+            panel.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = base + extra
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     /**

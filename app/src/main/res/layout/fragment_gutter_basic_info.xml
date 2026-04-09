@@ -515,18 +515,6 @@
                 android:id="@+id/rbIsSilt2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/silt_medium"
-                android:buttonTint="@color/colorPrimary"
-                android:textColor="@color/textColorPrimary"
-                android:textSize="14sp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp"
-                android:paddingEnd="20dp" />
-
-            <RadioButton
-                android:id="@+id/rbIsSilt3"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
                 android:text="@string/silt_severe"
                 android:buttonTint="@color/colorPrimary"
                 android:textColor="@color/textColorPrimary"
