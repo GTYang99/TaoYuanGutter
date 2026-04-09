@@ -41,14 +41,34 @@ class GutterInspectPhotosFragment : Fragment() {
 
     companion object {
         private const val ARG_NODES_JSON = "nodes_json"
+        private const val ARG_STR_PHOTO_1 = "str_photo_1"
+        private const val ARG_STR_PHOTO_2 = "str_photo_2"
+        private const val ARG_STR_PHOTO_3 = "str_photo_3"
+        private const val ARG_END_PHOTO_1 = "end_photo_1"
+        private const val ARG_END_PHOTO_2 = "end_photo_2"
+        private const val ARG_END_PHOTO_3 = "end_photo_3"
 
         /**
          * 建立 Fragment 實例，傳入 DitchDetails.nodes 列表。
          */
-        fun newInstance(nodes: List<DitchNode>): GutterInspectPhotosFragment {
+        fun newInstance(
+            nodes: List<DitchNode>,
+            strPhoto1: String? = null,
+            strPhoto2: String? = null,
+            strPhoto3: String? = null,
+            endPhoto1: String? = null,
+            endPhoto2: String? = null,
+            endPhoto3: String? = null
+        ): GutterInspectPhotosFragment {
             return GutterInspectPhotosFragment().apply {
                 arguments = Bundle().apply {
                     putString(ARG_NODES_JSON, Gson().toJson(nodes))
+                    putString(ARG_STR_PHOTO_1, strPhoto1)
+                    putString(ARG_STR_PHOTO_2, strPhoto2)
+                    putString(ARG_STR_PHOTO_3, strPhoto3)
+                    putString(ARG_END_PHOTO_1, endPhoto1)
+                    putString(ARG_END_PHOTO_2, endPhoto2)
+                    putString(ARG_END_PHOTO_3, endPhoto3)
                 }
             }
         }
@@ -100,15 +120,22 @@ class GutterInspectPhotosFragment : Fragment() {
         fun urlByCategory(node: DitchNode?, cat: String): String? =
             node?.url?.firstOrNull { it.fileCategory == cat }?.url
 
+        val str1 = arguments?.getString(ARG_STR_PHOTO_1)
+        val str2 = arguments?.getString(ARG_STR_PHOTO_2)
+        val str3 = arguments?.getString(ARG_STR_PHOTO_3)
+        val end1 = arguments?.getString(ARG_END_PHOTO_1)
+        val end2 = arguments?.getString(ARG_END_PHOTO_2)
+        val end3 = arguments?.getString(ARG_END_PHOTO_3)
+
         // 起點照片
-        loadPhoto(urlByCategory(startNode, "1"), binding.ivStrPhotoSlot1, binding.placeholderStrSlot1)
-        loadPhoto(urlByCategory(startNode, "2"), binding.ivStrPhotoSlot2, binding.placeholderStrSlot2)
-        loadPhoto(urlByCategory(startNode, "3"), binding.ivStrPhotoSlot3, binding.placeholderStrSlot3)
+        loadPhoto(str1 ?: urlByCategory(startNode, "1"), binding.ivStrPhotoSlot1, binding.placeholderStrSlot1)
+        loadPhoto(str2 ?: urlByCategory(startNode, "2"), binding.ivStrPhotoSlot2, binding.placeholderStrSlot2)
+        loadPhoto(str3 ?: urlByCategory(startNode, "3"), binding.ivStrPhotoSlot3, binding.placeholderStrSlot3)
 
         // 終點照片
-        loadPhoto(urlByCategory(endNode, "1"), binding.ivEndPhotoSlot1, binding.placeholderEndSlot1)
-        loadPhoto(urlByCategory(endNode, "2"), binding.ivEndPhotoSlot2, binding.placeholderEndSlot2)
-        loadPhoto(urlByCategory(endNode, "3"), binding.ivEndPhotoSlot3, binding.placeholderEndSlot3)
+        loadPhoto(end1 ?: urlByCategory(endNode, "1"), binding.ivEndPhotoSlot1, binding.placeholderEndSlot1)
+        loadPhoto(end2 ?: urlByCategory(endNode, "2"), binding.ivEndPhotoSlot2, binding.placeholderEndSlot2)
+        loadPhoto(end3 ?: urlByCategory(endNode, "3"), binding.ivEndPhotoSlot3, binding.placeholderEndSlot3)
     }
 
     /**

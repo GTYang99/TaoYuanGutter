@@ -70,9 +70,13 @@ import com.google.android.gms.maps.model.TileOverlay
 import com.google.android.gms.maps.model.TileOverlayOptions
 import com.google.android.gms.maps.model.UrlTileProvider
 import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import java.net.MalformedURLException
 import java.net.URL
+import kotlin.collections.map
 
 class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
@@ -919,6 +923,8 @@ class MainActivity : AppCompatActivity(),
         // ── 進入檢視流程立即禁止自動加載（避免 fitCamera 觸發 cameraIdle 後又把線段重畫回來）──
         isInEditingMode = true
 
+        setInspectLoading(true, "載入側溝資料中…")
+
         // 登入的 group_id 與線段的 group_id 一致時才允許編輯
         val savedGroupId = LoginActivity.getSavedGroupId(this)
         val canEdit = savedGroupId != -1 &&
@@ -934,10 +940,11 @@ class MainActivity : AppCompatActivity(),
         fitCameraToWaypoints(routeWaypoints)
 
         lifecycleScope.launch {
-            when (val result = gutterRepository.getDitchDetails(spiNum, token)) {
-                is ApiResult.Success -> {
-                    val ditch = result.data.data
-                    if (ditch != null) {
+            try {
+                when (val result = gutterRepository.getDitchDetails(spiNum, token)) {
+                    is ApiResult.Success -> {
+                        val ditch = result.data.data
+                        if (ditch != null) {
                         // ── 進入檢視模式時：隱藏所有其他已存在的線段，只顯示正在檢視的側溝 ──
                         // 保留使用者點選的 polyline（spiNum 對應那條），其餘全部移除。
                         scopePolylines.entries.toList().forEach { (key, p) ->
@@ -956,36 +963,95 @@ class MainActivity : AppCompatActivity(),
                         val nodeDetailsList = gutterRepository.getNodeDetailsForNodes(ditch.nodes, token)
                         showInspectMarkers(nodeDetailsList)
 
+                        // ── 預先下載起點/終點 6 張照片到本機 contentUri ──
+                        val startNode = ditch.nodes.firstOrNull { it.nodeAtt == "1" }
+                        val endNode = ditch.nodes.firstOrNull { it.nodeAtt == "3" }
+                        fun urlByCategory(node: DitchNode?, cat: String): String? =
+                            node?.url?.firstOrNull { it.fileCategory == cat }?.url
+
+                        val strUrls = listOf(
+                            urlByCategory(startNode, "1"),
+                            urlByCategory(startNode, "2"),
+                            urlByCategory(startNode, "3")
+                        )
+                        val endUrls = listOf(
+                            urlByCategory(endNode, "1"),
+                            urlByCategory(endNode, "2"),
+                            urlByCategory(endNode, "3")
+                        )
+
+                        suspend fun dl(url: String?, prefix: String): String? {
+                            if (url.isNullOrBlank()) return null
+                            return gutterRepository
+                                .downloadImageToLocalContentUri(this@MainActivity, url, prefix = prefix)
+                                ?.toString()
+                        }
+
+                        val downloaded: List<String?> = coroutineScope {
+                            val a1 = async<String?> { dl(strUrls.getOrNull(0), "INSPECT_STR_1_") }
+                            val a2 = async<String?> { dl(strUrls.getOrNull(1), "INSPECT_STR_2_") }
+                            val a3 = async<String?> { dl(strUrls.getOrNull(2), "INSPECT_STR_3_") }
+                            val b1 = async<String?> { dl(endUrls.getOrNull(0), "INSPECT_END_1_") }
+                            val b2 = async<String?> { dl(endUrls.getOrNull(1), "INSPECT_END_2_") }
+                            val b3 = async<String?> { dl(endUrls.getOrNull(2), "INSPECT_END_3_") }
+                            awaitAll(a1, a2, a3, b1, b2, b3)
+                        }
+                        val str1 = downloaded.getOrNull(0)
+                        val str2 = downloaded.getOrNull(1)
+                        val str3 = downloaded.getOrNull(2)
+                        val end1 = downloaded.getOrNull(3)
+                        val end2 = downloaded.getOrNull(4)
+                        val end3 = downloaded.getOrNull(5)
+
                         val intent = GutterInspectActivity.newIntent(
                             context    = this@MainActivity,
                             ditch      = ditch,
                             canEdit    = canEdit,
                             latitudes  = lats,
-                            longitudes = lngs
+                            longitudes = lngs,
+                            strPhoto1  = str1,
+                            strPhoto2  = str2,
+                            strPhoto3  = str3,
+                            endPhoto1  = end1,
+                            endPhoto2  = end2,
+                            endPhoto3  = end3
                         )
                         // 若有進行中的新增流程 sheet，先隱藏它（不 dismiss，
                         // 讓使用者按返回時仍可繼續；若最終進入編輯模式則由 inspectLauncher 清除）
                         activeSheet?.hideSelf()
+                        setInspectLoading(false)
                         inspectLauncher.launch(intent)
                         // isInspecting 在 inspectLauncher 結果回呼中重置
-                    } else {
+                        } else {
+                            isInspecting = false
+                            isInEditingMode = false  // 允許自動加載 polylines
+                            android.widget.Toast.makeText(
+                                this@MainActivity, getString(R.string.msg_no_line_data), android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    is ApiResult.Error -> {
                         isInspecting = false
                         isInEditingMode = false  // 允許自動加載 polylines
                         android.widget.Toast.makeText(
-                            this@MainActivity, getString(R.string.msg_no_line_data), android.widget.Toast.LENGTH_SHORT
+                            this@MainActivity,
+                            "查詢失敗(${result.code}): ${result.message}",
+                            android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
                 }
-                is ApiResult.Error -> {
-                    isInspecting = false
-                    isInEditingMode = false  // 允許自動加載 polylines
-                    android.widget.Toast.makeText(
-                        this@MainActivity,
-                        "查詢失敗(${result.code}): ${result.message}",
-                        android.widget.Toast.LENGTH_SHORT
-                    ).show()
-                }
+            } finally {
+                // 若已成功 launch，前面已 setInspectLoading(false)；這裡保險起見再關一次
+                setInspectLoading(false)
             }
+        }
+    }
+
+    private fun setInspectLoading(visible: Boolean, message: String? = null) {
+        if (!::binding.isInitialized) return
+        binding.inspectLoadingOverlay.visibility = if (visible) View.VISIBLE else View.GONE
+        if (!message.isNullOrBlank()) {
+            binding.tvInspectLoading.text = message
         }
     }
 

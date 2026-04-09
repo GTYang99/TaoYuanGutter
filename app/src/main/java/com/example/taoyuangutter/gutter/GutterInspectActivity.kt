@@ -42,12 +42,24 @@ class GutterInspectActivity : AppCompatActivity() {
     private var ditch: DitchDetails? = null
     private var wgsLatitudes: DoubleArray = doubleArrayOf()
     private var wgsLongitudes: DoubleArray = doubleArrayOf()
+    private var strPhoto1: String? = null
+    private var strPhoto2: String? = null
+    private var strPhoto3: String? = null
+    private var endPhoto1: String? = null
+    private var endPhoto2: String? = null
+    private var endPhoto3: String? = null
 
     companion object {
         private const val EXTRA_DITCH_JSON        = "ditch_json"
         private const val EXTRA_CAN_EDIT          = "can_edit"
         private const val EXTRA_LATITUDES         = "latitudes"
         private const val EXTRA_LONGITUDES        = "longitudes"
+        private const val EXTRA_STR_PHOTO_1       = "str_photo_1"
+        private const val EXTRA_STR_PHOTO_2       = "str_photo_2"
+        private const val EXTRA_STR_PHOTO_3       = "str_photo_3"
+        private const val EXTRA_END_PHOTO_1       = "end_photo_1"
+        private const val EXTRA_END_PHOTO_2       = "end_photo_2"
+        private const val EXTRA_END_PHOTO_3       = "end_photo_3"
 
         /** setResult code：使用者點擊編輯按鈕，要求 MainActivity 開啟 AddGutterBottomSheet */
         const val RESULT_EDIT_DITCH               = android.app.Activity.RESULT_FIRST_USER + 10
@@ -68,7 +80,13 @@ class GutterInspectActivity : AppCompatActivity() {
             ditch: DitchDetails,
             canEdit: Boolean = false,
             latitudes: DoubleArray = doubleArrayOf(),
-            longitudes: DoubleArray = doubleArrayOf()
+            longitudes: DoubleArray = doubleArrayOf(),
+            strPhoto1: String? = null,
+            strPhoto2: String? = null,
+            strPhoto3: String? = null,
+            endPhoto1: String? = null,
+            endPhoto2: String? = null,
+            endPhoto3: String? = null
         ): Intent {
             val json = Gson().toJson(ditch)
             return Intent(context, GutterInspectActivity::class.java).apply {
@@ -76,6 +94,12 @@ class GutterInspectActivity : AppCompatActivity() {
                 putExtra(EXTRA_CAN_EDIT,   canEdit)
                 putExtra(EXTRA_LATITUDES,  latitudes)
                 putExtra(EXTRA_LONGITUDES, longitudes)
+                putExtra(EXTRA_STR_PHOTO_1, strPhoto1)
+                putExtra(EXTRA_STR_PHOTO_2, strPhoto2)
+                putExtra(EXTRA_STR_PHOTO_3, strPhoto3)
+                putExtra(EXTRA_END_PHOTO_1, endPhoto1)
+                putExtra(EXTRA_END_PHOTO_2, endPhoto2)
+                putExtra(EXTRA_END_PHOTO_3, endPhoto3)
             }
         }
     }
@@ -93,8 +117,12 @@ class GutterInspectActivity : AppCompatActivity() {
         wgsLatitudes  = intent.getDoubleArrayExtra(EXTRA_LATITUDES)  ?: doubleArrayOf()
         wgsLongitudes = intent.getDoubleArrayExtra(EXTRA_LONGITUDES) ?: doubleArrayOf()
 
-        // 預先快取照片（避免使用者切到照片分頁時卡頓）
-        preloadInspectPhotos(ditch?.nodes ?: emptyList())
+        strPhoto1 = intent.getStringExtra(EXTRA_STR_PHOTO_1)
+        strPhoto2 = intent.getStringExtra(EXTRA_STR_PHOTO_2)
+        strPhoto3 = intent.getStringExtra(EXTRA_STR_PHOTO_3)
+        endPhoto1 = intent.getStringExtra(EXTRA_END_PHOTO_1)
+        endPhoto2 = intent.getStringExtra(EXTRA_END_PHOTO_2)
+        endPhoto3 = intent.getStringExtra(EXTRA_END_PHOTO_3)
 
         setupTitleBar(ditch)
         setupViewPager(ditch)
@@ -110,39 +138,7 @@ class GutterInspectActivity : AppCompatActivity() {
         }
     }
 
-    private fun preloadInspectPhotos(nodes: List<DitchNode>) {
-        if (nodes.isEmpty()) return
-
-        val startNode = nodes.firstOrNull { it.nodeAtt == "1" }
-        val endNode   = nodes.firstOrNull { it.nodeAtt == "3" }
-
-        fun urlByCategory(node: DitchNode?, cat: String): String? =
-            node?.url?.firstOrNull { it.fileCategory == cat }?.url
-
-        val urls = listOf(
-            urlByCategory(startNode, "1"),
-            urlByCategory(startNode, "2"),
-            urlByCategory(startNode, "3"),
-            urlByCategory(endNode, "1"),
-            urlByCategory(endNode, "2"),
-            urlByCategory(endNode, "3")
-        )
-            .filterNotNull()
-            .filter { it.isNotBlank() }
-
-        if (urls.isEmpty()) return
-
-        // 使用 downloadOnly()：先把檔案下載進 Glide cache（較少解碼成本），
-        // 使用者切換到照片分頁時就能更快顯示。
-        urls.forEach { url ->
-            runCatching {
-                Glide.with(this)
-                    .downloadOnly()
-                    .load(url)
-                    .preload()
-            }
-        }
-    }
+    // Photo preloading is handled by MainActivity (download to contentUri) before launching this activity.
 
     // ── Window ──────────────────────────────────────────────────────────
 
@@ -189,7 +185,16 @@ class GutterInspectActivity : AppCompatActivity() {
     // ── ViewPager + 分頁 ─────────────────────────────────────────────────
 
     private fun setupViewPager(ditch: DitchDetails?) {
-        val adapter = InspectPagerAdapter(this, ditch)
+        val adapter = InspectPagerAdapter(
+            activity = this,
+            ditch = ditch,
+            strPhoto1 = strPhoto1,
+            strPhoto2 = strPhoto2,
+            strPhoto3 = strPhoto3,
+            endPhoto1 = endPhoto1,
+            endPhoto2 = endPhoto2,
+            endPhoto3 = endPhoto3
+        )
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
         binding.viewPager.offscreenPageLimit = 1
@@ -288,14 +293,28 @@ class GutterInspectActivity : AppCompatActivity() {
 
     private class InspectPagerAdapter(
         activity: FragmentActivity,
-        private val ditch: DitchDetails?
+        private val ditch: DitchDetails?,
+        private val strPhoto1: String?,
+        private val strPhoto2: String?,
+        private val strPhoto3: String?,
+        private val endPhoto1: String?,
+        private val endPhoto2: String?,
+        private val endPhoto3: String?
     ) : FragmentStateAdapter(activity) {
 
         override fun getItemCount(): Int = 2
 
         override fun createFragment(position: Int): Fragment = when (position) {
             0    -> GutterInspectBasicFragment.newInstance(ditch)
-            1    -> GutterInspectPhotosFragment.newInstance(ditch?.nodes ?: emptyList())
+            1    -> GutterInspectPhotosFragment.newInstance(
+                nodes = ditch?.nodes ?: emptyList(),
+                strPhoto1 = strPhoto1,
+                strPhoto2 = strPhoto2,
+                strPhoto3 = strPhoto3,
+                endPhoto1 = endPhoto1,
+                endPhoto2 = endPhoto2,
+                endPhoto3 = endPhoto3
+            )
             else -> throw IllegalArgumentException("Unknown page $position")
         }
     }
