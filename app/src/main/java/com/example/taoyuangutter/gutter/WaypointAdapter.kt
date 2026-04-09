@@ -51,7 +51,7 @@ class WaypointAdapter(
         // 節點標籤
         holder.binding.tvWaypointLabel.text = item.label
 
-        // 狀態 badge：暫無資料 / 已填寫資料
+        // 狀態 badge：暫無資料 / 已填寫（顯示 XY_NUM）
         val isCantOpen = item.basicData["IS_CANTOPEN"] == "1"
         val requiredBasicKeys = if (isCantOpen) {
             listOf("NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM")
@@ -68,7 +68,10 @@ class WaypointAdapter(
 
         val statusView = holder.binding.tvWaypointStatus
         if (hasFilledData) {
-            statusView.text = ctx.getString(R.string.msg_data_filled)
+            val xyNum = item.basicData["XY_NUM"]?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: item.basicData["xyNum"]?.trim()?.takeIf { it.isNotEmpty() }
+            statusView.text = xyNum ?: ctx.getString(R.string.msg_data_filled)
             // 淺紫底：用既有 theme 的 colorPrimary 做 alpha 淡化
             val primary = MaterialColors.getColor(
                 holder.itemView,
