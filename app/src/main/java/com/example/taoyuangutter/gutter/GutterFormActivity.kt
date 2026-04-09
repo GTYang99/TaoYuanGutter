@@ -513,7 +513,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         setWmtsTiles(wmtsLayer)
 
         // 若沒有既有座標，先以桃園作為初始鏡頭（表單內地圖不做定位跳轉）
-        val lat = if (currentLat != 0.0) currentLat else 23.9929
+        val lat = if (currentLat != 0.0) currentLat else 24.9929
         val lng = if (currentLng != 0.0) currentLng else 121.3011
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
     }

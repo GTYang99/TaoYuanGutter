@@ -317,18 +317,25 @@ class MainActivity : AppCompatActivity(),
                 submittedPolylines.clear()
 
                 val sheet = AddGutterBottomSheet.newInstanceForEdit(wps, spiNum)
+                var lastWaypointsSize = wps.size
                 sheet.onWaypointsChanged = { updated ->
                     if (updated == null) {
                         // ── 編輯 Sheet 被 dismiss（關閉）時，清除工作層並恢復其他線段顯示 ──
                         isInEditingMode = false  // 允許自動加載 polylines
+                        googleMap?.setPadding(0, 0, 0, 0)
                         clearWorkingMarkers()
                         activeSheet = null
                         // 重新加載所有線段（scopePolylines 與 submittedPolylines）
                         loadGuttersByViewport()
                     } else {
+                        val shouldRefit = updated.size > lastWaypointsSize
+                        lastWaypointsSize = updated.size
                         currentWaypoints = updated.toMutableList()
                         refreshWorkingLayer(updated)
                         autoSaveSessionDraft(updated)
+                        if (shouldRefit) {
+                            fitCameraToWaypoints(updated, bottomOffsetRatio = 0.5, resetPaddingAfter = false)
+                        }
                     }
                 }
                 activeSheet = sheet
@@ -433,7 +440,7 @@ class MainActivity : AppCompatActivity(),
         applyWmsOverlays()
 
         // 避免地圖初始化時短暫跳到 (0,0) 或不合理位置：先以桃園作為初始鏡頭
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(23.9929, 121.3011), 16f))
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 16f))
         requestLocationAndMove()
 
         googleMap?.uiSettings?.apply {
@@ -1153,11 +1160,17 @@ class MainActivity : AppCompatActivity(),
             AddGutterBottomSheet.newInstance()
         }
         activeSheet = sheet
+        var lastWaypointsSize = 0
         sheet.onWaypointsChanged = { wps ->
             currentWaypoints = wps ?: emptyList()
             refreshWorkingLayer(wps ?: emptyList())
             if (wps != null) {
+                val shouldRefit = wps.size > lastWaypointsSize
+                lastWaypointsSize = wps.size
                 autoSaveSessionDraft(wps)
+                if (shouldRefit) {
+                    fitCameraToWaypoints(wps, bottomOffsetRatio = 0.5, resetPaddingAfter = false)
+                }
             } else {
                 // ── 取消新增模式時，清除工作層並恢復其他線段顯示 ──
                 isInEditingMode = false  // 允許自動加載 polylines
@@ -1255,11 +1268,17 @@ class MainActivity : AppCompatActivity(),
 
             val sheet = AddGutterBottomSheet.newInstanceFromDraft(draft, forceOffline = isOfflineMainMode)
             activeSheet = sheet
+            var lastWaypointsSize = 0
             sheet.onWaypointsChanged = { wps ->
                 currentWaypoints = wps ?: emptyList()
                 refreshWorkingLayer(wps ?: emptyList())
                 if (wps != null) {
+                    val shouldRefit = wps.size > lastWaypointsSize
+                    lastWaypointsSize = wps.size
                     autoSaveSessionDraft(wps)
+                    if (shouldRefit) {
+                        fitCameraToWaypoints(wps, bottomOffsetRatio = 0.5, resetPaddingAfter = false)
+                    }
                 } else {
                     // ── 取消草稿編輯模式時，清除工作層並恢復其他線段顯示 ──
                     isInEditingMode = false  // 允許自動加載 polylines
@@ -1279,6 +1298,7 @@ class MainActivity : AppCompatActivity(),
                     basicData = HashMap(snap.basicData)
                 )
             }
+            lastWaypointsSize = currentWaypoints.size
             refreshWorkingLayer(currentWaypoints)
             fitCameraToWaypoints(currentWaypoints, bottomOffsetRatio = 0.5, resetPaddingAfter = false)
             sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
