@@ -9,6 +9,7 @@ import android.view.ViewGroup
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.taoyuangutter.R
 import com.example.taoyuangutter.databinding.BottomSheetPendingDraftsBinding
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -152,8 +153,14 @@ class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
      * 刪除確認對話框。
      */
     private fun showDeleteConfirmDialog(draft: GutterSessionDraft) {
-        val startWp = draft.waypoints.firstOrNull { it.type == "START" }
-        val title = startWp?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() } ?: "離線草稿"
+        val title = when {
+            draft.kind == KIND_CURVE -> getString(R.string.msg_curve_draft_title)
+            draft.isOffline -> "離線草稿"
+            else -> {
+                val startWp = draft.waypoints.firstOrNull { it.type == "START" }
+                startWp?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() } ?: "側溝草稿"
+            }
+        }
         AlertDialog.Builder(requireContext())
             .setTitle("刪除確認")
             .setMessage("請確認是否刪除「$title」？")

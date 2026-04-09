@@ -28,6 +28,7 @@ import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.gson.reflect.TypeToken
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
+import kotlinx.coroutines.CancellationException
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
@@ -688,23 +689,32 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
                 // 呼叫 storeDitch（不帶 SPI_NUM，由後端分配）
                 activity.lifecycleScope.launch {
-                    val request = buildStoreDitchRequest(validWaypoints, null)
-                    android.util.Log.d("StoreDitch", "add request=$request")
-                    when (val result = repository.storeDitch(request, token)) {
-                        is ApiResult.Success -> {
-                            val nodes = result.data.data?.nodes ?: emptyList()
-                            (activity as? LocationPickerHost)
-                                ?.onGutterSaved(null, validWaypoints, nodes)
+                    try {
+                        val request = buildStoreDitchRequest(validWaypoints, null)
+                        android.util.Log.d("StoreDitch", "add request=$request")
+                        when (val result = repository.storeDitch(request, token)) {
+                            is ApiResult.Success -> {
+                                val nodes = result.data.data?.nodes ?: emptyList()
+                                (activity as? LocationPickerHost)
+                                    ?.onGutterSaved(null, validWaypoints, nodes)
+                            }
+                            is ApiResult.Error -> {
+                                android.util.Log.e(
+                                    "StoreDitch",
+                                    "add failed: message=${result.message}, code=${result.code}"
+                                )
+                                Toast.makeText(activity, getString(R.string.msg_upload_failed_saved_draft), Toast.LENGTH_LONG).show()
+                                (activity as? LocationPickerHost)
+                                    ?.onGutterSaveFailed(validWaypoints)
+                            }
                         }
-                        is ApiResult.Error -> {
-                            android.util.Log.e(
-                                "StoreDitch",
-                                "add failed: message=${result.message}, code=${result.code}"
-                            )
-                            Toast.makeText(activity, getString(R.string.msg_upload_failed_saved_draft), Toast.LENGTH_LONG).show()
-                            (activity as? LocationPickerHost)
-                                ?.onGutterSaveFailed(validWaypoints)
-                        }
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        android.util.Log.e("StoreDitch", "add exception: ${e.message}", e)
+                        Toast.makeText(activity, getString(R.string.msg_upload_failed_saved_draft), Toast.LENGTH_LONG).show()
+                        (activity as? LocationPickerHost)
+                            ?.onGutterSaveFailed(validWaypoints)
                     }
                 }
             }
@@ -742,40 +752,50 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         binding.btnSubmitGutter.text = "更新中…"
 
         lifecycleScope.launch {
-            if (isPreloadingEditDetails) {
-                Toast.makeText(requireContext(), getString(R.string.msg_waypoint_loading), Toast.LENGTH_SHORT).show()
-                updateSubmitButtonState()
-                return@launch
-            }
-
-            // 建立請求並呼叫 storeDitch（帶 SPI_NUM）
-            val request = buildStoreDitchRequest(waypoints.toList(), editSpiNum)
-            android.util.Log.d("StoreDitch", "edit request=$request")
-            when (val result = repository.storeDitch(request, token)) {
-                is ApiResult.Success -> {
-                    val nodes = result.data.data?.nodes ?: emptyList()
-                    (requireActivity() as? LocationPickerHost)
-                        ?.onUpdateGutter(waypoints.toList(), editSpiNum)
-                    (requireActivity() as? LocationPickerHost)
-                        ?.onGutterSaved(editSpiNum, waypoints.toList(), nodes)
-                    dismiss()
-                }
-                is ApiResult.Error -> {
-                    android.util.Log.e(
-                        "StoreDitch",
-                        "edit failed: message=${result.message}, code=${result.code}"
-                    )
-                    Toast.makeText(
-                        requireContext(),
-                        "更新失敗：${result.message}",
-                        Toast.LENGTH_LONG
-                    ).show()
-                    // 更新失敗 → 存入待上傳草稿，讓使用者可以稍後重試
-                    (requireActivity() as? LocationPickerHost)
-                        ?.onGutterSaveFailed(waypoints.toList())
-                    // 恢復按鈕狀態，讓使用者可以重試
+            try {
+                if (isPreloadingEditDetails) {
+                    Toast.makeText(requireContext(), getString(R.string.msg_waypoint_loading), Toast.LENGTH_SHORT).show()
                     updateSubmitButtonState()
+                    return@launch
                 }
+
+                // 建立請求並呼叫 storeDitch（帶 SPI_NUM）
+                val request = buildStoreDitchRequest(waypoints.toList(), editSpiNum)
+                android.util.Log.d("StoreDitch", "edit request=$request")
+                when (val result = repository.storeDitch(request, token)) {
+                    is ApiResult.Success -> {
+                        val nodes = result.data.data?.nodes ?: emptyList()
+                        (requireActivity() as? LocationPickerHost)
+                            ?.onUpdateGutter(waypoints.toList(), editSpiNum)
+                        (requireActivity() as? LocationPickerHost)
+                            ?.onGutterSaved(editSpiNum, waypoints.toList(), nodes)
+                        dismiss()
+                    }
+                    is ApiResult.Error -> {
+                        android.util.Log.e(
+                            "StoreDitch",
+                            "edit failed: message=${result.message}, code=${result.code}"
+                        )
+                        Toast.makeText(
+                            requireContext(),
+                            "更新失敗：${result.message}",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        // 更新失敗 → 存入待上傳草稿，讓使用者可以稍後重試
+                        (requireActivity() as? LocationPickerHost)
+                            ?.onGutterSaveFailed(waypoints.toList())
+                        // 恢復按鈕狀態，讓使用者可以重試
+                        updateSubmitButtonState()
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("StoreDitch", "edit exception: ${e.message}", e)
+                Toast.makeText(requireContext(), getString(R.string.msg_upload_failed_saved_draft), Toast.LENGTH_LONG).show()
+                (requireActivity() as? LocationPickerHost)
+                    ?.onGutterSaveFailed(waypoints.toList())
+                updateSubmitButtonState()
             }
         }
     }

@@ -33,9 +33,12 @@ class PendingDraftAdapter(
         val draft = items[position]
         with(holder.binding) {
             // 標題：
+            // - 弧線草稿：固定顯示「弧線草稿」
             // - 離線草稿：固定顯示「離線草稿」
             // - 其他：優先顯示 START waypoint 的 SPI_NUM；沒有值時顯示「側溝草稿」
-            if (draft.isOffline) {
+            if (draft.kind == KIND_CURVE) {
+                tvPendingDraftTitle.text = holder.itemView.context.getString(R.string.msg_curve_draft_title)
+            } else if (draft.isOffline) {
                 tvPendingDraftTitle.text = holder.itemView.context.getString(R.string.msg_offline_draft_title)
             } else {
                 val startWp = draft.waypoints.firstOrNull { it.type == "START" }

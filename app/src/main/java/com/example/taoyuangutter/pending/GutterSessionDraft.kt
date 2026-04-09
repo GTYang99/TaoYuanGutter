@@ -11,6 +11,14 @@ data class GutterSessionDraft(
     val id: Long = System.currentTimeMillis(),
     /** 建立／更新時間（毫秒），供列表排序與時間顯示 */
     val savedAt: Long = System.currentTimeMillis(),
+    /**
+     * 草稿類型：
+     * - "gutter"：一般側溝（AddGutterBottomSheet 地圖流程）
+     * - "curve"：弧線側溝（AddCurveActivity）
+     *
+     * 舊版草稿預設 "gutter"，Gson 反序列化時不影響既有資料。
+     */
+    val kind: String = KIND_GUTTER,
     /** true = 離線草稿（不打 API，只在本機編輯與保存） */
     val isOffline: Boolean = false,
     /**
@@ -22,6 +30,9 @@ data class GutterSessionDraft(
     /** 所有 waypoints 的快照列表（START / NODE / END） */
     val waypoints: List<WaypointSnapshot> = emptyList()
 )
+
+const val KIND_GUTTER = "gutter"
+const val KIND_CURVE = "curve"
 
 /**
  * 單一 Waypoint 的可序列化快照。
