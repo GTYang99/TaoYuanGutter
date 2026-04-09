@@ -15,6 +15,7 @@ import com.google.android.material.color.MaterialColors
 
 class WaypointAdapter(
     private val items: MutableList<Waypoint>,
+    private val alwaysShowXyNumIfPresent: Boolean = false,
     private val onItemClick: (position: Int) -> Unit
 ) : RecyclerView.Adapter<WaypointAdapter.ViewHolder>() {
 
@@ -67,10 +68,12 @@ class WaypointAdapter(
                 requiredPhotoKeys.all { item.basicData[it]?.isNotEmpty() == true }
 
         val statusView = holder.binding.tvWaypointStatus
-        if (hasFilledData) {
-            val xyNum = item.basicData["XY_NUM"]?.trim()
-                ?.takeIf { it.isNotEmpty() }
-                ?: item.basicData["xyNum"]?.trim()?.takeIf { it.isNotEmpty() }
+        val xyNum = item.basicData["XY_NUM"]?.trim()
+            ?.takeIf { it.isNotEmpty() }
+            ?: item.basicData["xyNum"]?.trim()?.takeIf { it.isNotEmpty() }
+
+        val showXyBadge = (alwaysShowXyNumIfPresent && xyNum != null) || hasFilledData
+        if (showXyBadge) {
             statusView.text = xyNum ?: ctx.getString(R.string.msg_data_filled)
             // 淺紫底：用既有 theme 的 colorPrimary 做 alpha 淡化
             val primary = MaterialColors.getColor(
