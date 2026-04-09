@@ -188,6 +188,7 @@ class MainActivity : AppCompatActivity(),
 
     private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
     private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
+    private lateinit var addCurveLauncher: ActivityResultLauncher<Intent>
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -337,6 +338,16 @@ class MainActivity : AppCompatActivity(),
                 // ── 從檢視模式返回（不編輯）時，清除起終點標記並恢復其他線段顯示 ──
                 isInEditingMode = false  // 允許自動加載 polylines
                 clearWorkingMarkers()   // 移除檢視模式新增的起點／節點／終點標記
+                loadGuttersByViewport()
+            }
+        }
+
+        // ── AddCurveActivity 的 launcher（新增曲線側溝）────────────────────
+        addCurveLauncher = registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+                // 新增成功 → 重新加載地圖線段
                 loadGuttersByViewport()
             }
         }
@@ -933,8 +944,8 @@ class MainActivity : AppCompatActivity(),
                         submittedPolylines.forEach { it.remove() }
                         submittedPolylines.clear()
 
-                        // ── 點選的側溝高亮為主配色，與其他線段做視覺區隔 ──
-                        scopePolylines[spiNum]?.color = android.graphics.Color.parseColor("#6236FF")
+                        // ── 點選的側溝高亮為「檢視與編輯中」配色 ──
+                        scopePolylines[spiNum]?.color = android.graphics.Color.parseColor("#562ECB")
 
                         // ── 並行查詢各節點詳細座標，再繪製起點／節點／終點標記 ──
                         val nodeDetailsList = gutterRepository.getNodeDetailsForNodes(ditch.nodes, token)
@@ -1091,7 +1102,7 @@ class MainActivity : AppCompatActivity(),
     /** 開啟「新增曲線」畫面。 */
     private fun openAddCurveFlow() {
         val intent = Intent(this, AddCurveActivity::class.java)
-        startActivity(intent)
+        addCurveLauncher.launch(intent)
     }
 
     /** 顯示「待上傳草稿」BottomSheet，並處理「繼續編輯」回呼。 */
@@ -1196,7 +1207,7 @@ class MainActivity : AppCompatActivity(),
             marker?.let { workingMarkers.add(it) }
         }
         if (routePoints.size >= 2) {
-            workingPolyline = map.addPolyline(PolylineOptions().addAll(routePoints).color(Color.parseColor("#5C35CC")).width(10f).geodesic(true).clickable(false))
+            workingPolyline = map.addPolyline(PolylineOptions().addAll(routePoints).color(Color.parseColor("#562ECB")).width(10f).geodesic(true).clickable(false))
         }
     }
 
@@ -1280,7 +1291,7 @@ class MainActivity : AppCompatActivity(),
         val map = googleMap ?: return
         val routePoints = waypoints.mapNotNull { it.latLng }
         if (routePoints.size < 2) return
-        val polyline = map.addPolyline(PolylineOptions().addAll(routePoints).color(Color.parseColor("#5C35CC")).width(10f).geodesic(true).clickable(true))
+        val polyline = map.addPolyline(PolylineOptions().addAll(routePoints).color(Color.parseColor("#562ECB")).width(10f).geodesic(true).clickable(true))
         polyline.tag = ArrayList(waypoints)
         submittedPolylines.add(polyline)
     }
@@ -1378,13 +1389,13 @@ class MainActivity : AppCompatActivity(),
                 groupId.isNotBlank() &&
                 groupId.toIntOrNull() == savedGroupId
             val color = if (!isSameGroup) {
-                android.graphics.Color.parseColor("#73767A") // 非本公司管轄
+                android.graphics.Color.parseColor("#B4B4B4") // 非本公司管轄
             } else {
                 when (spiState) {
-                    1 -> android.graphics.Color.parseColor("#52D5BA") // 已完成
-                    2 -> android.graphics.Color.parseColor("#F56C6C") // 待修正
-                    3 -> android.graphics.Color.parseColor("#E6A23C") // 待匯入座標紀錄
-                    else -> android.graphics.Color.parseColor("#6236FF") // 預設
+                    1 -> android.graphics.Color.parseColor("#000000") // 已完成
+                    2 -> android.graphics.Color.parseColor("#FF58E0") // 待修正
+                    3 -> android.graphics.Color.parseColor("#FFC300") // 待匯入座標紀錄
+                    else -> android.graphics.Color.parseColor("#562ECB") // 檢視與編輯中（預設）
                 }
             }
             val polyline = map.addPolyline(

@@ -185,6 +185,21 @@ interface GutterApiService {
     ): Response<StoreDitchResponse>
 
     /**
+     * 新增曲線側溝（以 XY_NUM 陣列指定順序）。
+     *
+     * POST /api/v1/ditch/storeCurveDitch
+     * Authorization: Bearer {token}
+     *
+     * Body: [StoreCurveDitchRequest]
+     * Response: [StoreCurveDitchResponse]
+     */
+    @POST("api/v1/ditch/storeCurveDitch")
+    suspend fun storeCurveDitch(
+        @Body                    request: StoreCurveDitchRequest,
+        @Header("Authorization") authorization: String
+    ): Response<StoreCurveDitchResponse>
+
+    /**
      * 刪除指定側溝（含其所有點位）。
      *
      * DELETE /api/v1/ditch/deleteDitch?SPI_NUM=...
@@ -242,7 +257,7 @@ object GutterApiClient {
 
     val instance: GutterApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(DEMO_URL)
+            .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

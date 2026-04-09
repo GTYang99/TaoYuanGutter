@@ -219,7 +219,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
                     .addAll(pointsForLine)
                     .width(10f)
                     .geodesic(true)
-                    .color(android.graphics.Color.parseColor("#5C35CC"))
+                    .color(android.graphics.Color.parseColor("#562ECB"))
                     .clickable(false)
             )
         }

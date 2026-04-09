@@ -8,10 +8,15 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.cardview.widget.CardView
 import com.example.taoyuangutter.R
+import com.example.taoyuangutter.api.ApiResult
+import com.example.taoyuangutter.api.GutterRepository
+import com.example.taoyuangutter.login.LoginActivity
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 
 /**
  * 新增曲線 Activity
@@ -34,6 +39,8 @@ class AddCurveActivity : AppCompatActivity() {
     private lateinit var cardResult: CardView
     private lateinit var tvResultTitle: TextView
     private lateinit var tvResultContent: TextView
+
+    private val repository = GutterRepository()
 
     // ── Lifecycle ────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -82,52 +89,49 @@ class AddCurveActivity : AppCompatActivity() {
                 return@setOnClickListener
             }
 
-            // ── 呼叫 API（目前為 placeholder）─────────────
-            queryCurve(startXyNum, endXyNum)
+            val token = LoginActivity.getSavedToken(this)
+            if (token.isNullOrEmpty()) {
+                showError(getString(R.string.msg_login_first))
+                return@setOnClickListener
+            }
+
+            // ── 呼叫 API ───────────────────────────────
+            storeCurveDitch(startXyNum, endXyNum, token)
         }
     }
 
     // ── API ──────────────────────────────────────────────
 
     /**
-     * 打 API 查詢曲線資料。
-     *
-     * TODO: 替換為真實 API 呼叫
-     *   1. 在 GutterApiService 新增端點定義
-     *   2. 在 GutterRepository 新增 suspend fun queryCurve(...)
-     *   3. 此處改為 lifecycleScope.launch { repository.queryCurve(...) }
-     *
-     * @param startXyNum 起點測量座標編號
-     * @param endXyNum   終點測量座標編號
+     * 新增曲線側溝：
+     * POST /api/v1/ditch/storeCurveDitch
      */
-    private fun queryCurve(startXyNum: String, endXyNum: String) {
+    private fun storeCurveDitch(startXyNum: String, endXyNum: String, token: String) {
         // 顯示 loading
         progressBar.visibility = View.VISIBLE
         cardResult.visibility = View.GONE
         btnQuery.isEnabled = false
 
-        // ──────────────────────────────────────────────────
-        // TODO: 替換以下 placeholder 為真實 API 呼叫
-        //
-        // lifecycleScope.launch {
-        //     try {
-        //         val result = gutterRepository.queryCurve(startXyNum, endXyNum)
-        //         when (result) {
-        //             is ApiResult.Success -> showResult(result.data)
-        //             is ApiResult.Error   -> showError(result.message)
-        //         }
-        //     } catch (e: Exception) {
-        //         showError(e.message ?: "未知錯誤")
-        //     }
-        // }
-        // ──────────────────────────────────────────────────
+        lifecycleScope.launch {
+            val xyNums = listOf(startXyNum, endXyNum)
+            when (val result = repository.storeCurveDitch(xyNums, token)) {
+                is ApiResult.Success -> {
+                    progressBar.visibility = View.GONE
+                    btnQuery.isEnabled = true
 
-        // Placeholder：模擬 API 延遲後顯示假資料
-        btnQuery.postDelayed({
-            progressBar.visibility = View.GONE
-            btnQuery.isEnabled = true
-            showResult("起點 XY_NUM: $startXyNum\n終點 XY_NUM: $endXyNum\n\n（API 尚未串接，此為預覽畫面）")
-        }, 800)
+                    val ditch = result.data.data
+                    val spiNum = ditch?.spiNum ?: ""
+
+                    Toast.makeText(this@AddCurveActivity, "新增成功：$spiNum", Toast.LENGTH_LONG).show()
+                    setResult(RESULT_OK, android.content.Intent().putExtra(EXTRA_RESULT_SPI_NUM, spiNum))
+                    // 回地圖刷新列表（MainActivity 會接 result）
+                    finish()
+                }
+                is ApiResult.Error -> {
+                    showError(result.message)
+                }
+            }
+        }
     }
 
     // ── UI Helpers ───────────────────────────────────────
@@ -144,5 +148,9 @@ class AddCurveActivity : AppCompatActivity() {
         progressBar.visibility = View.GONE
         btnQuery.isEnabled = true
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    companion object {
+        const val EXTRA_RESULT_SPI_NUM = "ex_result_spi_num"
     }
 }

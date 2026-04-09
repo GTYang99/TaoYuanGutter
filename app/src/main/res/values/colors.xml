@@ -35,7 +35,7 @@
     <color name="crosshair">#FAF32A</color>
 
     <!-- Legend -->
-    <color name="legend_water_dept_old">#FCBEFF</color>
-    <color name="legend_possible_gutter">#B8D9FF</color>
+    <color name="legend_water_dept_old">#156D1D</color>
+    <color name="legend_possible_gutter">#FA0000</color>
 
 </resources>

@@ -8,12 +8,12 @@
     <!-- 上半三角：空心（只有描邊） -->
     <path
         android:fillColor="#FFFFFF"
-        android:strokeColor="#5C35CC"
+        android:strokeColor="#562ECB"
         android:strokeWidth="2"
         android:pathData="M12,2 L20,12 L4,12 Z" />
     <!-- 下半三角：實心 -->
     <path
-        android:fillColor="#5C35CC"
+        android:fillColor="#562ECB"
         android:pathData="M2,13 L22,13 L12,24 Z"
         />
 </vector>

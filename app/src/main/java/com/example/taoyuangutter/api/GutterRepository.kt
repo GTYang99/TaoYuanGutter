@@ -554,6 +554,57 @@ class GutterRepository(
         }
     }
 
+    // ── 新增曲線側溝 ────────────────────────────────────────────────────
+
+    /**
+     * 新增曲線側溝（以 XY_NUM 陣列指定順序）。
+     *
+     * @param xyNums 測量座標編號陣列（依順序區分起終點；最少 2 筆）
+     * @param token  Bearer token
+     */
+    suspend fun storeCurveDitch(
+        xyNums: List<String>,
+        token: String
+    ): ApiResult<StoreCurveDitchResponse> {
+        return try {
+            val request = StoreCurveDitchRequest(xyNums = xyNums)
+            android.util.Log.d("StoreCurveDitch", "repository request=${Gson().toJson(request)}")
+            val response = api.storeCurveDitch(
+                request = request,
+                authorization = "Bearer $token"
+            )
+            val body = response.body()
+            val errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
+            android.util.Log.d(
+                "StoreCurveDitch",
+                "response code=${response.code()}, body=$body, errorBody=$errorBody"
+            )
+            val errorParsed: StoreCurveDitchResponse? = errorBody
+                ?.takeIf { it.isNotBlank() }
+                ?.let { json -> runCatching { Gson().fromJson(json, StoreCurveDitchResponse::class.java) }.getOrNull() }
+            val msg = body?.message ?: errorParsed?.message
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.code() == 401 -> ApiResult.Error(
+                    message = msg ?: "尚未登入，請重新登入",
+                    code    = 401
+                )
+                msg != null -> ApiResult.Error(message = msg, code = response.code())
+                else -> ApiResult.Error(
+                    message = "儲存失敗",
+                    code    = response.code()
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: JsonSyntaxException) {
+            android.util.Log.e("StoreCurveDitch", "json parse failed: xyNums=$xyNums", e)
+            ApiResult.Error(message = "資料解析失敗")
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
     // ── 刪除側溝 ──────────────────────────────────────────────────────────
 
     /**

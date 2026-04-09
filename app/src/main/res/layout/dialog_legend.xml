@@ -54,7 +54,7 @@
                     android:layout_width="28dp"
                     android:layout_height="4dp"
                     android:background="@drawable/bg_legend_line"
-                    android:backgroundTint="#E6A23C" />
+                    android:backgroundTint="#FFC300" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -77,7 +77,7 @@
                     android:layout_width="28dp"
                     android:layout_height="4dp"
                     android:background="@drawable/bg_legend_line"
-                    android:backgroundTint="#52D5BA" />
+                    android:backgroundTint="#000000" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -100,7 +100,7 @@
                     android:layout_width="28dp"
                     android:layout_height="4dp"
                     android:background="@drawable/bg_legend_line"
-                    android:backgroundTint="#F56C6C" />
+                    android:backgroundTint="#FF58E0" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -123,7 +123,7 @@
                     android:layout_width="28dp"
                     android:layout_height="4dp"
                     android:background="@drawable/bg_legend_line"
-                    android:backgroundTint="#73767A" />
+                    android:backgroundTint="#B4B4B4" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -156,7 +156,7 @@
                     android:layout_width="28dp"
                     android:layout_height="4dp"
                     android:background="@drawable/bg_legend_line"
-                    android:backgroundTint="#5C35CC" />
+                    android:backgroundTint="#562ECB" />
 
                 <TextView
                     android:layout_width="wrap_content"

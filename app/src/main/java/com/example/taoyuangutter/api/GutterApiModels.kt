@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.api
 
+import com.google.gson.JsonElement
 import com.google.gson.annotations.SerializedName
 
 // ════════════════════════════════════════════════════════════════
@@ -437,6 +438,32 @@ data class StoreDitchResponse(
     @SerializedName("message") val message: String?,
     @SerializedName("data")    val data: DitchDetails?,
     @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+// ════════════════════════════════════════════════════════════════
+//  POST /api/v1/ditch/storeCurveDitch  ── 新增曲線側溝
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * 新增曲線側溝 Request Body。
+ *
+ * XY_NUM 陣列依順序區分起點與終點（最少 2 筆）。
+ */
+data class StoreCurveDitchRequest(
+    @SerializedName("XY_NUM") val xyNums: List<String>
+)
+
+/**
+ * 新增曲線側溝回應。
+ *
+ * 注意：errors 可能為 object / array([]) / null，因此用 [JsonElement] 容錯，
+ * 避免遇到 errors=[] 時 Gson 解析 Map 直接失敗。
+ */
+data class StoreCurveDitchResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data")    val data: DitchDetails?,
+    @SerializedName("errors")  val errors: JsonElement?
 )
 
 // ════════════════════════════════════════════════════════════════
