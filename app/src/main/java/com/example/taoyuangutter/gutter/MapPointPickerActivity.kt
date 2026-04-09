@@ -157,8 +157,14 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
 
         val lat = intent.getDoubleExtra(EXTRA_INITIAL_LAT, 0.0)
         val lng = intent.getDoubleExtra(EXTRA_INITIAL_LNG, 0.0)
-        val start = if (lat != 0.0 || lng != 0.0) LatLng(lat, lng) else LatLng(25.0330, 121.5654)
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 20f))
+
+        if (lat != 0.0 || lng != 0.0) {
+            val start = LatLng(lat, lng)
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 20f))
+        } else {
+            // 如果沒有初始座標，自動定位到使用者現在位置
+            onMyLocationButtonClicked()
+        }
     }
 
     private val markers = mutableListOf<Marker>()

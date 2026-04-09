@@ -427,8 +427,8 @@ class MainActivity : AppCompatActivity(),
         setMapTiles(MapMode.EMAP)
         applyWmsOverlays()
 
-        val taoyuan = LatLng(24.9936, 121.3010)
-        googleMap?.moveCamera(CameraUpdateFactory.newLatLngZoom(taoyuan, 20f))
+        requestLocationAndMove()
+
         googleMap?.uiSettings?.apply {
             isZoomControlsEnabled = true
             isCompassEnabled      = true
