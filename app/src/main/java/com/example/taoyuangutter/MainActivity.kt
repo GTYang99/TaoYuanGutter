@@ -936,8 +936,9 @@ class MainActivity : AppCompatActivity(),
                         // ── 點選的側溝高亮為主配色，與其他線段做視覺區隔 ──
                         scopePolylines[spiNum]?.color = android.graphics.Color.parseColor("#6236FF")
 
-                        // ── 在地圖上顯示起點／節點／終點標記 ──
-                        showInspectMarkers(ditch.nodes, polyline.points)
+                        // ── 並行查詢各節點詳細座標，再繪製起點／節點／終點標記 ──
+                        val nodeDetailsList = gutterRepository.getNodeDetailsForNodes(ditch.nodes, token)
+                        showInspectMarkers(nodeDetailsList)
 
                         val intent = GutterInspectActivity.newIntent(
                             context    = this@MainActivity,
@@ -1242,36 +1243,26 @@ class MainActivity : AppCompatActivity(),
     /**
      * 點選已提交側溝線段後，在地圖上顯示起點／節點／終點標記。
      *
-     * 座標來自 [points]（polyline.points，WGS84），
-     * 點位類型來自 [nodes] 的 nodeAtt（"1"=起點、"2"=節點、"3"=終點）。
-     * 若 nodes 數量與 points 不符，則依位置回退判斷（首=起點、尾=終點、其餘=節點）。
+     * 座標直接使用 [NodeDetails.latitude] / [NodeDetails.longitude]（WGS84），
+     * 點位類型依 [NodeDetails.nodeAttr]（"1"=起點、"2"=節點、"3"=終點）決定圖示。
+     * 解析失敗的節點（座標為 null 或非數值）靜默略過。
      *
      * 標記加入 [workingMarkers]，可透過 [clearWorkingMarkers] 統一清除。
      */
-    private fun showInspectMarkers(
-        nodes: List<com.example.taoyuangutter.api.DitchNode>,
-        points: List<com.google.android.gms.maps.model.LatLng>
-    ) {
+    private fun showInspectMarkers(nodes: List<com.example.taoyuangutter.api.NodeDetails>) {
         val map = googleMap ?: return
         clearWorkingMarkers()
-        if (points.isEmpty()) return
+        if (nodes.isEmpty()) return
 
-        val countMatch = nodes.size == points.size
+        nodes.forEachIndexed { idx, node ->
+            val lat = node.latitude?.toDoubleOrNull()  ?: return@forEachIndexed
+            val lng = node.longitude?.toDoubleOrNull() ?: return@forEachIndexed
+            val latLng = com.google.android.gms.maps.model.LatLng(lat, lng)
 
-        points.forEachIndexed { idx, latLng ->
-            val wpType = if (countMatch) {
-                when (nodes[idx].nodeAtt) {
-                    "1"  -> WaypointType.START
-                    "3"  -> WaypointType.END
-                    else -> WaypointType.NODE
-                }
-            } else {
-                // 回退：首點=起點、末點=終點、其餘=節點
-                when (idx) {
-                    0              -> WaypointType.START
-                    points.lastIndex -> WaypointType.END
-                    else           -> WaypointType.NODE
-                }
+            val wpType = when (node.nodeAttr) {
+                "1"  -> WaypointType.START
+                "3"  -> WaypointType.END
+                else -> WaypointType.NODE
             }
 
             val marker = map.addMarker(
