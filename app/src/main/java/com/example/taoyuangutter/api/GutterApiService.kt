@@ -2,6 +2,7 @@ package com.example.taoyuangutter.api
 
 import android.util.Log
 import com.example.taoyuangutter.BuildConfig
+import com.google.gson.GsonBuilder
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.RequestBody
@@ -234,11 +235,16 @@ object GutterApiClient {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    private val gson = GsonBuilder()
+        // 後端偶發回傳 Int 欄位為空字串 ""（例如 END_DEP / END_WID），避免 Gson 解析直接炸掉
+        .registerTypeAdapter(Int::class.javaObjectType, EmptyStringToNullIntAdapter())
+        .create()
+
     val instance: GutterApiService by lazy {
         Retrofit.Builder()
             .baseUrl(DEMO_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
             .create(GutterApiService::class.java)
     }

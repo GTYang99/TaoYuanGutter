@@ -17,6 +17,9 @@ import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import androidx.core.content.FileProvider
 import android.os.Environment
@@ -239,6 +242,10 @@ class GutterRepository(
                 spiNum        = spiNum,
                 authorization = "Bearer $token"
             )
+            val reqUrl = runCatching { response.raw().request.url.toString() }.getOrNull()
+            if (!reqUrl.isNullOrEmpty()) {
+                android.util.Log.d("GutterRepository", "getDitchDetails request url=$reqUrl")
+            }
             val body = response.body()
             when {
                 response.isSuccessful && body?.success == true -> ApiResult.Success(body)
@@ -258,6 +265,16 @@ class GutterRepository(
                     code    = response.code()
                 )
             }
+        } catch (e: CancellationException) {
+            // coroutine cancellation is not an API error; propagate to caller
+            throw e
+        } catch (e: JsonSyntaxException) {
+            android.util.Log.e(
+                "GutterRepository",
+                "getDitchDetails json parse failed: spiNum=$spiNum",
+                e
+            )
+            ApiResult.Error(message = "資料解析失敗")
         } catch (e: Exception) {
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
         }
@@ -547,6 +564,37 @@ class GutterRepository(
      * @return [ApiResult.Success] 含 [DeleteDitchResponse]；
      *         [ApiResult.Error]   含錯誤訊息（401 / 422 / 500）
      */
+    /**
+     * 並行查詢一條側溝內所有節點的完整資料（含 WGS84 座標）。
+     *
+     * 從 [getDitchDetails] 取得的 [DitchNode] 列表中提取 nodeId，
+     * 以 [kotlinx.coroutines.async] 同時發出多個 [getNodeDetails] 請求，
+     * 任一節點查詢失敗時靜默略過（不中斷整體流程）。
+     *
+     * @param nodes  DitchDetails.nodes（含 nodeId）
+     * @param token  Bearer token
+     * @return 成功取得的 [NodeDetails] 列表，保留原始順序
+     */
+    suspend fun getNodeDetailsForNodes(
+        nodes: List<DitchNode>,
+        token: String
+    ): List<NodeDetails> = coroutineScope {
+        nodes.map { node: DitchNode ->
+            async<NodeDetails?> {
+                when (val result = getNodeDetails(node.nodeId, token)) {
+                    is ApiResult.Success -> result.data.data?.firstOrNull()
+                    is ApiResult.Error   -> {
+                        android.util.Log.w(
+                            "GutterRepository",
+                            "getNodeDetailsForNodes: 節點 ${node.nodeId} 查詢失敗 – ${result.message}"
+                        )
+                        null
+                    }
+                }
+            }
+        }.awaitAll().filterNotNull()
+    }
+
     suspend fun deleteDitch(spiNum: String, token: String): ApiResult<DeleteDitchResponse> {
         return try {
             val response = api.deleteDitch(
