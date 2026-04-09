@@ -638,6 +638,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 if (isOfflineMode) {
                     // 離線填寫：不打 API，不做必填驗證；直接確保草稿更新後關閉。
                     onWaypointsChanged?.invoke(waypoints.toList())
+                    Toast.makeText(requireContext(), getString(R.string.msg_draft_saved), Toast.LENGTH_SHORT).show()
                     dismiss()
                     return@setOnClickListener
                 }
@@ -1093,7 +1094,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 arguments = Bundle().apply {
                     putLong(ARG_DRAFT_ID,   draft.id)
                     putString(ARG_DRAFT_JSON, Gson().toJson(draft))
-                    if (draft.isOffline || forceOffline) putBoolean(ARG_OFFLINE_MODE, true)
+                    // 只有「目前處於離線主模式」才強制離線 UI；
+                    // draft.isOffline 代表草稿來源，回到線上時仍應允許上傳。
+                    if (forceOffline) putBoolean(ARG_OFFLINE_MODE, true)
                 }
             }
     }

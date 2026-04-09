@@ -1174,7 +1174,8 @@ class MainActivity : AppCompatActivity(),
 
         // ④ 地圖流程多點草稿：記住 ID，再展示 AddGutterBottomSheet
         currentSessionDraftId = draft.id
-        currentSessionIsOffline = isOfflineMainMode || draft.isOffline
+        // 回到線上模式後，離線草稿也應允許上傳；是否離線以「目前主模式」為準
+        currentSessionIsOffline = isOfflineMainMode
 
         Handler(Looper.getMainLooper()).postDelayed({
             if (isFinishing || isDestroyed) return@postDelayed
