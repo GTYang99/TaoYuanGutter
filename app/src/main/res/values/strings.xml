@@ -141,6 +141,7 @@
     <string name="msg_loading_waypoint_data">載入點位資料中...</string>
     <string name="msg_no_offline_draft">目前沒有離線草稿</string>
     <string name="msg_offline_draft_title">離線草稿</string>
+    <string name="msg_curve_draft_title">弧線草稿</string>
     <string name="msg_data_filled">已填寫資料</string>
     <string name="msg_no_data">暫無資料</string>
     <string name="msg_no_position_data">---</string>
@@ -226,7 +227,7 @@
 
     <!-- 新增選項彈窗 -->
     <string name="add_option_title">選擇新增類型</string>
-    <string name="btn_add_curve">新增曲線</string>
+    <string name="btn_add_curve">新增弧線</string>
 
     <!-- 新增曲線畫面 -->
     <string name="curve_start_xy_num">起點座標編號</string>

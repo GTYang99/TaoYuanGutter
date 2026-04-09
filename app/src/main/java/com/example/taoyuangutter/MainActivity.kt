@@ -48,6 +48,7 @@ import com.example.taoyuangutter.map.MeasureConfig
 import com.example.taoyuangutter.map.Wms3857TileProvider
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
+import com.example.taoyuangutter.pending.KIND_CURVE
 import com.example.taoyuangutter.pending.PendingDraftsBottomSheet
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -427,6 +428,8 @@ class MainActivity : AppCompatActivity(),
         setMapTiles(MapMode.EMAP)
         applyWmsOverlays()
 
+        // 避免地圖初始化時短暫跳到 (0,0) 或不合理位置：先以桃園作為初始鏡頭
+        map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(23.9929, 121.3011), 16f))
         requestLocationAndMove()
 
         googleMap?.uiSettings?.apply {
@@ -567,6 +570,8 @@ class MainActivity : AppCompatActivity(),
         } else {
             // 新增模式
             Toast.makeText(this, getString(R.string.msg_gutter_uploaded), Toast.LENGTH_SHORT).show()
+            // 新增成功後立即重載，以後端正式線段為準（同時會清掉暫時提交線）
+            loadGuttersByViewport()
         }
         // 依序上傳各點位的本機照片（已是 https:// 的舊照片會略過）
         lifecycleScope.launch {
@@ -1102,6 +1107,7 @@ class MainActivity : AppCompatActivity(),
     /** 開啟「新增曲線」畫面。 */
     private fun openAddCurveFlow() {
         val intent = Intent(this, AddCurveActivity::class.java)
+            .putExtra(AddCurveActivity.EXTRA_FORCE_OFFLINE_MODE, isOfflineMainMode)
         addCurveLauncher.launch(intent)
     }
 
@@ -1131,6 +1137,31 @@ class MainActivity : AppCompatActivity(),
         workingPolyline?.remove()
         workingPolyline = null
         clearWorkingMarkers()
+
+        // ③ 弧線草稿：開啟 AddCurveActivity（預填 XY_NUM），不走 AddGutterBottomSheet 流程
+        if (draft.kind == KIND_CURVE) {
+            val startXy = draft.waypoints
+                .firstOrNull { it.type == "START" }
+                ?.basicData
+                ?.get("XY_NUM")
+                .orEmpty()
+            val endXy = draft.waypoints
+                .firstOrNull { it.type == "END" }
+                ?.basicData
+                ?.get("XY_NUM")
+                .orEmpty()
+            val offline = isOfflineMainMode || draft.isOffline
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (isFinishing || isDestroyed) return@postDelayed
+                val intent = Intent(this, AddCurveActivity::class.java)
+                    .putExtra(AddCurveActivity.EXTRA_FORCE_OFFLINE_MODE, offline)
+                    .putExtra(AddCurveActivity.EXTRA_DRAFT_ID, draft.id)
+                    .putExtra(AddCurveActivity.EXTRA_PREFILL_START_XY_NUM, startXy)
+                    .putExtra(AddCurveActivity.EXTRA_PREFILL_END_XY_NUM, endXy)
+                addCurveLauncher.launch(intent)
+            }, 300L)
+            return
+        }
 
         // ③ 單點離線草稿（isSinglePoint=true）：直接開啟全螢幕離線表單，不走地圖流程
         if (draft.isSinglePoint) {
@@ -1357,6 +1388,10 @@ class MainActivity : AppCompatActivity(),
                 token  = token
             )) {
                 is ApiResult.Success -> {
+                    // scopeSearch 成功回來後，以後端正式線段為準：
+                    // 清除暫時提交線（submittedPolylines），避免與正式線段重疊出現多色疊加。
+                    submittedPolylines.forEach { it.remove() }
+                    submittedPolylines.clear()
                     drawScopePolylines(result.data.data?.features ?: emptyList())
                 }
                 is ApiResult.Error -> {

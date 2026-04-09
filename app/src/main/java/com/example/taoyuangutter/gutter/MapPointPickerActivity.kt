@@ -162,7 +162,8 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             val start = LatLng(lat, lng)
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 20f))
         } else {
-            // 如果沒有初始座標，自動定位到使用者現在位置
+            // 如果沒有初始座標：先以桃園作為初始鏡頭，再嘗試定位到使用者現在位置
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(23.9929, 121.3011), 16f))
             onMyLocationButtonClicked()
         }
     }
