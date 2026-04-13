@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    根容器改為 FrameLayout，由下至上三層：
+    ① formMapContainer  — 全螢幕地圖（可 pan/zoom）
+    ② mapDimOverlay     — 半透明黑色遮罩（增加層次感）
+    ③ formPanel         — 表單面板（CoordinatorLayout，貼底 3/4 高度）
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- ① 地圖背景（全螢幕，可滑動） -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/formMapContainer"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- ② 半透明黑色 overlay（分出地圖與表單的層次） -->
+    <View
+        android:id="@+id/mapDimOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#66000000"
+        android:clickable="false"
+        android:focusable="false" />
+
+    <!-- ③ 表單面板（高度由程式設定為螢幕 3/4，鍵盤彈出時上移） -->
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/formPanel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:background="@drawable/bg_form_sheet">
+
+        <!-- AppBar：標題列 + 分頁按鈕 -->
+        <com.google.android.material.appbar.AppBarLayout
+            android:id="@+id/appBarLayout"
+            android:background="@color/white"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
+            app:elevation="4dp">
+
+            <!-- 標題列：左側返回 + 置中標題 + 右側編輯/完成 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:background="@color/white">
+
+                <!-- 左側：返回箭頭（固定） -->
+                <ImageButton
+                    android:id="@+id/btnBack"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_arrow_back"
+                    android:tint="@color/colorPrimary"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="返回"
+                    android:padding="12dp" />
+
+                <!-- 置中標題 -->
+                <TextView
+                    android:id="@+id/tvFormTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:textColor="@color/colorPrimary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:text="@string/waypoint_start" />
+
+                <!-- 右側按鈕槽：編輯 icon（檢視模式）或完成文字（編輯模式），預設隱藏 -->
+                <FrameLayout
+                    android:layout_width="56dp"
+                    android:layout_height="48dp">
+
+                    <!-- 檢視模式：鉛筆編輯 icon -->
+                    <ImageButton
+                        android:id="@+id/btnEdit"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:src="@drawable/ic_edit"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="編輯"
+                        android:padding="12dp"
+                        android:visibility="gone" />
+
+                    <!-- 編輯模式：完成文字按鈕 -->
+                    <TextView
+                        android:id="@+id/btnDone"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:gravity="center"
+                        android:text="@string/form_finish_button"
+                        android:textColor="@color/white"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:visibility="gone" />
+
+                </FrameLayout>
+
+            </LinearLayout>
+
+            <!-- 匯入既有點位資料行 -->
+            <LinearLayout
+                android:id="@+id/importWaypointBar"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:background="@color/colorBgTitle">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="start"
+                    android:text="@string/msg_import_waypoint_title"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_grey" />
+
+                <Button
+                    android:id="@+id/btnSelectWaypoint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/msg_select_button"
+                    android:textSize="14sp"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:paddingTop="8dp"
+                    android:paddingBottom="8dp"
+                    android:textColor="@color/colorPrimaryVariant"
+                    android:background="@android:color/transparent" />
+
+            </LinearLayout>
+
+            <!-- 分頁切換按鈕列（Switch 開關樣式） -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="52dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:background="@color/white">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_tab_switch_container">
+
+                    <com.google.android.material.tabs.TabLayout
+                        android:id="@+id/tabLayout"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@android:color/transparent"
+                        app:tabMode="fixed"
+                        app:tabGravity="fill"
+                        app:tabRippleColor="@android:color/transparent"
+                        app:tabUnboundedRipple="false"
+                        app:tabIndicatorHeight="0dp"
+                        app:tabTextColor="@color/colorPrimary"
+                        app:tabSelectedTextColor="@color/colorPrimary"
+                        app:tabBackground="@drawable/tab_switch_selector"
+                        app:tabTextAppearance="@style/TabTextAppearance.Switch" />
+
+                </FrameLayout>
+
+            </LinearLayout>
+
+        </com.google.android.material.appbar.AppBarLayout>
+
+        <!-- ViewPager2：分頁內容 -->
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/viewPager"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+
+        <!-- 浮動新增側溝按鈕（固定在底部置中） -->
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/fabSubmit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal"
+            android:layout_marginBottom="24dp"
+            android:text="@string/form_finish_button"
+            android:textColor="@color/white"
+            android:textAlignment="center"
+            app:backgroundTint="@color/colorPrimary"
+            app:elevation="6dp" />
+
+        <!-- 上傳照片等待遮罩 -->
+        <FrameLayout
+            android:id="@+id/uploadLoadingOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#99000000"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_form_sheet"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="32dp"
+                android:layout_marginBottom="24dp">
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:indeterminate="true"
+                    app:indicatorColor="@color/colorPrimary"
+                    app:trackColor="@color/border_grey" />
+
+                <TextView
+                    android:id="@+id/tvUploadLoadingMessage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="@string/msg_uploading_photos"
+                    android:textColor="@color/text_grey"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+
+        </FrameLayout>
+
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+</FrameLayout>

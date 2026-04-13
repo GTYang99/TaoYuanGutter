@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    GutterFormActivity 的背景：上方圓角 16dp，給浮動底部表單的外觀。
+    顏色使用 colorBackground，保持與 fragment_gutter_basic_info.xml 一致。
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/colorSurface" />
+    <corners
+        android:topLeftRadius="16dp"
+        android:topRightRadius="16dp" />
+</shape>

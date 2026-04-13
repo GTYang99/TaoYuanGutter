@@ -1,0 +1,560 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBackground"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="96dp">
+
+        <!-- ① 側溝編號 ─────────────────────────────────────────── -->
+        <TextView
+            android:id="@+id/tilGutterTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/field_gutter_id"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginTop="4dp"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilGutterId"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etGutterId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="text"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ② 側溝形式 ─────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/field_gutter_type"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <RadioGroup
+            android:id="@+id/rgGutterType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/rbGutterType0"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/gutter_type_u_open"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+            <RadioButton
+                android:id="@+id/rbGutterType1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/gutter_type_u_covered"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+            <RadioButton
+                android:id="@+id/rbGutterType2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/gutter_type_l_mixed"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+            <RadioButton
+                android:id="@+id/rbGutterType3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/gutter_type_other"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+        </RadioGroup>
+
+        <!-- ④ 側溝X（E）座標 ────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/field_coord_x"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCoordX"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCoordX"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal|numberSigned"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ④ 側溝Y（N）座標 ────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/field_coord_y"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCoordY"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCoordY"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal|numberSigned"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ⑤ 側溝Z座標 ─────────────────────────────────────────── -->
+        <TextView
+            android:id="@+id/tvCoordZTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/field_coord_z"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCoordZ"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCoordZ"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="numberDecimal|numberSigned"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ⑥ 測量座標編號 ──────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/field_measure_id"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilMeasureId"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etMeasureId"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ⑦ 側溝測量深度 ──────────────────────────────────────── -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/field_depth_cm"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary" />
+
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbCantOpen"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:buttonTint="@color/colorPrimary"
+                android:text="@string/field_cannot_open" />
+        </LinearLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilDepth"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:helperTextEnabled="true"
+            app:errorEnabled="true"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etDepth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:digits="0123456789"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ⑧ 側溝頂寬度 ───────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/field_width_cm"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilTopWidth"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:helperTextEnabled="true"
+            app:errorEnabled="true"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etTopWidth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:digits="0123456789"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ③ 側溝材質 ─────────────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/field_gutter_material"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <RadioGroup
+            android:id="@+id/rgMatType"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/rbMatType0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/material_concrete"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="20dp" />
+
+            <RadioButton
+                android:id="@+id/rbMatType1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/material_gravel"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="20dp" />
+
+            <RadioButton
+                android:id="@+id/rbMatType2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/material_brick"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+        </RadioGroup>
+
+        <!-- ⑨ 溝體結構受損 ──────────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/label_broken"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <RadioGroup
+            android:id="@+id/rgIsBroken"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/rbIsBroken0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/damage_no"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="32dp" />
+
+            <RadioButton
+                android:id="@+id/rbIsBroken1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/damage_yes"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+        </RadioGroup>
+
+        <!-- ⑩ 附掛或過路管線 ─────────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/label_hanging"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <RadioGroup
+            android:id="@+id/rgIsHanging"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/rbIsHanging0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/hanging_no"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="32dp" />
+
+            <RadioButton
+                android:id="@+id/rbIsHanging1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/hanging_yes"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+        </RadioGroup>
+
+        <!-- ⑪ 淤積程度 ──────────────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/label_silt"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <RadioGroup
+            android:id="@+id/rgIsSilt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:background="@color/white"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            android:layout_marginBottom="16dp">
+
+            <RadioButton
+                android:id="@+id/rbIsSilt0"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/silt_none"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="20dp" />
+
+            <RadioButton
+                android:id="@+id/rbIsSilt1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/silt_light"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp"
+                android:paddingEnd="20dp" />
+
+            <RadioButton
+                android:id="@+id/rbIsSilt2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/silt_severe"
+                android:buttonTint="@color/colorPrimary"
+                android:textColor="@color/textColorPrimary"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="10dp" />
+
+        </RadioGroup>
+
+        <!-- ⑫ 補充說明 ─────────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/label_remarks"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilRemarks"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etRemarks"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:inputType="textMultiLine"
+                android:gravity="top|start"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+    </LinearLayout>
+
+</androidx.core.widget.NestedScrollView>
