@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/pendingDraftsRoot"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_form_sheet"
+    android:orientation="vertical">
+
+    <!-- Drag Handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/bg_drag_handle" />
+
+    <!-- Header -->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:paddingHorizontal="4dp">
+
+        <ImageButton
+            android:id="@+id/btnPendingClose"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentStart="true"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="關閉"
+            android:padding="12dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/text_grey" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="@string/unupload_data"
+            android:textColor="@color/text_grey"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+    </RelativeLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/border_grey" />
+
+    <!-- Empty state -->
+    <TextView
+        android:id="@+id/tvPendingEmpty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="40dp"
+        android:gravity="center"
+        android:text="@string/msg_no_offline_draft"
+        android:textColor="@color/inputFieldHint"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <!-- Draft List：可捲動，高度撐滿剩餘空間（由 behavior.maxHeight 在外部控制上限） -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvPendingDrafts"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:nestedScrollingEnabled="true"
+        android:overScrollMode="ifContentScrolls"
+        android:clipToPadding="false" />
+
+    <!-- Safe-area bottom spacer（高度由程式碼依 navigation bar inset 動態設定） -->
+    <View
+        android:id="@+id/safeAreaSpacer"
+        android:layout_width="match_parent"
+        android:layout_height="0dp" />
+
+</LinearLayout>

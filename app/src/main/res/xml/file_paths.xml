@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- 外部儲存（正常情況） -->
+    <external-files-path name="gutter_images_external" path="Pictures/" />
+    <!-- 內部儲存（模擬器或外部儲存不可用時的 fallback） -->
+    <files-path name="gutter_images_internal" path="." />
+</paths>

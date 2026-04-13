@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Required for network operations -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Camera for photo capture -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Required for accessing fine location (GPS) -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Optional: Coarse location (Wi-Fi, cellular networks) -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!-- Required for background location access, if applicable -->
+    <!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> -->
+
+    <!-- Required for Google Maps -->
+    <uses-permission android:name="com.google.android.gms.permission.MAPS_RECEIVE" />
+    <!-- For Wi-Fi or mobile network location -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/platform_title"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TaoYuanGutter"
+        tools:targetApi="31">
+
+        <!-- 使用 Secrets Plugin 引用 local.properties 中的 MAPS_API_KEY -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
+        <!-- Login Activity -->
+        <activity
+            android:name=".login.LoginActivity"
+            android:exported="true"
+            android:theme="@style/Theme.TaoYuanGutter.Splash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Main Activity -->
+        <activity
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/Theme.TaoYuanGutter" />
+
+        <!-- Gutter Form Activity（全螢幕地圖背景 + 底部 3/4 表單面板） -->
+        <activity
+            android:name=".gutter.GutterFormActivity"
+            android:label="@string/gutter_form_title"
+            android:theme="@style/Theme.TaoYuanGutter"
+            android:windowSoftInputMode="adjustNothing" />
+
+        <!-- 橫向強制相機 Activity（CameraX） -->
+        <activity
+            android:name=".gutter.LandscapeCameraActivity"
+            android:screenOrientation="sensorLandscape"
+            android:theme="@style/Theme.TaoYuanGutter"
+            android:exported="false" />
+
+        <!-- 側溝唯讀檢視 Activity（半透明浮動，佔下方 3/4 螢幕） -->
+        <activity
+            android:name=".gutter.GutterInspectActivity"
+            android:label="側溝檢視"
+            android:theme="@style/Theme.TaoYuanGutter.FormSheet"
+            android:exported="false" />
+
+        <activity
+            android:name=".gutter.MapPointPickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TaoYuanGutter" />
+
+        <!-- 新增曲線 Activity -->
+        <activity
+            android:name=".gutter.AddCurveActivity"
+            android:label="@string/btn_add_curve"
+            android:exported="false"
+            android:theme="@style/Theme.TaoYuanGutter" />
+
+        <!-- 匯入既有點位資料 Activity -->
+        <activity
+            android:name=".gutter.ImportExistingWaypointActivity"
+            android:exported="false"
+            android:theme="@style/Theme.TaoYuanGutter" />
+
+        <!-- FileProvider for camera photo URIs -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
+    </application>
+
+</manifest>
