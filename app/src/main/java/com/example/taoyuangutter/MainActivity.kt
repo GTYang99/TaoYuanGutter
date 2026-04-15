@@ -24,7 +24,6 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
-import androidx.core.content.ContextCompat.RECEIVER_NOT_EXPORTED
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.updateLayoutParams
@@ -213,11 +212,12 @@ class MainActivity : AppCompatActivity(),
 
         isOfflineMainMode = intent.getBooleanExtra(EXTRA_OFFLINE_MAIN, false)
 
+        // 注册位置变更广播接收器（Android 12+需指定导出方式，此处为不导出）
         ContextCompat.registerReceiver(
             this,
             waypointLocationChangedReceiver,
             android.content.IntentFilter(LocationPickEvents.ACTION_WAYPOINT_LOCATION_CHANGED),
-            RECEIVER_NOT_EXPORTED
+            ContextCompat.RECEIVER_NOT_EXPORTED  // 使用完整限定名确保兼容性
         )
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -565,29 +565,75 @@ class MainActivity : AppCompatActivity(),
         nodes: List<DitchNode>,
         token: String
     ) {
+        val total = nodes.size * 3
+        var uploaded = 0
+
+        // 顯示進度提示
+        binding.tvPhotoUploadProgress.text = getString(R.string.msg_photo_upload_progress, 0, total)
+        binding.tvPhotoUploadProgress.visibility = android.view.View.VISIBLE
+
         nodes.forEachIndexed { i, node ->
-            val wp = waypoints.getOrNull(i) ?: return@forEachIndexed
+            val wp = waypoints.getOrNull(i) ?: run {
+                uploaded += 3
+                binding.tvPhotoUploadProgress.text =
+                    getString(R.string.msg_photo_upload_progress, uploaded, total)
+                return@forEachIndexed
+            }
+
             listOf(
                 wp.basicData["photo1"] to 1,
                 wp.basicData["photo2"] to 2,
                 wp.basicData["photo3"] to 3
             ).forEach { (path, category) ->
-                if (path.isNullOrEmpty()) return@forEach
-                val scheme = Uri.parse(path).scheme?.lowercase() ?: return@forEach
-                if (scheme == "http" || scheme == "https") return@forEach
-                when (val r = gutterRepository.uploadNodeImage(
-                    context      = this,
-                    nodeId       = node.nodeId,
-                    fileCategory = category,
-                    imageUri     = Uri.parse(path),
-                    token        = token
-                )) {
-                    is ApiResult.Error ->
-                        android.util.Log.w("PhotoUpload", "node${node.nodeId} photo$category 失敗: ${r.message}")
-                    is ApiResult.Success -> { /* OK */ }
+                // 跳過空路徑或已在伺服器的 https:// 照片
+                val skip = path.isNullOrEmpty() ||
+                    Uri.parse(path).scheme?.lowercase().let { it == "http" || it == "https" }
+                if (skip) {
+                    uploaded++
+                    binding.tvPhotoUploadProgress.text =
+                        getString(R.string.msg_photo_upload_progress, uploaded, total)
+                    return@forEach
                 }
+
+                // 最多重試 3 次
+                var success = false
+                for (attempt in 1..3) {
+                    when (val r = gutterRepository.uploadNodeImage(
+                        context      = this,
+                        nodeId       = node.nodeId,
+                        fileCategory = category,
+                        imageUri     = Uri.parse(path!!),
+                        token        = token
+                    )) {
+                        is ApiResult.Success -> {
+                            success = true
+                        }
+                        is ApiResult.Error -> {
+                            android.util.Log.w(
+                                "PhotoUpload",
+                                "node${node.nodeId} photo$category attempt$attempt 失敗: ${r.message}"
+                            )
+                        }
+                    }
+                    if (success) break
+                }
+
+                if (!success) {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.msg_photo_upload_one_failed, category),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+                uploaded++
+                binding.tvPhotoUploadProgress.text =
+                    getString(R.string.msg_photo_upload_progress, uploaded, total)
             }
         }
+
+        // 隱藏進度提示
+        binding.tvPhotoUploadProgress.visibility = android.view.View.GONE
     }
 
     override fun onUpdateGutter(waypoints: List<Waypoint>, spiNum: String) {
