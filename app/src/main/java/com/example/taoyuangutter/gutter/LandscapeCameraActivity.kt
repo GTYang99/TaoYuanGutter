@@ -18,6 +18,7 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
+import androidx.constraintlayout.widget.ConstraintSet
 import androidx.core.content.ContextCompat
 import com.example.taoyuangutter.databinding.ActivityLandscapeCameraBinding
 import java.io.File
@@ -33,6 +34,7 @@ class LandscapeCameraActivity : AppCompatActivity() {
 
     private lateinit var orientationListener: OrientationEventListener
     private var deviceIsLandscape = false
+    private var lastDisplayRotation: Int = Surface.ROTATION_0
 
     companion object {
         private const val EXTRA_OUTPUT_PATH = "output_path"
@@ -79,6 +81,15 @@ class LandscapeCameraActivity : AppCompatActivity() {
             override fun onOrientationChanged(orientation: Int) {
                 // ORIENTATION_UNKNOWN = 感應器無法讀取（模擬器常見），保持現有狀態不做任何切換
                 if (orientation == ORIENTATION_UNKNOWN) return
+
+                // 旋轉 90 ↔ 270 仍屬於 landscape；但我們需要依 display rotation 調整控制列位置
+                val rotation = getDisplayRotation()
+                if (rotation != lastDisplayRotation) {
+                    lastDisplayRotation = rotation
+                    applyControlsSide(rotation)
+                    imageCapture?.targetRotation = rotation
+                }
+
                 val landscape = orientation in 60..120 || orientation in 240..300
                 if (landscape != deviceIsLandscape) {
                     deviceIsLandscape = landscape
@@ -90,15 +101,64 @@ class LandscapeCameraActivity : AppCompatActivity() {
         // ── 用 display rotation 初始化（而非假設直立）──────────────────────
         // 因 manifest 宣告 sensorLandscape，Activity 啟動時 display 已是橫向；
         // 實體裝置與模擬器均可正確初始化，避免模擬器感應器不動時按鈕永遠 disabled。
-        val rotation = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        val rotation = getDisplayRotation()
+        val isDisplayLandscape = rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270
+        deviceIsLandscape = isDisplayLandscape
+        lastDisplayRotation = rotation
+        applyControlsSide(rotation)
+        updateOrientationUI(isDisplayLandscape)
+    }
+
+    private fun getDisplayRotation(): Int =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             display?.rotation ?: Surface.ROTATION_0
         } else {
             @Suppress("DEPRECATION")
             windowManager.defaultDisplay.rotation
         }
-        val isDisplayLandscape = rotation == Surface.ROTATION_90 || rotation == Surface.ROTATION_270
-        deviceIsLandscape = isDisplayLandscape
-        updateOrientationUI(isDisplayLandscape)
+
+    /**
+     * 讓快門固定在「手機右側短邊」：
+     * - 使用者順時針旋轉 90°（ROTATION_90）橫拿時，快門在螢幕左側，左手可按
+     * - 使用者逆時針旋轉 90°（ROTATION_270）橫拿時，快門在螢幕右側，右手可按
+     *
+     * 若現場測試左右相反，只要對調 ROTATION_90/270 的分支即可。
+     */
+    private fun applyControlsSide(rotation: Int) {
+        val set = ConstraintSet()
+        set.clone(binding.root)
+
+        set.clear(R.id.controlsContainer, ConstraintSet.START)
+        set.clear(R.id.controlsContainer, ConstraintSet.END)
+
+        when (rotation) {
+            Surface.ROTATION_90 -> {
+                set.connect(
+                    R.id.controlsContainer,
+                    ConstraintSet.END,
+                    ConstraintSet.PARENT_ID,
+                    ConstraintSet.END
+                )
+            }
+            Surface.ROTATION_270 -> {
+                set.connect(
+                    R.id.controlsContainer,
+                    ConstraintSet.START,
+                    ConstraintSet.PARENT_ID,
+                    ConstraintSet.START
+                )
+            }
+            else -> {
+                set.connect(
+                    R.id.controlsContainer,
+                    ConstraintSet.END,
+                    ConstraintSet.PARENT_ID,
+                    ConstraintSet.END
+                )
+            }
+        }
+
+        set.applyTo(binding.root)
     }
 
     private fun updateOrientationUI(isLandscape: Boolean) {

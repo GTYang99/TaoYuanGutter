@@ -257,7 +257,7 @@ object GutterApiClient {
 
     val instance: GutterApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(DEMO_URL)
+            .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

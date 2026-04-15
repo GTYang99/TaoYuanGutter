@@ -6,6 +6,7 @@
     - orientationWarning：裝置未橫放時顯示提示遮罩
 -->
 <androidx.constraintlayout.widget.ConstraintLayout
+    android:id="@+id/root"
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -24,18 +25,25 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:scaleType="fillCenter" />
 
-    <!-- 底部控制列 -->
+    <!--
+        側邊控制列（短邊）：
+        - 為了讓使用者橫拿手機時，快門維持在「手機右側短邊」（依 display rotation 切換左右）
+        - LandscapeCameraActivity 會動態把 controlsContainer 約束到 start 或 end
+    -->
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="100dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
+        android:id="@+id/controlsContainer"
+        android:layout_width="108dp"
+        android:layout_height="0dp"
+        android:orientation="vertical"
+        android:gravity="center_horizontal"
         android:background="#AA000000"
-        android:paddingStart="32dp"
-        android:paddingEnd="32dp"
+        android:paddingTop="24dp"
+        android:paddingBottom="24dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+        app:layout_constraintStart_toStartOf="parent">
 
         <!-- 取消按鈕 -->
         <ImageButton
@@ -47,11 +55,11 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="取消" />
 
-        <!-- 彈性間距（左） -->
+        <!-- 彈性間距（上） -->
         <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
+            android:layout_width="1dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
 
         <!-- 快門按鈕 -->
         <ImageButton
@@ -62,11 +70,11 @@
             android:background="@drawable/bg_shutter_button"
             android:contentDescription="拍照" />
 
-        <!-- 彈性間距（右，與取消按鈕對稱） -->
+        <!-- 彈性間距（下，與取消按鈕對稱） -->
         <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
+            android:layout_width="1dp"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
 
         <!-- 佔位（與取消按鈕對稱） -->
         <View
