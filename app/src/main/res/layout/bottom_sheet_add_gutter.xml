@@ -69,6 +69,20 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
+        <!-- 調轉按鈕（右側，緊鄰新增節點左邊） -->
+        <ImageButton
+            android:id="@+id/btnReverse"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_toStartOf="@id/btnAddNode"
+            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/btn_reverse_gutter"
+            android:padding="12dp"
+            android:src="@drawable/ic_swap_vert"
+            android:visibility="gone"
+            app:tint="@color/colorPrimary" />
+
         <!-- 新增節點按鈕（右） -->
         <ImageButton
             android:id="@+id/btnAddNode"

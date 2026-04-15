@@ -121,6 +121,7 @@
     <!-- 新增/修改按鈕文字 -->
     <string name="btn_update_gutter">更新側溝</string>
     <string name="btn_delete_gutter">刪除側溝</string>
+    <string name="btn_reverse_gutter">調轉</string>
 
     <!-- Toast 和提示消息 -->
     <string name="msg_gutter_updated">側溝更新成功</string>

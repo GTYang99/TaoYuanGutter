@@ -595,8 +595,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         }
 
         if (isInspectMode) {
-            // 檢視模式：隱藏新增節點、提交與刪除按鈕
+            // 檢視模式：隱藏新增節點、調轉、提交與刪除按鈕
             binding.btnAddNode.visibility       = View.GONE
+            binding.btnReverse.visibility       = View.GONE
             binding.btnSubmitGutter.visibility  = View.GONE
             binding.btnDeleteGutter.visibility  = View.GONE
         } else if (editSpiNum.isNotEmpty()) {
@@ -605,6 +606,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnDeleteGutter.visibility = View.VISIBLE
             binding.btnSubmitGutter.text = getString(R.string.btn_update_gutter)
             updateSubmitButtonState()
+
+            binding.btnReverse.visibility = View.VISIBLE
+            binding.btnReverse.setOnClickListener { reverseWaypoints() }
 
             binding.btnDeleteGutter.setOnClickListener {
                 (requireActivity() as? LocationPickerHost)?.onDeleteGutter(editSpiNum)
@@ -627,6 +631,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 binding.btnDeleteGutter.visibility = View.GONE
                 binding.btnSubmitGutter.text = getString(R.string.form_finish_button)
             }
+            binding.btnReverse.visibility = View.VISIBLE
+            binding.btnReverse.setOnClickListener { reverseWaypoints() }
+
             binding.btnAddNode.setOnClickListener {
                 val nodeCount  = waypoints.count { it.type == WaypointType.NODE }
                 val insertIdx  = waypoints.size - 1
@@ -802,6 +809,17 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 updateSubmitButtonState()
             }
         }
+    }
+
+    // ── 調轉：整條側溝方向翻轉 ────────────────────────────────────────────
+    /**
+     * 將 waypoints 整體倒序排列（起點↔終點互換，節點順序全部翻轉），
+     * 每個點位的座標與 basicData 隨著一起移動，不做任何內容修改。
+     * 翻轉後呼叫 [renumberAll] 重新分配 type 與 label，並通知地圖刷新。
+     */
+    private fun reverseWaypoints() {
+        waypoints.reverse()
+        renumberAll()
     }
 
     // ── 依位置重新命名全部 waypoints ──────────────────────────────────────
