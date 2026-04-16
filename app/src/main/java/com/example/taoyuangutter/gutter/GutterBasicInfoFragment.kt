@@ -40,6 +40,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_DATA_NODE_Y      = "d_node_y"
         private const val ARG_DATA_NODE_LE     = "d_node_le"
         private const val ARG_DATA_XY_NUM      = "d_xy_num"
+        private const val ARG_DATA_COVER_THICKNESS = "d_cover_thickness"
         private const val ARG_DATA_NODE_DEP    = "d_node_dep"
         private const val ARG_DATA_NODE_WID    = "d_node_wid"
         private const val ARG_DATA_IS_BROKEN   = "d_is_broken"
@@ -90,6 +91,7 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_DATA_NODE_Y,      basicData["NODE_Y"]      ?: basicData["coordY"] ?: "")
                 putString(ARG_DATA_NODE_LE,     basicData["NODE_LE"]     ?: basicData["coordZ"] ?: "")
                 putString(ARG_DATA_XY_NUM,      basicData["XY_NUM"]      ?: basicData["xyNum"] ?: "")
+                putString(ARG_DATA_COVER_THICKNESS, basicData["COVER_THICKNESS"] ?: basicData["coverThickness"] ?: "")
                 putString(ARG_DATA_NODE_DEP,    basicData["NODE_DEP"]    ?: basicData["depth"] ?: "")
                 putString(ARG_DATA_NODE_WID,    basicData["NODE_WID"]    ?: basicData["topWidth"] ?: "")
                 putString(ARG_DATA_IS_BROKEN,   basicData["IS_BROKEN"]   ?: basicData["isBroken"] ?: "")
@@ -184,6 +186,7 @@ class GutterBasicInfoFragment : Fragment() {
         val nodeY      = args.getString(ARG_DATA_NODE_Y,      "")
         val nodeLe     = args.getString(ARG_DATA_NODE_LE,     "")
         val xyNum      = args.getString(ARG_DATA_XY_NUM,      "")
+        val coverThickness = args.getString(ARG_DATA_COVER_THICKNESS, "")
         val nodeDep    = args.getString(ARG_DATA_NODE_DEP,    "")
         val nodeWid    = args.getString(ARG_DATA_NODE_WID,    "")
         val isBroken   = args.getString(ARG_DATA_IS_BROKEN,   "")
@@ -194,7 +197,7 @@ class GutterBasicInfoFragment : Fragment() {
 
         val hasAnyData = listOf(
             spiNum, nodeTyp, matTyp, nodeX, nodeY, nodeLe,
-            xyNum, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote
+            xyNum, coverThickness, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote
         ).any { it.isNotEmpty() }
 
         if (hasAnyData) {
@@ -205,6 +208,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etCoordY.setText(nodeY)
             binding.etCoordZ.setText(nodeLe)
             binding.etMeasureId.setText(xyNum)
+            binding.etCoverThickness.setText(coverThickness)
             binding.etDepth.setText(nodeDep)
             binding.etTopWidth.setText(nodeWid)
             binding.rgIsBroken.setCheckedByText(isBrokenCodeToText(isBroken))
@@ -230,12 +234,14 @@ class GutterBasicInfoFragment : Fragment() {
         binding.cbCantOpen.setOnCheckedChangeListener { _, checked ->
             if (checked) {
                 // 不可開蓋：下方欄位不必填，直接清空避免誤送舊值
+                binding.etCoverThickness.setText("")
                 binding.etDepth.setText("")
                 binding.etTopWidth.setText("")
                 binding.rgMatType.clearCheck()
                 binding.rgIsBroken.clearCheck()
                 binding.rgIsHanging.clearCheck()
                 binding.rgIsSilt.clearCheck()
+                binding.tilCoverThickness.error = null
                 binding.tilDepth.error = null
                 binding.tilTopWidth.error = null
             }
@@ -254,8 +260,8 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     private fun setCantOpenFieldsEnabled(enabled: Boolean) {
-        // 需要被 disable 的欄位：深度、頂寬、材質、受損、附掛、淤積
-        listOf(binding.etDepth, binding.etTopWidth).forEach { et ->
+        // 需要被 disable 的欄位：溝蓋板厚度、深度、頂寬、材質、受損、附掛、淤積
+        listOf(binding.etCoverThickness, binding.etDepth, binding.etTopWidth).forEach { et ->
             et.isEnabled = enabled
             et.isFocusable = enabled
             et.isFocusableInTouchMode = enabled
@@ -269,6 +275,7 @@ class GutterBasicInfoFragment : Fragment() {
 
         val alpha = if (enabled) 1f else 0.5f
         listOf(
+            binding.tilCoverThickness,
             binding.tilDepth,
             binding.tilTopWidth,
             binding.rgMatType,
@@ -339,6 +346,7 @@ class GutterBasicInfoFragment : Fragment() {
         val textFields = listOf(
             binding.etGutterId,
             binding.etMeasureId,
+            binding.etCoverThickness,
             binding.etDepth,
             binding.etTopWidth,
             binding.etRemarks
@@ -363,6 +371,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgGutterType,
             binding.rgMatType,
             binding.tilMeasureId,
+            binding.tilCoverThickness,
             binding.tilDepth,
             binding.tilTopWidth,
             binding.rgIsBroken,
@@ -396,6 +405,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etGutterId,
             binding.etCoordZ,
             binding.etMeasureId,
+            binding.etCoverThickness,
             binding.etDepth,
             binding.etTopWidth,
             binding.etRemarks
@@ -503,6 +513,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etGutterId,
             binding.etCoordZ,
             binding.etMeasureId,
+            binding.etCoverThickness,
             binding.etDepth,
             binding.etTopWidth,
             binding.etRemarks
@@ -528,6 +539,7 @@ class GutterBasicInfoFragment : Fragment() {
         "NODE_Y"      to (binding.etCoordY.text?.toString()        ?: ""),
         "NODE_LE"     to (binding.etCoordZ.text?.toString()        ?: ""),
         "XY_NUM"      to (binding.etMeasureId.text?.toString()     ?: ""),
+        "COVER_THICKNESS" to (binding.etCoverThickness.text?.toString() ?: ""),
         "NODE_DEP"    to (binding.etDepth.text?.toString()         ?: ""),
         "NODE_WID"    to (binding.etTopWidth.text?.toString()      ?: ""),
         "IS_BROKEN"   to brokenTextToCode(binding.rgIsBroken.getCheckedText()),

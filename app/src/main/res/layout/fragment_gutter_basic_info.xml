@@ -235,7 +235,7 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- ⑦ 側溝測量深度 ──────────────────────────────────────── -->
+        <!-- ⑦ 溝蓋板厚度 ───────────────────────────────────────── -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -247,7 +247,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/field_depth_cm"
+                android:text="@string/field_cover_thickness_cm"
                 android:textSize="13sp"
                 android:textColor="@color/textColorSecondary" />
 
@@ -258,6 +258,37 @@
                 app:buttonTint="@color/colorPrimary"
                 android:text="@string/field_cannot_open" />
         </LinearLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilCoverThickness"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etCoverThickness"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:digits="0123456789"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ⑧ 側溝測量深度 ──────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/field_depth_cm"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilDepth"
@@ -283,7 +314,7 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- ⑧ 側溝頂寬度 ───────────────────────────────────────── -->
+        <!-- ⑨ 側溝頂寬度 ───────────────────────────────────────── -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

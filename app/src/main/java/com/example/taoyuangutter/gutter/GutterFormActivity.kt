@@ -72,6 +72,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         const val EXTRA_DATA_COORD_Y     = "ex_node_y"
         const val EXTRA_DATA_COORD_Z     = "ex_node_le"
         const val EXTRA_DATA_MEASURE_ID  = "ex_xy_num"
+        const val EXTRA_DATA_COVER_THICKNESS = "ex_cover_thickness"
         const val EXTRA_DATA_DEPTH       = "ex_node_dep"
         const val EXTRA_DATA_TOP_WIDTH   = "ex_node_wid"
         const val EXTRA_DATA_IS_BROKEN   = "ex_is_broken"
@@ -99,6 +100,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         const val RESULT_DATA_COORD_Y     = "r_node_y"
         const val RESULT_DATA_COORD_Z     = "r_node_le"
         const val RESULT_DATA_MEASURE_ID  = "r_xy_num"
+        const val RESULT_DATA_COVER_THICKNESS = "r_cover_thickness"
         const val RESULT_DATA_DEPTH       = "r_node_dep"
         const val RESULT_DATA_TOP_WIDTH   = "r_node_wid"
         const val RESULT_DATA_IS_BROKEN   = "r_is_broken"
@@ -190,6 +192,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
             intent.putExtra(EXTRA_DATA_COORD_Y,     data["NODE_Y"]     ?: data["coordY"] ?: "")
             intent.putExtra(EXTRA_DATA_COORD_Z,     data["NODE_LE"]    ?: data["coordZ"] ?: "")
             intent.putExtra(EXTRA_DATA_MEASURE_ID,  data["XY_NUM"]     ?: data["xyNum"] ?: "")
+            intent.putExtra(EXTRA_DATA_COVER_THICKNESS, data["COVER_THICKNESS"] ?: data["coverThickness"] ?: "")
             intent.putExtra(EXTRA_DATA_DEPTH,       data["NODE_DEP"]   ?: data["depth"] ?: "")
             intent.putExtra(EXTRA_DATA_TOP_WIDTH,   data["NODE_WID"]   ?: data["topWidth"] ?: "")
             intent.putExtra(EXTRA_DATA_IS_BROKEN,   data["IS_BROKEN"]  ?: data["isBroken"] ?: "")
@@ -389,6 +392,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
                 "NODE_Y"     to (intent.getStringExtra(EXTRA_DATA_COORD_Y)     ?: ""),
                 "NODE_LE"    to (intent.getStringExtra(EXTRA_DATA_COORD_Z)     ?: ""),
                 "XY_NUM"     to (intent.getStringExtra(EXTRA_DATA_MEASURE_ID)  ?: ""),
+                "COVER_THICKNESS" to (intent.getStringExtra(EXTRA_DATA_COVER_THICKNESS) ?: ""),
                 "NODE_DEP"   to (intent.getStringExtra(EXTRA_DATA_DEPTH)       ?: ""),
                 "NODE_WID"   to (intent.getStringExtra(EXTRA_DATA_TOP_WIDTH)   ?: ""),
                 "IS_BROKEN"  to (intent.getStringExtra(EXTRA_DATA_IS_BROKEN)   ?: ""),
@@ -440,6 +444,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         "NODE_Y"    to if (lat != 0.0) "%.6f".format(lat) else "",
         "NODE_LE"   to "",
         "XY_NUM"    to "",
+        "COVER_THICKNESS" to "",
         "NODE_DEP"  to "",
         "NODE_WID"  to "",
         "IS_BROKEN" to "",
@@ -776,6 +781,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
                 putExtra(RESULT_DATA_COORD_Y,     basicData["NODE_Y"]     ?: "")
                 putExtra(RESULT_DATA_COORD_Z,     basicData["NODE_LE"]    ?: "")
                 putExtra(RESULT_DATA_MEASURE_ID,  basicData["XY_NUM"]     ?: "")
+                putExtra(RESULT_DATA_COVER_THICKNESS, basicData["COVER_THICKNESS"] ?: "")
                 putExtra(RESULT_DATA_DEPTH,       basicData["NODE_DEP"]   ?: "")
                 putExtra(RESULT_DATA_TOP_WIDTH,   basicData["NODE_WID"]   ?: "")
                 putExtra(RESULT_DATA_IS_BROKEN,   basicData["IS_BROKEN"]  ?: "")

@@ -168,6 +168,7 @@
 
     <!-- 表單欄位標籤 -->
     <string name="field_gutter_material">側溝材質</string>
+    <string name="field_cover_thickness_cm">溝蓋板厚度（公分）</string>
     <string name="field_depth_cm">側溝測量深度（公分）</string>
     <string name="field_width_cm">側溝頂寬度（公分）</string>
     <string name="field_cannot_open">無法開蓋</string>
