@@ -133,8 +133,10 @@ class MainActivity : AppCompatActivity(),
     private var showPlanOverlay = true
     private var showWaterOldOverlay = true
     private var showPossibleOverlay = true
+    private var showRegionOverlay = true
     private var planWmsOverlay: TileOverlay? = null
     private var waterOldWmsOverlay: TileOverlay? = null
+    private var regionWmsOverlay: TileOverlay? = null
 
     // ── 定位 ─────────────────────────────────────────────────────────────
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -1775,6 +1777,27 @@ class MainActivity : AppCompatActivity(),
             waterOldWmsOverlay = null
         }
 
+        // 桃園行政區（行政區邊界，墊在所有資料層下方作為地理參考）
+        if (showRegionOverlay) {
+            if (regionWmsOverlay == null) {
+                val provider = Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    layers = "regions",
+                    styles = "TY_RSGDBIP_桃園行政區",
+                    format = "image/png8"
+                )
+                regionWmsOverlay = map.addTileOverlay(
+                    TileOverlayOptions()
+                        .tileProvider(provider)
+                        .zIndex(-0.5f)
+                        .transparency(0f)
+                )
+            }
+        } else {
+            regionWmsOverlay?.remove()
+            regionWmsOverlay = null
+        }
+
         // 本次計畫調查：目前先保留 UI，待提供對應圖層規格後再接 API/WMS
     }
 
@@ -1788,7 +1811,8 @@ class MainActivity : AppCompatActivity(),
             selectedLayer = selected,
             showPlan = showPlanOverlay,
             showWaterOld = showWaterOldOverlay,
-            showPossible = showPossibleOverlay
+            showPossible = showPossibleOverlay,
+            showRegion = showRegionOverlay
         )
             .show(supportFragmentManager, "LayersBottomSheet")
     }
@@ -1806,10 +1830,11 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    override fun onOverlayTogglesChanged(showPlan: Boolean, showWaterOld: Boolean, showPossible: Boolean) {
+    override fun onOverlayTogglesChanged(showPlan: Boolean, showWaterOld: Boolean, showPossible: Boolean, showRegion: Boolean) {
         showPlanOverlay = showPlan
         showWaterOldOverlay = showWaterOld
         showPossibleOverlay = showPossible
+        showRegionOverlay = showRegion
         applyWmsOverlays()
     }
 

@@ -55,6 +55,7 @@
     <string name="layers_sheet_plan">本次計畫調查</string>
     <string name="layers_sheet_water_old">水務局舊資料</string>
     <string name="layers_sheet_possible">可能側溝位置</string>
+    <string name="layers_sheet_region">桃園行政區</string>
     <string name="layers_sheet_emap_name">台灣通用電子地圖</string>
     <string name="layers_sheet_emap_gray_name">台灣通用電子地圖(灰階)</string>
     <string name="layers_sheet_photo2_name">正射影像圖(台灣通用)</string>
