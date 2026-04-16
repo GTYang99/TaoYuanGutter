@@ -18,6 +18,7 @@ import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.example.taoyuangutter.databinding.FragmentGutterPhotosBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -208,26 +209,35 @@ class GutterPhotosFragment : Fragment() {
         }
     }
 
-    /** 刪除指定 slot 的照片，還原為空白格子 */
+    /** 刪除指定 slot 的照片，先跳出確認 Dialog，使用者確認後才清除 */
     private fun deletePhoto(slot: Int) {
-        when (slot) {
-            1 -> {
-                photoUriSlot1 = null
-                showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, null)
-                binding.btnDeleteSlot1.visibility = View.GONE
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle("確認刪除")
+            .setMessage("確定要刪除這張照片嗎？")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("刪除") { _, _ ->
+                when (slot) {
+                    1 -> {
+                        photoUriSlot1 = null
+                        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, null)
+                        binding.btnDeleteSlot1.visibility = View.GONE
+                    }
+                    2 -> {
+                        photoUriSlot2 = null
+                        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, null)
+                        binding.btnDeleteSlot2.visibility = View.GONE
+                    }
+                    3 -> {
+                        photoUriSlot3 = null
+                        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, null)
+                        binding.btnDeleteSlot3.visibility = View.GONE
+                    }
+                }
+                onDraftChanged?.invoke()
             }
-            2 -> {
-                photoUriSlot2 = null
-                showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, null)
-                binding.btnDeleteSlot2.visibility = View.GONE
-            }
-            3 -> {
-                photoUriSlot3 = null
-                showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, null)
-                binding.btnDeleteSlot3.visibility = View.GONE
-            }
-        }
-        onDraftChanged?.invoke()
+            .show()
+        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
+            .setTextColor(android.graphics.Color.parseColor("#D32F2F"))
     }
 
     // ── 相機流程 ─────────────────────────────────────────────────────────
