@@ -1226,6 +1226,24 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    private fun setMainButtonsEnabled(enabled: Boolean) {
+        fun setFabEnabled(view: View, enabled: Boolean) {
+            view.isEnabled = enabled
+            view.isClickable = enabled
+            view.alpha = if (enabled) 1f else 0.35f
+        }
+
+        // 測距模式開啟時，鎖住主畫面的其他按鈕，避免誤觸導致模式切換或 UI 疊加
+        setFabEnabled(binding.btnAddGutter, enabled)
+        setFabEnabled(binding.btnLegend, enabled)
+        setFabEnabled(binding.btnLayers, enabled)
+        setFabEnabled(binding.btnViewDrafts, enabled)
+        setFabEnabled(binding.btnMyLocation, enabled)
+        binding.btnLogout.isEnabled = enabled
+        binding.btnLogout.isClickable = enabled
+        binding.btnLogout.alpha = if (enabled) 1f else 0.35f
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  新增選項彈窗（新增側溝 / 新增曲線）
     // ═══════════════════════════════════════════════════════════════
@@ -1910,6 +1928,8 @@ class MainActivity : AppCompatActivity(),
             android.content.res.ColorStateList.valueOf(
                 ContextCompat.getColor(this, android.R.color.white)
             )
+
+        setMainButtonsEnabled(false)
     }
 
     /** 離開測距模式：隱藏準星與底部面板，還原 FAB 樣式。 */
@@ -1930,6 +1950,8 @@ class MainActivity : AppCompatActivity(),
             android.content.res.ColorStateList.valueOf(
                 ContextCompat.getColor(this, R.color.colorPrimary)
             )
+
+        setMainButtonsEnabled(true)
     }
 
     /**

@@ -59,7 +59,7 @@
         <activity
             android:name=".gutter.GutterFormActivity"
             android:label="@string/gutter_form_title"
-            android:theme="@style/Theme.TaoYuanGutter"
+            android:theme="@style/Theme.TaoYuanGutter.FormSheet"
             android:windowSoftInputMode="adjustNothing" />
 
         <!-- 橫向強制相機 Activity（CameraX） -->

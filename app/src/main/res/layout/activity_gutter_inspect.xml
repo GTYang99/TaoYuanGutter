@@ -13,8 +13,8 @@
         android:id="@+id/appBarLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
-        app:elevation="4dp">
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
 
         <!-- 標題列：左側返回 + 置中標題 -->
         <LinearLayout
@@ -22,7 +22,7 @@
             android:layout_height="56dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:background="@color/white">
+            android:background="@android:color/transparent">
 
             <!-- 左側：返回箭頭 -->
             <ImageButton

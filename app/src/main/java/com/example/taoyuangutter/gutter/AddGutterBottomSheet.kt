@@ -233,6 +233,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
+    override fun getTheme(): Int = R.style.TransparentBottomSheetDialog
+
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {
@@ -413,7 +415,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun setupRecyclerView() {
         adapter = WaypointAdapter(
             items = waypoints,
-            alwaysShowXyNumIfPresent = isInspectMode
+            alwaysShowXyNumIfPresent = isInspectMode || editSpiNum.isNotEmpty()
         ) { position ->
             closeOpenedSwipeItem()
             if (isInspectMode) {

@@ -16,6 +16,7 @@ class LegendBottomSheet : BottomSheetDialogFragment() {
     private var _binding: SheetLegendBinding? = null
     private val binding get() = _binding!!
 
+    override fun getTheme(): Int = R.style.TransparentBottomSheetDialog
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = SheetLegendBinding.inflate(inflater, container, false)
         return binding.root

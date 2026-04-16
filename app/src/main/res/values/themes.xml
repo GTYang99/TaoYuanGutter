@@ -113,6 +113,20 @@
         <item name="cornerRadius">8dp</item>
     </style>
 
+    <!-- 透明背景的 BottomSheet 樣式，確保圓角能正常顯示 -->
+    <style name="TransparentBottomSheetDialog" parent="Theme.MaterialComponents.DayNight.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/TransparentBottomSheetStyle</item>
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorSecondary">@color/colorSecondary</item>
+        <item name="android:textColorPrimary">@color/textColorPrimary</item>
+        <item name="android:textColorSecondary">@color/textColorSecondary</item>
+        <item name="colorSurface">@color/colorSurface</item>
+    </style>
+
+    <style name="TransparentBottomSheetStyle" parent="Widget.Design.BottomSheet.Modal">
+        <item name="android:background">@android:color/transparent</item>
+    </style>
+
     <!-- Define dimens if not present -->
     <dimen name="spacing_medium">16dp</dimen>
     <dimen name="button_height_normal">50dp</dimen>

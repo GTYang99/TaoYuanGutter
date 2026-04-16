@@ -22,6 +22,7 @@ class AddOptionBottomSheet : BottomSheetDialogFragment() {
 
     /** 點選「新增曲線」的回調 */
     var onAddCurveClicked: (() -> Unit)? = null
+    override fun getTheme(): Int = R.style.TransparentBottomSheetDialog
 
     override fun onCreateView(
         inflater: LayoutInflater,

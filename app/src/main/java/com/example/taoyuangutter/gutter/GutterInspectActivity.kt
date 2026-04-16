@@ -144,6 +144,9 @@ class GutterInspectActivity : AppCompatActivity() {
 
     private fun applyBottomSheetWindow() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        // 確保視窗背景透明，以顯示佈局的圓角
+        window.setBackgroundDrawableResource(android.R.color.transparent)
+
         val screenH = resources.displayMetrics.heightPixels
         window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, screenH * 3 / 4)
         val attrs = window.attributes

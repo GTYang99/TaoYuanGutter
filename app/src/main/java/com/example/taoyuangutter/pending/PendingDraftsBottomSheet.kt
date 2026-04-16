@@ -35,6 +35,7 @@ class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
 
     // ── Lifecycle ────────────────────────────────────────────────────────
 
+    override fun getTheme(): Int = R.style.TransparentBottomSheetDialog
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
     ): View {

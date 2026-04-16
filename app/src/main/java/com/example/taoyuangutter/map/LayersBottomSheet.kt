@@ -22,6 +22,8 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
     private var _binding: SheetLayersBinding? = null
     private val binding get() = _binding!!
 
+    override fun getTheme(): Int = R.style.TransparentBottomSheetDialog
+
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = SheetLayersBinding.inflate(inflater, container, false)
         return binding.root

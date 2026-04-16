@@ -481,6 +481,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.statusBarColor = android.graphics.Color.TRANSPARENT
         window.navigationBarColor = android.graphics.Color.TRANSPARENT
+        // 確保視窗背景透明，否則佈局的圓角會被系統預設背景色遮擋
+        window.setBackgroundDrawableResource(android.R.color.transparent)
 
         // 設定表單面板高度為螢幕 3/4
         val screenH = resources.displayMetrics.heightPixels

@@ -33,16 +33,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:background="@drawable/bg_form_sheet">
+        android:background="@drawable/bg_form_sheet"
+        android:clipToOutline="true"
+        android:outlineProvider="background">
 
         <!-- AppBar：標題列 + 分頁按鈕 -->
         <com.google.android.material.appbar.AppBarLayout
             android:id="@+id/appBarLayout"
-            android:background="@color/white"
+            android:background="@android:color/transparent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
-            app:elevation="4dp">
+            app:elevation="0dp">
 
             <!-- 標題列：左側返回 + 置中標題 + 右側編輯/完成 -->
             <LinearLayout
@@ -50,7 +51,7 @@
                 android:layout_height="56dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:background="@color/white">
+                android:background="@android:color/transparent">
 
                 <!-- 左側：返回箭頭（固定） -->
                 <ImageButton
@@ -199,7 +200,7 @@
             android:layout_marginBottom="24dp"
             android:text="@string/form_finish_button"
             android:textColor="@color/white"
-            android:textAlignment="center"
+            android:gravity="center"
             app:backgroundTint="@color/colorPrimary"
             app:elevation="6dp" />
 
@@ -219,6 +220,8 @@
                 android:layout_gravity="center"
                 android:background="@drawable/bg_form_sheet"
                 android:gravity="center"
+                android:clipToOutline="true"
+                android:outlineProvider="background"
                 android:orientation="vertical"
                 android:padding="32dp"
                 android:layout_marginBottom="24dp">
