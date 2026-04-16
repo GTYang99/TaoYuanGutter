@@ -211,6 +211,8 @@ data class DitchDetails(
     @SerializedName("ditch_id") val ditchId: Int,
     @SerializedName("SPI_NUM")  val spiNum: String,
     @SerializedName("SPI_TYP")  val spiTyp: String?,
+    /** 測量座標編號（依起點/節點/終點分段） */
+    @SerializedName("XY_NUM")   val xyNum: DitchXyNum? = null,
     /** 起點 TWD97 X 座標 */
     @SerializedName("STR_X")    val strX: String?,
     /** 起點 TWD97 Y 座標 */
@@ -239,6 +241,16 @@ data class DitchDetails(
     @SerializedName("NOTE")     val note: String?,
     /** 所有點位 */
     @SerializedName("nodes")    val nodes: List<DitchNode>
+)
+
+/** 側溝座標編號（XY_NUM）分段格式 */
+data class DitchXyNum(
+    /** 起點 */
+    @SerializedName("起點") val start: String? = null,
+    /** 節點（可為空陣列或缺欄位） */
+    @SerializedName("節點") val nodes: List<String>? = null,
+    /** 終點 */
+    @SerializedName("終點") val end: String? = null
 )
 
 /** 線段內的單一點位（摘要，不含座標；完整資料請呼叫 nodeDetails） */

@@ -173,6 +173,7 @@
     <string name="field_depth_cm">側溝測量深度（公分）</string>
     <string name="field_width_cm">側溝頂寬度（公分）</string>
     <string name="field_cannot_open">無法開蓋</string>
+    <string name="field_gutter_xy_num">側溝座標編號</string>
 
     <!-- 側溝材質選項 -->
     <string name="material_concrete">混凝土</string>

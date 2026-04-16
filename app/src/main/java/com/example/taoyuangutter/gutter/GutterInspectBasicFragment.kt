@@ -15,7 +15,7 @@ import com.example.taoyuangutter.databinding.FragmentInspectBasicBinding
  * 資料來源：由 [GutterInspectActivity] 將 [DitchDetails] 以 arguments 傳入。
  *
  * 欄位對應文件 桃園側溝分析文件_側溝檢視欄位：
- *   SPI_NUM  → 側溝編號
+ *   XY_NUM   → 側溝座標編號（起點/節點/終點）
  *   SPI_TYP  → 側溝形式（代碼轉中文）
  *   STR_X/Y  → 起點 X(E) / Y(N) 座標
  *   STR_LE   → 起點高程
@@ -37,7 +37,7 @@ class GutterInspectBasicFragment : Fragment() {
 
     companion object {
         // ── argument keys ──────────────────────────────────────────────
-        private const val ARG_SPI_NUM  = "spi_num"
+        private const val ARG_XY_NUM   = "xy_num"
         private const val ARG_SPI_TYP  = "spi_typ"
         private const val ARG_STR_X    = "str_x"
         private const val ARG_STR_Y    = "str_y"
@@ -62,13 +62,25 @@ class GutterInspectBasicFragment : Fragment() {
             "4" to "其他"
         )
 
+        private fun formatXyNum(ditch: DitchDetails?): String {
+            val xy = ditch?.xyNum
+            val lines = mutableListOf<String>()
+            val start = xy?.start?.trim().orEmpty()
+            if (start.isNotEmpty()) lines.add("起點: $start")
+            val nodes = xy?.nodes.orEmpty().map { it.trim() }.filter { it.isNotEmpty() }
+            if (nodes.isNotEmpty()) lines.add("節點: ${nodes.joinToString("、")}")
+            val end = xy?.end?.trim().orEmpty()
+            if (end.isNotEmpty()) lines.add("終點: $end")
+            return lines.joinToString("\n")
+        }
+
         /**
          * 從 [DitchDetails] 取出所有欄位，建立 Fragment 實例。
          */
         fun newInstance(ditch: DitchDetails?): GutterInspectBasicFragment {
             return GutterInspectBasicFragment().apply {
                 arguments = Bundle().apply {
-                    putString(ARG_SPI_NUM, ditch?.spiNum ?: "")
+                    putString(ARG_XY_NUM, formatXyNum(ditch))
                     // SPI_TYP：先查對照表，查不到則原樣顯示
                     putString(ARG_SPI_TYP, SPI_TYP_MAP[ditch?.spiTyp] ?: (ditch?.spiTyp ?: ""))
                     putString(ARG_STR_X,   ditch?.strX  ?: "")
@@ -116,7 +128,7 @@ class GutterInspectBasicFragment : Fragment() {
 
         fun get(key: String) = a.getString(key, "").takeIf { it.isNotEmpty() } ?: "—"
 
-        binding.tvSpiNum.text = get(ARG_SPI_NUM)
+        binding.tvSpiNum.text = get(ARG_XY_NUM)
         binding.tvSpiTyp.text = get(ARG_SPI_TYP)
         binding.tvStrX.text   = get(ARG_STR_X)
         binding.tvStrY.text   = get(ARG_STR_Y)
