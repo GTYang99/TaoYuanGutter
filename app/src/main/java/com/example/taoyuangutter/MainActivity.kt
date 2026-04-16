@@ -1597,7 +1597,7 @@ class MainActivity : AppCompatActivity(),
                 groupId.isNotBlank() &&
                 groupId.toIntOrNull() == savedGroupId
             val color = if (!isSameGroup) {
-                android.graphics.Color.parseColor("#B4B4B4") // 非本公司管轄
+                android.graphics.Color.parseColor("#909399") // 非本公司管轄
             } else {
                 when (spiState) {
                     1 -> android.graphics.Color.parseColor("#000000") // 已完成
@@ -1606,11 +1606,12 @@ class MainActivity : AppCompatActivity(),
                     else -> android.graphics.Color.parseColor("#562ECB") // 檢視與編輯中（預設）
                 }
             }
+            val width = if (!isSameGroup) 12f else 6f
             val polyline = map.addPolyline(
                 com.google.android.gms.maps.model.PolylineOptions()
                     .addAll(points)
                     .color(color)
-                    .width(6f)
+                    .width(width)
                     .clickable(true)
             )
             // tag 同時儲存 spiNum 與 groupId，供點擊時比對編輯權限
