@@ -51,6 +51,7 @@ import com.example.taoyuangutter.map.MeasureConfig
 import com.example.taoyuangutter.map.Wms3857TileProvider
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
+import com.example.taoyuangutter.pending.DraftPhotoCleaner
 import com.example.taoyuangutter.pending.KIND_CURVE
 import com.example.taoyuangutter.pending.PendingDraftsBottomSheet
 import com.example.taoyuangutter.pending.WaypointSnapshot
@@ -654,8 +655,19 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onGutterSaved(spiNum: String?, waypoints: List<Waypoint>, nodes: List<DitchNode>) {
-        // 上傳成功：刪除對應的待上傳草稿，並重置 session draft 追蹤 ID
-        currentSessionDraftId?.let { sessionDraftRepository.delete(it) }
+        // 上傳成功：刪除對應的待上傳草稿，並重置 session draft 追蹤 ID（同步清除本機照片）
+        currentSessionDraftId?.let { draftId ->
+            sessionDraftRepository.getById(draftId)?.let { draft ->
+                DraftPhotoCleaner.deleteDraftLocalPhotos(this, draft)
+            } ?: run {
+                // 草稿已不在列表時，用本次上傳的 waypoints 當作 fallback
+                DraftPhotoCleaner.deleteWaypointsLocalPhotos(
+                    context = this,
+                    waypoints = waypoints.map { it.basicData }
+                )
+            }
+            sessionDraftRepository.delete(draftId)
+        }
         currentSessionDraftId = null
 
         val token = LoginActivity.getSavedToken(this) ?: return
@@ -698,7 +710,10 @@ class MainActivity : AppCompatActivity(),
                                     draft.waypoints.firstOrNull { it.type == WaypointType.START.name }
                                         ?.basicData?.get("SPI_NUM") == spiNum
                                 }
-                                .forEach { draft -> sessionDraftRepository.delete(draft.id) }
+                                .forEach { draft ->
+                                    DraftPhotoCleaner.deleteDraftLocalPhotos(this@MainActivity, draft)
+                                    sessionDraftRepository.delete(draft.id)
+                                }
                             if (currentSessionDraftId != null) {
                                 val currentDraft = sessionDraftRepository.getById(currentSessionDraftId!!)
                                 if (currentDraft == null) currentSessionDraftId = null

@@ -97,6 +97,26 @@ class GutterPhotosFragment : Fragment() {
         return binding.root
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        if (savedInstanceState != null) {
+            // 系統重建 → 先在 onCreate 恢復，避免 ActivityResult 在 register 時立即回傳但 pendingSlot 尚未恢復
+            savedInstanceState.getString(KEY_PHOTO_1)?.let { photoUriSlot1 = Uri.parse(it) }
+            savedInstanceState.getString(KEY_PHOTO_2)?.let { photoUriSlot2 = Uri.parse(it) }
+            savedInstanceState.getString(KEY_PHOTO_3)?.let { photoUriSlot3 = Uri.parse(it) }
+            pendingSlot       = savedInstanceState.getInt(KEY_PENDING_SLOT, 0)
+            pendingOutputPath = savedInstanceState.getString(KEY_PENDING_PATH)
+        } else {
+            // 首次建立 → 從 arguments 帶入既有照片（重新開啟表單時）
+            fun tryLoad(uriString: String?): Uri? =
+                uriString?.takeIf { it.isNotEmpty() }?.let { Uri.parse(it) }
+            photoUriSlot1 = tryLoad(arguments?.getString(ARG_PHOTO_1))
+            photoUriSlot2 = tryLoad(arguments?.getString(ARG_PHOTO_2))
+            photoUriSlot3 = tryLoad(arguments?.getString(ARG_PHOTO_3))
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -130,22 +150,6 @@ class GutterPhotosFragment : Fragment() {
             }
             pendingSlot = 0
             pendingOutputPath = null
-        }
-
-        if (savedInstanceState != null) {
-            // 系統重建 → 從 savedInstanceState 恢復
-            savedInstanceState.getString(KEY_PHOTO_1)?.let { photoUriSlot1 = Uri.parse(it) }
-            savedInstanceState.getString(KEY_PHOTO_2)?.let { photoUriSlot2 = Uri.parse(it) }
-            savedInstanceState.getString(KEY_PHOTO_3)?.let { photoUriSlot3 = Uri.parse(it) }
-            pendingSlot       = savedInstanceState.getInt(KEY_PENDING_SLOT, 0)
-            pendingOutputPath = savedInstanceState.getString(KEY_PENDING_PATH)
-        } else {
-            // 首次建立 → 從 arguments 帶入既有照片（重新開啟表單時）
-            fun tryLoad(uriString: String?): Uri? =
-                uriString?.takeIf { it.isNotEmpty() }?.let { Uri.parse(it) }
-            photoUriSlot1 = tryLoad(arguments?.getString(ARG_PHOTO_1))
-            photoUriSlot2 = tryLoad(arguments?.getString(ARG_PHOTO_2))
-            photoUriSlot3 = tryLoad(arguments?.getString(ARG_PHOTO_3))
         }
 
         // 根據恢復的 URI 更新 UI
@@ -282,6 +286,7 @@ class GutterPhotosFragment : Fragment() {
     private fun createOutputFile(slot: Int): File? {
         val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
         val storageDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            ?: File(requireContext().filesDir, "Pictures").apply { mkdirs() }
         return try {
             File.createTempFile("GUTTER_${slot}_${timeStamp}_", ".jpg", storageDir)
         } catch (e: Exception) {
@@ -296,24 +301,18 @@ class GutterPhotosFragment : Fragment() {
         if (uri == null) {
             placeholder.visibility = View.VISIBLE
             photoView.visibility   = View.GONE
+            Glide.with(this).clear(photoView)
             photoView.setImageDrawable(null)
             return
         }
         placeholder.visibility = View.GONE
         photoView.visibility   = View.VISIBLE
 
-        val scheme = uri.scheme?.lowercase()
-        if (scheme == "http" || scheme == "https") {
-            // 遠端 URL（API 回傳）→ 使用 Glide 載入
-            Glide.with(this)
-                .load(uri.toString())
-                .centerCrop()
-                .into(photoView)
-        } else {
-            // 本機 URI（拍照後的 content:// 或 file://）→ 原本的路徑
-            photoView.setImageURI(null) // 清除快取
-            photoView.setImageURI(uri)
-        }
+        // 統一用 Glide 載入（包含本機 content:// / file:// 以及遠端 http(s)://），避免 setImageURI 在部分機型不更新或解碼失敗
+        Glide.with(this)
+            .load(uri)
+            .centerCrop()
+            .into(photoView)
     }
 
     // ── 對外 API ─────────────────────────────────────────────────────────

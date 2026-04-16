@@ -398,7 +398,9 @@ class GutterRepository(
                     return@withContext null
                 }
                 val body = resp.body ?: return@withContext null
-                val dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: context.cacheDir
+                // 避免使用 cacheDir：cache 可能被系統回收，導致「草稿放久了照片不見」
+                val dir = context.getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+                    ?: File(context.filesDir, "Pictures").apply { mkdirs() }
                 val file = File.createTempFile(prefix, ".jpg", dir)
                 FileOutputStream(file).use { out ->
                     body.byteStream().use { input -> input.copyTo(out) }

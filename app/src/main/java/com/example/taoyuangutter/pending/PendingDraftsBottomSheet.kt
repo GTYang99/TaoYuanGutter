@@ -165,6 +165,8 @@ class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
             .setTitle("刪除確認")
             .setMessage("請確認是否刪除「$title」？")
             .setPositiveButton("刪除") { _, _ ->
+                // 草稿刪除時同步清掉本機照片，避免機敏資料殘留與空間佔用
+                DraftPhotoCleaner.deleteDraftLocalPhotos(requireContext(), draft)
                 repo.delete(draft.id)
                 adapter.removeItem(draft)
                 if (adapter.itemCount == 0) {
