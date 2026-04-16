@@ -406,7 +406,7 @@ class GutterBasicInfoFragment : Fragment() {
      * 驗證必填欄位，以及深度與頂寬的合理區間（防呆）。
      *
      * 規則來源：桃園側溝分析文件_防呆
-     *   NODE_DEP：35 < 值 < 110（公分）
+     *   NODE_DEP：9 < 值 （公分）
      *   NODE_WID：值 > 25（公分）
      *
      * @return 第一個未填或超出範圍的欄位提示字串；全部通過則回傳 null。
@@ -429,9 +429,9 @@ class GutterBasicInfoFragment : Fragment() {
         // ── NODE_DEP 深度必填 + 區間防呆 ─────────────────────────
         if (d["NODE_DEP"].isNullOrEmpty()) return "側溝測量深度"
         val depth = d["NODE_DEP"]!!.toDoubleOrNull()
-        if (depth == null || depth <= 35.0 || depth >= 110.0) {
-            binding.tilDepth.error = "合理區間：35～110 公分"
-            return "側溝測量深度（合理區間：35～110 公分）"
+        if (depth == null || depth <= 9) {
+            binding.tilDepth.error = "合理區間：大於 9 公分"
+            return "側溝測量深度（合理區間：大於 9 公分）"
         }
 
         // ── NODE_WID 頂寬必填 + 區間防呆 ─────────────────────────
@@ -473,7 +473,7 @@ class GutterBasicInfoFragment : Fragment() {
                 val v = binding.etDepth.text?.toString()?.toDoubleOrNull()
                 binding.tilDepth.error = when {
                     v == null           -> null   // 空值留給 validateRequiredFields 處理
-                    v <= 35.0 || v >= 110.0 -> "合理區間：35～110 公分"
+                    v <= 9 -> "合理區間：大於 9 公分"
                     else                -> null
                 }
             }
