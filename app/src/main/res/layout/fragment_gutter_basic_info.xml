@@ -281,6 +281,39 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- ⑨ 側溝頂寬度 ───────────────────────────────────────── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/field_width_cm"
+            android:textSize="13sp"
+            android:textColor="@color/textColorSecondary"
+            android:layout_marginBottom="4dp" />
+
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilTopWidth"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:hintEnabled="false"
+            app:helperTextEnabled="true"
+            app:errorEnabled="true"
+            app:boxStrokeColor="@color/colorPrimary"
+            app:boxBackgroundColor="@color/white">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etTopWidth"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number"
+                android:digits="0123456789"
+                android:textColor="@color/textColorPrimary"
+                android:paddingTop="14dp"
+                android:paddingBottom="14dp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
         <!-- ⑧ 側溝測量深度 ──────────────────────────────────────── -->
         <TextView
             android:layout_width="match_parent"
@@ -314,38 +347,7 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
-        <!-- ⑨ 側溝頂寬度 ───────────────────────────────────────── -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/field_width_cm"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilTopWidth"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:helperTextEnabled="true"
-            app:errorEnabled="true"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etTopWidth"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number"
-                android:digits="0123456789"
-                android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
-
-        </com.google.android.material.textfield.TextInputLayout>
 
         <!-- ③ 側溝材質 ─────────────────────────────────────────────────── -->
         <TextView

@@ -1848,7 +1848,11 @@ class MainActivity : AppCompatActivity(),
             "NODE_Y"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Y)     ?: ""),
             "NODE_LE"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Z)     ?: ""),
             "XY_NUM"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_MEASURE_ID)  ?: ""),
-            "COVER_THICKNESS" to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_COVER_THICKNESS) ?: ""),
+            "COVER_DEP" to (
+                data?.getStringExtra(GutterFormActivity.RESULT_DATA_COVER_DEP)
+                    ?: data?.getStringExtra(GutterFormActivity.RESULT_DATA_COVER_THICKNESS)
+                    ?: ""
+            ),
             "NODE_DEP"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_DEPTH)       ?: ""),
             "NODE_WID"   to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_TOP_WIDTH)   ?: ""),
             "IS_BROKEN"  to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_BROKEN)   ?: ""),

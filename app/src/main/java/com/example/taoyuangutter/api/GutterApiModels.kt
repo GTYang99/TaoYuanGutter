@@ -40,6 +40,8 @@ data class WaypointRequest(
     @SerializedName("NODE_DEP")    val nodeDep: String  = "",
     /** 側溝頂寬度（公分）；合理區間 > 25 cm */
     @SerializedName("NODE_WID")    val nodeWid: String  = "",
+    /** 溝蓋板厚度（公分）；後端欄位名 COVER_DEP */
+    @SerializedName("COVER_DEP")   val coverDep: String = "",
     /** 溝體結構受損：0=否、1=是 */
     @SerializedName("IS_BROKEN")   val isBroken: String = "",
     /** 附掛或過路管線：0=無、1=有 */
@@ -88,6 +90,8 @@ data class WaypointResponse(
     @SerializedName("XY_NUM")      val xyNum: String?     = null,
     @SerializedName("NODE_DEP")    val nodeDep: String?   = null,
     @SerializedName("NODE_WID")    val nodeWid: String?   = null,
+    /** 溝蓋板厚度（公分）；後端可能回傳字串或數字 */
+    @SerializedName("COVER_DEP")   val coverDep: Any?     = null,
     @SerializedName("IS_BROKEN")   val isBroken: String?  = null,
     @SerializedName("IS_HANGING")  val isHanging: String? = null,
     @SerializedName("IS_SILT")     val isSilt: String?    = null,
@@ -287,6 +291,12 @@ data class NodeDetails(
     /** 測量座標編號 */
     @SerializedName("XY_NUM")     val xyNum: String?,
     /**
+     * 溝蓋板厚度（公分）。
+     * 後端可能回傳：數字 / 字串數字 / 空字串。
+     * 用 Any? 接住，轉字串時使用 [coverDepAsString]。
+     */
+    @SerializedName("COVER_DEP")  val coverDep: Any?,
+    /**
      * 深度（公分）。
      * 後端可能回傳：數字 / 字串數字 / 空字串。
      * 用 Any? 接住，轉字串時使用 [nodeDepAsString]。
@@ -335,6 +345,21 @@ data class NodeDetails(
     /** 同 [nodeDepAsString]，適用於寬度。 */
     val nodeWidAsString: String
         get() = when (val v = nodeWid) {
+            null -> ""
+            is Number -> {
+                val d = v.toDouble()
+                if (d == d.toLong().toDouble()) d.toLong().toString() else d.toString()
+            }
+            is String -> v.trim()
+            else -> v.toString()
+        }.let { s -> if (s == "null") "" else s }
+
+    /**
+     * 將溝蓋板厚度轉為純數字字串（去掉不必要的小數點，如 1.0 → "1"、1.5 → "1.5"）。
+     * 若 API 未回傳則回傳空字串。
+     */
+    val coverDepAsString: String
+        get() = when (val v = coverDep) {
             null -> ""
             is Number -> {
                 val d = v.toDouble()
@@ -411,6 +436,11 @@ data class StoreDitchNodeRequest(
     @SerializedName("NODE_DEP")   val nodeDep: Int?,
     /** 寬度（公分） */
     @SerializedName("NODE_WID")   val nodeWid: Int?,
+    /**
+     * 溝蓋板厚度（公分）；對應 UI「溝蓋板厚度」。
+     * 後端有時回傳字串，因此用 Any? 接收；送出時仍會以 Int? 填入。
+     */
+    @SerializedName("COVER_DEP")  val coverDep: Any?,
     @SerializedName("IS_BROKEN")  val isBroken: Int?,
     @SerializedName("IS_HANGING") val isHanging: Int?,
     /** 淤積程度：0=無、1=輕度、2=中度、3=嚴重 */

@@ -40,7 +40,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_DATA_NODE_Y      = "d_node_y"
         private const val ARG_DATA_NODE_LE     = "d_node_le"
         private const val ARG_DATA_XY_NUM      = "d_xy_num"
-        private const val ARG_DATA_COVER_THICKNESS = "d_cover_thickness"
+        private const val ARG_DATA_COVER_DEP = "d_cover_dep"
         private const val ARG_DATA_NODE_DEP    = "d_node_dep"
         private const val ARG_DATA_NODE_WID    = "d_node_wid"
         private const val ARG_DATA_IS_BROKEN   = "d_is_broken"
@@ -91,7 +91,15 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_DATA_NODE_Y,      basicData["NODE_Y"]      ?: basicData["coordY"] ?: "")
                 putString(ARG_DATA_NODE_LE,     basicData["NODE_LE"]     ?: basicData["coordZ"] ?: "")
                 putString(ARG_DATA_XY_NUM,      basicData["XY_NUM"]      ?: basicData["xyNum"] ?: "")
-                putString(ARG_DATA_COVER_THICKNESS, basicData["COVER_THICKNESS"] ?: basicData["coverThickness"] ?: "")
+                // 相容：舊草稿/舊版本可能存 COVER_THICKNESS
+                putString(
+                    ARG_DATA_COVER_DEP,
+                    basicData["COVER_DEP"]
+                        ?: basicData["COVER_THICKNESS"]
+                        ?: basicData["coverDep"]
+                        ?: basicData["coverThickness"]
+                        ?: ""
+                )
                 putString(ARG_DATA_NODE_DEP,    basicData["NODE_DEP"]    ?: basicData["depth"] ?: "")
                 putString(ARG_DATA_NODE_WID,    basicData["NODE_WID"]    ?: basicData["topWidth"] ?: "")
                 putString(ARG_DATA_IS_BROKEN,   basicData["IS_BROKEN"]   ?: basicData["isBroken"] ?: "")
@@ -186,7 +194,7 @@ class GutterBasicInfoFragment : Fragment() {
         val nodeY      = args.getString(ARG_DATA_NODE_Y,      "")
         val nodeLe     = args.getString(ARG_DATA_NODE_LE,     "")
         val xyNum      = args.getString(ARG_DATA_XY_NUM,      "")
-        val coverThickness = args.getString(ARG_DATA_COVER_THICKNESS, "")
+        val coverDep = args.getString(ARG_DATA_COVER_DEP, "")
         val nodeDep    = args.getString(ARG_DATA_NODE_DEP,    "")
         val nodeWid    = args.getString(ARG_DATA_NODE_WID,    "")
         val isBroken   = args.getString(ARG_DATA_IS_BROKEN,   "")
@@ -197,7 +205,7 @@ class GutterBasicInfoFragment : Fragment() {
 
         val hasAnyData = listOf(
             spiNum, nodeTyp, matTyp, nodeX, nodeY, nodeLe,
-            xyNum, coverThickness, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote
+            xyNum, coverDep, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote
         ).any { it.isNotEmpty() }
 
         if (hasAnyData) {
@@ -208,7 +216,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etCoordY.setText(nodeY)
             binding.etCoordZ.setText(nodeLe)
             binding.etMeasureId.setText(xyNum)
-            binding.etCoverThickness.setText(coverThickness)
+            binding.etCoverThickness.setText(coverDep)
             binding.etDepth.setText(nodeDep)
             binding.etTopWidth.setText(nodeWid)
             binding.rgIsBroken.setCheckedByText(isBrokenCodeToText(isBroken))
@@ -539,6 +547,8 @@ class GutterBasicInfoFragment : Fragment() {
         "NODE_Y"      to (binding.etCoordY.text?.toString()        ?: ""),
         "NODE_LE"     to (binding.etCoordZ.text?.toString()        ?: ""),
         "XY_NUM"      to (binding.etMeasureId.text?.toString()     ?: ""),
+        // 主要 key：COVER_DEP（API 欄位名）；另可保留舊 key 以避免舊草稿邏輯漏讀
+        "COVER_DEP" to (binding.etCoverThickness.text?.toString() ?: ""),
         "COVER_THICKNESS" to (binding.etCoverThickness.text?.toString() ?: ""),
         "NODE_DEP"    to (binding.etDepth.text?.toString()         ?: ""),
         "NODE_WID"    to (binding.etTopWidth.text?.toString()      ?: ""),
@@ -578,6 +588,7 @@ class GutterBasicInfoFragment : Fragment() {
             rgMatType.setCheckedByText(matTypText)
 
             // 深度、寬度（API 回傳 Double，使用 AsString 方法自動轉換）
+            etCoverThickness.setText(nodeDetails.coverDepAsString)
             etDepth.setText(nodeDetails.nodeDepAsString)
             etTopWidth.setText(nodeDetails.nodeWidAsString)
 

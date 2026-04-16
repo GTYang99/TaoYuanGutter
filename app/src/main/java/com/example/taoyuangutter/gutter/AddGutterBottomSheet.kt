@@ -946,6 +946,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             put("NODE_Y", nd.latitude ?: get("NODE_Y") ?: "")
                             put("NODE_LE", nd.nodeLe ?: get("NODE_LE") ?: "")
                             put("XY_NUM", nd.xyNum ?: get("XY_NUM") ?: "")
+                            put("COVER_DEP", nd.coverDepAsString.ifEmpty { get("COVER_DEP") ?: "" })
                             put("NODE_DEP", nd.nodeDepAsString.ifEmpty { get("NODE_DEP") ?: "" })
                             put("NODE_WID", nd.nodeWidAsString.ifEmpty { get("NODE_WID") ?: "" })
                             put("IS_CANTOPEN", if (nd.isCantOpenAsBoolean) "1" else "0")
@@ -1029,6 +1030,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
                 val isCantOpenBool = parseLooseBoolean(wp.basicData["IS_CANTOPEN"])
                 val isCantOpenInt = if (isCantOpenBool) 1 else 0
+                val coverDep = wp.basicData["COVER_DEP"]
+                    ?: wp.basicData["COVER_THICKNESS"]
                 StoreDitchNodeRequest(
                     nodeId    = wp.basicData["_nodeId"]?.toIntOrNull(),
                     nodeAtt   = nodeAtt,
@@ -1042,6 +1045,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     isCantOpen = isCantOpenInt,
                     nodeDep   = wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0,
                     nodeWid   = wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0,
+                    coverDep  = coverDep?.toIntOrNull(),
                     isBroken  = wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0,
                     isHanging = wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0,
                     isSilt    = wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0,
