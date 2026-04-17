@@ -338,6 +338,8 @@ class MainActivity : AppCompatActivity(),
                         isInEditingMode = false  // 允許自動加載 polylines
                         googleMap?.setPadding(0, 0, 0, 0)
                         clearWorkingMarkers()
+                        workingPolyline?.remove()
+                        workingPolyline = null
                         activeSheet = null
                         // 重新加載所有線段（scopePolylines 與 submittedPolylines）
                         loadGuttersByViewport()
@@ -661,19 +663,8 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onGutterSaved(spiNum: String?, waypoints: List<Waypoint>, nodes: List<DitchNode>) {
-        // 上傳成功：刪除對應的待上傳草稿，並重置 session draft 追蹤 ID（同步清除本機照片）
-        currentSessionDraftId?.let { draftId ->
-            sessionDraftRepository.getById(draftId)?.let { draft ->
-                DraftPhotoCleaner.deleteDraftLocalPhotos(this, draft)
-            } ?: run {
-                // 草稿已不在列表時，用本次上傳的 waypoints 當作 fallback
-                DraftPhotoCleaner.deleteWaypointsLocalPhotos(
-                    context = this,
-                    waypoints = waypoints.map { it.basicData }
-                )
-            }
-            sessionDraftRepository.delete(draftId)
-        }
+        // 記錄 draft ID，稍後在照片上傳完成後再刪除（避免照片還沒上傳就被清掉）
+        val pendingDraftId = currentSessionDraftId
         currentSessionDraftId = null
 
         val token = LoginActivity.getSavedToken(this) ?: return
@@ -687,6 +678,8 @@ class MainActivity : AppCompatActivity(),
         }
         // 依序上傳各點位的本機照片（已是 https:// 的舊照片會略過）；
         // 全部完成後才顯示結果 Toast，避免「上傳成功」與進度條同時出現。
+        // 注意：草稿照片的清理必須在 uploadWaypointPhotos 完成後才執行，
+        //       否則本機檔案會在上傳前就被刪除。
         lifecycleScope.launch {
             try {
                 val failCount = uploadWaypointPhotos(waypoints, nodes, token)
@@ -709,6 +702,20 @@ class MainActivity : AppCompatActivity(),
                 else
                     getString(R.string.msg_gutter_uploaded)
                 Toast.makeText(this@MainActivity, fallbackMsg, Toast.LENGTH_SHORT).show()
+            } finally {
+                // 上傳完成（無論成功或失敗）後，才清除本機草稿照片與草稿紀錄
+                pendingDraftId?.let { draftId ->
+                    sessionDraftRepository.getById(draftId)?.let { draft ->
+                        DraftPhotoCleaner.deleteDraftLocalPhotos(this@MainActivity, draft)
+                    } ?: run {
+                        // 草稿已不在列表時，用本次上傳的 waypoints 當作 fallback
+                        DraftPhotoCleaner.deleteWaypointsLocalPhotos(
+                            context = this@MainActivity,
+                            waypoints = waypoints.map { it.basicData }
+                        )
+                    }
+                    sessionDraftRepository.delete(draftId)
+                }
             }
         }
     }

@@ -32,6 +32,7 @@ import kotlinx.coroutines.CancellationException
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 class AddGutterBottomSheet : BottomSheetDialogFragment() {
@@ -666,20 +667,25 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     return@setOnClickListener
                 }
 
-                // ② 自動移除「未選座標」或「資料不完整」的節點
-                // 必填欄位：NODE_TYP、MAT_TYP、NODE_X、NODE_Y、XY_NUM、NODE_DEP、NODE_WID
-                // 照片：三張都需拍攝（photo1/2/3 均非空）
-                val requiredBasicKeys = listOf(
-                    "NODE_TYP", "MAT_TYP", "NODE_X", "NODE_Y", "XY_NUM", "NODE_DEP", "NODE_WID"
-                )
-                val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
-                val validWaypoints = waypoints.filter { wp ->
-                    if (wp.type != WaypointType.NODE) return@filter true
-                    val hasLocation   = wp.latLng != null
-                    val hasBasicData  = requiredBasicKeys.all { wp.basicData[it]?.isNotEmpty() == true }
-                    val hasAllPhotos  = requiredPhotoKeys.all { wp.basicData[it]?.isNotEmpty() == true }
-                    hasLocation && hasBasicData && hasAllPhotos
-                }
+	                // ② 自動移除「未選座標」或「資料不完整」的節點
+	                // 必填欄位：NODE_TYP、NODE_X、NODE_Y、XY_NUM、MAT_TYP、NODE_DEP、NODE_WID
+	                // 例外：IS_CANTOPEN=1 時，下方欄位由設計上為空（MAT_TYP / NODE_DEP / NODE_WID…），不納入必填判斷
+	                // 照片：三張都需拍攝（photo1/2/3 均非空）
+	                val baseRequiredBasicKeys = listOf(
+	                    "NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM"
+	                )
+	                val requiredWhenCanOpenKeys = listOf("MAT_TYP", "NODE_DEP", "NODE_WID")
+	                val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
+	                val validWaypoints = waypoints.filter { wp ->
+	                    if (wp.type != WaypointType.NODE) return@filter true
+	                    val isCantOpen    = wp.basicData["IS_CANTOPEN"] == "1"
+	                    val effectiveKeys = if (isCantOpen) baseRequiredBasicKeys
+	                                        else baseRequiredBasicKeys + requiredWhenCanOpenKeys
+	                    val hasLocation   = wp.latLng != null
+	                    val hasBasicData  = effectiveKeys.all { wp.basicData[it]?.isNotEmpty() == true }
+	                    val hasAllPhotos  = requiredPhotoKeys.all { wp.basicData[it]?.isNotEmpty() == true }
+	                    hasLocation && hasBasicData && hasAllPhotos
+	                }
                 val removedCount = waypoints.size - validWaypoints.size
                 if (removedCount > 0) {
                     Toast.makeText(
@@ -820,8 +826,16 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      * 翻轉後呼叫 [renumberAll] 重新分配 type 與 label，並通知地圖刷新。
      */
     private fun reverseWaypoints() {
-        waypoints.reverse()
-        renumberAll()
+        val ctx = context ?: return
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("確認調轉")
+            .setMessage("調轉後，起點與終點將對調，節點順序也會反轉。確定要執行嗎？")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("確定") { _, _ ->
+                waypoints.reverse()
+                renumberAll()
+            }
+            .show()
     }
 
     // ── 依位置重新命名全部 waypoints ──────────────────────────────────────
@@ -1030,32 +1044,32 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     WaypointType.NODE  -> 2
                     WaypointType.END   -> 3
                 }
-                val isCantOpenBool = parseLooseBoolean(wp.basicData["IS_CANTOPEN"])
-                val isCantOpenInt = if (isCantOpenBool) 1 else 0
-                val coverDep = wp.basicData["COVER_DEP"]
-                    ?: wp.basicData["COVER_THICKNESS"]
-                StoreDitchNodeRequest(
-                    nodeId    = wp.basicData["_nodeId"]?.toIntOrNull(),
-                    nodeAtt   = nodeAtt,
-                    nodeNum   = if (nodeAtt == 2) nodeSequence++ else null,
-                    nodeTyp   = wp.basicData["NODE_TYP"]?.toIntOrNull() ?: 1,
-                    matTyp    = wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1,
-                    latitude  = wp.latLng?.latitude  ?: 0.0,
-                    longitude = wp.latLng?.longitude ?: 0.0,
-                    nodeLe    = wp.basicData["NODE_LE"]?.toDoubleOrNull(),
-                    xyNum     = wp.basicData["XY_NUM"] ?: "",
-                    isCantOpen = isCantOpenInt,
-                    nodeDep   = wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0,
-                    nodeWid   = wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0,
-                    coverDep  = coverDep?.toIntOrNull(),
-                    isBroken  = wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0,
-                    isHanging = wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0,
-                    isSilt    = wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0,
-                    nodeNote  = wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() }
-                )
-            }
-        )
-    }
+	                val isCantOpenBool = parseLooseBoolean(wp.basicData["IS_CANTOPEN"])
+	                val isCantOpenInt = if (isCantOpenBool) 1 else 0
+	                val coverDep = wp.basicData["COVER_DEP"]
+	                    ?: wp.basicData["COVER_THICKNESS"]
+	                StoreDitchNodeRequest(
+	                    nodeId    = wp.basicData["_nodeId"]?.toIntOrNull(),
+	                    nodeAtt   = nodeAtt,
+	                    nodeNum   = if (nodeAtt == 2) nodeSequence++ else null,
+	                    nodeTyp   = wp.basicData["NODE_TYP"]?.toIntOrNull() ?: 1,
+	                    latitude  = wp.latLng?.latitude  ?: 0.0,
+	                    longitude = wp.latLng?.longitude ?: 0.0,
+	                    nodeLe    = wp.basicData["NODE_LE"]?.toDoubleOrNull(),
+	                    xyNum     = wp.basicData["XY_NUM"] ?: "",
+	                    isCantOpen = isCantOpenInt,
+	                    matTyp    = if (isCantOpenBool) null else (wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
+	                    nodeDep   = if (isCantOpenBool) null else (wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),
+	                    nodeWid   = if (isCantOpenBool) null else (wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0),
+	                    coverDep  = if (isCantOpenBool) null else coverDep?.toIntOrNull(),
+	                    isBroken  = if (isCantOpenBool) null else (wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0),
+	                    isHanging = if (isCantOpenBool) null else (wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
+	                    isSilt    = if (isCantOpenBool) null else (wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
+	                    nodeNote  = wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() }
+	                )
+	            }
+	        )
+	    }
 
     // ── Companion ────────────────────────────────────────────────────────
     companion object {
