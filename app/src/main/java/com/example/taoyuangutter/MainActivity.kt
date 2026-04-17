@@ -74,9 +74,11 @@ import com.google.android.gms.maps.model.TileOverlay
 import com.google.android.gms.maps.model.TileOverlayOptions
 import com.google.android.gms.maps.model.UrlTileProvider
 import com.google.android.gms.tasks.CancellationTokenSource
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.net.MalformedURLException
 import java.net.URL
@@ -563,80 +565,84 @@ class MainActivity : AppCompatActivity(),
      * 找出對應 waypoint 的本機照片（content:// / file:// scheme）並上傳。
      * https:// 照片代表已在伺服器，略過。
      */
+    /**
+     * 上傳所有點位的本機照片，回傳失敗張數。
+     * - 已是 https:// 的舊照片與空路徑會直接略過。
+     * - 每張最多重試 3 次；仍失敗則即時 Toast 提示「第 x/total 張上傳失敗」。
+     * - 全程顯示進度條「x / total 張照片上傳中」；無需上傳時不顯示，直接回傳 0。
+     */
     private suspend fun uploadWaypointPhotos(
         waypoints: List<Waypoint>,
         nodes: List<DitchNode>,
         token: String
-    ) {
-        val total = nodes.size * 3
-        var uploaded = 0
-
-        // 顯示進度提示
-        binding.tvPhotoUploadProgress.text = getString(R.string.msg_photo_upload_progress, 0, total)
-        binding.tvPhotoUploadProgress.visibility = android.view.View.VISIBLE
-
+    ): Int {
+        // 預先篩出真正需要上傳的照片（本機路徑，排除空值與已是 https:// 的舊照片）
+        // 使用 Triple<DitchNode, String, Int> 取代 local data class，避免 coroutine 編譯問題
+        val pending = mutableListOf<Triple<DitchNode, String, Int>>()
         nodes.forEachIndexed { i, node ->
-            val wp = waypoints.getOrNull(i) ?: run {
-                uploaded += 3
-                binding.tvPhotoUploadProgress.text =
-                    getString(R.string.msg_photo_upload_progress, uploaded, total)
-                return@forEachIndexed
-            }
-
+            val wp = waypoints.getOrNull(i) ?: return@forEachIndexed
             listOf(
                 wp.basicData["photo1"] to 1,
                 wp.basicData["photo2"] to 2,
                 wp.basicData["photo3"] to 3
             ).forEach { (path, category) ->
-                // 跳過空路徑或已在伺服器的 https:// 照片
-                val skip = path.isNullOrEmpty() ||
-                    Uri.parse(path).scheme?.lowercase().let { it == "http" || it == "https" }
-                if (skip) {
-                    uploaded++
-                    binding.tvPhotoUploadProgress.text =
-                        getString(R.string.msg_photo_upload_progress, uploaded, total)
-                    return@forEach
-                }
+                val scheme = if (path.isNullOrEmpty()) null
+                             else Uri.parse(path).scheme?.lowercase()
+                val needsUpload = scheme != null && scheme != "http" && scheme != "https"
+                if (needsUpload) pending.add(Triple(node, path!!, category))
+            }
+        }
 
-                // 最多重試 3 次
-                var success = false
-                for (attempt in 1..3) {
-                    when (val r = gutterRepository.uploadNodeImage(
-                        context      = this,
-                        nodeId       = node.nodeId,
-                        fileCategory = category,
-                        imageUri     = Uri.parse(path!!),
-                        token        = token
-                    )) {
-                        is ApiResult.Success -> {
-                            success = true
-                        }
-                        is ApiResult.Error -> {
-                            android.util.Log.w(
-                                "PhotoUpload",
-                                "node${node.nodeId} photo$category attempt$attempt 失敗: ${r.message}"
-                            )
-                        }
+        val total = pending.size
+        if (total == 0) return 0   // 無需上傳，直接結束（不顯示進度條）
+
+        // 顯示進度提示
+        binding.tvPhotoUploadProgress.visibility = android.view.View.VISIBLE
+
+        var failCount = 0
+        for ((idx, entry) in pending.withIndex()) {
+            val node     = entry.first
+            val path     = entry.second
+            val category = entry.third
+            val current  = idx + 1
+
+            binding.tvPhotoUploadProgress.text =
+                getString(R.string.msg_photo_upload_progress, current, total)
+
+            // 最多重試 3 次
+            var success = false
+            for (attempt in 1..3) {
+                when (val r = gutterRepository.uploadNodeImage(
+                    context      = this,
+                    nodeId       = node.nodeId,
+                    fileCategory = category,
+                    imageUri     = Uri.parse(path),
+                    token        = token
+                )) {
+                    is ApiResult.Success -> { success = true }
+                    is ApiResult.Error -> {
+                        android.util.Log.w(
+                            "PhotoUpload",
+                            "node${node.nodeId} photo$category attempt$attempt 失敗: ${r.message}"
+                        )
                     }
-                    if (success) break
                 }
+                if (success) break
+            }
 
-                if (!success) {
-                    Toast.makeText(
-                        this,
-                        getString(R.string.msg_photo_upload_one_failed, category),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-
-                uploaded++
+            if (!success) {
+                failCount++
+                android.util.Log.w("PhotoUpload", "photo$category ($current/$total) 上傳失敗（3次重試均失敗）")
+                // 進度條短暫顯示失敗資訊，不用 Toast 避免佇列堵塞
                 binding.tvPhotoUploadProgress.text =
-                    getString(R.string.msg_photo_upload_progress, uploaded, total)
+                    getString(R.string.msg_photo_upload_one_failed, current, total)
+                delay(1500)
             }
         }
 
         // 隱藏進度提示
         binding.tvPhotoUploadProgress.visibility = android.view.View.GONE
+        return failCount
     }
 
     override fun onUpdateGutter(waypoints: List<Waypoint>, spiNum: String) {
@@ -675,16 +681,35 @@ class MainActivity : AppCompatActivity(),
             // 更新模式：移除舊線段，重載可視範圍
             scopePolylines.remove(spiNum)?.remove()
             loadGuttersByViewport()
-            Toast.makeText(this, getString(R.string.msg_gutter_updated), Toast.LENGTH_SHORT).show()
         } else {
-            // 新增模式
-            Toast.makeText(this, getString(R.string.msg_gutter_uploaded), Toast.LENGTH_SHORT).show()
             // 新增成功後立即重載，以後端正式線段為準（同時會清掉暫時提交線）
             loadGuttersByViewport()
         }
-        // 依序上傳各點位的本機照片（已是 https:// 的舊照片會略過）
+        // 依序上傳各點位的本機照片（已是 https:// 的舊照片會略過）；
+        // 全部完成後才顯示結果 Toast，避免「上傳成功」與進度條同時出現。
         lifecycleScope.launch {
-            uploadWaypointPhotos(waypoints, nodes, token)
+            try {
+                val failCount = uploadWaypointPhotos(waypoints, nodes, token)
+                val resultMsg = when {
+                    failCount > 0 ->
+                        getString(R.string.msg_gutter_upload_done_with_failures, failCount)
+                    spiNum != null ->
+                        getString(R.string.msg_gutter_updated)
+                    else ->
+                        getString(R.string.msg_gutter_uploaded)
+                }
+                Toast.makeText(this@MainActivity, resultMsg, Toast.LENGTH_SHORT).show()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("PhotoUpload", "uploadWaypointPhotos 例外: ${e.message}", e)
+                binding.tvPhotoUploadProgress.visibility = android.view.View.GONE
+                val fallbackMsg = if (spiNum != null)
+                    getString(R.string.msg_gutter_updated)
+                else
+                    getString(R.string.msg_gutter_uploaded)
+                Toast.makeText(this@MainActivity, fallbackMsg, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

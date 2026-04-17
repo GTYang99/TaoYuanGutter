@@ -16,7 +16,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.fragment.app.Fragment
+import android.graphics.drawable.Drawable
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.example.taoyuangutter.databinding.FragmentGutterPhotosBinding
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
@@ -36,6 +41,9 @@ class GutterPhotosFragment : Fragment() {
 
     /** 目前正在等候拍照結果的照片欄位（1/2/3） */
     private var pendingSlot: Int = 0
+
+    /** 防止多張照片同時載入失敗時重複彈出 Alert（每次 setEditable 重置） */
+    private var hasShownLoadErrorAlert = false
 
     /** LandscapeCameraActivity 輸出檔案的絕對路徑（Activity 重建後恢復用） */
     private var pendingOutputPath: String? = null
@@ -199,6 +207,8 @@ class GutterPhotosFragment : Fragment() {
             binding.btnDeleteSlot2.setOnClickListener { deletePhoto(2) }
             binding.btnDeleteSlot3.setOnClickListener { deletePhoto(3) }
         } else {
+            // 每次切換到唯讀模式時重置，確保每次開啟表單都能彈出 Alert
+            hasShownLoadErrorAlert = false
             binding.photoSlot1.setOnClickListener(null)
             binding.photoSlot2.setOnClickListener(null)
             binding.photoSlot3.setOnClickListener(null)
@@ -309,10 +319,52 @@ class GutterPhotosFragment : Fragment() {
         photoView.visibility   = View.VISIBLE
 
         // 統一用 Glide 載入（包含本機 content:// / file:// 以及遠端 http(s)://），避免 setImageURI 在部分機型不更新或解碼失敗
-        Glide.with(this)
-            .load(uri)
-            .centerCrop()
-            .into(photoView)
+        val scheme = uri.scheme?.lowercase()
+        val isRemote = scheme == "http" || scheme == "https"
+        val builder = Glide.with(this).load(uri).centerCrop()
+        if (isRemote) {
+            // 唯讀模式下顯示伺服器照片：加入失敗 Alert（每次進入頁面只彈一次）
+            builder.listener(object : RequestListener<Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?,
+                    model: Any?,
+                    target: Target<Drawable>,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    if (_binding != null) {
+                        photoView.visibility = View.GONE
+                        placeholder.visibility = View.VISIBLE
+                    }
+                    showPhotoLoadErrorAlert()
+                    return true
+                }
+                override fun onResourceReady(
+                    resource: Drawable,
+                    model: Any,
+                    target: Target<Drawable>?,
+                    dataSource: DataSource,
+                    isFirstResource: Boolean
+                ): Boolean = false
+            })
+        }
+        builder.into(photoView)
+    }
+
+    /**
+     * 顯示「資料加載不完整」Alert，每次進入唯讀模式只顯示一次（[hasShownLoadErrorAlert] 控制）。
+     */
+    private fun showPhotoLoadErrorAlert() {
+        if (hasShownLoadErrorAlert) return
+        hasShownLoadErrorAlert = true
+        val act = activity ?: return
+        act.runOnUiThread {
+            if (act.isFinishing || act.isDestroyed) return@runOnUiThread
+            MaterialAlertDialogBuilder(act)
+                .setTitle("資料加載不完整")
+                .setMessage("部分照片無法載入，資料可能不完整。\n\n請關閉後重新點選側溝線段。")
+                .setPositiveButton("確定", null)
+                .show()
+        }
     }
 
     // ── 對外 API ─────────────────────────────────────────────────────────
