@@ -132,6 +132,7 @@
     <string name="msg_delete_failed">刪除失敗：%1$s</string>
     <string name="msg_no_line_data">查無線段資料</string>
     <string name="msg_uploading_photos">正在上傳照片…</string>
+    <string name="msg_loading_photo">正在載入照片…</string>
     <string name="msg_import_waypoint_title">匯入既有點位資料</string>
     <string name="msg_select_button">選擇</string>
     <string name="msg_no_waypoint_data">暫無點位資料</string>
