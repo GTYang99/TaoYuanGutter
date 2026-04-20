@@ -6,13 +6,16 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.OrientationEventListener
+import android.view.ScaleGestureDetector
 import android.view.Surface
 import android.view.View
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.AspectRatio
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -30,11 +33,13 @@ class LandscapeCameraActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLandscapeCameraBinding
     private var imageCapture: ImageCapture? = null
+    private var camera: Camera? = null
     private var outputFile: File? = null
 
     private lateinit var orientationListener: OrientationEventListener
     private var deviceIsLandscape = false
     private var lastDisplayRotation: Int = Surface.ROTATION_0
+    private lateinit var scaleGestureDetector: ScaleGestureDetector
 
     companion object {
         private const val EXTRA_OUTPUT_PATH = "output_path"
@@ -53,6 +58,7 @@ class LandscapeCameraActivity : AppCompatActivity() {
         binding = ActivityLandscapeCameraBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        setupZoomGesture()
         val path = intent.getStringExtra(EXTRA_OUTPUT_PATH)
         if (path == null) {
             setResult(Activity.RESULT_CANCELED)
@@ -167,6 +173,34 @@ class LandscapeCameraActivity : AppCompatActivity() {
         binding.btnCapture.alpha = if (isLandscape) 1f else 0.4f
     }
 
+    private fun setupZoomGesture() {
+        scaleGestureDetector = ScaleGestureDetector(
+            this,
+            object : ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScale(detector: ScaleGestureDetector): Boolean {
+                    val cam = camera ?: return false
+                    val zoomState = cam.cameraInfo.zoomState.value ?: return false
+                    val current = zoomState.zoomRatio
+                    val target = (current * detector.scaleFactor)
+                        .coerceIn(zoomState.minZoomRatio, zoomState.maxZoomRatio)
+                    cam.cameraControl.setZoomRatio(target)
+                    return true
+                }
+            }
+        )
+
+        binding.viewFinder.setOnTouchListener { _, event ->
+            // 兩指縮放預覽（CameraX zoom）
+            val handled = scaleGestureDetector.onTouchEvent(event)
+            when {
+                event.pointerCount > 1 -> true
+                handled -> true
+                event.actionMasked == MotionEvent.ACTION_MOVE && scaleGestureDetector.isInProgress -> true
+                else -> false
+            }
+        }
+    }
+
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
@@ -191,7 +225,12 @@ class LandscapeCameraActivity : AppCompatActivity() {
 
         try {
             cameraProvider.unbindAll()
-            cameraProvider.bindToLifecycle(this, CameraSelector.DEFAULT_BACK_CAMERA, preview, imageCapture)
+            camera = cameraProvider.bindToLifecycle(
+                this,
+                CameraSelector.DEFAULT_BACK_CAMERA,
+                preview,
+                imageCapture
+            )
         } catch (e: Exception) {
             Toast.makeText(this, getString(R.string.msg_camera_init_failed), Toast.LENGTH_SHORT).show()
             setResult(Activity.RESULT_CANCELED)
