@@ -154,26 +154,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- 照片上傳進度提示（上傳期間顯示於畫面上方） -->
-    <TextView
-        android:id="@+id/tvPhotoUploadProgress"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
-        android:textColor="@color/textColorPrimary"
-        android:textSize="13sp"
-        android:textStyle="bold"
-        android:background="@drawable/bg_logout_chip"
-        android:elevation="4dp"
-        android:visibility="gone"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
     <!-- 檢視側溝載入中 Overlay（點選側溝→等待資料/照片下載完成） -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/inspectLoadingOverlay"
@@ -210,5 +190,27 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
     </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <!-- 照片上傳進度提示（上傳期間顯示於畫面上方；需顯示在 overlay 上方） -->
+    <TextView
+        android:id="@+id/tvPhotoUploadProgress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="48dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="8dp"
+        android:textColor="@color/textColorPrimary"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:background="@drawable/bg_logout_chip"
+        android:elevation="12dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

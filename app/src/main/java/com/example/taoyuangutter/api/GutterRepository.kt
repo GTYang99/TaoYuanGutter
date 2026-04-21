@@ -41,6 +41,20 @@ class GutterRepository(
         .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
+    private data class ApiErrorEnvelope(
+        val success: Boolean? = null,
+        val message: String? = null,
+        val errors: Map<String, List<String>>? = null
+    )
+
+    private fun parseApiErrorMessage(errorBody: String?): String? {
+        if (errorBody.isNullOrBlank()) return null
+        return runCatching { Gson().fromJson(errorBody, ApiErrorEnvelope::class.java) }
+            .getOrNull()
+            ?.message
+            ?.takeIf { it.isNotBlank() }
+    }
+
     // ── 登入 ──────────────────────────────────────────────────────────────
 
     /**
@@ -448,6 +462,11 @@ class GutterRepository(
             val tempFile = copyUriToTempFile(context, imageUri)
                 ?: return ApiResult.Error("無法讀取圖片檔案")
             try {
+                // 使用 INFO 等級，避免部分裝置 / 篩選條件看不到 DEBUG log
+                android.util.Log.i(
+                    "PhotoUpload",
+                    "request nodeId=$nodeId, category=$fileCategory, uri=$imageUri, temp=${tempFile.name} (${tempFile.length()} bytes)"
+                )
                 val requestFile  = tempFile.asRequestBody("image/*".toMediaTypeOrNull())
                 val filePart     = MultipartBody.Part.createFormData("file", tempFile.name, requestFile)
                 val nodeIdBody       = nodeId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
@@ -459,7 +478,15 @@ class GutterRepository(
                     file          = filePart,
                     authorization = "Bearer $token"
                 )
+                val rawReq = response.raw().request
+                android.util.Log.i("PhotoUpload", "http ${rawReq.method} ${rawReq.url}")
                 val body = response.body()
+                val errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
+                val apiMsg = parseApiErrorMessage(errorBody)
+                android.util.Log.i(
+                    "PhotoUpload",
+                    "response nodeId=$nodeId, category=$fileCategory, code=${response.code()}, body=$body, errorBody=$errorBody"
+                )
                 when {
                     response.isSuccessful && body?.success == true -> ApiResult.Success(body)
                     response.code() == 401 -> ApiResult.Error(
@@ -474,14 +501,21 @@ class GutterRepository(
                         )
                     }
                     else -> ApiResult.Error(
-                        message = "上傳失敗（${response.code()}）",
+                        message = apiMsg ?: "上傳失敗（${response.code()}）",
                         code    = response.code()
                     )
                 }
             } finally {
                 tempFile.delete()   // 上傳完畢（無論成敗）清除暫存檔
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
+            android.util.Log.e(
+                "PhotoUpload",
+                "exception nodeId=$nodeId, category=$fileCategory, uri=$imageUri: ${e.message}",
+                e
+            )
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
         }
     }
@@ -522,14 +556,18 @@ class GutterRepository(
         token: String
     ): ApiResult<StoreDitchResponse> {
         return try {
-            android.util.Log.d("StoreDitch", "repository request=${Gson().toJson(request)}")
+            // 使用 INFO 等級，避免部分裝置 / 篩選條件看不到 DEBUG log
+            android.util.Log.i("StoreDitch", "request(json)=${Gson().toJson(request)}")
             val response = api.storeDitch(
                 request       = request,
                 authorization = "Bearer $token"
             )
+            val rawReq = response.raw().request
+            android.util.Log.i("StoreDitch", "http ${rawReq.method} ${rawReq.url}")
             val body = response.body()
             val errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
-            android.util.Log.d(
+            val apiMsg = parseApiErrorMessage(errorBody)
+            android.util.Log.i(
                 "StoreDitch",
                 "response code=${response.code()}, body=$body, errorBody=$errorBody"
             )
@@ -547,11 +585,14 @@ class GutterRepository(
                     )
                 }
                 else -> ApiResult.Error(
-                    message = "儲存失敗（${response.code()}）",
+                    message = apiMsg ?: "儲存失敗（${response.code()}）",
                     code    = response.code()
                 )
             }
+        } catch (e: CancellationException) {
+            throw e
         } catch (e: Exception) {
+            android.util.Log.e("StoreDitch", "exception: ${e.message}", e)
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
         }
     }

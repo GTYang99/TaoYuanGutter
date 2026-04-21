@@ -710,7 +710,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 activity.lifecycleScope.launch {
                     try {
                         val request = buildStoreDitchRequest(validWaypoints, null)
-                        android.util.Log.d("StoreDitch", "add request=$request")
+                        android.util.Log.i("StoreDitch", "add request(obj)=$request")
                         when (val result = repository.storeDitch(request, token)) {
                             is ApiResult.Success -> {
                                 val nodes = result.data.data?.nodes ?: emptyList()
@@ -722,7 +722,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                     "StoreDitch",
                                     "add failed: message=${result.message}, code=${result.code}"
                                 )
-                                Toast.makeText(activity, getString(R.string.msg_upload_failed_saved_draft), Toast.LENGTH_LONG).show()
+                                Toast.makeText(
+                                    activity,
+                                    activity.getString(R.string.msg_upload_failed_saved_draft),
+                                    Toast.LENGTH_LONG
+                                ).show()
                                 (activity as? LocationPickerHost)
                                     ?.onGutterSaveFailed(validWaypoints)
                             }
@@ -731,7 +735,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         throw e
                     } catch (e: Exception) {
                         android.util.Log.e("StoreDitch", "add exception: ${e.message}", e)
-                        Toast.makeText(activity, getString(R.string.msg_upload_failed_saved_draft), Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.msg_upload_failed_saved_draft),
+                            Toast.LENGTH_LONG
+                        ).show()
                         (activity as? LocationPickerHost)
                             ?.onGutterSaveFailed(validWaypoints)
                     }
@@ -780,7 +788,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
                 // 建立請求並呼叫 storeDitch（帶 SPI_NUM）
                 val request = buildStoreDitchRequest(waypoints.toList(), editSpiNum)
-                android.util.Log.d("StoreDitch", "edit request=$request")
+                android.util.Log.i("StoreDitch", "edit request(obj)=$request")
                 when (val result = repository.storeDitch(request, token)) {
                     is ApiResult.Success -> {
                         val nodes = result.data.data?.nodes ?: emptyList()
