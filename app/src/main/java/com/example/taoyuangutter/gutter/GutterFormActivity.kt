@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
+import android.util.Log
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -22,12 +23,16 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.TileOverlay
 import com.google.android.gms.maps.model.TileOverlayOptions
 import com.google.android.gms.maps.model.UrlTileProvider
 import com.google.android.material.tabs.TabLayoutMediator
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
+import com.example.taoyuangutter.api.NodeDetails
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -47,7 +52,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityGutterFormBinding
     private lateinit var pagerAdapter: GutterFormPagerAdapter
 
-	    companion object {
+    private val logTag = "GutterFormActivity"
+
+		    companion object {
         const val EXTRA_WAYPOINT_LABELS  = "waypoint_labels"
         const val EXTRA_LATITUDES        = "latitudes"
         const val EXTRA_LONGITUDES       = "longitudes"
@@ -245,9 +252,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
     private var formMap: GoogleMap? = null
     private var formMapTileOverlay: TileOverlay? = null
     private val gutterRepository = GutterRepository()
-    private val locationPickerLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
+	    private val locationPickerLauncher = registerForActivityResult(
+	        ActivityResultContracts.StartActivityForResult()
+	    ) { result ->
         if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
         val data = result.data ?: return@registerForActivityResult
         val latitude = data.getDoubleExtra(MapPointPickerActivity.RESULT_LATITUDE, Double.NaN)
@@ -271,80 +278,215 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
                 }
             )
         }
-    }
+	    }
 
-    // 導入既有點位的 launcher
-    private val importWaypointLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
-        val data = result.data ?: return@registerForActivityResult
-        val json = data.getStringExtra(ImportExistingWaypointActivity.EXTRA_NODE_DETAILS_JSON)
-        if (!json.isNullOrEmpty()) {
-            try {
-                val nodeDetails = Gson().fromJson(json, com.example.taoyuangutter.api.NodeDetails::class.java)
-                pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
+	    // ── 匯入既有點位（半屏 BottomSheet；上半部沿用本頁背景地圖） ─────────────
 
-                // 匯入時同步下載照片到本機（依序 1→2→3），確保節點可直接滿足上傳條件
-                lifecycleScope.launch {
-                    try {
-                        val photo1Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.url
-                        val photo2Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.url
-                        val photo3Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.url
+	    private var importSheet: ImportExistingWaypointBottomSheet? = null
+	    private var importMapPickEnabled: Boolean = false
+	    private var importCenterMarker: Marker? = null
+	    private val importCandidateMarkers = mutableMapOf<String, Marker>()
+	    private var importSelectedKey: String? = null
+	    private var importMapPaddingApplied: Boolean = false
 
-                        showUploadLoading(true, "正在下載照片（1/3）…")
-                        val p1 = photo1Url?.let {
-                            gutterRepository.downloadImageToLocalContentUri(
-                                context = this@GutterFormActivity,
-                                url = it,
-                                prefix = "IMPORT_1_"
-                            )
-                        }?.toString()
+	    private fun handleImportedNodeDetails(nodeDetails: NodeDetails) {
+	        pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
 
-                        showUploadLoading(true, "正在下載照片（2/3）…")
-                        val p2 = photo2Url?.let {
-                            gutterRepository.downloadImageToLocalContentUri(
-                                context = this@GutterFormActivity,
-                                url = it,
-                                prefix = "IMPORT_2_"
-                            )
-                        }?.toString()
+	        // 匯入時同步下載照片到本機（依序 1→2→3）
+	        lifecycleScope.launch {
+	            try {
+	                val photo1Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.url
+	                val photo2Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.url
+	                val photo3Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.url
 
-                        showUploadLoading(true, "正在下載照片（3/3）…")
-                        val p3 = photo3Url?.let {
-                            gutterRepository.downloadImageToLocalContentUri(
-                                context = this@GutterFormActivity,
-                                url = it,
-                                prefix = "IMPORT_3_"
-                            )
-                        }?.toString()
+	                showUploadLoading(true, "正在下載照片（1/3）…")
+	                val p1 = photo1Url?.let {
+	                    gutterRepository.downloadImageToLocalContentUri(
+	                        context = this@GutterFormActivity,
+	                        url = it,
+	                        prefix = "IMPORT_1_"
+	                    )
+	                }?.toString()
 
-                        pagerAdapter.getPhotosFragment()?.prefillPhotos(p1, p2, p3)
-                        showUploadLoading(false)
+	                showUploadLoading(true, "正在下載照片（2/3）…")
+	                val p2 = photo2Url?.let {
+	                    gutterRepository.downloadImageToLocalContentUri(
+	                        context = this@GutterFormActivity,
+	                        url = it,
+	                        prefix = "IMPORT_2_"
+	                    )
+	                }?.toString()
 
-                        val missing = mutableListOf<String>()
-                        if (p1.isNullOrEmpty()) missing.add("第1張")
-                        if (p2.isNullOrEmpty()) missing.add("第2張")
-                        if (p3.isNullOrEmpty()) missing.add("第3張")
-                        if (missing.isNotEmpty()) {
-                            Toast.makeText(
-                                this@GutterFormActivity,
-                                "匯入完成，但${missing.joinToString("、")}照片未取得，請至照片頁補拍",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    } catch (e: CancellationException) {
-                        showUploadLoading(false)
-                    } catch (e: Exception) {
-                        showUploadLoading(false)
-                        Toast.makeText(this@GutterFormActivity, String.format(getString(R.string.msg_photo_download_failed), e.message), Toast.LENGTH_SHORT).show()
-                    }
+	                showUploadLoading(true, "正在下載照片（3/3）…")
+	                val p3 = photo3Url?.let {
+	                    gutterRepository.downloadImageToLocalContentUri(
+	                        context = this@GutterFormActivity,
+	                        url = it,
+	                        prefix = "IMPORT_3_"
+	                    )
+	                }?.toString()
+
+	                pagerAdapter.getPhotosFragment()?.prefillPhotos(p1, p2, p3)
+	                showUploadLoading(false)
+
+	                val missing = mutableListOf<String>()
+	                if (p1.isNullOrEmpty()) missing.add("第1張")
+	                if (p2.isNullOrEmpty()) missing.add("第2張")
+	                if (p3.isNullOrEmpty()) missing.add("第3張")
+	                if (missing.isNotEmpty()) {
+	                    Toast.makeText(
+	                        this@GutterFormActivity,
+	                        "匯入完成，但${missing.joinToString("、")}照片未取得，請至照片頁補拍",
+	                        Toast.LENGTH_LONG
+	                    ).show()
+	                }
+	            } catch (e: CancellationException) {
+	                showUploadLoading(false)
+	            } catch (e: Exception) {
+	                showUploadLoading(false)
+	                Toast.makeText(
+	                    this@GutterFormActivity,
+	                    String.format(getString(R.string.msg_photo_download_failed), e.message),
+	                    Toast.LENGTH_SHORT
+	                ).show()
+	            }
+	        }
+	    }
+
+	    private fun showImportExistingWaypointSheet() {
+        if (isOfflineMode) return
+        if (importSheet?.isAdded == true) return
+
+	        // 讓上半部地圖可見（半屏 sheet 覆蓋下半部）
+	        binding.formPanel.visibility = View.GONE
+	        // 讓地圖可操作：移除遮罩層，避免吃掉觸控事件
+	        binding.mapDimOverlay.visibility = View.GONE
+	        applyImportMapPadding(true)
+
+	        val sheet = ImportExistingWaypointBottomSheet().apply {
+	            callbacks = object : ImportExistingWaypointBottomSheet.Callbacks {
+                override fun onMapPickModeChanged(enabled: Boolean) {
+                    importMapPickEnabled = enabled
+                    updateImportMapClickListener()
                 }
-            } catch (e: Exception) {
-                Toast.makeText(this, getString(R.string.msg_data_parse_failed), Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
+
+	                override fun onNearbyCenterChanged(center: LatLng) {
+	                    Log.d(logTag, "Nearby pick lat=${center.latitude}, lng=${center.longitude}")
+	                    showImportCenterMarker(center)
+	                }
+
+	                override fun onCandidateWaypointsChanged(items: List<NodeDetails>) {
+	                    showImportCandidateMarkers(items)
+	                }
+
+	                override fun onWaypointSelected(item: NodeDetails?) {
+	                    highlightImportSelected(item)
+	                }
+
+	                override fun onImport(item: NodeDetails) {
+	                    handleImportedNodeDetails(item)
+	                }
+
+	                override fun onDismissed() {
+	                    clearImportMarkers()
+	                    binding.formPanel.visibility = View.VISIBLE
+	                    binding.mapDimOverlay.visibility = View.VISIBLE
+	                    applyImportMapPadding(false)
+	                }
+
+	                override fun onPageSwitched() {
+	                    // Switching tabs cancels selection and clears all map markers.
+	                    clearImportMarkers()
+	                }
+	            }
+	        }
+
+	        importSheet = sheet
+	        sheet.show(supportFragmentManager, "ImportExistingWaypointBottomSheet")
+	    }
+
+	    private fun updateImportMapClickListener() {
+	        val map = formMap ?: return
+	        if (importMapPickEnabled) {
+	            map.setOnMapClickListener { latLng ->
+	                importSheet?.onMapClicked(latLng)
+	            }
+	        } else {
+	            map.setOnMapClickListener(null)
+	        }
+	    }
+
+	    private fun showImportCenterMarker(center: LatLng) {
+	        val map = formMap ?: return
+	        importCenterMarker?.remove()
+	        // Use the same marker style as distance-measure start point.
+	        importCenterMarker = map.addMarker(
+	            MarkerOptions()
+	                .position(center)
+	                .title("選取位置")
+	                .icon(BitmapDescriptorFactory.defaultMarker(256f))
+	        )
+	        map.animateCamera(CameraUpdateFactory.newLatLng(center))
+	    }
+
+	    private fun showImportCandidateMarkers(items: List<NodeDetails>) {
+	        val map = formMap ?: return
+	        importSelectedKey = null
+	        importCandidateMarkers.values.forEach { it.remove() }
+	        importCandidateMarkers.clear()
+
+	        items.forEach { item ->
+	            val lat = item.latitude?.toDoubleOrNull()
+	            val lng = item.longitude?.toDoubleOrNull()
+	            if (lat == null || lng == null) return@forEach
+	            val key = item.xyNum ?: "${lat},${lng}"
+	            val marker = map.addMarker(
+	                MarkerOptions()
+	                    .position(LatLng(lat, lng))
+	                    .title(item.xyNum ?: "點位")
+	                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
+	            ) ?: return@forEach
+	            importCandidateMarkers[key] = marker
+	        }
+	    }
+
+	    private fun highlightImportSelected(item: NodeDetails?) {
+	        val key = item?.xyNum
+	        if (importSelectedKey == key) return
+	        importSelectedKey?.let { prev ->
+	            importCandidateMarkers[prev]?.setIcon(
+	                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
+	            )
+	        }
+	        importSelectedKey = key
+	        if (key == null) return
+	        importCandidateMarkers[key]?.apply {
+	            setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
+	            formMap?.animateCamera(CameraUpdateFactory.newLatLng(position))
+	        }
+	    }
+
+	    private fun clearImportMarkers() {
+	        importCenterMarker?.remove()
+	        importCenterMarker = null
+	        importCandidateMarkers.values.forEach { it.remove() }
+	        importCandidateMarkers.clear()
+	        importSelectedKey = null
+	        importMapPickEnabled = false
+	        updateImportMapClickListener()
+	    }
+
+	    private fun applyImportMapPadding(enabled: Boolean) {
+	        val map = formMap ?: return
+	        if (enabled) {
+	            val half = resources.displayMetrics.heightPixels / 2
+	            map.setPadding(0, 0, 0, half)
+	            importMapPaddingApplied = true
+	        } else {
+	            map.setPadding(0, 0, 0, 0)
+	            importMapPaddingApplied = false
+	        }
+	    }
 
     /** 本點位的原始 GPS 座標（來自地圖選點），永遠保留以確保 result 能帶回正確定位 */
     private var currentLat: Double = 0.0
@@ -539,6 +681,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         val lat = if (currentLat != 0.0) currentLat else 24.9929
         val lng = if (currentLng != 0.0) currentLng else 121.3011
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
+        updateImportMapClickListener()
     }
 
     private fun setWmtsTiles(layer: String) {
@@ -693,8 +836,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
             return
         }
         binding.btnSelectWaypoint.setOnClickListener {
-            val intent = ImportExistingWaypointActivity.newIntent(this)
-            importWaypointLauncher.launch(intent)
+            showImportExistingWaypointSheet()
         }
     }
 
