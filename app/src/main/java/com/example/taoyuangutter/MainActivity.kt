@@ -34,6 +34,7 @@ import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddCurveActivity
@@ -78,8 +79,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import java.net.MalformedURLException
 import java.net.URL
 import kotlin.collections.map
@@ -598,55 +602,66 @@ class MainActivity : AppCompatActivity(),
         val total = pending.size
         if (total == 0) return 0   // 無需上傳，直接結束（不顯示進度條）
 
-        // 顯示進度提示 + 阻擋使用者操作（上傳期間不可操作 App）
+        // 阻擋使用者操作（上傳期間不可操作 App；顯示等待動畫與進度說明）
+        photoUploadTotal = total
+        photoUploadCompleted = 0
+        photoUploadFailed = 0
         setPhotoUploadBlocking(true)
-        binding.tvPhotoUploadProgress.visibility = android.view.View.VISIBLE
 
-        var failCount = 0
         try {
-            for ((idx, entry) in pending.withIndex()) {
-                val node     = entry.first
-                val path     = entry.second
-                val category = entry.third
-                val current  = idx + 1
+            // 並行上傳（保守：最多同時 2 張）
+            val semaphore = Semaphore(3)
 
-                binding.tvPhotoUploadProgress.text =
-                    getString(R.string.msg_photo_upload_progress, current, total)
+            coroutineScope {
+                pending.map { entry ->
+                    launch {
+                        semaphore.withPermit {
+                            val node = entry.first
+                            val path = entry.second
+                            val category = entry.third
 
-                // 最多重試 3 次
-                var success = false
-                for (attempt in 1..3) {
-                    when (val r = gutterRepository.uploadNodeImage(
-                        context      = this,
-                        nodeId       = node.nodeId,
-                        fileCategory = category,
-                        imageUri     = Uri.parse(path),
-                        token        = token
-                    )) {
-                        is ApiResult.Success -> { success = true }
-                        is ApiResult.Error -> {
-                            android.util.Log.w(
-                                "PhotoUpload",
-                                "node${node.nodeId} photo$category attempt$attempt 失敗: ${r.message}"
-                            )
+                            // 最多重試 3 次
+                            var success = false
+                            for (attempt in 1..3) {
+                                when (val r = gutterRepository.uploadNodeImage(
+                                    context = this@MainActivity,
+                                    nodeId = node.nodeId,
+                                    fileCategory = category,
+                                    imageUri = Uri.parse(path),
+                                    token = token
+                                )) {
+                                    is ApiResult.Success -> {
+                                        success = true
+                                    }
+                                    is ApiResult.Error -> {
+                                        android.util.Log.w(
+                                            "PhotoUpload",
+                                            "node${node.nodeId} photo$category attempt$attempt 失敗: ${r.message}"
+                                        )
+                                    }
+                                }
+                                if (success) break
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                photoUploadCompleted += 1
+                                if (!success) {
+                                    photoUploadFailed += 1
+                                    android.util.Log.w(
+                                        "PhotoUpload",
+                                        "node${node.nodeId} photo$category 上傳失敗（3次重試均失敗）"
+                                    )
+                                }
+                                applyGlobalBlockingOverlay()
+                            }
                         }
                     }
-                    if (success) break
-                }
-
-                if (!success) {
-                    failCount++
-                    android.util.Log.w("PhotoUpload", "photo$category ($current/$total) 上傳失敗（3次重試均失敗）")
-                    // 進度條短暫顯示失敗資訊，不用 Toast 避免佇列堵塞
-                    binding.tvPhotoUploadProgress.text =
-                        getString(R.string.msg_photo_upload_one_failed, current, total)
-                    delay(1500)
                 }
             }
-            return failCount
+
+            return photoUploadFailed
         } finally {
-            // 隱藏進度提示 + 解除阻擋
-            binding.tvPhotoUploadProgress.visibility = android.view.View.GONE
+            // 解除阻擋
             setPhotoUploadBlocking(false)
         }
     }
@@ -687,7 +702,7 @@ class MainActivity : AppCompatActivity(),
         lifecycleScope.launch {
             try {
                 val failCount = uploadWaypointPhotos(waypoints, nodes, token)
-                val resultMsg = when {
+                val message = when {
                     failCount > 0 ->
                         getString(R.string.msg_gutter_upload_done_with_failures, failCount)
                     spiNum != null ->
@@ -695,17 +710,26 @@ class MainActivity : AppCompatActivity(),
                     else ->
                         getString(R.string.msg_gutter_uploaded)
                 }
-                Toast.makeText(this@MainActivity, resultMsg, Toast.LENGTH_SHORT).show()
+                val title = if (failCount > 0) "上傳完成" else "上傳成功"
+                if (!isFinishing && !isDestroyed) {
+                    MaterialAlertDialogBuilder(this@MainActivity)
+                        .setTitle(title)
+                        .setMessage(message)
+                        .setPositiveButton(getString(R.string.confirm), null)
+                        .show()
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("PhotoUpload", "uploadWaypointPhotos 例外: ${e.message}", e)
-                binding.tvPhotoUploadProgress.visibility = android.view.View.GONE
-                val fallbackMsg = if (spiNum != null)
-                    getString(R.string.msg_gutter_updated)
-                else
-                    getString(R.string.msg_gutter_uploaded)
-                Toast.makeText(this@MainActivity, fallbackMsg, Toast.LENGTH_SHORT).show()
+                val message = "側溝上傳已完成，但照片上傳發生錯誤。請稍後再試。"
+                if (!isFinishing && !isDestroyed) {
+                    MaterialAlertDialogBuilder(this@MainActivity)
+                        .setTitle("上傳完成（有錯誤）")
+                        .setMessage(message)
+                        .setPositiveButton(getString(R.string.confirm), null)
+                        .show()
+                }
             } finally {
                 // 上傳完成（無論成功或失敗）後，才清除本機草稿照片與草稿紀錄
                 pendingDraftId?.let { draftId ->
@@ -1201,6 +1225,9 @@ class MainActivity : AppCompatActivity(),
     private var inspectLoadingVisible: Boolean = false
     private var inspectLoadingMessage: String? = null
     private var photoUploadBlockingVisible: Boolean = false
+    private var photoUploadTotal: Int = 0
+    private var photoUploadCompleted: Int = 0
+    private var photoUploadFailed: Int = 0
 
     /**
      * 照片上傳期間：顯示全螢幕阻擋層（含動畫），並鎖住主畫面按鈕避免誤觸。
@@ -1209,6 +1236,11 @@ class MainActivity : AppCompatActivity(),
     private fun setPhotoUploadBlocking(visible: Boolean) {
         if (!::binding.isInitialized) return
         photoUploadBlockingVisible = visible
+        if (!visible) {
+            photoUploadTotal = 0
+            photoUploadCompleted = 0
+            photoUploadFailed = 0
+        }
         // 避免干擾測距模式：測距模式本來就鎖按鈕，結束時也應維持原狀
         if (measureManager?.isMeasuring != true) {
             setMainButtonsEnabled(!visible)
@@ -1220,10 +1252,20 @@ class MainActivity : AppCompatActivity(),
         if (!::binding.isInitialized) return
         val visible = inspectLoadingVisible || photoUploadBlockingVisible
         binding.inspectLoadingOverlay.visibility = if (visible) View.VISIBLE else View.GONE
-        binding.tvInspectLoading.text = when {
-            photoUploadBlockingVisible -> "照片上傳中…"
-            !inspectLoadingMessage.isNullOrBlank() -> inspectLoadingMessage
-            else -> binding.tvInspectLoading.text
+        if (photoUploadBlockingVisible) {
+            // 依需求：照片上傳期間需卡住 + 顯示進度說明
+            binding.tvInspectLoading.visibility = View.VISIBLE
+            binding.tvInspectLoading.text = getString(
+                R.string.msg_photo_upload_overlay_progress,
+                photoUploadCompleted,
+                photoUploadTotal,
+                photoUploadFailed
+            )
+        } else {
+            binding.tvInspectLoading.visibility = View.VISIBLE
+            if (!inspectLoadingMessage.isNullOrBlank()) {
+                binding.tvInspectLoading.text = inspectLoadingMessage
+            }
         }
     }
 

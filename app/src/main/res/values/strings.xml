@@ -153,8 +153,10 @@
     <string name="msg_photo_prepare_failed">無法準備拍照檔案</string>
     <string name="msg_photo_download_failed">下載照片失敗：%1$s</string>
     <string name="msg_photo_upload_progress">第%1$d/%2$d張照片上傳中...</string>
+    <string name="msg_photo_upload_completed_progress">已完成%1$d/%2$d張照片上傳中...</string>
     <string name="msg_photo_upload_one_failed">第%1$d/%2$d張照片上傳失敗，繼續上傳中…</string>
     <string name="msg_gutter_upload_done_with_failures">側溝上傳完成，%1$d張照片上傳失敗</string>
+    <string name="msg_photo_upload_overlay_progress">照片上傳中… 已完成 %1$d/%2$d（失敗 %3$d）</string>
     <string name="msg_data_parse_failed">資料解析失敗</string>
     <string name="msg_fill_required">請填寫「%1$s」</string>
     <string name="msg_take_photo_required">請拍攝「%1$s」照片</string>
