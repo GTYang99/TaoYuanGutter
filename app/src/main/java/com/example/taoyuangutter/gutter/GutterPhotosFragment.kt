@@ -47,7 +47,6 @@ class GutterPhotosFragment : Fragment() {
 
     /** LandscapeCameraActivity 輸出檔案的絕對路徑（Activity 重建後恢復用） */
     private var pendingOutputPath: String? = null
-    private var loadingCount: Int = 0
 
     // ── ActivityResultLaunchers ──────────────────────────────────────────
 
@@ -133,7 +132,6 @@ class GutterPhotosFragment : Fragment() {
         cameraLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
-            setPhotoLoading(true)
             if (result.resultCode == Activity.RESULT_OK) {
                 // 取回 LandscapeCameraActivity 已儲存的檔案路徑
                 val path = result.data?.getStringExtra(LandscapeCameraActivity.EXTRA_RESULT_PATH)
@@ -151,29 +149,12 @@ class GutterPhotosFragment : Fragment() {
                         Uri.fromFile(file)  // fallback
                     }
                     when (pendingSlot) {
-                        1 -> {
-                            photoUriSlot1 = uri
-                            showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, uri) { setPhotoLoading(false) }
-                            binding.btnDeleteSlot1.visibility = View.VISIBLE
-                        }
-                        2 -> {
-                            photoUriSlot2 = uri
-                            showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, uri) { setPhotoLoading(false) }
-                            binding.btnDeleteSlot2.visibility = View.VISIBLE
-                        }
-                        3 -> {
-                            photoUriSlot3 = uri
-                            showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, uri) { setPhotoLoading(false) }
-                            binding.btnDeleteSlot3.visibility = View.VISIBLE
-                        }
-                        else -> setPhotoLoading(false)
+                        1 -> { photoUriSlot1 = uri; showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, uri); binding.btnDeleteSlot1.visibility = View.VISIBLE }
+                        2 -> { photoUriSlot2 = uri; showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, uri); binding.btnDeleteSlot2.visibility = View.VISIBLE }
+                        3 -> { photoUriSlot3 = uri; showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, uri); binding.btnDeleteSlot3.visibility = View.VISIBLE }
                     }
                     onDraftChanged?.invoke()
-                } else {
-                    setPhotoLoading(false)
                 }
-            } else {
-                setPhotoLoading(false)
             }
             pendingSlot = 0
             pendingOutputPath = null
@@ -305,7 +286,6 @@ class GutterPhotosFragment : Fragment() {
         }
         pendingOutputPath = outputFile.absolutePath
         val intent = LandscapeCameraActivity.newIntent(requireContext(), outputFile)
-        setPhotoLoading(true)
         cameraLauncher.launch(intent)
     }
 
@@ -327,18 +307,12 @@ class GutterPhotosFragment : Fragment() {
 
     // ── UI 更新 ──────────────────────────────────────────────────────────
 
-    private fun showPhoto(
-        photoView: android.widget.ImageView,
-        placeholder: View,
-        uri: Uri?,
-        onFinished: (() -> Unit)? = null
-    ) {
+    private fun showPhoto(photoView: android.widget.ImageView, placeholder: View, uri: Uri?) {
         if (uri == null) {
             placeholder.visibility = View.VISIBLE
             photoView.visibility   = View.GONE
             Glide.with(this).clear(photoView)
             photoView.setImageDrawable(null)
-            onFinished?.invoke()
             return
         }
         placeholder.visibility = View.GONE
@@ -362,7 +336,6 @@ class GutterPhotosFragment : Fragment() {
                         placeholder.visibility = View.VISIBLE
                     }
                     showPhotoLoadErrorAlert()
-                    onFinished?.invoke()
                     return true
                 }
                 override fun onResourceReady(
@@ -371,44 +344,10 @@ class GutterPhotosFragment : Fragment() {
                     target: Target<Drawable>?,
                     dataSource: DataSource,
                     isFirstResource: Boolean
-                ): Boolean {
-                    onFinished?.invoke()
-                    return false
-                }
-            })
-        } else {
-            // 本機照片：回來時可能需要一點解碼時間，完成後關閉 loading
-            builder.listener(object : RequestListener<Drawable> {
-                override fun onLoadFailed(
-                    e: GlideException?,
-                    model: Any?,
-                    target: Target<Drawable>,
-                    isFirstResource: Boolean
-                ): Boolean {
-                    onFinished?.invoke()
-                    return false
-                }
-                override fun onResourceReady(
-                    resource: Drawable,
-                    model: Any,
-                    target: Target<Drawable>?,
-                    dataSource: DataSource,
-                    isFirstResource: Boolean
-                ): Boolean {
-                    onFinished?.invoke()
-                    return false
-                }
+                ): Boolean = false
             })
         }
         builder.into(photoView)
-    }
-
-    private fun setPhotoLoading(visible: Boolean) {
-        // 需要遮蓋整個頁面（含 AppBar）→ 由 Activity 來顯示 overlay
-        (activity as? PhotoLoadingHost)?.setPhotoLoading(visible)
-
-        // 保留本地計數，避免連續呼叫造成 overlay 閃爍（Activity 端同樣有 ref-count）
-        if (visible) loadingCount++ else loadingCount = (loadingCount - 1).coerceAtLeast(0)
     }
 
     /**

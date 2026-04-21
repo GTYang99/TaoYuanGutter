@@ -36,19 +36,16 @@ import com.example.taoyuangutter.common.LocationPickEvents
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.net.MalformedURLException
 import java.net.URL
 
-class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadingHost {
+class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private lateinit var binding: ActivityGutterFormBinding
     private lateinit var pagerAdapter: GutterFormPagerAdapter
-    private var photoLoadingCount: Int = 0
 
 	    companion object {
         const val EXTRA_WAYPOINT_LABELS  = "waypoint_labels"
@@ -444,16 +441,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         setupFab()
         binding.viewPager.post { attachDraftSyncCallbacks() }
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
-    }
-
-    override fun setPhotoLoading(visible: Boolean) {
-        if (::binding.isInitialized.not()) return
-        if (visible) {
-            photoLoadingCount++
-        } else {
-            photoLoadingCount = (photoLoadingCount - 1).coerceAtLeast(0)
-        }
-        binding.photoLoadingOverlay.visibility = if (photoLoadingCount > 0) View.VISIBLE else View.GONE
     }
 
     override fun onPause() {
@@ -910,25 +897,20 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
 	        sessionDraftId = resolvedDraftId
 
-	        val waypointsSnapshot = sessionWaypoints.toList()
-	        lifecycleScope.launch {
-	            withContext(Dispatchers.IO) {
-	                val repo = GutterSessionRepository(this@GutterFormActivity)
-	                val existingDraft = repo.getById(resolvedDraftId)
-	                val preservedIsOffline = existingDraft?.isOffline
-	                    ?: (isOfflineMode || intent.getBooleanExtra(EXTRA_SESSION_IS_OFFLINE, false))
-	                val preservedIsSinglePoint = existingDraft?.isSinglePoint ?: isOfflineMode
-	                repo.save(
-	                    GutterSessionDraft(
-	                        id = resolvedDraftId,
-	                        savedAt = System.currentTimeMillis(),
-	                        isOffline = isOfflineMode || preservedIsOffline,
-	                        isSinglePoint = preservedIsSinglePoint,
-	                        waypoints = waypointsSnapshot
-	                    )
-	                )
-	            }
-	        }
+	        val repo = GutterSessionRepository(this)
+	        val existingDraft = repo.getById(resolvedDraftId)
+	        val preservedIsOffline = existingDraft?.isOffline
+	            ?: (isOfflineMode || intent.getBooleanExtra(EXTRA_SESSION_IS_OFFLINE, false))
+	        val preservedIsSinglePoint = existingDraft?.isSinglePoint ?: isOfflineMode
+	        repo.save(
+	            GutterSessionDraft(
+	                id = resolvedDraftId,
+	                savedAt = System.currentTimeMillis(),
+	                isOffline = isOfflineMode || preservedIsOffline,
+	                isSinglePoint = preservedIsSinglePoint,
+	                waypoints = sessionWaypoints.toList()
+	            )
+	        )
 	    }
 
 	    private fun restoreCurrentWaypointDraft() {
