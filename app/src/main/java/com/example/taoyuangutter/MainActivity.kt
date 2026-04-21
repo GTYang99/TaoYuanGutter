@@ -38,7 +38,6 @@ import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddCurveActivity
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
-import com.example.taoyuangutter.gutter.AddOptionBottomSheet
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.GutterInspectActivity
 import com.example.taoyuangutter.gutter.Waypoint
@@ -1286,7 +1285,7 @@ class MainActivity : AppCompatActivity(),
         binding.measurePanel.btnMeasureReset.setOnClickListener { measureManager?.reset() }
         binding.measurePanel.btnMeasureClose.setOnClickListener { exitMeasureMode() }
         binding.btnAddGutter.setOnClickListener {
-            showAddOptionSheet()
+            openAddGutterFlow()
         }
     }
 
@@ -1306,18 +1305,6 @@ class MainActivity : AppCompatActivity(),
         binding.btnLogout.isEnabled = enabled
         binding.btnLogout.isClickable = enabled
         binding.btnLogout.alpha = if (enabled) 1f else 0.35f
-    }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  新增選項彈窗（新增側溝 / 新增曲線）
-    // ═══════════════════════════════════════════════════════════════
-
-    /** 顯示「新增選項」BottomSheet，讓使用者選擇「新增側溝」或「新增曲線」。 */
-    private fun showAddOptionSheet() {
-        val optionSheet = AddOptionBottomSheet()
-        optionSheet.onAddGutterClicked = { openAddGutterFlow() }
-        optionSheet.onAddCurveClicked = { openAddCurveFlow() }
-        optionSheet.show(supportFragmentManager, AddOptionBottomSheet.TAG)
     }
 
     /** 原本的「新增側溝」流程，從 FAB 移入獨立方法。 */
