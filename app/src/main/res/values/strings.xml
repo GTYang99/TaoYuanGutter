@@ -62,6 +62,10 @@
     <string name="layers_sheet_layer_code">圖層代碼：%1$s</string>
     <string name="unupload_data">待上傳草稿</string>
 
+    <!-- scopeSearch gutter lines loading -->
+    <string name="msg_loading_gutters">載入側溝線段中…</string>
+    <string name="msg_loading_gutters_done">側溝線段載入完成</string>
+    <string name="msg_loading_gutters_failed">側溝線段載入失敗</string>
 
     <!-- Strings for Form Fragment -->
     <string name="form_title">巡檢資料填寫</string>

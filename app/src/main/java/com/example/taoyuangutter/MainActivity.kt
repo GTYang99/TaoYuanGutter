@@ -191,6 +191,7 @@ class MainActivity : AppCompatActivity(),
 
     // ── 防抖機制（避免重複調用 scopeSearch API） ────────────────────
     private var lastGutterLoadTime = 0L
+    private var isScopeReloadFeedbackPending = false
 
     // ── 測距模式 ──────────────────────────────────────────────────────────────
     /**
@@ -346,7 +347,7 @@ class MainActivity : AppCompatActivity(),
                         workingPolyline = null
                         activeSheet = null
                         // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                        loadGuttersByViewport()
+                        loadGuttersByViewport(showFeedback = true)
                     } else {
                         val shouldRefit = updated.size > lastWaypointsSize
                         lastWaypointsSize = updated.size
@@ -370,7 +371,7 @@ class MainActivity : AppCompatActivity(),
                 // ── 從檢視模式返回（不編輯）時，清除起終點標記並恢復其他線段顯示 ──
                 isInEditingMode = false  // 允許自動加載 polylines
                 clearWorkingMarkers()   // 移除檢視模式新增的起點／節點／終點標記
-                loadGuttersByViewport()
+                loadGuttersByViewport(showFeedback = true)
             }
         }
 
@@ -457,7 +458,7 @@ class MainActivity : AppCompatActivity(),
                     googleMap?.setPadding(0, 0, 0, 0)
                     activeSheet = null
                     // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                    loadGuttersByViewport()
+                    loadGuttersByViewport(showFeedback = true)
                 }
             }
         } else {
@@ -470,7 +471,7 @@ class MainActivity : AppCompatActivity(),
                 clearWorkingMarkers()
                 inspectSheet = null
                 // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                loadGuttersByViewport()
+                loadGuttersByViewport(showFeedback = true)
             } }
         }
     }
@@ -678,7 +679,7 @@ class MainActivity : AppCompatActivity(),
 
         // ── 退出編輯模式時：重新加載所有線段 ──
         isInEditingMode = false  // 允許自動加載 polylines
-        loadGuttersByViewport()
+        loadGuttersByViewport(showFeedback = true)
     }
 
     override fun onGutterSaved(spiNum: String?, waypoints: List<Waypoint>, nodes: List<DitchNode>) {
@@ -1402,7 +1403,7 @@ class MainActivity : AppCompatActivity(),
                 googleMap?.setPadding(0, 0, 0, 0)
                 activeSheet = null
                 // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                loadGuttersByViewport()
+                loadGuttersByViewport(showFeedback = true)
             }
         }
         sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
@@ -1510,7 +1511,7 @@ class MainActivity : AppCompatActivity(),
                     googleMap?.setPadding(0, 0, 0, 0)
                     activeSheet = null
                     // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                    if (!isOfflineMainMode) loadGuttersByViewport()
+                    if (!isOfflineMainMode) loadGuttersByViewport(showFeedback = true)
                 }
             }
             currentWaypoints = draft.waypoints.map { snap ->
@@ -1677,20 +1678,26 @@ class MainActivity : AppCompatActivity(),
             return  // 距上次調用不足 500ms，跳過此次請求
         }
         lastGutterLoadTime = now
-        loadGuttersByViewport()
+        loadGuttersByViewport(showFeedback = false)
     }
 
     /**
      * 取得目前地圖可視範圍（LatLngBounds）並呼叫 scopeSearch API，
      * 成功後呼叫 [drawScopePolylines] 更新地圖上的線段。
      */
-    private fun loadGuttersByViewport() {
+    private fun loadGuttersByViewport(showFeedback: Boolean = false) {
         if (isOfflineMainMode) return
         // ── 編輯/檢視/新增模式中禁止自動加載，避免重新顯示隱藏的線段 ──
         if (isInEditingMode) return
         val map = googleMap ?: return
         val token = LoginActivity.getSavedToken(this) ?: return
         val bounds = map.projection.visibleRegion.latLngBounds
+
+        if (showFeedback && !isScopeReloadFeedbackPending) {
+            isScopeReloadFeedbackPending = true
+            Toast.makeText(this, getString(R.string.msg_loading_gutters), Toast.LENGTH_SHORT).show()
+        }
+
         lifecycleScope.launch {
             when (val result = gutterRepository.getGuttersByScope(
                 minLat = bounds.southwest.latitude,
@@ -1705,8 +1712,16 @@ class MainActivity : AppCompatActivity(),
                     submittedPolylines.forEach { it.remove() }
                     submittedPolylines.clear()
                     drawScopePolylines(result.data.data?.features ?: emptyList())
+                    if (isScopeReloadFeedbackPending) {
+                        isScopeReloadFeedbackPending = false
+                        Toast.makeText(this@MainActivity, getString(R.string.msg_loading_gutters_done), Toast.LENGTH_SHORT).show()
+                    }
                 }
                 is ApiResult.Error -> {
+                    if (isScopeReloadFeedbackPending) {
+                        isScopeReloadFeedbackPending = false
+                        Toast.makeText(this@MainActivity, getString(R.string.msg_loading_gutters_failed), Toast.LENGTH_SHORT).show()
+                    }
                     // 靜默失敗：不打擾使用者，僅在 logcat 留紀錄
                     android.util.Log.w("ScopeSearch", "查詢失敗: ${result.message}")
                 }
@@ -1736,21 +1751,20 @@ class MainActivity : AppCompatActivity(),
                 groupId.isNotBlank() &&
                 groupId.toIntOrNull() == savedGroupId
             val color = if (!isSameGroup) {
-                android.graphics.Color.parseColor("#909399") // 非本公司管轄
+                android.graphics.Color.parseColor("#73767A") // 非本公司管轄
             } else {
                 when (spiState) {
-                    1 -> android.graphics.Color.parseColor("#000000") // 已完成
-                    2 -> android.graphics.Color.parseColor("#FF58E0") // 待修正
-                    3 -> android.graphics.Color.parseColor("#FFC300") // 待匯入座標紀錄
-                    else -> android.graphics.Color.parseColor("#562ECB") // 檢視與編輯中（預設）
+                    1 -> android.graphics.Color.parseColor("#52D5BA") // 已完成
+                    2 -> android.graphics.Color.parseColor("#F56C6C") // 待修正
+                    3 -> android.graphics.Color.parseColor("#E6A23C") // 待匯入座標紀錄
+                    else -> android.graphics.Color.parseColor("#6236FF") // 預設
                 }
             }
-            val width = if (!isSameGroup) 12f else 6f
             val polyline = map.addPolyline(
                 com.google.android.gms.maps.model.PolylineOptions()
                     .addAll(points)
                     .color(color)
-                    .width(width)
+                    .width(6f)
                     .clickable(true)
             )
             // tag 同時儲存 spiNum 與 groupId，供點擊時比對編輯權限
