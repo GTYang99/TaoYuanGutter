@@ -30,6 +30,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import android.net.Uri
 import com.example.taoyuangutter.common.LocationPickEvents
+import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.DitchNode
@@ -264,10 +265,17 @@ class MainActivity : AppCompatActivity(),
                                 activeSheet?.updateWaypointLocation(pendingWaypointFormIndex, LatLng(effectiveLat, effectiveLng))
                             }
 
-                            // ── 更新表單填寫的基本資料 ──────────────────────────
-                            val newData = extractBasicData(result.data)
-                            activeSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
-                        }
+	                            // ── 更新表單填寫的基本資料 ──────────────────────────
+	                            val rawData = extractBasicData(result.data)
+	                            lifecycleScope.launch {
+	                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
+	                                    context = this@MainActivity,
+	                                    basicData = rawData,
+	                                    prefix = "GUTTER_EXT_"
+	                                )
+	                                activeSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
+	                            }
+	                        }
                         GutterFormActivity.RESULT_DELETE -> if (pendingWaypointFormIndex >= 0) {
                             // 使用者放棄填寫 → 清除該點位的座標與資料（同時更新地圖大頭針）
                             activeSheet?.clearWaypointLocation(pendingWaypointFormIndex)
@@ -282,11 +290,18 @@ class MainActivity : AppCompatActivity(),
                     if (result.resultCode == Activity.RESULT_OK) {
                         val data = result.data
                         val idx  = data?.getIntExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, -1) ?: -1
-                        if (idx >= 0) {
-                            val newData = extractBasicData(data)
-                            inspectWaypoints.getOrNull(idx)?.basicData = newData
-                        }
-                    }
+	                        if (idx >= 0) {
+	                            val rawData = extractBasicData(data)
+	                            lifecycleScope.launch {
+	                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
+	                                    context = this@MainActivity,
+	                                    basicData = rawData,
+	                                    prefix = "GUTTER_EXT_"
+	                                )
+	                                inspectWaypoints.getOrNull(idx)?.basicData = newData
+	                            }
+	                        }
+	                    }
                     inspectSheet?.showSelf()
                     fitCameraToWaypoints(inspectWaypoints)
                 }
