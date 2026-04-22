@@ -210,6 +210,8 @@ data class DitchDetailsResponse(
 data class DitchDetails(
     @SerializedName("ditch_id") val ditchId: Int,
     @SerializedName("SPI_NUM")  val spiNum: String,
+    /** 是否為弧線側溝：0/1（後端可能回傳字串或數字字串） */
+    @SerializedName("is_curve") val isCurve: String? = null,
     @SerializedName("SPI_TYP")  val spiTyp: String?,
     /** 測量座標編號（依起點/節點/終點分段） */
     @SerializedName("XY_NUM")   val xyNum: DitchXyNum? = null,
@@ -287,6 +289,8 @@ data class NodeDetailsResponse(
 /** 單一點位完整資料 */
 data class NodeDetails(
     @SerializedName("ditch_id")   val ditchId: String?,
+    /** 點位 ID（closestNodeDetails 等 API 會回傳） */
+    @SerializedName("node_id")    val nodeId: Int? = null,
     @SerializedName("NODE_NUM")   val nodeNum: String?,
     /** 點位屬性：1=起點、2=節點、3=終點（API key 為 NODE_ATT，無尾部 R） */
     @SerializedName("NODE_ATT")   val nodeAttr: String?,
@@ -337,7 +341,9 @@ data class NodeDetails(
     /** WGS84 經度 */
     @SerializedName("longitude")  val longitude: String?,
     /** 已上傳的照片列表 */
-    @SerializedName("node_img")   val nodeImg: List<NodeImg> = emptyList()
+    @SerializedName("node_img")   val nodeImg: List<NodeImg> = emptyList(),
+    /** 與查詢點的距離（closestNodeDetails 會回傳，可能為字串數字） */
+    @SerializedName("distance")   val distance: String? = null
 ) {
     /**
      * 將深度轉為純數字字串（去掉不必要的小數點，如 1.0 → "1"、1.5 → "1.5"）。
@@ -468,6 +474,8 @@ data class StoreDitchNodeRequest(
 data class StoreDitchRequest(
     /** 僅更新時帶入；新增時省略 */
     @SerializedName("SPI_NUM") val spiNum: String?                  = null,
+    /** 是否為弧線側溝：0=false、1=true（預設 0） */
+    @SerializedName("is_curve") val isCurve: Int                    = 0,
     @SerializedName("nodes")   val nodes: List<StoreDitchNodeRequest>
 )
 

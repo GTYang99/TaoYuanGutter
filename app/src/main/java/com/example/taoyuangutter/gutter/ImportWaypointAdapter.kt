@@ -110,6 +110,12 @@ class ImportWaypointAdapter(
         notifyDataSetChanged()
     }
 
+    fun clearSelection() {
+        val previousIndex = selectedIndex
+        selectedIndex = -1
+        if (previousIndex >= 0) notifyItemChanged(previousIndex)
+    }
+
     fun getSelectedWaypoint(): NodeDetails? {
         val row = rows.getOrNull(selectedIndex) as? Row.Waypoint
         return row?.item

@@ -90,6 +90,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private var draftId: Long = 0L
     /** 編輯模式時帶入的 SPI_NUM，用於顯示標題；空字串代表新增模式 */
     private var editSpiNum: String = ""
+    /** 是否為弧線側溝（整條層級）。 */
+    private var isCurve: Boolean = false
 
     /** Window.Callback touch routing：ACTION_DOWN 落在 sheet 外時設為 true，後續事件轉發給 Activity */
     private var routeToActivity = false
@@ -122,6 +124,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         isOfflineMode = arguments?.getBoolean(ARG_OFFLINE_MODE, false) ?: false
         draftId       = arguments?.getLong(ARG_DRAFT_ID, 0L) ?: 0L
         editSpiNum    = arguments?.getString(ARG_SPI_NUM, "") ?: ""
+        val isCurveArg = arguments?.getBoolean(ARG_IS_CURVE, false) ?: false
+        // 編輯模式不可轉換：依需求固定為弧線
+        isCurve = if (editSpiNum.isNotEmpty()) true else isCurveArg
         // 新增/檢視模式皆允許點選外部區域（dim 遮罩）關閉
         isCancelable = true
 
@@ -601,11 +606,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             // 檢視模式：隱藏新增節點、調轉、提交與刪除按鈕
             binding.btnAddNode.visibility       = View.GONE
             binding.btnReverse.visibility       = View.GONE
+            binding.btnCurve.visibility         = View.GONE
             binding.btnSubmitGutter.visibility  = View.GONE
             binding.btnDeleteGutter.visibility  = View.GONE
         } else if (editSpiNum.isNotEmpty()) {
-            // 編輯模式：隱藏「新增節點」、顯示「刪除側溝」（左）＋「更新側溝」（右）
-            //binding.btnAddNode.visibility = View.GONE
+            // 編輯模式：不可新增節點；弧線不可切換（固定點選）
+            binding.btnAddNode.visibility = View.GONE
             binding.btnDeleteGutter.visibility = View.VISIBLE
             binding.btnSubmitGutter.text = getString(R.string.btn_update_gutter)
             updateSubmitButtonState()
@@ -613,20 +619,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnReverse.visibility = View.VISIBLE
             binding.btnReverse.setOnClickListener { reverseWaypoints() }
 
+            binding.btnCurve.isEnabled = false
+            binding.btnCurve.isClickable = false
+            updateCurveToggleUi()
+
             binding.btnDeleteGutter.setOnClickListener {
                 (requireActivity() as? LocationPickerHost)?.onDeleteGutter(editSpiNum)
             }
             binding.btnSubmitGutter.setOnClickListener {
                 performEditSubmit()
-            }
-            binding.btnAddNode.setOnClickListener {
-                val nodeCount  = waypoints.count { it.type == WaypointType.NODE }
-                val insertIdx  = waypoints.size - 1
-                waypoints.add(insertIdx, Waypoint(WaypointType.NODE, "節點${nodeCount + 1}"))
-                adapter.notifyItemInserted(insertIdx)
-                binding.rvWaypoints.scrollToPosition(insertIdx)
-                onWaypointsChanged?.invoke(waypoints.toList())
-                updateSubmitButtonState()
             }
         } else {
             if (isOfflineMode) {
@@ -636,6 +637,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
             binding.btnReverse.visibility = View.VISIBLE
             binding.btnReverse.setOnClickListener { reverseWaypoints() }
+
+            binding.btnCurve.isEnabled = true
+            binding.btnCurve.isClickable = true
+            binding.btnCurve.setOnClickListener {
+                isCurve = !isCurve
+                updateCurveToggleUi()
+                onWaypointsChanged?.invoke(waypoints.toList())
+            }
+            updateCurveToggleUi()
 
             binding.btnAddNode.setOnClickListener {
                 val nodeCount  = waypoints.count { it.type == WaypointType.NODE }
@@ -655,6 +665,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     dismiss()
                     return@setOnClickListener
                 }
+                // 弧線上傳限制：僅允許起點/終點兩點
+                if (!validateCurvePointCountOrAlert()) return@setOnClickListener
                 // ① 起點與終點必須已設定座標
                 val start = waypoints.firstOrNull { it.type == WaypointType.START }
                 val end   = waypoints.firstOrNull { it.type == WaypointType.END }
@@ -757,6 +769,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     /** true = 正在編輯既有側溝（editSpiNum 非空）。 */
     fun isEditMode(): Boolean = editSpiNum.isNotEmpty()
 
+    /** 是否為弧線側溝（供地圖畫線顏色等用途）。 */
+    fun isCurveMode(): Boolean = isCurve
+
     /** 若此 sheet 是從待上傳草稿恢復，回傳其 id；否則回傳 0。 */
     fun getRestoredDraftId(): Long = draftId
 
@@ -782,6 +797,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             try {
                 if (isPreloadingEditDetails) {
                     Toast.makeText(requireContext(), getString(R.string.msg_waypoint_loading), Toast.LENGTH_SHORT).show()
+                    updateSubmitButtonState()
+                    return@launch
+                }
+                // 弧線上傳限制：僅允許起點/終點兩點
+                if (!validateCurvePointCountOrAlert()) {
                     updateSubmitButtonState()
                     return@launch
                 }
@@ -1046,7 +1066,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
         return StoreDitchRequest(
             spiNum = spiNum,
+            isCurve = if (isCurve) 1 else 0,
             nodes = waypoints.map { wp ->
+                // 新增模式（spiNum=null）不得帶 node_id，否則後端會視為「更新既有點位」而失敗
+                val requestNodeId = if (spiNum.isNullOrBlank()) null else wp.basicData["_nodeId"]?.toIntOrNull()
                 val nodeAtt = when (wp.type) {
                     WaypointType.START -> 1
                     WaypointType.NODE  -> 2
@@ -1057,7 +1080,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 	                val coverDep = wp.basicData["COVER_DEP"]
 	                    ?: wp.basicData["COVER_THICKNESS"]
 	                StoreDitchNodeRequest(
-	                    nodeId    = wp.basicData["_nodeId"]?.toIntOrNull(),
+	                    nodeId    = requestNodeId,
 	                    nodeAtt   = nodeAtt,
 	                    nodeNum   = if (nodeAtt == 2) nodeSequence++ else null,
 	                    nodeTyp   = wp.basicData["NODE_TYP"]?.toIntOrNull() ?: 1,
@@ -1075,9 +1098,40 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 	                    isSilt    = if (isCantOpenBool) null else (wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
 	                    nodeNote  = wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() }
 	                )
-	            }
-	        )
-	    }
+            }
+        )
+    }
+
+    private fun updateCurveToggleUi() {
+        if (_binding == null) return
+        binding.btnCurve.isSelected = isCurve
+        val ctx = requireContext()
+        val bgColor = if (isCurve) R.color.colorPrimary else R.color.border_grey
+        binding.btnCurve.backgroundTintList =
+            android.content.res.ColorStateList.valueOf(
+                androidx.core.content.ContextCompat.getColor(ctx, bgColor)
+            )
+        binding.btnCurve.setTextColor(
+            if (isCurve) android.graphics.Color.WHITE else android.graphics.Color.parseColor("#616161")
+        )
+
+        // 弧線：禁用新增節點
+        if (isCurve) binding.btnAddNode.visibility = View.GONE
+        else if (editSpiNum.isEmpty()) binding.btnAddNode.visibility = View.VISIBLE
+    }
+
+    private fun validateCurvePointCountOrAlert(): Boolean {
+        if (!isCurve) return true
+        // Any NODE means >2 points (START/END plus nodes)
+        val hasExtraNodes = waypoints.any { it.type == WaypointType.NODE }
+        if (!hasExtraNodes) return true
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("點位數量超過 2")
+            .setMessage("弧線上傳僅支援起點與終點兩點。\n目前草稿包含第三個以上的點位，請先刪除多餘節點後再上傳弧線。")
+            .setPositiveButton("確定", null)
+            .show()
+        return false
+    }
 
     // ── Companion ────────────────────────────────────────────────────────
     companion object {
@@ -1090,6 +1144,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
         private const val ARG_EDIT_WAYPOINTS_JSON = "edit_waypoints_json"
         private const val ARG_SPI_NUM             = "spi_num"
+        private const val ARG_IS_CURVE            = "is_curve"
 
         /** 新增模式（一般地圖流程） */
         fun newInstance() = AddGutterBottomSheet()
@@ -1111,7 +1166,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
          * @param waypoints 由 DitchDetails 轉換而來的點位列表
          * @param spiNum    DitchDetails.spiNum，用於顯示標題（空字串則顯示預設「新增側溝」）
          */
-        fun newInstanceForEdit(waypoints: List<Waypoint>, spiNum: String = ""): AddGutterBottomSheet {
+        fun newInstanceForEdit(waypoints: List<Waypoint>, spiNum: String = "", isCurve: Boolean = false): AddGutterBottomSheet {
             val snapshots = waypoints.map { wp ->
                 WaypointSnapshot(
                     type      = wp.type.name,
@@ -1126,6 +1181,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 arguments = Bundle().apply {
                     putString(ARG_EDIT_WAYPOINTS_JSON, json)
                     if (spiNum.isNotEmpty()) putString(ARG_SPI_NUM, spiNum)
+                    putBoolean(ARG_IS_CURVE, isCurve)
                 }
             }
         }

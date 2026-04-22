@@ -296,6 +296,8 @@ class MainActivity : AppCompatActivity(),
             if (result.resultCode == GutterInspectActivity.RESULT_EDIT_DITCH) {
                 val json   = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_WAYPOINTS_JSON) ?: return@registerForActivityResult
                 val spiNum = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_SPI_NUM) ?: ""
+                val isCurveRaw = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_IS_CURVE) ?: "0"
+                val isCurve = isCurveRaw.trim() == "1" || isCurveRaw.trim().equals("true", true)
 
                 // ── 若 FM 內仍有同 TAG 的舊 sheet（例如先前新增流程的 activeSheet）
                 //    必須先 dismiss 並等待事務完成，否則 show() 會因 TAG 衝突而失敗 ──
@@ -329,7 +331,7 @@ class MainActivity : AppCompatActivity(),
                 submittedPolylines.forEach { it.remove() }
                 submittedPolylines.clear()
 
-                val sheet = AddGutterBottomSheet.newInstanceForEdit(wps, spiNum)
+                val sheet = AddGutterBottomSheet.newInstanceForEdit(wps, spiNum, isCurve)
                 var lastWaypointsSize = wps.size
                 sheet.onWaypointsChanged = { updated ->
                     if (updated == null) {
@@ -1483,6 +1485,7 @@ class MainActivity : AppCompatActivity(),
         clearWorkingMarkers()
         workingPolyline?.remove()
         if (waypoints.isEmpty()) return
+        val isCurve = activeSheet?.isCurveMode() == true
         val routePoints = mutableListOf<LatLng>()
         for ((idx, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
@@ -1495,7 +1498,14 @@ class MainActivity : AppCompatActivity(),
             marker?.let { workingMarkers.add(it) }
         }
         if (routePoints.size >= 2) {
-            workingPolyline = map.addPolyline(PolylineOptions().addAll(routePoints).color(Color.parseColor("#562ECB")).width(10f).geodesic(true).clickable(false))
+            workingPolyline = map.addPolyline(
+                PolylineOptions()
+                    .addAll(routePoints)
+                    .color(resolveGutterPolylineColor(isCurve))
+                    .width(10f)
+                    .geodesic(true)
+                    .clickable(false)
+            )
         }
     }
 
@@ -1579,9 +1589,24 @@ class MainActivity : AppCompatActivity(),
         val map = googleMap ?: return
         val routePoints = waypoints.mapNotNull { it.latLng }
         if (routePoints.size < 2) return
-        val polyline = map.addPolyline(PolylineOptions().addAll(routePoints).color(Color.parseColor("#562ECB")).width(10f).geodesic(true).clickable(true))
+        val polyline = map.addPolyline(
+            PolylineOptions()
+                .addAll(routePoints)
+                .color(resolveGutterPolylineColor(isCurve = false))
+                .width(10f)
+                .geodesic(true)
+                .clickable(true)
+        )
         polyline.tag = ArrayList(waypoints)
         submittedPolylines.add(polyline)
+    }
+
+    /**
+     * 側溝線段顏色決策入口（弧線/非弧線）。
+     * 目前先維持既有顏色；後續要改弧線配色只需改這裡。
+     */
+    private fun resolveGutterPolylineColor(isCurve: Boolean): Int {
+        return Color.parseColor("#562ECB")
     }
 
     private fun highlightMarker(waypointIndex: Int) {

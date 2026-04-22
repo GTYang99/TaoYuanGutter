@@ -13,7 +13,7 @@
     <!-- Drag Handle -->
 
         <!-- Header Row: [<] 新增側溝 [+] -->
-    <RelativeLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:paddingHorizontal="4dp">
@@ -23,12 +23,13 @@
             android:id="@+id/btnClose"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="關閉"
             android:padding="12dp"
             android:src="@drawable/ic_arrow_back"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             app:tint="@color/text_grey" />
 
         <!-- 取消按鈕（左，文字，離線模式，預設 GONE） -->
@@ -36,8 +37,9 @@
             android:id="@+id/tvCancel"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
             android:gravity="center"
             android:paddingStart="16dp"
             android:paddingEnd="8dp"
@@ -45,35 +47,66 @@
             android:textColor="@color/colorPrimary"
             android:textSize="15sp"
             android:textStyle="bold"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:clickable="true"
-            android:focusable="true"
-            android:visibility="gone" />
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <androidx.constraintlayout.widget.Barrier
+            android:id="@+id/barrierLeft"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:barrierDirection="end"
+            app:constraint_referenced_ids="btnClose,tvCancel" />
 
         <!-- 標題 -->
         <TextView
             android:id="@+id/tvSheetTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
             android:gravity="center"
             android:text="@string/btn_add_gutter"
             android:textColor="@color/text_grey"
             android:textSize="18sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- 調轉按鈕（右側，緊鄰新增節點左邊） -->
+        <!-- 弧線按鈕（對齊左側按鈕跟標題中間） -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCurve"
+            android:layout_width="wrap_content"
+            android:layout_height="36dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="64dp"
+            android:minHeight="36dp"
+            android:text="@string/btn_curve"
+            android:textAllCaps="false"
+            android:textColor="#616161"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            app:backgroundTint="@color/border_grey"
+            app:cornerRadius="18dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/tvSheetTitle"
+            app:layout_constraintStart_toEndOf="@+id/barrierLeft"
+            app:layout_constraintTop_toTopOf="parent" />
+
         <ImageButton
             android:id="@+id/btnReverse"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_toStartOf="@id/btnAddNode"
-            android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/btn_reverse_gutter"
             android:padding="12dp"
             android:src="@drawable/ic_swap_vert"
             android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btnAddNode"
+            app:layout_constraintTop_toTopOf="parent"
             app:tint="@color/colorPrimary" />
 
         <!-- 新增節點按鈕（右） -->
@@ -81,15 +114,16 @@
             android:id="@+id/btnAddNode"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/form_finish_button"
             android:padding="12dp"
             android:src="@drawable/ic_add"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
             app:tint="@color/colorPrimary" />
 
-    </RelativeLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
     <!-- 分隔線 -->
     <View

@@ -285,9 +285,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
 	    private var importSheet: ImportExistingWaypointBottomSheet? = null
 	    private var importMapPickEnabled: Boolean = false
 	    private var importCenterMarker: Marker? = null
-	    private val importCandidateMarkers = mutableMapOf<String, Marker>()
-	    private var importSelectedKey: String? = null
-	    private var importMapPaddingApplied: Boolean = false
 
 	    private fun handleImportedNodeDetails(nodeDetails: NodeDetails) {
 	        pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
@@ -340,6 +337,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
 	                        Toast.LENGTH_LONG
 	                    ).show()
 	                }
+	                // 匯入完成後直接回到 MainActivity 的 AddGutterBottomSheet 繼續操作
+	                // （不做必填驗證；使用者之後仍可再進入表單補齊資料/照片）
+	                buildAndFinishWithResult()
 	            } catch (e: CancellationException) {
 	                showUploadLoading(false)
 	            } catch (e: Exception) {
@@ -349,6 +349,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
 	                    String.format(getString(R.string.msg_photo_download_failed), e.message),
 	                    Toast.LENGTH_SHORT
 	                ).show()
+	                // 即便照片下載失敗，也先帶著已匯入的基本資料回到地圖，讓使用者可繼續操作
+	                buildAndFinishWithResult()
 	            }
 	        }
 	    }
@@ -376,11 +378,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
 	                }
 
 	                override fun onCandidateWaypointsChanged(items: List<NodeDetails>) {
-	                    showImportCandidateMarkers(items)
+	                    // 初次載入清單不在地圖顯示候選點；只有選取後才縮放到該點。
 	                }
 
 	                override fun onWaypointSelected(item: NodeDetails?) {
-	                    highlightImportSelected(item)
+	                    showImportSelectedWaypoint(item)
 	                }
 
 	                override fun onImport(item: NodeDetails) {
@@ -429,49 +431,31 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
 	        map.animateCamera(CameraUpdateFactory.newLatLng(center))
 	    }
 
-	    private fun showImportCandidateMarkers(items: List<NodeDetails>) {
-	        val map = formMap ?: return
-	        importSelectedKey = null
-	        importCandidateMarkers.values.forEach { it.remove() }
-	        importCandidateMarkers.clear()
+	    private fun showImportSelectedWaypoint(item: NodeDetails?) {
+	        // 清掉舊的選取 marker，但不動鏡頭（需求：切頁清 marker、視圖不動）
+	        importCenterMarker?.remove()
+	        importCenterMarker = null
 
-	        items.forEach { item ->
-	            val lat = item.latitude?.toDoubleOrNull()
-	            val lng = item.longitude?.toDoubleOrNull()
-	            if (lat == null || lng == null) return@forEach
-	            val key = item.xyNum ?: "${lat},${lng}"
-	            val marker = map.addMarker(
-	                MarkerOptions()
-	                    .position(LatLng(lat, lng))
-	                    .title(item.xyNum ?: "點位")
-	                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE))
-	            ) ?: return@forEach
-	            importCandidateMarkers[key] = marker
-	        }
-	    }
+	        if (item == null) return
+	        val lat = item.latitude?.toDoubleOrNull()
+	        val lng = item.longitude?.toDoubleOrNull()
+	        if (lat == null || lng == null) return
+	        val target = LatLng(lat, lng)
 
-	    private fun highlightImportSelected(item: NodeDetails?) {
-	        val key = item?.xyNum
-	        if (importSelectedKey == key) return
-	        importSelectedKey?.let { prev ->
-	            importCandidateMarkers[prev]?.setIcon(
-	                BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)
-	            )
-	        }
-	        importSelectedKey = key
-	        if (key == null) return
-	        importCandidateMarkers[key]?.apply {
-	            setIcon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED))
-	            formMap?.animateCamera(CameraUpdateFactory.newLatLng(position))
-	        }
+	        // Use the same marker style as distance-measure start point.
+	        importCenterMarker = formMap?.addMarker(
+	            MarkerOptions()
+	                .position(target)
+	                .title(item.xyNum ?: "點位")
+	                .icon(BitmapDescriptorFactory.defaultMarker(256f))
+	        )
+	        // Move/zoom to the selected point (will be centered in the upper-half due to map padding).
+	        formMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 18f))
 	    }
 
 	    private fun clearImportMarkers() {
 	        importCenterMarker?.remove()
 	        importCenterMarker = null
-	        importCandidateMarkers.values.forEach { it.remove() }
-	        importCandidateMarkers.clear()
-	        importSelectedKey = null
 	        importMapPickEnabled = false
 	        updateImportMapClickListener()
 	    }
@@ -481,10 +465,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
 	        if (enabled) {
 	            val half = resources.displayMetrics.heightPixels / 2
 	            map.setPadding(0, 0, 0, half)
-	            importMapPaddingApplied = true
 	        } else {
 	            map.setPadding(0, 0, 0, 0)
-	            importMapPaddingApplied = false
 	        }
 	    }
 

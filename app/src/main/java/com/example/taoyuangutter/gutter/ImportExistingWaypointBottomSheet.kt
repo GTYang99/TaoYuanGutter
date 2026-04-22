@@ -67,7 +67,9 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
     private var selected: NodeDetails? = null
     private var searchJob: Job? = null
+    private var closestJob: Job? = null
     private var searchSeq: Int = 0
+    private var closestSeq: Int = 0
 
     private enum class Page { NEARBY, SEARCH }
     private var currentPage: Page = Page.NEARBY
@@ -212,10 +214,9 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     fun onMapClicked(latLng: LatLng) {
         if (currentPage != Page.NEARBY) return
         callbacks?.onNearbyCenterChanged(latLng)
-        binding.tvNearbyHint.text = "已選擇地圖位置：(${String.format("%.6f", latLng.latitude)}, ${String.format("%.6f", latLng.longitude)})"
-        // 先清掉舊候選與選取（後續接附近 API 時，再用結果更新）
+        // 重新點地圖時才覆蓋清單；同時清掉目前選取
         clearSelection()
-        showHintState(message = "已選擇位置，待取得附近點位")
+        performClosestSearch(latLng)
     }
 
     private fun setupRecycler() {
@@ -246,6 +247,10 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
             // Leaving search: cancel in-flight request to avoid late UI override
             searchJob?.cancel()
         }
+        if (currentPage == Page.NEARBY && page == Page.SEARCH) {
+            // Leaving nearby: cancel in-flight closest request
+            closestJob?.cancel()
+        }
         currentPage = page
         clearSelection()
         callbacks?.onPageSwitched()
@@ -254,16 +259,14 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                 binding.searchBar.isVisible = false
                 binding.tvNearbyHint.isVisible = true
                 binding.tvNearbyHint.text = "請點選上方地圖以取得經緯度（附近查詢待接）"
-                showHintState(message = "請點選上方地圖以取得經緯度（附近查詢待接）")
                 callbacks?.onMapPickModeChanged(true)
-                callbacks?.onCandidateWaypointsChanged(emptyList())
+                // 不清列表；只清選取與地圖 marker
             }
             Page.SEARCH -> {
                 binding.searchBar.isVisible = true
                 binding.tvNearbyHint.isVisible = false
-                showHintState(message = "請輸入座標編號 (XY_NUM) 後按搜尋")
                 callbacks?.onMapPickModeChanged(false)
-                callbacks?.onCandidateWaypointsChanged(emptyList())
+                // 不清列表；只清選取與地圖 marker
             }
         }
     }
@@ -310,6 +313,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
     private fun clearSelection() {
         selected = null
+        adapter.clearSelection()
         binding.btnImport.isEnabled = false
         binding.btnImport.backgroundTintList =
             ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.border_grey))
@@ -329,12 +333,60 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         if (!message.isNullOrBlank()) binding.tvLoading.text = message
     }
 
+    private fun performClosestSearch(latLng: LatLng) {
+        val ctx = requireContext()
+        val token = LoginActivity.getSavedToken(ctx)
+        if (token.isNullOrEmpty()) {
+            Toast.makeText(ctx, getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
+            dismissAllowingStateLoss()
+            return
+        }
+
+        closestJob?.cancel()
+        setLoading(true, "載入中…")
+        binding.tvNearbyHint.text =
+            "已選擇地圖位置：(${String.format("%.6f", latLng.latitude)}, ${String.format("%.6f", latLng.longitude)})"
+        val seq = ++closestSeq
+
+        closestJob = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val result = gutterRepository.getClosestNodeDetails(
+                    lng = latLng.longitude,
+                    lat = latLng.latitude,
+                    token = token
+                )
+                if (seq != closestSeq) return@launch
+                when (result) {
+                    is ApiResult.Success -> {
+                        val list = result.data.data ?: emptyList()
+                        if (list.isEmpty()) {
+                            showEmptyState()
+                        } else {
+                            updateResultRows(list)
+                        }
+                        // 初次不在地圖顯示任何候選點；選取後才縮放移動
+                    }
+                    is ApiResult.Error -> {
+                        Toast.makeText(ctx, "載入失敗：${result.message}", Toast.LENGTH_SHORT).show()
+                        showErrorState("載入失敗：${result.message}")
+                    }
+                }
+            } catch (e: CancellationException) {
+                // Ignore.
+            } catch (e: Exception) {
+                Toast.makeText(ctx, "發生錯誤：${e.message}", Toast.LENGTH_SHORT).show()
+                showErrorState("發生錯誤：${e.message ?: "未知錯誤"}")
+            } finally {
+                if (seq == closestSeq) setLoading(false)
+            }
+        }
+    }
+
     private fun performSearch(rawQuery: String) {
         if (currentPage != Page.SEARCH) return
         val query = rawQuery.trim()
         if (query.isEmpty()) {
             showHintState(message = "請輸入座標編號 (XY_NUM) 後按搜尋")
-            callbacks?.onCandidateWaypointsChanged(emptyList())
             return
         }
 
@@ -360,16 +412,13 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                         val list = result.data.data ?: emptyList()
                         if (list.isEmpty()) {
                             showEmptyState()
-                            callbacks?.onCandidateWaypointsChanged(emptyList())
                         } else {
                             updateResultRows(list)
-                            callbacks?.onCandidateWaypointsChanged(list)
                         }
                     }
                     is ApiResult.Error -> {
                         Toast.makeText(ctx, "載入失敗：${result.message}", Toast.LENGTH_SHORT).show()
                         showErrorState("載入失敗：${result.message}")
-                        callbacks?.onCandidateWaypointsChanged(emptyList())
                     }
                 }
             } catch (e: CancellationException) {
@@ -377,7 +426,6 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
             } catch (e: Exception) {
                 Toast.makeText(ctx, "發生錯誤：${e.message}", Toast.LENGTH_SHORT).show()
                 showErrorState("發生錯誤：${e.message ?: "未知錯誤"}")
-                callbacks?.onCandidateWaypointsChanged(emptyList())
             } finally {
                 if (seq == searchSeq) setLoading(false)
             }
