@@ -42,10 +42,42 @@ import kotlinx.coroutines.launch
 import java.net.MalformedURLException
 import java.net.URL
 
-class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
+class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadingHost {
 
     private lateinit var binding: ActivityGutterFormBinding
     private lateinit var pagerAdapter: GutterFormPagerAdapter
+    private var photoLoadingCount: Int = 0
+
+    override fun setPhotoLoading(visible: Boolean) {
+        if (!::binding.isInitialized) return
+        if (visible) photoLoadingCount++ else photoLoadingCount = (photoLoadingCount - 1).coerceAtLeast(0)
+        binding.photoLoadingOverlay.visibility = if (photoLoadingCount > 0) View.VISIBLE else View.GONE
+    }
+
+    fun showCameraOverlay(slot: Int, outputPath: String) {
+        if (!::binding.isInitialized) return
+        binding.cameraOverlayContainer.visibility = View.VISIBLE
+        supportFragmentManager.beginTransaction()
+            .setReorderingAllowed(true)
+            .replace(
+                binding.cameraOverlayContainer.id,
+                CameraOverlayFragment.newInstance(slot = slot, outputPath = outputPath),
+                CameraOverlayFragment::class.java.name
+            )
+            .commitAllowingStateLoss()
+    }
+
+    fun hideCameraOverlay() {
+        if (!::binding.isInitialized) return
+        val tag = CameraOverlayFragment::class.java.name
+        supportFragmentManager.findFragmentByTag(tag)?.let { frag ->
+            supportFragmentManager.beginTransaction()
+                .setReorderingAllowed(true)
+                .remove(frag)
+                .commitAllowingStateLoss()
+        }
+        binding.cameraOverlayContainer.visibility = View.GONE
+    }
 
 	    companion object {
         const val EXTRA_WAYPOINT_LABELS  = "waypoint_labels"

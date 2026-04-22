@@ -2,16 +2,15 @@ package com.example.taoyuangutter.gutter
 
 import com.example.taoyuangutter.R
 import android.app.Activity
-import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.SystemClock
 import android.os.Environment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
@@ -58,15 +57,12 @@ class GutterPhotosFragment : Fragment() {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted && pendingSlot > 0) {
-            launchLandscapeCamera(pendingSlot)
+            launchCameraOverlay(pendingSlot)
         } else if (!granted) {
             pendingSlot = 0
             Toast.makeText(requireContext(), getString(R.string.msg_camera_permission_required), Toast.LENGTH_SHORT).show()
         }
     }
-
-    /** LandscapeCameraActivity 結果接收器 */
-    private lateinit var cameraLauncher: ActivityResultLauncher<Intent>
 
     // ── Lifecycle ────────────────────────────────────────────────────────
 
@@ -128,42 +124,41 @@ class GutterPhotosFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // ── 註冊 LandscapeCameraActivity 結果接收 ──────────────────────
-        cameraLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                // 取回 LandscapeCameraActivity 已儲存的檔案路徑
-                val path = result.data?.getStringExtra(LandscapeCameraActivity.EXTRA_RESULT_PATH)
-                    ?: pendingOutputPath
-                if (path != null) {
-                    val file = File(path)
-                    // 轉為 FileProvider content URI，與其他照片儲存格式一致
-                    val uri = try {
-                        FileProvider.getUriForFile(
-                            requireContext(),
-                            "${requireContext().packageName}.fileprovider",
-                            file
-                        )
-                    } catch (e: Exception) {
-                        Uri.fromFile(file)  // fallback
-                    }
-                    when (pendingSlot) {
-                        1 -> { photoUriSlot1 = uri; showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, uri); binding.btnDeleteSlot1.visibility = View.VISIBLE }
-                        2 -> { photoUriSlot2 = uri; showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, uri); binding.btnDeleteSlot2.visibility = View.VISIBLE }
-                        3 -> { photoUriSlot3 = uri; showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, uri); binding.btnDeleteSlot3.visibility = View.VISIBLE }
-                    }
-                    onDraftChanged?.invoke()
+        // ── 註冊相機 Overlay 結果接收（避免 Activity 切換造成放大/旋轉卡頓） ──
+        parentFragmentManager.setFragmentResultListener(
+            CameraOverlayFragment.RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, bundle ->
+            val code = bundle.getInt(CameraOverlayFragment.RESULT_CODE, Activity.RESULT_CANCELED)
+            val slot = bundle.getInt(CameraOverlayFragment.RESULT_SLOT, 0)
+            val path = bundle.getString(CameraOverlayFragment.RESULT_PATH) ?: pendingOutputPath
+            if (code == Activity.RESULT_OK && !path.isNullOrBlank() && slot in 1..3) {
+                (activity as? PhotoLoadingHost)?.setPhotoLoading(true)
+                val file = File(path)
+                val uri = try {
+                    FileProvider.getUriForFile(
+                        requireContext(),
+                        "${requireContext().packageName}.fileprovider",
+                        file
+                    )
+                } catch (_: Exception) {
+                    Uri.fromFile(file)
                 }
+                when (slot) {
+                    1 -> { photoUriSlot1 = uri; showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, uri); binding.btnDeleteSlot1.visibility = View.VISIBLE }
+                    2 -> { photoUriSlot2 = uri; showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, uri); binding.btnDeleteSlot2.visibility = View.VISIBLE }
+                    3 -> { photoUriSlot3 = uri; showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, uri); binding.btnDeleteSlot3.visibility = View.VISIBLE }
+                }
+                onDraftChanged?.invoke()
             }
             pendingSlot = 0
             pendingOutputPath = null
         }
 
         // 根據恢復的 URI 更新 UI
-        photoUriSlot1?.let { showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, it) }
-        photoUriSlot2?.let { showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, it) }
-        photoUriSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, it) }
+        photoUriSlot1?.let { showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, it) }
+        photoUriSlot2?.let { showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, it) }
+        photoUriSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, it) }
 
         val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
         setEditable(!isViewMode)
@@ -233,17 +228,17 @@ class GutterPhotosFragment : Fragment() {
                 when (slot) {
                     1 -> {
                         photoUriSlot1 = null
-                        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, null)
+                        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, null)
                         binding.btnDeleteSlot1.visibility = View.GONE
                     }
                     2 -> {
                         photoUriSlot2 = null
-                        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, null)
+                        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, null)
                         binding.btnDeleteSlot2.visibility = View.GONE
                     }
                     3 -> {
                         photoUriSlot3 = null
-                        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, null)
+                        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
                         binding.btnDeleteSlot3.visibility = View.GONE
                     }
                 }
@@ -267,7 +262,7 @@ class GutterPhotosFragment : Fragment() {
                 requireContext(), android.Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            launchLandscapeCamera(slot)
+            launchCameraOverlay(slot)
         } else {
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
@@ -277,7 +272,7 @@ class GutterPhotosFragment : Fragment() {
      * 建立輸出檔案後啟動 [LandscapeCameraActivity]。
      * Activity 強制鎖定橫向，且未橫放時會顯示「請轉為橫向拍照」遮罩並禁用快門。
      */
-    private fun launchLandscapeCamera(slot: Int) {
+    private fun launchCameraOverlay(slot: Int) {
         val outputFile = createOutputFile(slot)
         if (outputFile == null) {
             pendingSlot = 0
@@ -285,8 +280,7 @@ class GutterPhotosFragment : Fragment() {
             return
         }
         pendingOutputPath = outputFile.absolutePath
-        val intent = LandscapeCameraActivity.newIntent(requireContext(), outputFile)
-        cameraLauncher.launch(intent)
+        (activity as? GutterFormActivity)?.showCameraOverlay(slot, outputFile.absolutePath)
     }
 
     /**
@@ -307,8 +301,14 @@ class GutterPhotosFragment : Fragment() {
 
     // ── UI 更新 ──────────────────────────────────────────────────────────
 
-    private fun showPhoto(photoView: android.widget.ImageView, placeholder: View, uri: Uri?) {
+    private fun showPhoto(
+        photoView: android.widget.ImageView,
+        placeholder: View,
+        loading: View,
+        uri: Uri?
+    ) {
         if (uri == null) {
+            loading.visibility = View.GONE
             placeholder.visibility = View.VISIBLE
             photoView.visibility   = View.GONE
             Glide.with(this).clear(photoView)
@@ -317,36 +317,53 @@ class GutterPhotosFragment : Fragment() {
         }
         placeholder.visibility = View.GONE
         photoView.visibility   = View.VISIBLE
+        val startMs = SystemClock.uptimeMillis()
+        loading.visibility = View.VISIBLE
 
         // 統一用 Glide 載入（包含本機 content:// / file:// 以及遠端 http(s)://），避免 setImageURI 在部分機型不更新或解碼失敗
         val scheme = uri.scheme?.lowercase()
         val isRemote = scheme == "http" || scheme == "https"
-        val builder = Glide.with(this).load(uri).centerCrop()
-        if (isRemote) {
-            // 唯讀模式下顯示伺服器照片：加入失敗 Alert（每次進入頁面只彈一次）
-            builder.listener(object : RequestListener<Drawable> {
-                override fun onLoadFailed(
-                    e: GlideException?,
-                    model: Any?,
-                    target: Target<Drawable>,
-                    isFirstResource: Boolean
-                ): Boolean {
-                    if (_binding != null) {
-                        photoView.visibility = View.GONE
-                        placeholder.visibility = View.VISIBLE
-                    }
-                    showPhotoLoadErrorAlert()
-                    return true
+        // 限制 decode 尺寸為縮圖大小，加快「拍照回來」顯示速度
+        val targetW = photoView.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        val targetH = (targetW * 3) / 4
+        val builder = Glide.with(this).load(uri).override(targetW, targetH).centerCrop()
+        builder.listener(object : RequestListener<Drawable> {
+            override fun onLoadFailed(
+                e: GlideException?,
+                model: Any?,
+                target: Target<Drawable>,
+                isFirstResource: Boolean
+            ): Boolean {
+                if (_binding != null) {
+                    val elapsed = SystemClock.uptimeMillis() - startMs
+                    val delayMs = (250L - elapsed).coerceAtLeast(0L)
+                    loading.postDelayed({ if (_binding != null) loading.visibility = View.GONE }, delayMs)
+                    photoView.visibility = View.GONE
+                    placeholder.visibility = View.VISIBLE
                 }
-                override fun onResourceReady(
-                    resource: Drawable,
-                    model: Any,
-                    target: Target<Drawable>?,
-                    dataSource: DataSource,
-                    isFirstResource: Boolean
-                ): Boolean = false
-            })
-        }
+                (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
+                if (isRemote) showPhotoLoadErrorAlert()
+                // remote: 自己處理（顯示 placeholder），避免 Glide 再設錯誤圖
+                // local : 讓 Glide 預設行為繼續（return false）
+                return isRemote
+            }
+
+            override fun onResourceReady(
+                resource: Drawable,
+                model: Any,
+                target: Target<Drawable>?,
+                dataSource: DataSource,
+                isFirstResource: Boolean
+            ): Boolean {
+                if (_binding != null) {
+                    val elapsed = SystemClock.uptimeMillis() - startMs
+                    val delayMs = (250L - elapsed).coerceAtLeast(0L)
+                    loading.postDelayed({ if (_binding != null) loading.visibility = View.GONE }, delayMs)
+                }
+                (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
+                return false
+            }
+        })
         builder.into(photoView)
     }
 
@@ -401,9 +418,9 @@ class GutterPhotosFragment : Fragment() {
         photoUriSlot2 = parse(photo2)
         photoUriSlot3 = parse(photo3)
 
-        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, photoUriSlot1)
-        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, photoUriSlot2)
-        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, photoUriSlot3)
+        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, photoUriSlot1)
+        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, photoUriSlot2)
+        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, photoUriSlot3)
 
         // 依目前模式更新刪除按鈕狀態
         val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
