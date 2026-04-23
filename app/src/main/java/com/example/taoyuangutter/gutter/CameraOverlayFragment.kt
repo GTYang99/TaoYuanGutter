@@ -19,8 +19,9 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
-import androidx.constraintlayout.widget.ConstraintLayout
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.databinding.FragmentCameraOverlayBinding
 import java.io.File
@@ -94,6 +95,7 @@ class CameraOverlayFragment : Fragment() {
         )
 
         setupZoomGesture()
+        applySystemBarInsets()
         setupOrientationListener()
         setupButtons(slot)
         startCamera()
@@ -151,6 +153,22 @@ class CameraOverlayFragment : Fragment() {
         }
     }
 
+    private fun applySystemBarInsets() {
+        if (_binding == null) return
+        val baseBottom = binding.controlsContainer.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            binding.controlsContainer.setPadding(
+                binding.controlsContainer.paddingLeft,
+                binding.controlsContainer.paddingTop,
+                binding.controlsContainer.paddingRight,
+                baseBottom + systemBottom
+            )
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
+    }
+
     private fun setupOrientationListener() {
         orientationListener = object : OrientationEventListener(requireContext()) {
             override fun onOrientationChanged(orientation: Int) {
@@ -193,18 +211,10 @@ class CameraOverlayFragment : Fragment() {
     }
 
     /**
-     * 將快門控制列維持在「橫放時的實體下方」：
-     * - 順時針橫放（ROTATION_90）：實體下方對應螢幕右側
-     * - 逆時針橫放（ROTATION_270）：實體下方對應螢幕左側
+     * 快門固定底部，保留方法作為日後擴充點。
      */
     private fun updateControlsPosition(surfaceRotation: Int) {
         if (_binding == null) return
-        val lp = binding.controlsContainer.layoutParams as? ConstraintLayout.LayoutParams ?: return
-        lp.horizontalBias = when (surfaceRotation) {
-            Surface.ROTATION_270 -> 0f
-            else -> 1f
-        }
-        binding.controlsContainer.layoutParams = lp
     }
 
     private fun startCamera() {

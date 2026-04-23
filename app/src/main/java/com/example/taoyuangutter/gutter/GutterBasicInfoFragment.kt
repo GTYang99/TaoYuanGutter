@@ -248,11 +248,9 @@ class GutterBasicInfoFragment : Fragment() {
     private fun setupPendingDeployButton(isViewMode: Boolean) {
         // View mode: disabled until user enters edit mode (GutterFormActivity.enterEditMode -> setEditable(true))
         binding.btnPendingDeploy.isEnabled = !isViewMode && isFormEditable
-        applyPendingDeployUi(binding.btnPendingDeploy.isChecked)
         // Avoid stale listeners when toggling enabled state / rebinding view.
         binding.btnPendingDeploy.setOnCheckedChangeListener(null)
-        binding.btnPendingDeploy.setOnCheckedChangeListener { _, checked ->
-            applyPendingDeployUi(checked)
+        binding.btnPendingDeploy.setOnCheckedChangeListener { _, _ ->
             if (binding.btnPendingDeploy.isEnabled) onDraftChanged?.invoke()
         }
     }
@@ -260,18 +258,6 @@ class GutterBasicInfoFragment : Fragment() {
     private fun setPendingDeploySelected(selected: Boolean) {
         // UI spec: checkbox only; text color unchanged; checkbox uses theme primary via XML buttonTint.
         binding.btnPendingDeploy.isChecked = selected
-        applyPendingDeployUi(selected)
-    }
-
-    private fun applyPendingDeployUi(isPendingDeploy: Boolean) {
-        val enabled = isFormEditable && !isPendingDeploy
-        binding.etMeasureId.isEnabled = enabled
-        binding.etMeasureId.isFocusable = enabled
-        binding.etMeasureId.isFocusableInTouchMode = enabled
-        binding.tilMeasureId.alpha = if (enabled) 1f else 0.5f
-        if (!enabled) {
-            binding.tilMeasureId.error = null
-        }
     }
 
     private fun setupCantOpen() {
@@ -410,7 +396,6 @@ class GutterBasicInfoFragment : Fragment() {
         binding.btnPendingDeploy.isEnabled = enabled
         // Re-apply style (so view->edit mode transitions update colors correctly)
         setPendingDeploySelected(binding.btnPendingDeploy.isChecked)
-        applyPendingDeployUi(binding.btnPendingDeploy.isChecked)
 
         // Z 座標（NODE_LE）由後端提供，可檢視但不可修改
         binding.etCoordZ.isEnabled = false

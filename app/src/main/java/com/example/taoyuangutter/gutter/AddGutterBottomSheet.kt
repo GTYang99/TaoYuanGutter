@@ -698,22 +698,19 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
 
 	                // ② 自動移除「未選座標」或「資料不完整」的節點
-	                // 必填欄位：NODE_TYP、NODE_X、NODE_Y、MAT_TYP、NODE_DEP、NODE_WID
-	                // 例外：IS_PENDING_DEPLOY=1 時，XY_NUM 可為空
+	                // 必填欄位：NODE_TYP、NODE_X、NODE_Y、XY_NUM、MAT_TYP、NODE_DEP、NODE_WID
 	                // 例外：IS_CANTOPEN=1 時，下方欄位由設計上為空（MAT_TYP / NODE_DEP / NODE_WID…），不納入必填判斷
 	                // 照片：三張都需拍攝（photo1/2/3 均非空）
 	                val baseRequiredBasicKeys = listOf(
-	                    "NODE_TYP", "NODE_X", "NODE_Y"
+	                    "NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM"
 	                )
 	                val requiredWhenCanOpenKeys = listOf("MAT_TYP", "NODE_DEP", "NODE_WID")
 	                val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
 	                val validWaypoints = waypoints.filter { wp ->
 	                    if (wp.type != WaypointType.NODE) return@filter true
 	                    val isCantOpen    = wp.basicData["IS_CANTOPEN"] == "1"
-	                    val isPendingDeploy = wp.basicData["IS_PENDING_DEPLOY"] == "1"
-	                    val baseKeys = if (isPendingDeploy) baseRequiredBasicKeys else baseRequiredBasicKeys + "XY_NUM"
-	                    val effectiveKeys = if (isCantOpen) baseKeys
-	                                        else baseKeys + requiredWhenCanOpenKeys
+	                    val effectiveKeys = if (isCantOpen) baseRequiredBasicKeys
+	                                        else baseRequiredBasicKeys + requiredWhenCanOpenKeys
 	                    val hasLocation   = wp.latLng != null
 	                    val hasBasicData  = effectiveKeys.all { wp.basicData[it]?.isNotEmpty() == true }
 	                    val hasAllPhotos  = requiredPhotoKeys.all { wp.basicData[it]?.isNotEmpty() == true }
@@ -988,22 +985,26 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
         lifecycleScope.launch {
             var hasError = false
-            waypoints.forEachIndexed { index, wp ->
-                val nodeId = wp.basicData["_nodeId"]?.toIntOrNull() ?: return@forEachIndexed
+            val preloadNodeIds = waypoints.mapNotNull { it.basicData["_nodeId"]?.toIntOrNull() }
+            preloadNodeIds.forEach { nodeId ->
                 when (val result = repository.getNodeDetails(nodeId, token)) {
                     is ApiResult.Success -> {
-                        val nd = result.data.data?.firstOrNull() ?: return@forEachIndexed
+                        val nd = result.data.data?.firstOrNull() ?: return@forEach
+                        val targetIndex = waypoints.indexOfFirst {
+                            it.basicData["_nodeId"]?.toIntOrNull() == nodeId
+                        }
+                        if (targetIndex < 0) return@forEach
                         val lat = nd.latitude?.toDoubleOrNull()
                         val lng = nd.longitude?.toDoubleOrNull()
                         if (lat != null && lng != null) {
-                            waypoints[index].latLng = LatLng(lat, lng)
+                            waypoints[targetIndex].latLng = LatLng(lat, lng)
                         }
 
                         val p1 = nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.url ?: ""
                         val p2 = nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.url ?: ""
                         val p3 = nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.url ?: ""
 
-                        val merged = HashMap(waypoints[index].basicData).apply {
+                        val merged = HashMap(waypoints[targetIndex].basicData).apply {
                             put("_nodeId", nodeId.toString())
                             put("SPI_NUM", get("SPI_NUM") ?: editSpiNum)
                             put("NODE_TYP", nd.nodeTyP ?: get("NODE_TYP") ?: "")
@@ -1016,9 +1017,13 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             put("NODE_DEP", nd.nodeDepAsString.ifEmpty { get("NODE_DEP") ?: "" })
                             put("NODE_WID", nd.nodeWidAsString.ifEmpty { get("NODE_WID") ?: "" })
                             put("IS_CANTOPEN", if (nd.isCantOpenAsBoolean) "1" else "0")
+                            // 保留既有點位的待架站狀態（跟著點位資料走）；
+                            // 僅在舊資料完全沒有此欄位時，才回退使用 nodeDetails。
+                            val existingPending = get("IS_PENDING_DEPLOY")
                             put(
                                 "IS_PENDING_DEPLOY",
-                                if (parseLooseBoolean(nd.isPendingDeploy)) "1" else "0"
+                                if (!existingPending.isNullOrBlank()) existingPending
+                                else if (parseLooseBoolean(nd.isPendingDeploy)) "1" else "0"
                             )
                             put("IS_BROKEN", nd.isBroken ?: get("IS_BROKEN") ?: "")
                             put("IS_HANGING", nd.isHanging ?: get("IS_HANGING") ?: "")
@@ -1028,7 +1033,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             if (p2.isNotEmpty()) put("photo2", p2)
                             if (p3.isNotEmpty()) put("photo3", p3)
                         }
-                        waypoints[index].basicData = merged
+                        waypoints[targetIndex].basicData = merged
                     }
                     is ApiResult.Error -> {
                         hasError = true
@@ -1058,6 +1063,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (_binding == null) return
         binding.loadingOverlay.visibility = if (show) View.VISIBLE else View.GONE
         binding.btnAddNode.isEnabled = !show
+        binding.btnReverse.isEnabled = !show
+        binding.btnSubmitGutter.isEnabled = !show
+        binding.cbCurve.isEnabled = !show
         binding.btnDeleteGutter.isEnabled = !show
         binding.rvWaypoints.isEnabled = !show
     }

@@ -1,10 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    全螢幕相機 Overlay（嵌在 GutterFormActivity 內，避免 Activity 切換造成放大/旋轉卡頓）
-    - 預覽「看到即是拍到」：不裁切，必要時留黑邊（fitCenter）
-    - 版型以手機直立 UI 呈現：橫放拍攝時快門維持在「實體下方」
-      （順時針橫放＝按鈕在畫面右側；逆時針橫放＝按鈕在畫面左側）
-    - 預覽區顯示為 3:4（寬=螢幕寬，高=4/3 寬）；相機在橫放時透過 targetRotation 讓 4:3 畫面旋轉成 3:4 對齊此框
+    全螢幕相機 Overlay（嵌在 GutterFormActivity 內）
+    - 預覽區固定為 3:4（直向 4、橫向 3；所見拍攝區與照片範圍對齊）
+    - 快門固定在底部（不隨裝置旋轉換邊）
     - orientationWarning：裝置未橫放時顯示提示遮罩並禁用快門
 -->
 <androidx.constraintlayout.widget.ConstraintLayout
@@ -17,7 +15,7 @@
     android:clickable="true"
     android:focusable="true">
 
-    <!-- 預覽區（螢幕座標 3:4：寬=螢幕寬，高=4/3 寬） -->
+    <!-- 預覽區（固定 3:4：直向 4、橫向 3） -->
     <FrameLayout
         android:id="@+id/previewContainer"
         android:layout_width="0dp"
@@ -26,11 +24,10 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintVertical_bias="0.5"
+        app:layout_constraintBottom_toTopOf="@+id/controlsContainer"
         app:layout_constraintDimensionRatio="W,3:4">
 
-        <!-- CameraX 預覽：不裁切（fitCenter），必要時留黑邊 -->
+        <!-- CameraX 預覽：4:3 視窗內完整顯示 -->
         <androidx.camera.view.PreviewView
             android:id="@+id/viewFinder"
             android:layout_width="match_parent"
@@ -39,24 +36,22 @@
 
     </FrameLayout>
 
-    <!-- 側邊控制列：橫放拍攝時維持在「實體下方」（順/逆時針會落在左右側），覆蓋在預覽上 -->
+    <!-- 底部控制列：快門固定底部 -->
     <LinearLayout
         android:id="@+id/controlsContainer"
-        android:layout_width="108dp"
-        android:layout_height="0dp"
-        android:orientation="vertical"
-        android:gravity="center_horizontal"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         android:background="#AA000000"
         android:elevation="8dp"
-        android:paddingTop="24dp"
-        android:paddingBottom="24dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="16dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="1">
+        app:layout_constraintEnd_toEndOf="parent">
 
         <ImageButton
             android:id="@+id/btnCancel"
@@ -68,8 +63,8 @@
             android:contentDescription="取消" />
 
         <View
-            android:layout_width="1dp"
-            android:layout_height="0dp"
+            android:layout_width="0dp"
+            android:layout_height="1dp"
             android:layout_weight="1" />
 
         <ImageButton
@@ -81,8 +76,8 @@
             android:contentDescription="拍照" />
 
         <View
-            android:layout_width="1dp"
-            android:layout_height="0dp"
+            android:layout_width="0dp"
+            android:layout_height="1dp"
             android:layout_weight="1" />
 
         <View
