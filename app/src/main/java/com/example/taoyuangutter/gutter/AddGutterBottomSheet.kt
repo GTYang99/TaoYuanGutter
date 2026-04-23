@@ -283,14 +283,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     override fun onDismiss(dialog: android.content.DialogInterface) {
         super.onDismiss(dialog)
-        val isFromDraft = draftId > 0L || arguments?.containsKey(ARG_DRAFT_JSON) == true
-        if (isInspectMode || editSpiNum.isNotEmpty() || isFromDraft) {
-            // 檢視模式 / 編輯模式 / 從草稿恢復：null 通知 MainActivity 清除暫時大頭針
-            onWaypointsChanged?.invoke(null)
-        } else {
-            // 新增模式：以目前 waypoints 狀態通知（保留地圖疊加層）
-            onWaypointsChanged?.invoke(waypoints.toList())
-        }
+        // sheet 關閉時一律以 null 通知 MainActivity：
+        // - 檢視/編輯/草稿：清除工作層並恢復主地圖線段
+        // - 新增模式：視為「取消新增」，恢復主地圖線段（避免側溝線段被清掉卻未 reload）
+        onWaypointsChanged?.invoke(null)
     }
 
     // ── 標題 ──────────────────────────────────────────────────────────────
