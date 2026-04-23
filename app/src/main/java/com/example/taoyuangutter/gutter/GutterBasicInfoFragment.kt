@@ -12,7 +12,6 @@ import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.widget.RadioButton
 import android.widget.RadioGroup
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.databinding.FragmentGutterBasicInfoBinding
@@ -24,6 +23,9 @@ class GutterBasicInfoFragment : Fragment() {
     var onDraftChanged: (() -> Unit)? = null
     var onRequestLocationPick: (() -> Unit)? = null
     private var isFormEditable: Boolean = true
+    // Keep using request keys NODE_X/NODE_Y; just change UI presentation.
+    private var coordXValue: String = ""
+    private var coordYValue: String = ""
 
     companion object {
         private const val ARG_LAT          = "latitude"
@@ -133,13 +135,12 @@ class GutterBasicInfoFragment : Fragment() {
         val isEditMode   = arguments?.getBoolean(ARG_IS_EDIT_MODE) ?: false
 
         prefillData()
-        setupReadOnlyCoordinates()
         setEditable(!isViewMode)
         setupCantOpen()
         setupPendingDeployButton(isViewMode)
         setupRangeWatchers()
         setupDraftWatchers()
-        setupCoordinatePickers()
+        setupLocationPickerButton()
 
         // 新增與編輯模式下均隱藏側溝編號欄位（僅檢視模式顯示）
         if (!isViewMode) {
@@ -152,6 +153,8 @@ class GutterBasicInfoFragment : Fragment() {
             binding.tvCoordZTitle.visibility = View.GONE
             binding.tilCoordZ.visibility = View.GONE
         }
+
+        binding.btnPickLocation.isEnabled = !isViewMode
 
         // 點擊空白處關閉鍵盤
         view.setOnTouchListener { _, event ->
@@ -223,8 +226,8 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etGutterId.setText(spiNum)
             binding.rgGutterType.setCheckedByText(nodeTypCodeToText(nodeTyp))
             binding.rgMatType.setCheckedByText(matTypCodeToText(matTyp))
-            binding.etCoordX.setText(nodeX)
-            binding.etCoordY.setText(nodeY)
+            coordXValue = nodeX
+            coordYValue = nodeY
             binding.etCoordZ.setText(nodeLe)
             binding.etMeasureId.setText(xyNum)
             setPendingDeploySelected(parseLooseBoolean(isPendingDeploy))
@@ -334,39 +337,13 @@ class GutterBasicInfoFragment : Fragment() {
         ).forEach { it.alpha = alpha }
     }
 
-    /**
-     * 將 coordX / coordY 設為永久唯讀，字體顯示灰色。
-     */
-    private fun setupReadOnlyCoordinates() {
-        val grayColor = ContextCompat.getColor(requireContext(), R.color.inputFieldHint)
-        listOf(binding.etCoordX, binding.etCoordY).forEach { et ->
-            et.isEnabled = true
-            et.isFocusable = false
-            et.isFocusableInTouchMode = false
-            et.isCursorVisible = false
-            et.isLongClickable = false
-            et.keyListener = null
-            et.setTextIsSelectable(false)
-            et.isClickable = true
-            et.setTextColor(grayColor)
-        }
-        binding.tilCoordX.isClickable = true
-        binding.tilCoordY.isClickable = true
-        binding.tilCoordX.alpha = 1f
-        binding.tilCoordY.alpha = 1f
-    }
-
-    private fun setupCoordinatePickers() {
-        val listener = View.OnClickListener {
+    private fun setupLocationPickerButton() {
+        binding.btnPickLocation.setOnClickListener {
             // 檢視模式不允許變更座標
             val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
-            if (isViewMode) return@OnClickListener
+            if (isViewMode) return@setOnClickListener
             onRequestLocationPick?.invoke()
         }
-        binding.tilCoordX.setOnClickListener(listener)
-        binding.tilCoordY.setOnClickListener(listener)
-        binding.etCoordX.setOnClickListener(listener)
-        binding.etCoordY.setOnClickListener(listener)
     }
 
     /** 將 GPS 座標預填至 X/Y 欄位 */
@@ -377,12 +354,12 @@ class GutterBasicInfoFragment : Fragment() {
 
         when {
             isOfflineMode -> {
-                binding.etCoordX.setText("0.0")
-                binding.etCoordY.setText("0.0")
+                coordXValue = "0.0"
+                coordYValue = "0.0"
             }
             lat != 0.0 || lng != 0.0 -> {
-                binding.etCoordX.setText("%.6f".format(lng))
-                binding.etCoordY.setText("%.6f".format(lat))
+                coordXValue = "%.6f".format(lng)
+                coordYValue = "%.6f".format(lat)
             }
         }
     }
@@ -481,9 +458,9 @@ class GutterBasicInfoFragment : Fragment() {
 
         // 新增與編輯模式均不驗證側溝編號（欄位已隱藏）
         if (d["NODE_TYP"].isNullOrEmpty())    return "側溝形式"
-        if (d["NODE_X"].isNullOrEmpty())      return "側溝X（E）座標"
-        if (d["NODE_Y"].isNullOrEmpty())      return "側溝Y（N）座標"
-        if (!isPendingDeploy && d["XY_NUM"].isNullOrEmpty()) return "測量座標編號"
+        if (d["NODE_X"].isNullOrEmpty())      return "側溝位置"
+        if (d["NODE_Y"].isNullOrEmpty())      return "側溝位置"
+        if (d["XY_NUM"].isNullOrEmpty())      return "測量座標編號"
 
         // 不可開蓋：下方欄位可不填，直接通過
         if (isCantOpen) return null
@@ -589,8 +566,8 @@ class GutterBasicInfoFragment : Fragment() {
         "SPI_NUM"     to (binding.etGutterId.text?.toString()      ?: ""),
         "NODE_TYP"    to gutterTypeTextToCode(binding.rgGutterType.getCheckedText()),
         "MAT_TYP"     to matTypeTextToCode(binding.rgMatType.getCheckedText()),
-        "NODE_X"      to (binding.etCoordX.text?.toString()        ?: ""),
-        "NODE_Y"      to (binding.etCoordY.text?.toString()        ?: ""),
+        "NODE_X"      to coordXValue,
+        "NODE_Y"      to coordYValue,
         "NODE_LE"     to (binding.etCoordZ.text?.toString()        ?: ""),
         "XY_NUM"      to (binding.etMeasureId.text?.toString()     ?: ""),
         // 待架站（點位層級）：以 "1"/"0" 形式存入 basicData
@@ -609,8 +586,8 @@ class GutterBasicInfoFragment : Fragment() {
     )
 
     fun updateCoordinates(longitude: Double, latitude: Double) {
-        binding.etCoordX.setText("%.6f".format(longitude))
-        binding.etCoordY.setText("%.6f".format(latitude))
+        coordXValue = "%.6f".format(longitude)
+        coordYValue = "%.6f".format(latitude)
         onDraftChanged?.invoke()
     }
 
@@ -676,8 +653,8 @@ class GutterBasicInfoFragment : Fragment() {
 
             // 坐標資訊（WGS84 經緯度，由 API 回傳為字串）
             if (!nodeDetails.latitude.isNullOrEmpty() && !nodeDetails.longitude.isNullOrEmpty()) {
-                etCoordX.setText(nodeDetails.longitude)
-                etCoordY.setText(nodeDetails.latitude)
+                coordXValue = nodeDetails.longitude ?: coordXValue
+                coordYValue = nodeDetails.latitude ?: coordYValue
             }
 
             // Z 坐標（標高，API key 為 NODE_LE，回傳字串）

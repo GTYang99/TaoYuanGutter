@@ -115,65 +115,32 @@
 
         </RadioGroup>
 
-        <!-- ④ 側溝X（E）座標 ────────────────────────────────────── -->
+        <!-- ④ 側溝位置 ─────────────────────────────────────────── -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/field_coord_x"
+            android:text="側溝位置"
             android:textSize="13sp"
             android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
+            android:layout_marginBottom="6dp" />
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilCoordX"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnPickLocation"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="40dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:text="定位"
+            android:textAllCaps="false"
+            android:textColor="@color/text_grey"
+            android:textSize="14sp"
             android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etCoordX"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="numberDecimal|numberSigned"
-                android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- ④ 側溝Y（N）座標 ────────────────────────────────────── -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/field_coord_y"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilCoordY"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etCoordY"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="numberDecimal|numberSigned"
-                android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
-
-        </com.google.android.material.textfield.TextInputLayout>
+            app:cornerRadius="12dp"
+            app:iconPadding="6dp"
+            app:strokeColor="@color/map_borders_grey"
+            app:strokeWidth="1dp"
+            />
 
         <!-- ⑤ 側溝Z座標 ─────────────────────────────────────────── -->
         <TextView
