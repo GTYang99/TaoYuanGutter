@@ -169,6 +169,7 @@
     <string name="msg_start_point_required">請先設定起點座標</string>
     <string name="msg_end_point_required">請先設定終點座標</string>
     <string name="msg_upload_failed_saved_draft">上傳失敗，已儲存為待上傳草稿</string>
+    <string name="msg_gutter_submitting">側溝資料上傳中，請稍候…</string>
     <string name="msg_waypoint_loading">點位資料載入中，請稍候</string>
     <string name="msg_waypoint_load_partial_failed">部分點位資料載入失敗</string>
     <string name="msg_location_permission_required">需要定位權限才能使用「現在位置」功能</string>

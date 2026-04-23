@@ -245,9 +245,11 @@ class GutterBasicInfoFragment : Fragment() {
     private fun setupPendingDeployButton(isViewMode: Boolean) {
         // View mode: disabled until user enters edit mode (GutterFormActivity.enterEditMode -> setEditable(true))
         binding.btnPendingDeploy.isEnabled = !isViewMode && isFormEditable
+        applyPendingDeployUi(binding.btnPendingDeploy.isChecked)
         // Avoid stale listeners when toggling enabled state / rebinding view.
         binding.btnPendingDeploy.setOnCheckedChangeListener(null)
-        binding.btnPendingDeploy.setOnCheckedChangeListener { _, _ ->
+        binding.btnPendingDeploy.setOnCheckedChangeListener { _, checked ->
+            applyPendingDeployUi(checked)
             if (binding.btnPendingDeploy.isEnabled) onDraftChanged?.invoke()
         }
     }
@@ -255,6 +257,18 @@ class GutterBasicInfoFragment : Fragment() {
     private fun setPendingDeploySelected(selected: Boolean) {
         // UI spec: checkbox only; text color unchanged; checkbox uses theme primary via XML buttonTint.
         binding.btnPendingDeploy.isChecked = selected
+        applyPendingDeployUi(selected)
+    }
+
+    private fun applyPendingDeployUi(isPendingDeploy: Boolean) {
+        val enabled = isFormEditable && !isPendingDeploy
+        binding.etMeasureId.isEnabled = enabled
+        binding.etMeasureId.isFocusable = enabled
+        binding.etMeasureId.isFocusableInTouchMode = enabled
+        binding.tilMeasureId.alpha = if (enabled) 1f else 0.5f
+        if (!enabled) {
+            binding.tilMeasureId.error = null
+        }
     }
 
     private fun setupCantOpen() {
@@ -419,6 +433,7 @@ class GutterBasicInfoFragment : Fragment() {
         binding.btnPendingDeploy.isEnabled = enabled
         // Re-apply style (so view->edit mode transitions update colors correctly)
         setPendingDeploySelected(binding.btnPendingDeploy.isChecked)
+        applyPendingDeployUi(binding.btnPendingDeploy.isChecked)
 
         // Z 座標（NODE_LE）由後端提供，可檢視但不可修改
         binding.etCoordZ.isEnabled = false
@@ -462,12 +477,13 @@ class GutterBasicInfoFragment : Fragment() {
     fun validateRequiredFields(): String? {
         val d = collectData()
         val isCantOpen = parseLooseBoolean(d["IS_CANTOPEN"])
+        val isPendingDeploy = parseLooseBoolean(d["IS_PENDING_DEPLOY"])
 
         // 新增與編輯模式均不驗證側溝編號（欄位已隱藏）
         if (d["NODE_TYP"].isNullOrEmpty())    return "側溝形式"
         if (d["NODE_X"].isNullOrEmpty())      return "側溝X（E）座標"
         if (d["NODE_Y"].isNullOrEmpty())      return "側溝Y（N）座標"
-        if (d["XY_NUM"].isNullOrEmpty())      return "測量座標編號"
+        if (!isPendingDeploy && d["XY_NUM"].isNullOrEmpty()) return "測量座標編號"
 
         // 不可開蓋：下方欄位可不填，直接通過
         if (isCantOpen) return null

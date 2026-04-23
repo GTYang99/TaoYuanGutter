@@ -597,6 +597,8 @@ class MainActivity : AppCompatActivity(),
         isInEditingMode = false  // 允許自動加載 polylines
         drawSubmittedGutter(waypoints)
         googleMap?.setPadding(0, 0, 0, 0)
+        // 新增流程：從按下送出開始即全程阻擋，直到最終結果 Alert 顯示前才解除
+        setInspectLoading(true, getString(R.string.msg_gutter_submitting))
     }
 
     /**
@@ -719,7 +721,10 @@ class MainActivity : AppCompatActivity(),
         val pendingDraftId = currentSessionDraftId
         currentSessionDraftId = null
 
-        val token = LoginActivity.getSavedToken(this) ?: return
+        val token = LoginActivity.getSavedToken(this) ?: run {
+            setInspectLoading(false)
+            return
+        }
         if (spiNum != null) {
             // 更新模式：移除舊線段，重載可視範圍
             scopePolylines.remove(spiNum)?.remove()
@@ -744,6 +749,7 @@ class MainActivity : AppCompatActivity(),
                         getString(R.string.msg_gutter_uploaded)
                 }
                 val title = if (failCount > 0) "上傳完成" else "上傳成功"
+                setInspectLoading(false)
                 if (!isFinishing && !isDestroyed) {
                     MaterialAlertDialogBuilder(this@MainActivity)
                         .setTitle(title)
@@ -756,6 +762,7 @@ class MainActivity : AppCompatActivity(),
             } catch (e: Exception) {
                 android.util.Log.e("PhotoUpload", "uploadWaypointPhotos 例外: ${e.message}", e)
                 val message = "側溝上傳已完成，但照片上傳發生錯誤。請稍後再試。"
+                setInspectLoading(false)
                 if (!isFinishing && !isDestroyed) {
                     MaterialAlertDialogBuilder(this@MainActivity)
                         .setTitle("上傳完成（有錯誤）")
@@ -782,6 +789,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onGutterSaveFailed(waypoints: List<Waypoint>) {
+        setInspectLoading(false)
         saveWaypointsAsPendingDraft(waypoints)
     }
 
@@ -821,6 +829,7 @@ class MainActivity : AppCompatActivity(),
                             activeSheet?.dismiss()
                             activeSheet = null
                             clearWorkingMarkers()
+                            isInEditingMode = false  // 刪除成功後退出編輯模式，允許重新加載 scope 線段
                             binding.btnAddGutter.visibility = View.VISIBLE
                             googleMap?.setPadding(0, 0, 0, 0)
                             Toast.makeText(this@MainActivity, String.format(getString(R.string.msg_delete_success), spiNum), Toast.LENGTH_SHORT).show()

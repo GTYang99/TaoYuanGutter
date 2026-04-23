@@ -698,19 +698,22 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
 
 	                // ② 自動移除「未選座標」或「資料不完整」的節點
-	                // 必填欄位：NODE_TYP、NODE_X、NODE_Y、XY_NUM、MAT_TYP、NODE_DEP、NODE_WID
+	                // 必填欄位：NODE_TYP、NODE_X、NODE_Y、MAT_TYP、NODE_DEP、NODE_WID
+	                // 例外：IS_PENDING_DEPLOY=1 時，XY_NUM 可為空
 	                // 例外：IS_CANTOPEN=1 時，下方欄位由設計上為空（MAT_TYP / NODE_DEP / NODE_WID…），不納入必填判斷
 	                // 照片：三張都需拍攝（photo1/2/3 均非空）
 	                val baseRequiredBasicKeys = listOf(
-	                    "NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM"
+	                    "NODE_TYP", "NODE_X", "NODE_Y"
 	                )
 	                val requiredWhenCanOpenKeys = listOf("MAT_TYP", "NODE_DEP", "NODE_WID")
 	                val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
 	                val validWaypoints = waypoints.filter { wp ->
 	                    if (wp.type != WaypointType.NODE) return@filter true
 	                    val isCantOpen    = wp.basicData["IS_CANTOPEN"] == "1"
-	                    val effectiveKeys = if (isCantOpen) baseRequiredBasicKeys
-	                                        else baseRequiredBasicKeys + requiredWhenCanOpenKeys
+	                    val isPendingDeploy = wp.basicData["IS_PENDING_DEPLOY"] == "1"
+	                    val baseKeys = if (isPendingDeploy) baseRequiredBasicKeys else baseRequiredBasicKeys + "XY_NUM"
+	                    val effectiveKeys = if (isCantOpen) baseKeys
+	                                        else baseKeys + requiredWhenCanOpenKeys
 	                    val hasLocation   = wp.latLng != null
 	                    val hasBasicData  = effectiveKeys.all { wp.basicData[it]?.isNotEmpty() == true }
 	                    val hasAllPhotos  = requiredPhotoKeys.all { wp.basicData[it]?.isNotEmpty() == true }
