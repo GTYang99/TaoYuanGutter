@@ -1,6 +1,10 @@
 package com.example.taoyuangutter.gutter
 
 import android.app.Activity
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import android.media.ExifInterface
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -22,9 +26,14 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.databinding.FragmentCameraOverlayBinding
 import java.io.File
+import java.io.FileOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 全螢幕相機 Overlay（嵌入 GutterFormActivity），避免 Activity 切換造成放大/旋轉卡頓。
@@ -173,6 +182,7 @@ class CameraOverlayFragment : Fragment() {
         orientationListener = object : OrientationEventListener(requireContext()) {
             override fun onOrientationChanged(orientation: Int) {
                 if (orientation == ORIENTATION_UNKNOWN) return
+                // 強制橫向模式：只有在 60~120 或 240~300 範圍內才認為是「橫放」
                 val landscape = orientation in 60..120 || orientation in 240..300
                 if (landscape != deviceIsLandscape) {
                     deviceIsLandscape = landscape
@@ -180,11 +190,14 @@ class CameraOverlayFragment : Fragment() {
                 }
 
                 // 依感測器方向更新 targetRotation：
-                // - Activity 固定直立不旋轉，但使用者會橫放手機拍照
-                // - 透過 targetRotation 讓 Preview 與 ImageCapture 的內容方向與 UI 預期一致
+                // - Activity 固定直立不旋轉，但使用者必須橫放手機拍照
+                // - 透過 targetRotation 讓 ImageCapture 的照片上下方向與實際拍攝方向一致
+                // OrientationEventListener 的角度定義下：
+                // 90° 代表裝置左側朝上（應對應 ROTATION_270）
+                // 270° 代表裝置右側朝上（應對應 ROTATION_90）
                 val rotation = when {
-                    orientation in 60..120 -> Surface.ROTATION_90
-                    orientation in 240..300 -> Surface.ROTATION_270
+                    orientation in 60..120 -> Surface.ROTATION_270
+                    orientation in 240..300 -> Surface.ROTATION_90
                     else -> Surface.ROTATION_0
                 }
                 if (rotation != lastSurfaceRotation) {
@@ -196,7 +209,7 @@ class CameraOverlayFragment : Fragment() {
             }
         }
 
-        // 初始狀態：先假設未橫放（顯示提示），等 listener 回報後再更新
+        // 初始狀態：先禁用快門，等待 orientation listener 回報實際方向
         deviceIsLandscape = false
         updateOrientationUi(false)
         lastSurfaceRotation = Surface.ROTATION_0
@@ -233,9 +246,13 @@ class CameraOverlayFragment : Fragment() {
             }
         this.preview = preview
 
+        // 以目前 listener 已知的 rotation 作為初始值，避免先拍第一張方向錯誤
+        preview.targetRotation = lastSurfaceRotation
+
         imageCapture = ImageCapture.Builder()
             .setTargetAspectRatio(AspectRatio.RATIO_4_3)
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+            .setTargetRotation(lastSurfaceRotation)
             .build()
 
         try {
@@ -246,6 +263,7 @@ class CameraOverlayFragment : Fragment() {
                 preview,
                 imageCapture
             )
+            // 保持 setupOrientationListener 初始化狀態，等待實際方向事件更新
         } catch (e: Exception) {
             Toast.makeText(requireContext(), getString(R.string.msg_camera_init_failed), Toast.LENGTH_SHORT).show()
             sendResult(Activity.RESULT_CANCELED, arguments?.getInt(ARG_SLOT, 0) ?: 0, null)
@@ -264,7 +282,12 @@ class CameraOverlayFragment : Fragment() {
             ContextCompat.getMainExecutor(requireContext()),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    sendResult(Activity.RESULT_OK, slot, file.absolutePath)
+                    viewLifecycleOwner.lifecycleScope.launch {
+                        withContext(Dispatchers.IO) {
+                            normalizeCapturedPhotoOrientation(file)
+                        }
+                        sendResult(Activity.RESULT_OK, slot, file.absolutePath)
+                    }
                 }
 
                 override fun onError(exception: ImageCaptureException) {
@@ -286,5 +309,58 @@ class CameraOverlayFragment : Fragment() {
             }
         )
         (activity as? GutterFormActivity)?.hideCameraOverlay()
+    }
+
+    private fun normalizeCapturedPhotoOrientation(file: File) {
+        runCatching {
+            val exif = ExifInterface(file.absolutePath)
+            val orientation = exif.getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
+            )
+            val matrix = Matrix()
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.postScale(-1f, 1f)
+                ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.postScale(1f, -1f)
+                ExifInterface.ORIENTATION_TRANSPOSE -> {
+                    matrix.postRotate(90f)
+                    matrix.postScale(-1f, 1f)
+                }
+                ExifInterface.ORIENTATION_TRANSVERSE -> {
+                    matrix.postRotate(270f)
+                    matrix.postScale(-1f, 1f)
+                }
+                else -> return
+            }
+
+            val source = BitmapFactory.decodeFile(file.absolutePath) ?: return
+            val fixed = Bitmap.createBitmap(
+                source,
+                0,
+                0,
+                source.width,
+                source.height,
+                matrix,
+                true
+            )
+            if (fixed != source) source.recycle()
+
+            FileOutputStream(file).use { out ->
+                fixed.compress(Bitmap.CompressFormat.JPEG, 95, out)
+            }
+            fixed.recycle()
+
+            val fixedExif = ExifInterface(file.absolutePath)
+            fixedExif.setAttribute(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL.toString()
+            )
+            fixedExif.saveAttributes()
+        }.onFailure { e ->
+            android.util.Log.w("CameraOverlay", "normalize orientation failed: ${e.message}")
+        }
     }
 }

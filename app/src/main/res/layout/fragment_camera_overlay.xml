@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
     全螢幕相機 Overlay（嵌在 GutterFormActivity 內）
-    - 預覽區固定為 3:4（直向 4、橫向 3；所見拍攝區與照片範圍對齊）
+    - 預覽區固定為 4:3（橫向：寬度 4、高度 3）
     - 快門固定在底部（不隨裝置旋轉換邊）
-    - orientationWarning：裝置未橫放時顯示提示遮罩並禁用快門
+    - orientationWarning：裝置未橫放時隱藏，只有在實際未橫放時才顯示提示遮罩並禁用快門
 -->
 <androidx.constraintlayout.widget.ConstraintLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
@@ -15,24 +15,27 @@
     android:clickable="true"
     android:focusable="true">
 
-    <!-- 預覽區（固定 3:4：直向 4、橫向 3） -->
+    <!-- 預覽區（強制橫向 4:3：寬度 4、高度 3） -->
     <FrameLayout
         android:id="@+id/previewContainer"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
+        android:layout_width="382dp"
+        android:layout_height="588dp"
         android:background="#000000"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toTopOf="@+id/controlsContainer"
-        app:layout_constraintDimensionRatio="W,3:4">
+        app:layout_constraintDimensionRatio="W,4:3"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <!-- CameraX 預覽：4:3 視窗內完整顯示 -->
         <androidx.camera.view.PreviewView
             android:id="@+id/viewFinder"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:scaleType="fitCenter" />
+            app:scaleType="fitCenter"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"/>
 
     </FrameLayout>
 
@@ -92,7 +95,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:background="#CC000000"
-        android:visibility="visible"
+        android:visibility="gone"
         android:elevation="16dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
