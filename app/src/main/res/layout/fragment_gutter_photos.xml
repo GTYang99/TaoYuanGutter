@@ -98,6 +98,21 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
+            <!-- 載入中：拍照返回後 Glide 解碼/載入期間顯示 -->
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/pbPhotoLoading1"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:visibility="gone"
+                android:indeterminate="true"
+                android:elevation="12dp"
+                app:indicatorColor="?attr/colorPrimary"
+                app:trackColor="@android:color/transparent"
+                app:layout_constraintTop_toTopOf="@id/ratioAnchor1"
+                app:layout_constraintBottom_toBottomOf="@id/ratioAnchor1"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
             <!-- 刪除按鈕（有照片時顯示，預設 GONE） -->
             <ImageView
                 android:id="@+id/btnDeleteSlot1"
@@ -194,6 +209,21 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent" />
 
+            <!-- 載入中：拍照返回後 Glide 解碼/載入期間顯示 -->
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/pbPhotoLoading2"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:visibility="gone"
+                android:indeterminate="true"
+                android:elevation="12dp"
+                app:indicatorColor="?attr/colorPrimary"
+                app:trackColor="@android:color/transparent"
+                app:layout_constraintTop_toTopOf="@id/ratioAnchor2"
+                app:layout_constraintBottom_toBottomOf="@id/ratioAnchor2"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
             <!-- 刪除按鈕（有照片時顯示，預設 GONE） -->
             <ImageView
                 android:id="@+id/btnDeleteSlot2"
@@ -285,6 +315,21 @@
                 android:scaleType="centerCrop"
                 android:visibility="gone"
                 android:contentDescription="@null"
+                app:layout_constraintTop_toTopOf="@id/ratioAnchor3"
+                app:layout_constraintBottom_toBottomOf="@id/ratioAnchor3"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+
+            <!-- 載入中：拍照返回後 Glide 解碼/載入期間顯示 -->
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                android:id="@+id/pbPhotoLoading3"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:visibility="gone"
+                android:indeterminate="true"
+                android:elevation="12dp"
+                app:indicatorColor="?attr/colorPrimary"
+                app:trackColor="@android:color/transparent"
                 app:layout_constraintTop_toTopOf="@id/ratioAnchor3"
                 app:layout_constraintBottom_toBottomOf="@id/ratioAnchor3"
                 app:layout_constraintStart_toStartOf="parent"

@@ -62,6 +62,10 @@
     <string name="layers_sheet_layer_code">圖層代碼：%1$s</string>
     <string name="unupload_data">待上傳草稿</string>
 
+    <!-- scopeSearch gutter lines loading -->
+    <string name="msg_loading_gutters">載入側溝線段中…</string>
+    <string name="msg_loading_gutters_done">側溝線段載入完成</string>
+    <string name="msg_loading_gutters_failed">側溝線段載入失敗</string>
 
     <!-- Strings for Form Fragment -->
     <string name="form_title">巡檢資料填寫</string>
@@ -150,11 +154,14 @@
     <string name="msg_camera_init_failed">相機初始化失敗</string>
     <string name="msg_camera_capture_failed">拍照失敗</string>
     <string name="msg_camera_permission_required">需要相機權限才能拍照</string>
+    <string name="msg_loading_photo">正在載入照片…</string>
     <string name="msg_photo_prepare_failed">無法準備拍照檔案</string>
     <string name="msg_photo_download_failed">下載照片失敗：%1$s</string>
     <string name="msg_photo_upload_progress">第%1$d/%2$d張照片上傳中...</string>
+    <string name="msg_photo_upload_completed_progress">已完成%1$d/%2$d張照片上傳中...</string>
     <string name="msg_photo_upload_one_failed">第%1$d/%2$d張照片上傳失敗，繼續上傳中…</string>
     <string name="msg_gutter_upload_done_with_failures">側溝上傳完成，%1$d張照片上傳失敗</string>
+    <string name="msg_photo_upload_overlay_progress">照片上傳中… 已完成 %1$d/%2$d（失敗 %3$d）</string>
     <string name="msg_data_parse_failed">資料解析失敗</string>
     <string name="msg_fill_required">請填寫「%1$s」</string>
     <string name="msg_take_photo_required">請拍攝「%1$s」照片</string>

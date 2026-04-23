@@ -507,7 +507,9 @@ class GutterRepository(
     ): ApiResult<NodeImageUploadResponse> {
         return try {
             // 支援 content:// 與 file:// URI，統一先複製到暫存檔再上傳
-            val tempFile = copyUriToTempFile(context, imageUri)
+            val tempFile = withContext(Dispatchers.IO) {
+                copyUriToTempFile(context, imageUri)
+            }
                 ?: return ApiResult.Error("無法讀取圖片檔案")
             try {
                 // 使用 INFO 等級，避免部分裝置 / 篩選條件看不到 DEBUG log
@@ -554,7 +556,9 @@ class GutterRepository(
                     )
                 }
             } finally {
-                tempFile.delete()   // 上傳完畢（無論成敗）清除暫存檔
+                withContext(Dispatchers.IO) {
+                    tempFile.delete()   // 上傳完畢（無論成敗）清除暫存檔
+                }
             }
         } catch (e: CancellationException) {
             throw e

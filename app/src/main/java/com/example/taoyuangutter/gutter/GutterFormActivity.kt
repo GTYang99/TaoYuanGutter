@@ -33,6 +33,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.NodeDetails
+import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -47,10 +48,42 @@ import kotlinx.coroutines.launch
 import java.net.MalformedURLException
 import java.net.URL
 
-class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
+class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadingHost {
 
     private lateinit var binding: ActivityGutterFormBinding
     private lateinit var pagerAdapter: GutterFormPagerAdapter
+    private var photoLoadingCount: Int = 0
+
+    override fun setPhotoLoading(visible: Boolean) {
+        if (!::binding.isInitialized) return
+        if (visible) photoLoadingCount++ else photoLoadingCount = (photoLoadingCount - 1).coerceAtLeast(0)
+        binding.photoLoadingOverlay.visibility = if (photoLoadingCount > 0) View.VISIBLE else View.GONE
+    }
+
+    fun showCameraOverlay(slot: Int, outputPath: String) {
+        if (!::binding.isInitialized) return
+        binding.cameraOverlayContainer.visibility = View.VISIBLE
+        supportFragmentManager.beginTransaction()
+            .setReorderingAllowed(true)
+            .replace(
+                binding.cameraOverlayContainer.id,
+                CameraOverlayFragment.newInstance(slot = slot, outputPath = outputPath),
+                CameraOverlayFragment::class.java.name
+            )
+            .commitAllowingStateLoss()
+    }
+
+    fun hideCameraOverlay() {
+        if (!::binding.isInitialized) return
+        val tag = CameraOverlayFragment::class.java.name
+        supportFragmentManager.findFragmentByTag(tag)?.let { frag ->
+            supportFragmentManager.beginTransaction()
+                .setReorderingAllowed(true)
+                .remove(frag)
+                .commitAllowingStateLoss()
+        }
+        binding.cameraOverlayContainer.visibility = View.GONE
+    }
 
     private val logTag = "GutterFormActivity"
 
@@ -571,13 +604,15 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
     }
 
-    override fun onPause() {
-        if (!isFinishing) {
-            draftSyncJob?.cancel()
-            syncSessionDraftNow()
-        }
-        super.onPause()
-    }
+	    override fun onPause() {
+	        if (!isFinishing) {
+	            draftSyncJob?.cancel()
+	            draftSyncJob = lifecycleScope.launch {
+	                syncSessionDraftNow()
+	            }
+	        }
+	        super.onPause()
+	    }
 
     private fun buildEmptyData(lat: Double, lng: Double) = hashMapOf(
         // 編輯模式下，側溝編號預設為空字串，以符合「不用顯示側溝編號欄位」的需求
@@ -993,23 +1028,27 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-	    private fun syncSessionDraftNow() {
-	        if (isViewMode) return
-	        if (currentIndex !in sessionWaypoints.indices) return
+		    private suspend fun syncSessionDraftNow() {
+		        if (isViewMode) return
+		        if (currentIndex !in sessionWaypoints.indices) return
 
-        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
-        val (photo1, photo2, photo3) = pagerAdapter.getPhotosFragment()?.getPhotoPaths()
-            ?: Triple(null, null, null)
+	        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
+	        val (photo1, photo2, photo3) = pagerAdapter.getPhotosFragment()?.getPhotoPaths()
+	            ?: Triple(null, null, null)
 
-        val formLat = basicData["NODE_Y"]?.toDoubleOrNull()
-        val formLng = basicData["NODE_X"]?.toDoubleOrNull()
-        val existing = sessionWaypoints[currentIndex]
-        val mergedBasicData = HashMap(existing.basicData).apply {
-            putAll(basicData)
-            put("photo1", photo1 ?: "")
-            put("photo2", photo2 ?: "")
-            put("photo3", photo3 ?: "")
-        }
+	        val p1 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(this, photo1, prefix = "GUTTER_EXT_")
+	        val p2 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(this, photo2, prefix = "GUTTER_EXT_")
+	        val p3 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(this, photo3, prefix = "GUTTER_EXT_")
+
+	        val formLat = basicData["NODE_Y"]?.toDoubleOrNull()
+	        val formLng = basicData["NODE_X"]?.toDoubleOrNull()
+	        val existing = sessionWaypoints[currentIndex]
+	        val mergedBasicData = HashMap(existing.basicData).apply {
+	            putAll(basicData)
+	            put("photo1", p1 ?: "")
+	            put("photo2", p2 ?: "")
+	            put("photo3", p3 ?: "")
+	        }
 
         sessionWaypoints[currentIndex] = existing.copy(
             latitude = if (formLat != null && formLat in -90.0..90.0) formLat else existing.latitude,
@@ -1129,26 +1168,28 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun saveOfflineAndClose(silent: Boolean = false) {
         // 先取消任何排隊中的延遲 sync，避免 finish() 後仍觸發造成非預期寫入
         draftSyncJob?.cancel()
-        if (!silent) {
-            val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
-            if (basicError != null) {
-                binding.viewPager.currentItem = 0
-                Toast.makeText(this, String.format(getString(R.string.msg_fill_required), basicError), Toast.LENGTH_SHORT).show()
-                return
-            }
+	        if (!silent) {
+	            val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
+	            if (basicError != null) {
+	                binding.viewPager.currentItem = 0
+	                Toast.makeText(this, String.format(getString(R.string.msg_fill_required), basicError), Toast.LENGTH_SHORT).show()
+	                return
+	            }
             val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
             if (photoError != null) {
                 binding.viewPager.currentItem = 1
                 Toast.makeText(this, String.format(getString(R.string.msg_take_photo_required), photoError), Toast.LENGTH_SHORT).show()
                 return
-            }
-        }
-        syncSessionDraftNow()
-        if (!silent) {
-            Toast.makeText(this, getString(R.string.msg_draft_saved), Toast.LENGTH_SHORT).show()
-        }
-        finish()
-    }
+	            }
+	        }
+	        lifecycleScope.launch {
+	            syncSessionDraftNow()
+	            if (!silent) {
+	                Toast.makeText(this@GutterFormActivity, getString(R.string.msg_draft_saved), Toast.LENGTH_SHORT).show()
+	            }
+	            finish()
+	        }
+	    }
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {

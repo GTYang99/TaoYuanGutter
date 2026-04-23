@@ -30,10 +30,12 @@ import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import android.net.Uri
 import com.example.taoyuangutter.common.LocationPickEvents
+import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddCurveActivity
@@ -77,8 +79,11 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import java.net.MalformedURLException
 import java.net.URL
 import kotlin.collections.map
@@ -196,6 +201,7 @@ class MainActivity : AppCompatActivity(),
 
     // ── 防抖機制（避免重複調用 scopeSearch API） ────────────────────
     private var lastGutterLoadTime = 0L
+    private var isScopeReloadFeedbackPending = false
 
     // ── 測距模式 ──────────────────────────────────────────────────────────────
     /**
@@ -269,12 +275,20 @@ class MainActivity : AppCompatActivity(),
                             }
 
 	                            // ── 更新表單填寫的基本資料 ──────────────────────────
-	                            val newData = extractBasicData(result.data)
-	                            activeSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
-	                            // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
-	                            currentWaypoints = activeSheet?.getWaypoints() ?: currentWaypoints
-	                            refreshWorkingLayer(currentWaypoints)
-	                        }
+	                            // 先做照片 URI 正規化（避免多節點上傳照片卡住），再回寫 basicData，並立刻刷新工作層 marker
+	                            val rawData = extractBasicData(result.data)
+	                            lifecycleScope.launch {
+	                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
+	                                    context = this@MainActivity,
+	                                    basicData = rawData,
+	                                    prefix = "GUTTER_EXT_"
+	                                )
+	                                activeSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
+	                                // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
+	                                currentWaypoints = activeSheet?.getWaypoints() ?: currentWaypoints
+	                                refreshWorkingLayer(currentWaypoints)
+	                            }
+		                        }
                         GutterFormActivity.RESULT_DELETE -> if (pendingWaypointFormIndex >= 0) {
                             // 使用者放棄填寫 → 清除該點位的座標與資料（同時更新地圖大頭針）
                             activeSheet?.clearWaypointLocation(pendingWaypointFormIndex)
@@ -282,26 +296,33 @@ class MainActivity : AppCompatActivity(),
                     }
                     resetHighlightedMarker()
                     pendingWaypointFormIndex = -1
-                    activeSheet?.showSelf()
-                    if (currentWaypoints.isNotEmpty()) fitCameraToWaypoints(currentWaypoints)
-                }
+	                    activeSheet?.showSelf()
+	                    if (currentWaypoints.isNotEmpty()) fitCameraToWaypoints(currentWaypoints)
+	                }
 	                inspectSheet != null -> {
 	                    if (result.resultCode == Activity.RESULT_OK) {
 	                        val data = result.data
 	                        val idx  = data?.getIntExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, -1) ?: -1
-	                        if (idx >= 0) {
-	                            val newData = extractBasicData(data)
-	                            inspectWaypoints.getOrNull(idx)?.basicData = newData
-	                            // Refresh marker icons to reflect updated flags (e.g., IS_PENDING_DEPLOY).
-	                            refreshWorkingMarkers(inspectWaypoints)
-	                        }
-	                    }
+		                        if (idx >= 0) {
+		                            val rawData = extractBasicData(data)
+		                            lifecycleScope.launch {
+		                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
+		                                    context = this@MainActivity,
+		                                    basicData = rawData,
+		                                    prefix = "GUTTER_EXT_"
+		                                )
+		                                inspectWaypoints.getOrNull(idx)?.basicData = newData
+		                                // Refresh marker icons to reflect updated flags (e.g., IS_PENDING_DEPLOY).
+		                                refreshWorkingMarkers(inspectWaypoints)
+		                            }
+		                        }
+		                    }
 	                    inspectSheet?.showSelf()
 	                    fitCameraToWaypoints(inspectWaypoints)
 	                }
-                else -> clearWorkingMarkers()
-            }
-        }
+	                else -> clearWorkingMarkers()
+	            }
+	        }
 
     // ── GutterInspectActivity 的 launcher ────────────────────────────
         inspectLauncher = registerForActivityResult(
@@ -358,7 +379,7 @@ class MainActivity : AppCompatActivity(),
                         workingPolyline = null
                         activeSheet = null
                         // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                        loadGuttersByViewport()
+                        loadGuttersByViewport(showFeedback = true)
                     } else {
                         val shouldRefit = updated.size > lastWaypointsSize
                         lastWaypointsSize = updated.size
@@ -382,7 +403,7 @@ class MainActivity : AppCompatActivity(),
                 // ── 從檢視模式返回（不編輯）時，清除起終點標記並恢復其他線段顯示 ──
                 isInEditingMode = false  // 允許自動加載 polylines
                 clearWorkingMarkers()   // 移除檢視模式新增的起點／節點／終點標記
-                loadGuttersByViewport()
+                loadGuttersByViewport(showFeedback = true)
             }
         }
 
@@ -469,7 +490,7 @@ class MainActivity : AppCompatActivity(),
                     googleMap?.setPadding(0, 0, 0, 0)
                     activeSheet = null
                     // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                    loadGuttersByViewport()
+                    loadGuttersByViewport(showFeedback = true)
                 }
             }
         } else {
@@ -482,7 +503,7 @@ class MainActivity : AppCompatActivity(),
                 clearWorkingMarkers()
                 inspectSheet = null
                 // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                loadGuttersByViewport()
+                loadGuttersByViewport(showFeedback = true)
             } }
         }
     }
@@ -614,55 +635,66 @@ class MainActivity : AppCompatActivity(),
         val total = pending.size
         if (total == 0) return 0   // 無需上傳，直接結束（不顯示進度條）
 
-        // 顯示進度提示 + 阻擋使用者操作（上傳期間不可操作 App）
+        // 阻擋使用者操作（上傳期間不可操作 App；顯示等待動畫與進度說明）
+        photoUploadTotal = total
+        photoUploadCompleted = 0
+        photoUploadFailed = 0
         setPhotoUploadBlocking(true)
-        binding.tvPhotoUploadProgress.visibility = android.view.View.VISIBLE
 
-        var failCount = 0
         try {
-            for ((idx, entry) in pending.withIndex()) {
-                val node     = entry.first
-                val path     = entry.second
-                val category = entry.third
-                val current  = idx + 1
+            // 並行上傳（保守：最多同時 2 張）
+            val semaphore = Semaphore(3)
 
-                binding.tvPhotoUploadProgress.text =
-                    getString(R.string.msg_photo_upload_progress, current, total)
+            coroutineScope {
+                pending.map { entry ->
+                    launch {
+                        semaphore.withPermit {
+                            val node = entry.first
+                            val path = entry.second
+                            val category = entry.third
 
-                // 最多重試 3 次
-                var success = false
-                for (attempt in 1..3) {
-                    when (val r = gutterRepository.uploadNodeImage(
-                        context      = this,
-                        nodeId       = node.nodeId,
-                        fileCategory = category,
-                        imageUri     = Uri.parse(path),
-                        token        = token
-                    )) {
-                        is ApiResult.Success -> { success = true }
-                        is ApiResult.Error -> {
-                            android.util.Log.w(
-                                "PhotoUpload",
-                                "node${node.nodeId} photo$category attempt$attempt 失敗: ${r.message}"
-                            )
+                            // 最多重試 3 次
+                            var success = false
+                            for (attempt in 1..3) {
+                                when (val r = gutterRepository.uploadNodeImage(
+                                    context = this@MainActivity,
+                                    nodeId = node.nodeId,
+                                    fileCategory = category,
+                                    imageUri = Uri.parse(path),
+                                    token = token
+                                )) {
+                                    is ApiResult.Success -> {
+                                        success = true
+                                    }
+                                    is ApiResult.Error -> {
+                                        android.util.Log.w(
+                                            "PhotoUpload",
+                                            "node${node.nodeId} photo$category attempt$attempt 失敗: ${r.message}"
+                                        )
+                                    }
+                                }
+                                if (success) break
+                            }
+
+                            withContext(Dispatchers.Main) {
+                                photoUploadCompleted += 1
+                                if (!success) {
+                                    photoUploadFailed += 1
+                                    android.util.Log.w(
+                                        "PhotoUpload",
+                                        "node${node.nodeId} photo$category 上傳失敗（3次重試均失敗）"
+                                    )
+                                }
+                                applyGlobalBlockingOverlay()
+                            }
                         }
                     }
-                    if (success) break
-                }
-
-                if (!success) {
-                    failCount++
-                    android.util.Log.w("PhotoUpload", "photo$category ($current/$total) 上傳失敗（3次重試均失敗）")
-                    // 進度條短暫顯示失敗資訊，不用 Toast 避免佇列堵塞
-                    binding.tvPhotoUploadProgress.text =
-                        getString(R.string.msg_photo_upload_one_failed, current, total)
-                    delay(1500)
                 }
             }
-            return failCount
+
+            return photoUploadFailed
         } finally {
-            // 隱藏進度提示 + 解除阻擋
-            binding.tvPhotoUploadProgress.visibility = android.view.View.GONE
+            // 解除阻擋
             setPhotoUploadBlocking(false)
         }
     }
@@ -679,7 +711,7 @@ class MainActivity : AppCompatActivity(),
 
         // ── 退出編輯模式時：重新加載所有線段 ──
         isInEditingMode = false  // 允許自動加載 polylines
-        loadGuttersByViewport()
+        loadGuttersByViewport(showFeedback = true)
     }
 
     override fun onGutterSaved(spiNum: String?, waypoints: List<Waypoint>, nodes: List<DitchNode>) {
@@ -703,7 +735,7 @@ class MainActivity : AppCompatActivity(),
         lifecycleScope.launch {
             try {
                 val failCount = uploadWaypointPhotos(waypoints, nodes, token)
-                val resultMsg = when {
+                val message = when {
                     failCount > 0 ->
                         getString(R.string.msg_gutter_upload_done_with_failures, failCount)
                     spiNum != null ->
@@ -711,17 +743,26 @@ class MainActivity : AppCompatActivity(),
                     else ->
                         getString(R.string.msg_gutter_uploaded)
                 }
-                Toast.makeText(this@MainActivity, resultMsg, Toast.LENGTH_SHORT).show()
+                val title = if (failCount > 0) "上傳完成" else "上傳成功"
+                if (!isFinishing && !isDestroyed) {
+                    MaterialAlertDialogBuilder(this@MainActivity)
+                        .setTitle(title)
+                        .setMessage(message)
+                        .setPositiveButton(getString(R.string.confirm), null)
+                        .show()
+                }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("PhotoUpload", "uploadWaypointPhotos 例外: ${e.message}", e)
-                binding.tvPhotoUploadProgress.visibility = android.view.View.GONE
-                val fallbackMsg = if (spiNum != null)
-                    getString(R.string.msg_gutter_updated)
-                else
-                    getString(R.string.msg_gutter_uploaded)
-                Toast.makeText(this@MainActivity, fallbackMsg, Toast.LENGTH_SHORT).show()
+                val message = "側溝上傳已完成，但照片上傳發生錯誤。請稍後再試。"
+                if (!isFinishing && !isDestroyed) {
+                    MaterialAlertDialogBuilder(this@MainActivity)
+                        .setTitle("上傳完成（有錯誤）")
+                        .setMessage(message)
+                        .setPositiveButton(getString(R.string.confirm), null)
+                        .show()
+                }
             } finally {
                 // 上傳完成（無論成功或失敗）後，才清除本機草稿照片與草稿紀錄
                 pendingDraftId?.let { draftId ->
@@ -1220,6 +1261,9 @@ class MainActivity : AppCompatActivity(),
     private var inspectLoadingVisible: Boolean = false
     private var inspectLoadingMessage: String? = null
     private var photoUploadBlockingVisible: Boolean = false
+    private var photoUploadTotal: Int = 0
+    private var photoUploadCompleted: Int = 0
+    private var photoUploadFailed: Int = 0
 
     /**
      * 照片上傳期間：顯示全螢幕阻擋層（含動畫），並鎖住主畫面按鈕避免誤觸。
@@ -1228,6 +1272,11 @@ class MainActivity : AppCompatActivity(),
     private fun setPhotoUploadBlocking(visible: Boolean) {
         if (!::binding.isInitialized) return
         photoUploadBlockingVisible = visible
+        if (!visible) {
+            photoUploadTotal = 0
+            photoUploadCompleted = 0
+            photoUploadFailed = 0
+        }
         // 避免干擾測距模式：測距模式本來就鎖按鈕，結束時也應維持原狀
         if (measureManager?.isMeasuring != true) {
             setMainButtonsEnabled(!visible)
@@ -1239,10 +1288,20 @@ class MainActivity : AppCompatActivity(),
         if (!::binding.isInitialized) return
         val visible = inspectLoadingVisible || photoUploadBlockingVisible
         binding.inspectLoadingOverlay.visibility = if (visible) View.VISIBLE else View.GONE
-        binding.tvInspectLoading.text = when {
-            photoUploadBlockingVisible -> "照片上傳中…"
-            !inspectLoadingMessage.isNullOrBlank() -> inspectLoadingMessage
-            else -> binding.tvInspectLoading.text
+        if (photoUploadBlockingVisible) {
+            // 依需求：照片上傳期間需卡住 + 顯示進度說明
+            binding.tvInspectLoading.visibility = View.VISIBLE
+            binding.tvInspectLoading.text = getString(
+                R.string.msg_photo_upload_overlay_progress,
+                photoUploadCompleted,
+                photoUploadTotal,
+                photoUploadFailed
+            )
+        } else {
+            binding.tvInspectLoading.visibility = View.VISIBLE
+            if (!inspectLoadingMessage.isNullOrBlank()) {
+                binding.tvInspectLoading.text = inspectLoadingMessage
+            }
         }
     }
 
@@ -1367,7 +1426,7 @@ class MainActivity : AppCompatActivity(),
                 googleMap?.setPadding(0, 0, 0, 0)
                 activeSheet = null
                 // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                loadGuttersByViewport()
+                loadGuttersByViewport(showFeedback = true)
             }
         }
         sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
@@ -1475,7 +1534,7 @@ class MainActivity : AppCompatActivity(),
                     googleMap?.setPadding(0, 0, 0, 0)
                     activeSheet = null
                     // 重新加載所有線段（scopePolylines 與 submittedPolylines）
-                    if (!isOfflineMainMode) loadGuttersByViewport()
+                    if (!isOfflineMainMode) loadGuttersByViewport(showFeedback = true)
                 }
             }
             currentWaypoints = draft.waypoints.map { snap ->
@@ -1692,20 +1751,26 @@ class MainActivity : AppCompatActivity(),
             return  // 距上次調用不足 500ms，跳過此次請求
         }
         lastGutterLoadTime = now
-        loadGuttersByViewport()
+        loadGuttersByViewport(showFeedback = false)
     }
 
     /**
      * 取得目前地圖可視範圍（LatLngBounds）並呼叫 scopeSearch API，
      * 成功後呼叫 [drawScopePolylines] 更新地圖上的線段。
      */
-    private fun loadGuttersByViewport() {
+    private fun loadGuttersByViewport(showFeedback: Boolean = false) {
         if (isOfflineMainMode) return
         // ── 編輯/檢視/新增模式中禁止自動加載，避免重新顯示隱藏的線段 ──
         if (isInEditingMode) return
         val map = googleMap ?: return
         val token = LoginActivity.getSavedToken(this) ?: return
         val bounds = map.projection.visibleRegion.latLngBounds
+
+        if (showFeedback && !isScopeReloadFeedbackPending) {
+            isScopeReloadFeedbackPending = true
+            Toast.makeText(this, getString(R.string.msg_loading_gutters), Toast.LENGTH_SHORT).show()
+        }
+
         lifecycleScope.launch {
             when (val result = gutterRepository.getGuttersByScope(
                 minLat = bounds.southwest.latitude,
@@ -1720,8 +1785,16 @@ class MainActivity : AppCompatActivity(),
                     submittedPolylines.forEach { it.remove() }
                     submittedPolylines.clear()
                     drawScopePolylines(result.data.data?.features ?: emptyList())
+                    if (isScopeReloadFeedbackPending) {
+                        isScopeReloadFeedbackPending = false
+                        Toast.makeText(this@MainActivity, getString(R.string.msg_loading_gutters_done), Toast.LENGTH_SHORT).show()
+                    }
                 }
                 is ApiResult.Error -> {
+                    if (isScopeReloadFeedbackPending) {
+                        isScopeReloadFeedbackPending = false
+                        Toast.makeText(this@MainActivity, getString(R.string.msg_loading_gutters_failed), Toast.LENGTH_SHORT).show()
+                    }
                     // 靜默失敗：不打擾使用者，僅在 logcat 留紀錄
                     android.util.Log.w("ScopeSearch", "查詢失敗: ${result.message}")
                 }
@@ -1752,41 +1825,42 @@ class MainActivity : AppCompatActivity(),
                 groupId.isNotBlank() &&
                 groupId.toIntOrNull() == savedGroupId
             val color = if (!isSameGroup) {
-                android.graphics.Color.parseColor("#909399") // 非本公司管轄
+                android.graphics.Color.parseColor("#73767A") // 非本公司管轄
             } else {
                 when (spiState) {
-                    1 -> android.graphics.Color.parseColor("#000000") // 已完成
-                    2 -> android.graphics.Color.parseColor("#FF58E0") // 待修正
-                    3 -> android.graphics.Color.parseColor("#FFC300") // 待匯入座標紀錄
-                    else -> android.graphics.Color.parseColor("#562ECB") // 檢視與編輯中（預設）
+                    1 -> android.graphics.Color.parseColor("#52D5BA") // 已完成
+                    2 -> android.graphics.Color.parseColor("#F56C6C") // 待修正
+                    3 -> android.graphics.Color.parseColor("#E6A23C") // 待匯入座標紀錄
+                    else -> android.graphics.Color.parseColor("#6236FF") // 預設
                 }
             }
-            val width = if (!isSameGroup) 12f else 6f
-            val outline: Polyline? =
-                if (isPendingDeploy) {
-                    map.addPolyline(
-                        com.google.android.gms.maps.model.PolylineOptions()
-                            .addAll(points)
-                            .color(android.graphics.Color.parseColor("#AD3A36"))
-                            .width(width + 6f)
-                            .zIndex(0f)
-                            .clickable(false)
-                    )
-                } else null
+	            // 未架站（is_pendingDeploy=1）：線段外框加上 #AD3A36 包裹，內層維持原色
+	            val width = if (!isSameGroup) 12f else 6f
+	            val outline: Polyline? =
+	                if (isPendingDeploy) {
+	                    map.addPolyline(
+	                        com.google.android.gms.maps.model.PolylineOptions()
+	                            .addAll(points)
+	                            .color(android.graphics.Color.parseColor("#AD3A36"))
+	                            .width(width + 6f)
+	                            .zIndex(0f)
+	                            .clickable(false)
+	                    )
+	                } else null
 
-            val inner = map.addPolyline(
-                com.google.android.gms.maps.model.PolylineOptions()
-                    .addAll(points)
-                    .color(color)
-                    .width(width)
-                    .zIndex(1f)
-                    .clickable(true)
-            )
-            // tag 同時儲存 spiNum 與 groupId，供點擊時比對編輯權限
-            inner.tag = Pair(spiNum, groupId)
-            scopePolylines[spiNum] = ScopePolylineSet(inner = inner, outline = outline)
-        }
-    }
+	            val inner = map.addPolyline(
+	                com.google.android.gms.maps.model.PolylineOptions()
+	                    .addAll(points)
+	                    .color(color)
+	                    .width(width)
+	                    .zIndex(1f)
+	                    .clickable(true)
+	            )
+	            // tag 同時儲存 spiNum 與 groupId，供點擊時比對編輯權限
+	            inner.tag = Pair(spiNum, groupId)
+	            scopePolylines[spiNum] = ScopePolylineSet(inner = inner, outline = outline)
+	        }
+	    }
 
     private fun createEnlargedMarkerIcon(
         type: WaypointType,
