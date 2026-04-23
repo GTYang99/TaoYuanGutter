@@ -203,6 +203,7 @@
     <string name="label_select_waypoint">選擇點位</string>
     <string name="title_existing_waypoint">既有點位資料</string>
     <string name="btn_curve">弧線</string>
+    <string name="btn_pending_deploy">待架站</string>
     <string name="label_photo_width">側溝內徑寬度尺寸</string>
     <string name="label_photo_depth">側溝深度尺寸</string>
     <string name="label_take_photo">點擊拍照</string>

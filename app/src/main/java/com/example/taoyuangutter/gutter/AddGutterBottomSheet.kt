@@ -92,6 +92,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private var editSpiNum: String = ""
     /** 是否為弧線側溝（整條層級）。 */
     private var isCurve: Boolean = false
+    /** 編輯模式：初始弧線狀態（用於判斷是否有修改）。 */
+    private var originalIsCurve: Boolean = false
 
     /** Window.Callback touch routing：ACTION_DOWN 落在 sheet 外時設為 true，後續事件轉發給 Activity */
     private var routeToActivity = false
@@ -117,6 +119,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     /** iOS 風格左滑：目前已展開「刪除」按鈕的 item position，-1 代表無 */
     private var openedSwipePosition: Int = -1
 
+    private fun parseLooseBoolean(raw: String?): Boolean {
+        val v = raw?.trim()?.lowercase()
+        return when (v) {
+            "1", "true", "t", "y", "yes" -> true
+            else -> false
+        }
+    }
+
     // ── Lifecycle ────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -125,8 +135,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         draftId       = arguments?.getLong(ARG_DRAFT_ID, 0L) ?: 0L
         editSpiNum    = arguments?.getString(ARG_SPI_NUM, "") ?: ""
         val isCurveArg = arguments?.getBoolean(ARG_IS_CURVE, false) ?: false
-        // 編輯模式不可轉換：依需求固定為弧線
-        isCurve = if (editSpiNum.isNotEmpty()) true else isCurveArg
+        // 初始弧線狀態：以 ditchDetails 回填（ARG_IS_CURVE）為準；新增/編輯皆一致
+        isCurve = isCurveArg
         // 新增/檢視模式皆允許點選外部區域（dim 遮罩）關閉
         isCancelable = true
 
@@ -589,6 +599,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     // ── 按鈕 ─────────────────────────────────────────────────────────────
     private fun setupButtons() {
+        // Avoid keeping stale listeners when switching modes / recreating view
+        binding.cbCurve.setOnCheckedChangeListener(null)
+
         if (isOfflineMode) {
             // 離線模式：顯示「取消」文字按鈕，隱藏返回箭頭
             binding.btnClose.visibility  = View.GONE
@@ -602,11 +615,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             // 檢視模式：隱藏新增節點、調轉、提交與刪除按鈕
             binding.btnAddNode.visibility       = View.GONE
             binding.btnReverse.visibility       = View.GONE
-            binding.btnCurve.visibility         = View.GONE
+            binding.cbCurve.visibility          = View.GONE
             binding.btnSubmitGutter.visibility  = View.GONE
             binding.btnDeleteGutter.visibility  = View.GONE
         } else if (editSpiNum.isNotEmpty()) {
-            // 編輯模式：不可新增節點；弧線不可切換（固定點選）
+            // 編輯模式：不可新增節點；弧線狀態可調整
             binding.btnAddNode.visibility = View.GONE
             binding.btnDeleteGutter.visibility = View.VISIBLE
             binding.btnSubmitGutter.text = getString(R.string.btn_update_gutter)
@@ -615,8 +628,16 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnReverse.visibility = View.VISIBLE
             binding.btnReverse.setOnClickListener { reverseWaypoints() }
 
-            binding.btnCurve.isEnabled = false
-            binding.btnCurve.isClickable = false
+            // 編輯模式：弧線狀態以 ditchDetails 回填為準，且允許使用者切換
+            binding.cbCurve.isClickable = true
+            binding.cbCurve.isFocusable = true
+            binding.cbCurve.setOnCheckedChangeListener { _, checked ->
+                if (isCurve == checked) return@setOnCheckedChangeListener
+                isCurve = checked
+                updateCurveToggleUi()
+                onWaypointsChanged?.invoke(waypoints.toList())
+                updateSubmitButtonState()
+            }
             updateCurveToggleUi()
 
             binding.btnDeleteGutter.setOnClickListener {
@@ -634,10 +655,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnReverse.visibility = View.VISIBLE
             binding.btnReverse.setOnClickListener { reverseWaypoints() }
 
-            binding.btnCurve.isEnabled = true
-            binding.btnCurve.isClickable = true
-            binding.btnCurve.setOnClickListener {
-                isCurve = !isCurve
+            binding.cbCurve.isClickable = true
+            binding.cbCurve.isFocusable = true
+            binding.cbCurve.setOnCheckedChangeListener { _, checked ->
+                if (isCurve == checked) return@setOnCheckedChangeListener
+                isCurve = checked
                 updateCurveToggleUi()
                 onWaypointsChanged?.invoke(waypoints.toList())
             }
@@ -902,6 +924,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun hasEditChanges(): Boolean {
         if (editSpiNum.isEmpty()) return false
         if (isPreloadingEditDetails) return false
+        if (isCurve != originalIsCurve) return true
         if (waypoints.size != originalWaypointsSnapshot.size) return true
         waypoints.forEachIndexed { i, wp ->
             val orig = originalWaypointsSnapshot[i]
@@ -990,6 +1013,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             put("NODE_DEP", nd.nodeDepAsString.ifEmpty { get("NODE_DEP") ?: "" })
                             put("NODE_WID", nd.nodeWidAsString.ifEmpty { get("NODE_WID") ?: "" })
                             put("IS_CANTOPEN", if (nd.isCantOpenAsBoolean) "1" else "0")
+                            put(
+                                "IS_PENDING_DEPLOY",
+                                if (parseLooseBoolean(nd.isPendingDeploy)) "1" else "0"
+                            )
                             put("IS_BROKEN", nd.isBroken ?: get("IS_BROKEN") ?: "")
                             put("IS_HANGING", nd.isHanging ?: get("IS_HANGING") ?: "")
                             put("IS_SILT", nd.isSilt ?: get("IS_SILT") ?: "")
@@ -1012,6 +1039,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
             adapter.notifyDataSetChanged()
             originalWaypointsSnapshot = takeWaypointSnapshot()
+            originalIsCurve = isCurve
             isPreloadingEditDetails = false
             setEditLoading(false)
             onWaypointsChanged?.invoke(waypoints.toList())
@@ -1052,13 +1080,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         spiNum: String? = null
     ): StoreDitchRequest {
         var nodeSequence = 1
-        fun parseLooseBoolean(raw: String?): Boolean {
-            val v = raw?.trim()?.lowercase()
-            return when (v) {
-                "1", "true", "t", "y", "yes" -> true
-                else -> false
-            }
-        }
 
         return StoreDitchRequest(
             spiNum = spiNum,
@@ -1073,6 +1094,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
 	                val isCantOpenBool = parseLooseBoolean(wp.basicData["IS_CANTOPEN"])
 	                val isCantOpenInt = if (isCantOpenBool) 1 else 0
+                    val isPendingDeployInt =
+                        if (parseLooseBoolean(wp.basicData["IS_PENDING_DEPLOY"])) 1 else 0
 	                val coverDep = wp.basicData["COVER_DEP"]
 	                    ?: wp.basicData["COVER_THICKNESS"]
 	                StoreDitchNodeRequest(
@@ -1084,6 +1107,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 	                    longitude = wp.latLng?.longitude ?: 0.0,
 	                    nodeLe    = wp.basicData["NODE_LE"]?.toDoubleOrNull(),
 	                    xyNum     = wp.basicData["XY_NUM"] ?: "",
+                        isPendingDeploy = isPendingDeployInt,
 	                    isCantOpen = isCantOpenInt,
 	                    matTyp    = if (isCantOpenBool) null else (wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
 	                    nodeDep   = if (isCantOpenBool) null else (wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),
@@ -1100,15 +1124,20 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     private fun updateCurveToggleUi() {
         if (_binding == null) return
-        binding.btnCurve.isSelected = isCurve
         val ctx = requireContext()
-        val bgColor = if (isCurve) R.color.colorPrimary else R.color.border_grey
-        binding.btnCurve.backgroundTintList =
+        binding.cbCurve.isChecked = isCurve
+        binding.cbCurve.buttonTintList =
             android.content.res.ColorStateList.valueOf(
-                androidx.core.content.ContextCompat.getColor(ctx, bgColor)
+                androidx.core.content.ContextCompat.getColor(
+                    ctx,
+                    if (isCurve) R.color.colorPrimary else R.color.border_grey
+                )
             )
-        binding.btnCurve.setTextColor(
-            if (isCurve) android.graphics.Color.WHITE else android.graphics.Color.parseColor("#616161")
+        binding.cbCurve.setTextColor(
+            if (isCurve)
+                androidx.core.content.ContextCompat.getColor(ctx, R.color.colorPrimary)
+            else
+                android.graphics.Color.parseColor("#616161")
         )
 
         // 弧線：禁用新增節點

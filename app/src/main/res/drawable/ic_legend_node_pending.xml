@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 節點點位（待架站）：菱形（粉色） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- 上半三角：空心（只有描邊） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#F2A19F"
+        android:strokeWidth="2"
+        android:pathData="M12,2 L20,12 L4,12 Z" />
+    <!-- 下半三角：實心 -->
+    <path
+        android:fillColor="#F2A19F"
+        android:pathData="M2,13 L22,13 L12,24 Z" />
+</vector>
+

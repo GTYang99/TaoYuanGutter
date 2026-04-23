@@ -88,6 +88,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         const val EXTRA_DATA_IS_HANGING  = "ex_is_hanging"
         const val EXTRA_DATA_IS_SILT     = "ex_is_silt"
         const val EXTRA_DATA_IS_CANTOPEN = "ex_is_cantopen"
+        const val EXTRA_DATA_IS_PENDING_DEPLOY = "ex_is_pending_deploy"
         const val EXTRA_DATA_REMARKS     = "ex_node_note"
         const val EXTRA_DATA_PHOTO_1     = "ex_photo1"
         const val EXTRA_DATA_PHOTO_2     = "ex_photo2"
@@ -118,6 +119,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
         const val RESULT_DATA_IS_HANGING  = "r_is_hanging"
         const val RESULT_DATA_IS_SILT     = "r_is_silt"
         const val RESULT_DATA_IS_CANTOPEN = "r_is_cantopen"
+        const val RESULT_DATA_IS_PENDING_DEPLOY = "r_is_pending_deploy"
         const val RESULT_DATA_REMARKS     = "r_node_note"
         const val RESULT_DATA_PHOTO_1     = "r_photo1"
         const val RESULT_DATA_PHOTO_2     = "r_photo2"
@@ -217,6 +219,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
             intent.putExtra(EXTRA_DATA_IS_HANGING,  data["IS_HANGING"] ?: data["isHanging"] ?: "")
             intent.putExtra(EXTRA_DATA_IS_SILT,     data["IS_SILT"]    ?: data["isSilt"] ?: "")
             intent.putExtra(EXTRA_DATA_IS_CANTOPEN, data["IS_CANTOPEN"] ?: data["isCantOpen"] ?: "")
+            intent.putExtra(EXTRA_DATA_IS_PENDING_DEPLOY, data["IS_PENDING_DEPLOY"] ?: data["is_pendingDeploy"] ?: data["isPendingDeploy"] ?: "")
             intent.putExtra(EXTRA_DATA_REMARKS,     data["NODE_NOTE"]  ?: data["remarks"] ?: "")
             intent.putExtra(EXTRA_DATA_PHOTO_1,     data["photo1"]     ?: "")
             intent.putExtra(EXTRA_DATA_PHOTO_2,     data["photo2"]     ?: "")
@@ -539,6 +542,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
                 "IS_HANGING" to (intent.getStringExtra(EXTRA_DATA_IS_HANGING)  ?: ""),
                 "IS_SILT"    to (intent.getStringExtra(EXTRA_DATA_IS_SILT)     ?: ""),
                 "IS_CANTOPEN" to (intent.getStringExtra(EXTRA_DATA_IS_CANTOPEN) ?: ""),
+                "IS_PENDING_DEPLOY" to (intent.getStringExtra(EXTRA_DATA_IS_PENDING_DEPLOY) ?: ""),
                 "NODE_NOTE"  to (intent.getStringExtra(EXTRA_DATA_REMARKS)     ?: ""),
                 "photo1"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_1)     ?: ""),
                 "photo2"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_2)     ?: ""),
@@ -749,6 +753,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
             putExtra(RESULT_DATA_IS_HANGING,  data["IS_HANGING"] ?: "")
             putExtra(RESULT_DATA_IS_SILT,     data["IS_SILT"]    ?: "")
             putExtra(RESULT_DATA_IS_CANTOPEN, data["IS_CANTOPEN"] ?: "")
+            putExtra(RESULT_DATA_IS_PENDING_DEPLOY, data["IS_PENDING_DEPLOY"] ?: "")
             putExtra(RESULT_DATA_REMARKS,     data["NODE_NOTE"]  ?: "")
             putExtra(RESULT_DATA_PHOTO_1,     photo1             ?: "")
             putExtra(RESULT_DATA_PHOTO_2,     photo2             ?: "")
@@ -933,6 +938,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback {
                 putExtra(RESULT_DATA_IS_HANGING,  basicData["IS_HANGING"] ?: "")
                 putExtra(RESULT_DATA_IS_SILT,     basicData["IS_SILT"]    ?: "")
                 putExtra(RESULT_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: "")
+                putExtra(RESULT_DATA_IS_PENDING_DEPLOY, basicData["IS_PENDING_DEPLOY"] ?: "")
                 putExtra(RESULT_DATA_REMARKS,     basicData["NODE_NOTE"]  ?: "")
                 putExtra(RESULT_DATA_PHOTO_1,     photo1                  ?: "")
                 putExtra(RESULT_DATA_PHOTO_2,     photo2                  ?: "")

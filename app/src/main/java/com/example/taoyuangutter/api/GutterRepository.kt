@@ -611,7 +611,7 @@ class GutterRepository(
                 authorization = "Bearer $token"
             )
             val rawReq = response.raw().request
-            android.util.Log.i("StoreDitch", "http ${rawReq.meothod} ${rawReq.url}")
+            android.util.Log.i("StoreDitch", "http ${rawReq.method} ${rawReq.url}")
             val body = response.body()
             val errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
             val apiMsg = parseApiErrorMessage(errorBody)

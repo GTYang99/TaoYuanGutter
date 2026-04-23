@@ -191,7 +191,11 @@ data class GeoProperties(
     @SerializedName("SPI_NUM")  val spiNum: String?,
     @SerializedName("group_id") val groupId: String?,
     /** 1=已完成、2=待修正、3=待匯入座標紀錄 */
-    @SerializedName("SPI_STATE") val spiState: Int?
+    @SerializedName("SPI_STATE") val spiState: Int?,
+    /** 是否為弧線側溝：0/1 */
+    @SerializedName("is_curve") val isCurve: Int? = null,
+    /** 是否含待架站點位：0/1 */
+    @SerializedName("is_pendingDeploy") val isPendingDeploy: Int? = null
 )
 
 // ════════════════════════════════════════════════════════════════
@@ -212,6 +216,8 @@ data class DitchDetails(
     @SerializedName("SPI_NUM")  val spiNum: String,
     /** 是否為弧線側溝：0/1（後端可能回傳字串或數字字串） */
     @SerializedName("is_curve") val isCurve: String? = null,
+    /** 是否含待架站點位：0/1（後端可能回傳字串或數字字串） */
+    @SerializedName("is_pendingDeploy") val isPendingDeploy: String? = null,
     @SerializedName("SPI_TYP")  val spiTyp: String?,
     /** 測量座標編號（依起點/節點/終點分段） */
     @SerializedName("XY_NUM")   val xyNum: DitchXyNum? = null,
@@ -261,6 +267,8 @@ data class DitchNode(
     /** 點位屬性：1=起點、2=節點、3=終點 */
     @SerializedName("NODE_ATT") val nodeAtt: String?,
     @SerializedName("NODE_NUM") val nodeNum: String?,
+    /** 待架站：0/1/null（後端可能回傳字串） */
+    @SerializedName("is_pendingDeploy") val isPendingDeploy: String? = null,
     /** 該點位已上傳的照片 URL 列表（可為空） */
     @SerializedName("url")      val url: List<NodeImageUrl>
 )
@@ -340,6 +348,8 @@ data class NodeDetails(
     @SerializedName("latitude")   val latitude: String?,
     /** WGS84 經度 */
     @SerializedName("longitude")  val longitude: String?,
+    /** 待架站：0/1/null（後端可能回傳字串） */
+    @SerializedName("is_pendingDeploy") val isPendingDeploy: String? = null,
     /** 已上傳的照片列表 */
     @SerializedName("node_img")   val nodeImg: List<NodeImg> = emptyList(),
     /** 與查詢點的距離（closestNodeDetails 會回傳，可能為字串數字） */
@@ -448,6 +458,8 @@ data class StoreDitchNodeRequest(
     /** 高程（Z 值）；目前依 API 規則固定送 null */
     @SerializedName("NODE_LE")    val nodeLe: Double?,
     @SerializedName("XY_NUM")     val xyNum: String,
+    /** 待架站：0=false、1=true */
+    @SerializedName("is_pendingDeploy") val isPendingDeploy: Int = 0,
     /** 無法開蓋：0=false、1=true */
     @SerializedName("IS_CANTOPEN") val isCantOpen: Int,
     /** 深度（公分） */

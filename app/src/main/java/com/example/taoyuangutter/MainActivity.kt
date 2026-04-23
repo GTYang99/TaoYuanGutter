@@ -181,7 +181,17 @@ class MainActivity : AppCompatActivity(),
     private var workingPolyline: Polyline? = null
     private val submittedPolylines = mutableListOf<Polyline>()
     /** scopeSearch 從後端載入的 Polyline（依 SPI_NUM 索引，方便重繪時移除舊線段） */
-    private val scopePolylines = mutableMapOf<String, Polyline>()
+    private data class ScopePolylineSet(
+        val inner: Polyline,
+        val outline: Polyline?
+    ) {
+        fun remove() {
+            inner.remove()
+            outline?.remove()
+        }
+    }
+
+    private val scopePolylines = mutableMapOf<String, ScopePolylineSet>()
     private var currentWaypoints: List<Waypoint> = emptyList()
 
     // ── 防抖機制（避免重複調用 scopeSearch API） ────────────────────
@@ -241,9 +251,9 @@ class MainActivity : AppCompatActivity(),
 
             when {
                 activeSheet != null -> {
-                    when (result.resultCode) {
-                        Activity.RESULT_OK -> if (pendingWaypointFormIndex >= 0) {
-                            val data = result.data
+	                    when (result.resultCode) {
+	                        Activity.RESULT_OK -> if (pendingWaypointFormIndex >= 0) {
+	                            val data = result.data
 
                             // ── 更新地圖定位座標 ────────────────────────────────
                             // 優先使用 GutterFormActivity 回傳的 lat/lng（已保證永遠有值）；
@@ -258,10 +268,13 @@ class MainActivity : AppCompatActivity(),
                                 activeSheet?.updateWaypointLocation(pendingWaypointFormIndex, LatLng(effectiveLat, effectiveLng))
                             }
 
-                            // ── 更新表單填寫的基本資料 ──────────────────────────
-                            val newData = extractBasicData(result.data)
-                            activeSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
-                        }
+	                            // ── 更新表單填寫的基本資料 ──────────────────────────
+	                            val newData = extractBasicData(result.data)
+	                            activeSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
+	                            // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
+	                            currentWaypoints = activeSheet?.getWaypoints() ?: currentWaypoints
+	                            refreshWorkingLayer(currentWaypoints)
+	                        }
                         GutterFormActivity.RESULT_DELETE -> if (pendingWaypointFormIndex >= 0) {
                             // 使用者放棄填寫 → 清除該點位的座標與資料（同時更新地圖大頭針）
                             activeSheet?.clearWaypointLocation(pendingWaypointFormIndex)
@@ -272,18 +285,20 @@ class MainActivity : AppCompatActivity(),
                     activeSheet?.showSelf()
                     if (currentWaypoints.isNotEmpty()) fitCameraToWaypoints(currentWaypoints)
                 }
-                inspectSheet != null -> {
-                    if (result.resultCode == Activity.RESULT_OK) {
-                        val data = result.data
-                        val idx  = data?.getIntExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, -1) ?: -1
-                        if (idx >= 0) {
-                            val newData = extractBasicData(data)
-                            inspectWaypoints.getOrNull(idx)?.basicData = newData
-                        }
-                    }
-                    inspectSheet?.showSelf()
-                    fitCameraToWaypoints(inspectWaypoints)
-                }
+	                inspectSheet != null -> {
+	                    if (result.resultCode == Activity.RESULT_OK) {
+	                        val data = result.data
+	                        val idx  = data?.getIntExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, -1) ?: -1
+	                        if (idx >= 0) {
+	                            val newData = extractBasicData(data)
+	                            inspectWaypoints.getOrNull(idx)?.basicData = newData
+	                            // Refresh marker icons to reflect updated flags (e.g., IS_PENDING_DEPLOY).
+	                            refreshWorkingMarkers(inspectWaypoints)
+	                        }
+	                    }
+	                    inspectSheet?.showSelf()
+	                    fitCameraToWaypoints(inspectWaypoints)
+	                }
                 else -> clearWorkingMarkers()
             }
         }
@@ -1102,11 +1117,14 @@ class MainActivity : AppCompatActivity(),
                         submittedPolylines.clear()
 
                         // ── 點選的側溝高亮為「檢視與編輯中」配色 ──
-                        scopePolylines[spiNum]?.color = android.graphics.Color.parseColor("#562ECB")
+                        scopePolylines[spiNum]?.inner?.color = android.graphics.Color.parseColor("#562ECB")
 
                         // ── 並行查詢各節點詳細座標，再繪製起點／節點／終點標記 ──
+                        val pendingByNodeId = ditch.nodes.associate { n ->
+                            n.nodeId to parseLooseBoolean(n.isPendingDeploy)
+                        }
                         val nodeDetailsList = gutterRepository.getNodeDetailsForNodes(ditch.nodes, token)
-                        showInspectMarkers(nodeDetailsList)
+                        showInspectMarkers(nodeDetailsList, pendingByNodeId)
 
                         // ── 預先下載起點/終點 6 張照片到本機 contentUri ──
                         val startNode = ditch.nodes.firstOrNull { it.nodeAtt == "1" }
@@ -1490,9 +1508,10 @@ class MainActivity : AppCompatActivity(),
         for ((idx, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
             routePoints.add(latLng)
+            val isPending = parseLooseBoolean(wp.basicData["IS_PENDING_DEPLOY"])
             val marker = map.addMarker(MarkerOptions()
                 .position(latLng)
-                .icon(getMarkerIconFromXml(wp.type))
+                .icon(getMarkerIconFromXml(wp.type, isPending))
                 .anchor(0.5f, 0.5f))
             marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
@@ -1514,9 +1533,10 @@ class MainActivity : AppCompatActivity(),
         clearWorkingMarkers()
         for ((idx, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
+            val isPending = parseLooseBoolean(wp.basicData["IS_PENDING_DEPLOY"])
             val marker = map.addMarker(MarkerOptions()
                 .position(latLng)
-                .icon(getMarkerIconFromXml(wp.type))
+                .icon(getMarkerIconFromXml(wp.type, isPending))
                 .anchor(0.5f, 0.5f))
             marker?.tag = idx
             marker?.let { workingMarkers.add(it) }
@@ -1549,6 +1569,20 @@ class MainActivity : AppCompatActivity(),
         highlightedMarkerIndex = -1
     }
 
+    private fun parseLooseBoolean(raw: String?): Boolean {
+        val v = raw?.trim()?.lowercase()
+        return when (v) {
+            "1", "true", "t", "y", "yes" -> true
+            else -> false
+        }
+    }
+
+    private fun markerResId(type: WaypointType, isPendingDeploy: Boolean): Int = when (type) {
+        WaypointType.START -> if (isPendingDeploy) R.drawable.ic_legend_start_pending else R.drawable.ic_legend_start
+        WaypointType.NODE  -> if (isPendingDeploy) R.drawable.ic_legend_node_pending  else R.drawable.ic_legend_node
+        WaypointType.END   -> if (isPendingDeploy) R.drawable.ic_legend_end_pending   else R.drawable.ic_legend_end
+    }
+
     /**
      * 點選已提交側溝線段後，在地圖上顯示起點／節點／終點標記。
      *
@@ -1558,7 +1592,10 @@ class MainActivity : AppCompatActivity(),
      *
      * 標記加入 [workingMarkers]，可透過 [clearWorkingMarkers] 統一清除。
      */
-    private fun showInspectMarkers(nodes: List<com.example.taoyuangutter.api.NodeDetails>) {
+    private fun showInspectMarkers(
+        nodes: List<com.example.taoyuangutter.api.NodeDetails>,
+        pendingByNodeId: Map<Int, Boolean> = emptyMap()
+    ) {
         val map = googleMap ?: return
         clearWorkingMarkers()
         if (nodes.isEmpty()) return
@@ -1573,11 +1610,16 @@ class MainActivity : AppCompatActivity(),
                 "3"  -> WaypointType.END
                 else -> WaypointType.NODE
             }
+            val nodeId = node.nodeId
+            val isPending = when {
+                nodeId != null && pendingByNodeId.containsKey(nodeId) -> pendingByNodeId[nodeId] == true
+                else -> parseLooseBoolean(node.isPendingDeploy)
+            }
 
             val marker = map.addMarker(
                 com.google.android.gms.maps.model.MarkerOptions()
                     .position(latLng)
-                    .icon(getMarkerIconFromXml(wpType))
+                    .icon(getMarkerIconFromXml(wpType, isPending))
                     .anchor(0.5f, 0.5f)
             )
             marker?.tag = idx
@@ -1616,7 +1658,8 @@ class MainActivity : AppCompatActivity(),
         if (wp.latLng == null) return
         highlightedMarkerIndex = waypointIndex
         workingMarkers.firstOrNull { it.tag == waypointIndex }?.let { marker ->
-            marker.setIcon(createEnlargedMarkerIcon(wp.type))
+            val isPending = parseLooseBoolean(wp.basicData["IS_PENDING_DEPLOY"])
+            marker.setIcon(createEnlargedMarkerIcon(wp.type, isPending))
             marker.setAnchor(0.5f, 0.5f)
             marker.zIndex = 1f
         }
@@ -1627,7 +1670,9 @@ class MainActivity : AppCompatActivity(),
         val waypoints = if (inspectSheet != null) inspectWaypoints else currentWaypoints
         val wp = waypoints.getOrNull(highlightedMarkerIndex)
         workingMarkers.firstOrNull { it.tag == highlightedMarkerIndex }?.let { marker ->
-            marker.setIcon(getMarkerIconFromXml(wp?.type ?: WaypointType.NODE))
+            val type = wp?.type ?: WaypointType.NODE
+            val isPending = parseLooseBoolean(wp?.basicData?.get("IS_PENDING_DEPLOY"))
+            marker.setIcon(getMarkerIconFromXml(type, isPending))
             marker.setAnchor(0.5f, 0.5f)
             marker.zIndex = 0f
         }
@@ -1695,6 +1740,7 @@ class MainActivity : AppCompatActivity(),
             val spiNum  = feature.properties?.spiNum  ?: return@forEach
             val groupId = feature.properties?.groupId ?: ""
             val spiState = feature.properties?.spiState
+            val isPendingDeploy = feature.properties?.isPendingDeploy == 1
             val coords  = feature.geometry?.coordinates ?: return@forEach
             if (coords.size < 2) return@forEach
 
@@ -1716,20 +1762,36 @@ class MainActivity : AppCompatActivity(),
                 }
             }
             val width = if (!isSameGroup) 12f else 6f
-            val polyline = map.addPolyline(
+            val outline: Polyline? =
+                if (isPendingDeploy) {
+                    map.addPolyline(
+                        com.google.android.gms.maps.model.PolylineOptions()
+                            .addAll(points)
+                            .color(android.graphics.Color.parseColor("#AD3A36"))
+                            .width(width + 6f)
+                            .zIndex(0f)
+                            .clickable(false)
+                    )
+                } else null
+
+            val inner = map.addPolyline(
                 com.google.android.gms.maps.model.PolylineOptions()
                     .addAll(points)
                     .color(color)
                     .width(width)
+                    .zIndex(1f)
                     .clickable(true)
             )
             // tag 同時儲存 spiNum 與 groupId，供點擊時比對編輯權限
-            polyline.tag = Pair(spiNum, groupId)
-            scopePolylines[spiNum] = polyline
+            inner.tag = Pair(spiNum, groupId)
+            scopePolylines[spiNum] = ScopePolylineSet(inner = inner, outline = outline)
         }
     }
 
-    private fun createEnlargedMarkerIcon(type: WaypointType): com.google.android.gms.maps.model.BitmapDescriptor {
+    private fun createEnlargedMarkerIcon(
+        type: WaypointType,
+        isPendingDeploy: Boolean = false
+    ): com.google.android.gms.maps.model.BitmapDescriptor {
         /*
         /// 舊放大的圖標
         val dp = resources.displayMetrics.density
@@ -1752,11 +1814,7 @@ class MainActivity : AppCompatActivity(),
         return BitmapDescriptorFactory.fromBitmap(bitmap)
         */
         // 取得對應的 XML 資源 (建議您可以準備一組放大的版本，或是共用目前的)
-        val resId = when (type) {
-            WaypointType.START -> R.drawable.ic_legend_start // 或者是您的放大版 XML
-            WaypointType.NODE  -> R.drawable.ic_legend_node
-            WaypointType.END   -> R.drawable.ic_legend_end
-        }
+        val resId = markerResId(type, isPendingDeploy)
 
         val drawable = ContextCompat.getDrawable(this, resId)
             ?: return BitmapDescriptorFactory.defaultMarker()
@@ -1774,12 +1832,8 @@ class MainActivity : AppCompatActivity(),
         return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
-    private fun getMarkerIconFromXml(type: WaypointType): BitmapDescriptor {
-        val resId = when (type) {
-            WaypointType.START -> R.drawable.ic_legend_start
-            WaypointType.NODE  -> R.drawable.ic_legend_node
-            WaypointType.END   -> R.drawable.ic_legend_end
-        }
+    private fun getMarkerIconFromXml(type: WaypointType, isPendingDeploy: Boolean = false): BitmapDescriptor {
+        val resId = markerResId(type, isPendingDeploy)
         val drawable = ContextCompat.getDrawable(this, resId) ?: return BitmapDescriptorFactory.defaultMarker()
         
         // 將 Drawable 轉換成 BitmapDescriptor
@@ -1968,6 +2022,7 @@ class MainActivity : AppCompatActivity(),
             "IS_HANGING" to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_HANGING)  ?: ""),
             "IS_SILT"    to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_SILT)     ?: ""),
             "IS_CANTOPEN" to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_CANTOPEN) ?: ""),
+            "IS_PENDING_DEPLOY" to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_PENDING_DEPLOY) ?: ""),
             "NODE_NOTE"  to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS)     ?: ""),
             "photo1"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1)     ?: ""),
             "photo2"     to (data?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2)     ?: ""),

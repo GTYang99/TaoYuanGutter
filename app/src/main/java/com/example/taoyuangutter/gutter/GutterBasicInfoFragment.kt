@@ -48,6 +48,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_DATA_IS_SILT     = "d_is_silt"
         private const val ARG_DATA_IS_CANTOPEN = "d_is_cantopen"
         private const val ARG_DATA_NODE_NOTE   = "d_node_note"
+        private const val ARG_DATA_IS_PENDING_DEPLOY = "d_is_pending_deploy"
 
         /** 側溝形式選項（NODE_TYP）*/
         val GUTTER_TYPES = listOf(
@@ -107,6 +108,13 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_DATA_IS_SILT,     basicData["IS_SILT"]     ?: basicData["isSilt"] ?: "")
                 putString(ARG_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: basicData["isCantOpen"] ?: "")
                 putString(ARG_DATA_NODE_NOTE,   basicData["NODE_NOTE"]   ?: basicData["remarks"] ?: "")
+                putString(
+                    ARG_DATA_IS_PENDING_DEPLOY,
+                    basicData["IS_PENDING_DEPLOY"]
+                        ?: basicData["is_pendingDeploy"]
+                        ?: basicData["isPendingDeploy"]
+                        ?: ""
+                )
             }
         }
     }
@@ -128,6 +136,7 @@ class GutterBasicInfoFragment : Fragment() {
         setupReadOnlyCoordinates()
         setEditable(!isViewMode)
         setupCantOpen()
+        setupPendingDeployButton(isViewMode)
         setupRangeWatchers()
         setupDraftWatchers()
         setupCoordinatePickers()
@@ -202,10 +211,12 @@ class GutterBasicInfoFragment : Fragment() {
         val isSilt     = args.getString(ARG_DATA_IS_SILT,     "")
         val isCantOpen = args.getString(ARG_DATA_IS_CANTOPEN, "")
         val nodeNote   = args.getString(ARG_DATA_NODE_NOTE,   "")
+        val isPendingDeploy = args.getString(ARG_DATA_IS_PENDING_DEPLOY, "")
 
         val hasAnyData = listOf(
             spiNum, nodeTyp, matTyp, nodeX, nodeY, nodeLe,
-            xyNum, coverDep, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote
+            xyNum, coverDep, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote,
+            isPendingDeploy
         ).any { it.isNotEmpty() }
 
         if (hasAnyData) {
@@ -216,6 +227,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etCoordY.setText(nodeY)
             binding.etCoordZ.setText(nodeLe)
             binding.etMeasureId.setText(xyNum)
+            setPendingDeploySelected(parseLooseBoolean(isPendingDeploy))
             binding.etCoverThickness.setText(coverDep)
             binding.etDepth.setText(nodeDep)
             binding.etTopWidth.setText(nodeWid)
@@ -228,6 +240,21 @@ class GutterBasicInfoFragment : Fragment() {
         } else {
             prefillCoordinates()
         }
+    }
+
+    private fun setupPendingDeployButton(isViewMode: Boolean) {
+        // View mode: disabled until user enters edit mode (GutterFormActivity.enterEditMode -> setEditable(true))
+        binding.btnPendingDeploy.isEnabled = !isViewMode && isFormEditable
+        // Avoid stale listeners when toggling enabled state / rebinding view.
+        binding.btnPendingDeploy.setOnCheckedChangeListener(null)
+        binding.btnPendingDeploy.setOnCheckedChangeListener { _, _ ->
+            if (binding.btnPendingDeploy.isEnabled) onDraftChanged?.invoke()
+        }
+    }
+
+    private fun setPendingDeploySelected(selected: Boolean) {
+        // UI spec: checkbox only; text color unchanged; checkbox uses theme primary via XML buttonTint.
+        binding.btnPendingDeploy.isChecked = selected
     }
 
     private fun setupCantOpen() {
@@ -389,6 +416,9 @@ class GutterBasicInfoFragment : Fragment() {
         ).forEach { it.alpha = alpha }
 
         binding.cbCantOpen.isEnabled = enabled
+        binding.btnPendingDeploy.isEnabled = enabled
+        // Re-apply style (so view->edit mode transitions update colors correctly)
+        setPendingDeploySelected(binding.btnPendingDeploy.isChecked)
 
         // Z 座標（NODE_LE）由後端提供，可檢視但不可修改
         binding.etCoordZ.isEnabled = false
@@ -547,6 +577,8 @@ class GutterBasicInfoFragment : Fragment() {
         "NODE_Y"      to (binding.etCoordY.text?.toString()        ?: ""),
         "NODE_LE"     to (binding.etCoordZ.text?.toString()        ?: ""),
         "XY_NUM"      to (binding.etMeasureId.text?.toString()     ?: ""),
+        // 待架站（點位層級）：以 "1"/"0" 形式存入 basicData
+        "IS_PENDING_DEPLOY" to (if (binding.btnPendingDeploy.isChecked) "1" else "0"),
         // 主要 key：COVER_DEP（API 欄位名）；另可保留舊 key 以避免舊草稿邏輯漏讀
         "COVER_DEP" to (binding.etCoverThickness.text?.toString() ?: ""),
         "COVER_THICKNESS" to (binding.etCoverThickness.text?.toString() ?: ""),
@@ -570,6 +602,8 @@ class GutterBasicInfoFragment : Fragment() {
         binding.apply {
             // 基本資訊
             etMeasureId.setText(nodeDetails.xyNum ?: "")
+            // 匯入既有點位時，待架站預設為否（可再由使用者自行切換）
+            setPendingDeploySelected(false)
 
             // 溝型（API key 為 NODE_TYP，值為字串）
             val nodeTypText = when (nodeDetails.nodeTyP?.toIntOrNull()) {

@@ -269,21 +269,24 @@ class GutterInspectActivity : AppCompatActivity() {
                     WaypointType.START, "起點", latLng,
                     hashMapOf(
                         "_nodeId"    to node.nodeId.toString(),
-                        "SPI_NUM"    to d.spiNum
+                        "SPI_NUM"    to d.spiNum,
+                        "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0")
                     )
                 ))
                 "3" -> result.add(Waypoint(
                     WaypointType.END, "終點", latLng,
                     hashMapOf(
                         "_nodeId"    to node.nodeId.toString(),
-                        "SPI_NUM"    to d.spiNum
+                        "SPI_NUM"    to d.spiNum,
+                        "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0")
                     )
                 ))
                 else -> result.add(Waypoint(
                     WaypointType.NODE, "節點${node.nodeNum ?: "?"}", latLng,
                     hashMapOf(
                         "_nodeId"    to node.nodeId.toString(),
-                        "SPI_NUM"    to d.spiNum
+                        "SPI_NUM"    to d.spiNum,
+                        "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0")
                     )
                 ))
             }

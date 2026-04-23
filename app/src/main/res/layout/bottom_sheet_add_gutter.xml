@@ -74,22 +74,16 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- 弧線按鈕（對齊左側按鈕跟標題中間） -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnCurve"
+        <!-- 弧線（勾選框樣式） -->
+        <com.google.android.material.checkbox.MaterialCheckBox
+            android:id="@+id/cbCurve"
             android:layout_width="wrap_content"
-            android:layout_height="36dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:minWidth="64dp"
-            android:minHeight="36dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:text="@string/btn_curve"
-            android:textAllCaps="false"
             android:textColor="#616161"
             android:textSize="13sp"
             android:textStyle="bold"
-            app:backgroundTint="@color/border_grey"
-            app:cornerRadius="18dp"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@+id/tvSheetTitle"
             app:layout_constraintStart_toEndOf="@+id/barrierLeft"
