@@ -10,19 +10,25 @@ import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
 import com.bumptech.glide.Glide
+import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.DitchNode
+import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.databinding.ActivityGutterInspectBinding
+import com.example.taoyuangutter.login.LoginActivity
 import com.google.gson.Gson
 import com.google.android.material.tabs.TabLayoutMediator
 
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.launch
 
 /**
  * GutterInspectActivity
@@ -48,6 +54,8 @@ class GutterInspectActivity : AppCompatActivity() {
     private var endPhoto1: String? = null
     private var endPhoto2: String? = null
     private var endPhoto3: String? = null
+
+    private val repository = GutterRepository()
 
     companion object {
         private const val EXTRA_DITCH_JSON        = "ditch_json"
@@ -134,7 +142,7 @@ class GutterInspectActivity : AppCompatActivity() {
         val canEdit = intent.getBooleanExtra(EXTRA_CAN_EDIT, false)
         if (canEdit) {
             binding.btnEdit.visibility = View.VISIBLE
-            binding.btnEdit.setOnClickListener { openEditForm() }
+            binding.btnEdit.setOnClickListener { preloadAllNodeDetailsThenOpenEditForm() }
         } else {
             binding.btnEdit.visibility = View.GONE
         }
@@ -241,6 +249,50 @@ class GutterInspectActivity : AppCompatActivity() {
         }
         setResult(RESULT_EDIT_DITCH, resultIntent)
         finish()
+    }
+
+    /**
+     * 編輯前預載（版本 1）：
+     * - 先打所有點位的 v1/node/nodeDetails（預熱資料）
+     * - 不提示、不阻擋進入編輯；缺漏在「送出/更新前」才統一檢查
+     */
+    private fun preloadAllNodeDetailsThenOpenEditForm() {
+        val d = ditch ?: return
+        val token = LoginActivity.getSavedToken(this) ?: run {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("尚未登入")
+                .setMessage("請先登入後再嘗試編輯。")
+                .setPositiveButton("確定", null)
+                .show()
+            return
+        }
+
+        // 防止連點
+        binding.btnEdit.isEnabled = false
+        binding.btnEdit.alpha = 0.5f
+
+        lifecycleScope.launch {
+            try {
+                d.nodes.forEach { node ->
+                    val nodeId = node.nodeId
+                    // 預熱：不管成功失敗都繼續，且不提示使用者
+                    when (repository.getNodeDetails(nodeId, token)) {
+                        is ApiResult.Success -> Unit
+                        is ApiResult.Error -> Unit
+                    }
+                }
+
+                openEditForm()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                // 預載失敗不阻擋編輯：直接進入編輯畫面，送出前會再檢查
+                openEditForm()
+            } finally {
+                binding.btnEdit.isEnabled = true
+                binding.btnEdit.alpha = 1.0f
+            }
+        }
     }
 
     /**

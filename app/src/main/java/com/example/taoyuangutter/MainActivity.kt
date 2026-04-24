@@ -618,9 +618,12 @@ class MainActivity : AppCompatActivity(),
     private suspend fun uploadWaypointPhotos(
         waypoints: List<Waypoint>,
         nodes: List<DitchNode>,
-        token: String
+        token: String,
+        forceReuploadRemoteUrls: Boolean
     ): Int {
-        // 預先篩出真正需要上傳的照片（本機路徑，排除空值與已是 https:// 的舊照片）
+        // 預先篩出真正需要上傳的照片：
+        // - 一般新增：只上傳本機路徑（content:// / file://），排除空值與 https:// 的舊照片
+        // - 編輯更新（forceReuploadRemoteUrls=true）：即使是 https:// 也會下載成本機後重傳
         // 使用 Triple<DitchNode, String, Int> 取代 local data class，避免 coroutine 編譯問題
         val pending = mutableListOf<Triple<DitchNode, String, Int>>()
         nodes.forEachIndexed { i, node ->
@@ -630,10 +633,12 @@ class MainActivity : AppCompatActivity(),
                 wp.basicData["photo2"] to 2,
                 wp.basicData["photo3"] to 3
             ).forEach { (path, category) ->
-                val scheme = if (path.isNullOrEmpty()) null
-                             else Uri.parse(path).scheme?.lowercase()
-                val needsUpload = scheme != null && scheme != "http" && scheme != "https"
-                if (needsUpload) pending.add(Triple(node, path!!, category))
+                if (path.isNullOrEmpty()) return@forEach
+                val scheme = Uri.parse(path).scheme?.lowercase()
+                val needsUpload =
+                    if (forceReuploadRemoteUrls) scheme != null
+                    else scheme != null && scheme != "http" && scheme != "https"
+                if (needsUpload) pending.add(Triple(node, path, category))
             }
         }
 
@@ -658,14 +663,29 @@ class MainActivity : AppCompatActivity(),
                             val path = entry.second
                             val category = entry.third
 
+                            suspend fun downloadIfRemoteUrl(url: String): String? {
+                                val scheme = Uri.parse(url).scheme?.lowercase()
+                                if (scheme != "http" && scheme != "https") return url
+                                if (!forceReuploadRemoteUrls) return null
+                                val prefix = "REUPLOAD_${node.nodeId}_${category}_"
+                                return gutterRepository
+                                    .downloadImageToLocalContentUri(this@MainActivity, url, prefix = prefix)
+                                    ?.toString()
+                            }
+
                             // 最多重試 3 次
                             var success = false
+                            var tempDownloadedUri: String? = null
                             for (attempt in 1..3) {
+                                val uploadPath = downloadIfRemoteUrl(path) ?: break
+                                if (uploadPath != path && Uri.parse(uploadPath).scheme?.lowercase() == "content") {
+                                    tempDownloadedUri = uploadPath
+                                }
                                 when (val r = gutterRepository.uploadNodeImage(
                                     context = this@MainActivity,
                                     nodeId = node.nodeId,
                                     fileCategory = category,
-                                    imageUri = Uri.parse(path),
+                                    imageUri = Uri.parse(uploadPath),
                                     token = token
                                 )) {
                                     is ApiResult.Success -> {
@@ -679,6 +699,15 @@ class MainActivity : AppCompatActivity(),
                                     }
                                 }
                                 if (success) break
+                            }
+
+                            // 立即清除「為了重傳而下載」的暫存照片檔，避免累積佔用空間。
+                            // 注意：相機拍攝的草稿照片由 onGutterSaved 的 finally 統一清理。
+                            tempDownloadedUri?.let { downloaded ->
+                                DraftPhotoCleaner.deleteWaypointsLocalPhotos(
+                                    context = this@MainActivity,
+                                    waypoints = listOf(mapOf("photo1" to downloaded))
+                                )
                             }
 
                             withContext(Dispatchers.Main) {
@@ -742,7 +771,12 @@ class MainActivity : AppCompatActivity(),
         //       否則本機檔案會在上傳前就被刪除。
         lifecycleScope.launch {
             try {
-                val failCount = uploadWaypointPhotos(waypoints, nodes, token)
+                val failCount = uploadWaypointPhotos(
+                    waypoints = waypoints,
+                    nodes = nodes,
+                    token = token,
+                    forceReuploadRemoteUrls = spiNum != null
+                )
                 val message = when {
                     failCount > 0 ->
                         getString(R.string.msg_gutter_upload_done_with_failures, failCount)

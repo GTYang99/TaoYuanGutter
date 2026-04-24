@@ -34,6 +34,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
+import java.io.File
 
 class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
@@ -683,6 +684,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     dismiss()
                     return@setOnClickListener
                 }
+                if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) return@setOnClickListener
                 // 弧線上傳限制：僅允許起點/終點兩點
                 if (!validateCurvePointCountOrAlert()) return@setOnClickListener
                 // ① 起點與終點必須已設定座標
@@ -818,6 +820,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     updateSubmitButtonState()
                     return@launch
                 }
+                if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) {
+                    updateSubmitButtonState()
+                    return@launch
+                }
                 // 弧線上傳限制：僅允許起點/終點兩點
                 if (!validateCurvePointCountOrAlert()) {
                     updateSubmitButtonState()
@@ -950,6 +956,76 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             android.graphics.Color.parseColor("#9E9E9E")
         binding.btnSubmitGutter.backgroundTintList =
             android.content.res.ColorStateList.valueOf(tint)
+    }
+
+    /**
+     * 送出/更新前的全量檢查（版本 1）：
+     * - 每個點位都必須有座標
+     * - 必要欄位需完整
+     * - 每個點位都必須有照片類別 1/2/3（三張）
+     *
+     * 照片判定：
+     * - https/http：視為已存在（伺服器照片）
+     * - content/file：需能實際讀取/存在，否則視為遺失
+     */
+    private fun validateWaypointPhotosAndFieldsOrAlert(waypoints: List<Waypoint>): Boolean {
+        val ctx = context ?: return false
+
+        fun isPhotoAvailable(uriString: String?): Boolean {
+            if (uriString.isNullOrBlank()) return false
+            val uri = runCatching { android.net.Uri.parse(uriString) }.getOrNull() ?: return false
+            val scheme = uri.scheme?.lowercase()
+            if (scheme == "http" || scheme == "https") return true
+            if (scheme == "file") return uri.path?.let { File(it).exists() } == true
+            if (scheme == "content") {
+                return runCatching {
+                    ctx.contentResolver.openInputStream(uri)?.use { /* just open */ } != null
+                }.getOrDefault(false)
+            }
+            return false
+        }
+
+        val baseRequiredBasicKeys = listOf("NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM")
+        val requiredWhenCanOpenKeys = listOf("MAT_TYP", "NODE_DEP", "NODE_WID")
+        val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
+
+        val issues = mutableListOf<String>()
+
+        waypoints.forEach { wp ->
+            val pointLabel = wp.label.ifBlank { wp.type.name }
+
+            if (wp.latLng == null) {
+                issues.add("$pointLabel：缺少座標")
+                return@forEach
+            }
+
+            val isCantOpen = wp.basicData["IS_CANTOPEN"] == "1"
+            val requiredKeys =
+                if (isCantOpen) baseRequiredBasicKeys else baseRequiredBasicKeys + requiredWhenCanOpenKeys
+            val missingFields = requiredKeys.filter { wp.basicData[it].isNullOrBlank() }
+            if (missingFields.isNotEmpty()) {
+                issues.add("$pointLabel：缺少欄位 ${missingFields.joinToString("、")}")
+            }
+
+            val missingPhotos = requiredPhotoKeys.filter { key -> !isPhotoAvailable(wp.basicData[key]) }
+            if (missingPhotos.isNotEmpty()) {
+                val pretty = missingPhotos.mapNotNull { it.removePrefix("photo").toIntOrNull() }.sorted()
+                val prettyText = if (pretty.isEmpty()) missingPhotos.joinToString(",") else pretty.joinToString(", ")
+                issues.add("$pointLabel：缺少照片（第 $prettyText 張）")
+            }
+        }
+
+        if (issues.isEmpty()) return true
+
+        MaterialAlertDialogBuilder(ctx)
+            .setTitle("資料/照片不足")
+            .setMessage(
+                "送出前需確認：每個點位都有照片類別 1/2/3（三張）且必要欄位完整。\n\n- " +
+                    issues.joinToString("\n- ")
+            )
+            .setPositiveButton("確定", null)
+            .show()
+        return false
     }
 
     // ── 由 MainActivity 回呼：寫入選定座標 ──────────────────────────────
