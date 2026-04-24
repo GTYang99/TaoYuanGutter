@@ -2,22 +2,36 @@ package com.example.taoyuangutter.gutter
 
 import com.example.taoyuangutter.R
 import android.app.Activity
+import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.os.Looper
+import android.provider.Settings
 import android.view.View
 import android.widget.Toast
 import android.util.Log
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.location.Location
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -38,6 +52,7 @@ import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.WaypointSnapshot
+import android.content.pm.PackageManager
 import com.example.taoyuangutter.common.LocationPickEvents
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -87,7 +102,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private val logTag = "GutterFormActivity"
 
-		    companion object {
+			    companion object {
         const val EXTRA_WAYPOINT_LABELS  = "waypoint_labels"
         const val EXTRA_LATITUDES        = "latitudes"
         const val EXTRA_LONGITUDES       = "longitudes"
@@ -99,7 +114,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        const val EXTRA_SESSION_WAYPOINTS_JSON = "session_waypoints_json"
 	        /** 表單內即時存草稿時，用來保留草稿的 isOffline 屬性（避免被覆蓋回 false）。 */
 	        const val EXTRA_SESSION_IS_OFFLINE = "session_is_offline"
-	        const val EXTRA_WMTS_LAYER = "wmts_layer"
+		        const val EXTRA_WMTS_LAYER = "wmts_layer"
+
+	        // 主地圖最近一次定位（由 MainActivity 帶入，供匯入既有點位快速查詢）
+	        const val EXTRA_HOST_LAST_LAT  = "host_last_lat"
+	        const val EXTRA_HOST_LAST_LNG  = "host_last_lng"
+	        const val EXTRA_HOST_LAST_TIME = "host_last_time"
+	        const val EXTRA_HOST_LAST_ACC  = "host_last_acc"
 
         /** 離線模式旗標：不向 MainActivity 回傳 result，改儲存至 GutterSessionDraft（isOffline=true）。 */
         const val EXTRA_OFFLINE_MODE     = "offline_mode"
@@ -316,11 +337,53 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         }
 	    }
 
-	    // ── 匯入既有點位（半屏 BottomSheet；上半部沿用本頁背景地圖） ─────────────
+		    // ── 匯入既有點位（半屏 BottomSheet；上半部沿用本頁背景地圖） ─────────────
 
-	    private var importSheet: ImportExistingWaypointBottomSheet? = null
-	    private var importMapPickEnabled: Boolean = false
-	    private var importCenterMarker: Marker? = null
+		    private var importSheet: ImportExistingWaypointBottomSheet? = null
+		    private var importMapPickEnabled: Boolean = false
+		    private var importCenterMarker: Marker? = null
+		    private var importMyLocationMarker: Marker? = null
+		    private lateinit var fusedLocationClient: FusedLocationProviderClient
+		    private var importLocationPermissionAttempts: Int = 0
+		    private var pendingImportSheetForLocation: ImportExistingWaypointBottomSheet? = null
+		    private var importLocationCallback: LocationCallback? = null
+		    private var importLocationTimeoutJob: Job? = null
+		    private var importBestLocation: Location? = null
+
+		    private val importLocationStaleMs: Long = 30_000L
+		    private val importLocationAccuracyM: Float = 30f
+		    private val importLocationTimeoutMs: Long = 25_000L
+
+		    // 由主地圖帶入的最後定位（避免再次等待 GPS fix）
+		    private var hostLastLatLng: LatLng? = null
+		    private var hostLastLocationTime: Long = 0L
+		    private var hostLastLocationAccuracy: Float = -1f
+
+		    private val importLocationPermissionLauncher =
+		        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+		            val sheet = pendingImportSheetForLocation
+		            if (sheet == null) return@registerForActivityResult
+
+		            if (granted) {
+		                requestCurrentGpsAndLoadNearby(sheet)
+		                return@registerForActivityResult
+		            }
+
+		            val canAskAgain = ActivityCompat.shouldShowRequestPermissionRationale(
+		                this,
+		                Manifest.permission.ACCESS_FINE_LOCATION
+		            )
+		            if (!canAskAgain) {
+		                showImportLocationGoSettingsDialog(sheet)
+		                return@registerForActivityResult
+		            }
+
+		            if (importLocationPermissionAttempts < 2) {
+		                showImportLocationRetryDialog(sheet)
+		            } else {
+		                sheet.showNearbyAutoError("尚未授權定位權限，無法查詢附近點位")
+		            }
+		        }
 
 	    private fun handleImportedNodeDetails(nodeDetails: NodeDetails) {
 	        pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
@@ -391,9 +454,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        }
 	    }
 
-	    private fun showImportExistingWaypointSheet() {
-        if (isOfflineMode) return
-        if (importSheet?.isAdded == true) return
+		    private fun showImportExistingWaypointSheet() {
+	        if (isOfflineMode) return
+	        if (importSheet?.isAdded == true) return
 
 	        // 讓上半部地圖可見（半屏 sheet 覆蓋下半部）
 	        binding.formPanel.visibility = View.GONE
@@ -401,17 +464,18 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        binding.mapDimOverlay.visibility = View.GONE
 	        applyImportMapPadding(true)
 
-	        val sheet = ImportExistingWaypointBottomSheet().apply {
-	            callbacks = object : ImportExistingWaypointBottomSheet.Callbacks {
-                override fun onMapPickModeChanged(enabled: Boolean) {
-                    importMapPickEnabled = enabled
-                    updateImportMapClickListener()
-                }
-
-	                override fun onNearbyCenterChanged(center: LatLng) {
-	                    Log.d(logTag, "Nearby pick lat=${center.latitude}, lng=${center.longitude}")
-	                    showImportCenterMarker(center)
+		        val sheet = ImportExistingWaypointBottomSheet().apply {
+		            callbacks = object : ImportExistingWaypointBottomSheet.Callbacks {
+	                override fun onMapPickModeChanged(enabled: Boolean) {
+	                    // Spec update: use GPS current location; never enable map click picking.
+	                    importMapPickEnabled = false
+	                    updateImportMapClickListener()
 	                }
+
+		                override fun onNearbyCenterChanged(center: LatLng) {
+		                    // Spec update: no map click picking in Nearby mode.
+		                    return
+		                }
 
 	                override fun onCandidateWaypointsChanged(items: List<NodeDetails>) {
 	                    // 初次載入清單不在地圖顯示候選點；只有選取後才縮放到該點。
@@ -425,39 +489,210 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	                    handleImportedNodeDetails(item)
 	                }
 
-	                override fun onDismissed() {
-	                    clearImportMarkers()
-	                    binding.formPanel.visibility = View.VISIBLE
-	                    binding.mapDimOverlay.visibility = View.VISIBLE
-	                    applyImportMapPadding(false)
-	                }
+		                override fun onDismissed() {
+		                    stopImportLocationUpdates()
+		                    clearImportMarkers()
+		                    pendingImportSheetForLocation = null
+		                    binding.formPanel.visibility = View.VISIBLE
+		                    binding.mapDimOverlay.visibility = View.VISIBLE
+		                    applyImportMapPadding(false)
+		                }
 
-	                override fun onPageSwitched() {
-	                    // Switching tabs cancels selection and clears all map markers.
-	                    clearImportMarkers()
-	                }
-	            }
-	        }
+		                override fun onPageSwitched() {
+		                    stopImportLocationUpdates()
+		                    // Switching tabs cancels selection and clears all map markers.
+		                    clearImportMarkers()
+		                }
 
-	        importSheet = sheet
-	        sheet.show(supportFragmentManager, "ImportExistingWaypointBottomSheet")
-	    }
+		                override fun onRequestMyLocation() {
+		                    // Always allow the user to tap "current location" even without permission.
+		                    val s = this@apply
+		                    pendingImportSheetForLocation = s
+		                    importLocationPermissionAttempts = 0
+		                    ensureImportLocationPermissionAndFetch(s)
+		                }
+		            }
+		        }
 
-	    private fun updateImportMapClickListener() {
-	        val map = formMap ?: return
-	        if (importMapPickEnabled) {
-	            map.setOnMapClickListener { latLng ->
-	                importSheet?.onMapClicked(latLng)
-	            }
-	        } else {
-	            map.setOnMapClickListener(null)
-	        }
-	    }
+		        importSheet = sheet
+		        sheet.show(supportFragmentManager, "ImportExistingWaypointBottomSheet")
+		        // Spec update: open Nearby tab and immediately query by GPS current location.
+		        pendingImportSheetForLocation = sheet
+		        importLocationPermissionAttempts = 0
+		        ensureImportLocationPermissionAndFetch(sheet)
+		    }
 
-	    private fun showImportCenterMarker(center: LatLng) {
-	        val map = formMap ?: return
-	        importCenterMarker?.remove()
-	        // Use the same marker style as distance-measure start point.
+		    private fun updateImportMapClickListener() {
+		        val map = formMap ?: return
+		        if (importMapPickEnabled) {
+		            map.setOnMapClickListener { latLng ->
+		                importSheet?.onMapClicked(latLng)
+		            }
+		        } else {
+		            map.setOnMapClickListener(null)
+		        }
+		    }
+
+		    private fun ensureImportLocationPermissionAndFetch(sheet: ImportExistingWaypointBottomSheet) {
+		        pendingImportSheetForLocation = sheet
+		        // Prefer using host (MainActivity) last known location for instant lookup.
+		        if (tryLoadNearbyFromHost(sheet)) return
+		        val granted = ContextCompat.checkSelfPermission(
+		            this,
+		            Manifest.permission.ACCESS_FINE_LOCATION
+		        ) == PackageManager.PERMISSION_GRANTED
+		        if (granted) {
+		            requestCurrentGpsAndLoadNearby(sheet)
+		            return
+		        }
+		        if (importLocationPermissionAttempts >= 2) {
+		            sheet.showNearbyAutoError("尚未授權定位權限，無法查詢附近點位")
+		            return
+		        }
+		        importLocationPermissionAttempts++
+		        importLocationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+		    }
+
+		    private fun tryLoadNearbyFromHost(sheet: ImportExistingWaypointBottomSheet): Boolean {
+		        val latLng = hostLastLatLng ?: return false
+		        // Use host location immediately; do not require fine-location permission here.
+		        stopImportLocationUpdates()
+		        showImportMyLocationMarker(latLng)
+		        sheet.startNearbyAutoSearch(latLng)
+		        return true
+		    }
+
+		    @android.annotation.SuppressLint("MissingPermission")
+		    private fun requestCurrentGpsAndLoadNearby(sheet: ImportExistingWaypointBottomSheet) {
+		        // Guard: sheet may already be dismissing.
+		        if (sheet.isRemoving) return
+
+		        stopImportLocationUpdates()
+		        importBestLocation = null
+		        sheet.showLocating("定位中…")
+
+		        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1_000L)
+		            .setMinUpdateIntervalMillis(500L)
+		            .setWaitForAccurateLocation(true)
+		            .build()
+
+		        val callback = object : LocationCallback() {
+		            override fun onLocationResult(result: LocationResult) {
+		                val now = System.currentTimeMillis()
+		                val freshLocations = result.locations
+		                    .filter { loc -> (now - loc.time) <= importLocationStaleMs }
+		                if (freshLocations.isEmpty()) return
+
+		                // Track best (smallest accuracy) among fresh updates.
+		                freshLocations.forEach { loc ->
+		                    val best = importBestLocation
+		                    val locAcc = if (loc.hasAccuracy()) loc.accuracy else Float.MAX_VALUE
+		                    val bestAcc = if (best?.hasAccuracy() == true) best.accuracy else Float.MAX_VALUE
+		                    if (best == null || locAcc < bestAcc) importBestLocation = loc
+		                }
+
+		                // Accept only when accuracy is good enough (fresh + accurate).
+		                val accurate = freshLocations.firstOrNull { loc ->
+		                    loc.hasAccuracy() && loc.accuracy <= importLocationAccuracyM
+		                } ?: return
+
+		                stopImportLocationUpdates()
+		                val latLng = LatLng(accurate.latitude, accurate.longitude)
+		                showImportMyLocationMarker(latLng)
+		                sheet.startNearbyAutoSearch(latLng)
+		            }
+		        }
+
+		        importLocationCallback = callback
+		        fusedLocationClient.requestLocationUpdates(request, callback, Looper.getMainLooper())
+
+		        importLocationTimeoutJob = lifecycleScope.launch {
+		            delay(importLocationTimeoutMs)
+		            if (importLocationCallback != callback) return@launch
+		            stopImportLocationUpdates()
+		            sheet.hideLocating()
+		            sheet.showNearbyAutoError("定位逾時，請到空曠處或開啟定位服務後再試一次")
+		        }
+		    }
+
+		    private fun stopImportLocationUpdates() {
+		        importLocationTimeoutJob?.cancel()
+		        importLocationTimeoutJob = null
+		        importLocationCallback?.let { cb ->
+		            fusedLocationClient.removeLocationUpdates(cb)
+		        }
+		        importLocationCallback = null
+		    }
+
+		    private fun showImportMyLocationMarker(latLng: LatLng) {
+		        val map = formMap ?: return
+		        importMyLocationMarker?.remove()
+		        importMyLocationMarker = map.addMarker(
+		            MarkerOptions()
+		                .position(latLng)
+		                .title("目前位置")
+		                .anchor(0.5f, 0.5f)
+		                .icon(bitmapDescriptorFromVector(R.drawable.ic_my_location))
+		        )
+		        // Move/zoom to current location (will be centered in the upper-half due to map padding).
+		        val zoom = (map.cameraPosition?.zoom ?: 18f).coerceAtLeast(16f)
+		        map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, zoom))
+		    }
+
+		    private fun bitmapDescriptorFromVector(resId: Int): com.google.android.gms.maps.model.BitmapDescriptor {
+		        val drawable = ContextCompat.getDrawable(this, resId)
+		            ?: return BitmapDescriptorFactory.defaultMarker()
+		        val bitmap = Bitmap.createBitmap(
+		            drawable.intrinsicWidth.coerceAtLeast(1),
+		            drawable.intrinsicHeight.coerceAtLeast(1),
+		            Bitmap.Config.ARGB_8888
+		        )
+		        val canvas = Canvas(bitmap)
+		        drawable.setBounds(0, 0, canvas.width, canvas.height)
+		        drawable.draw(canvas)
+		        return BitmapDescriptorFactory.fromBitmap(bitmap)
+		    }
+
+		    private fun showImportLocationRetryDialog(sheet: ImportExistingWaypointBottomSheet) {
+		        AlertDialog.Builder(this)
+		            .setTitle("需要定位權限")
+		            .setMessage("匯入既有點位的「附近點位」需要使用目前位置。是否要再次詢問定位權限？")
+		            .setNegativeButton("取消") { _, _ ->
+		                sheet.showNearbyAutoError("尚未授權定位權限，無法查詢附近點位")
+		            }
+		            .setPositiveButton("再試一次") { _, _ ->
+		                ensureImportLocationPermissionAndFetch(sheet)
+		            }
+		            .show()
+		    }
+
+		    private fun showImportLocationGoSettingsDialog(sheet: ImportExistingWaypointBottomSheet) {
+		        AlertDialog.Builder(this)
+		            .setTitle("定位權限已關閉")
+		            .setMessage("請到系統設定開啟定位權限後，再回到此頁查詢附近點位。")
+		            .setNegativeButton("取消") { _, _ ->
+		                sheet.showNearbyAutoError("尚未授權定位權限，無法查詢附近點位")
+		            }
+		            .setPositiveButton("前往設定") { _, _ ->
+		                openAppSettings()
+		            }
+		            .show()
+		    }
+
+		    private fun openAppSettings() {
+		        runCatching {
+		            startActivity(
+		                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+		                    data = Uri.fromParts("package", packageName, null)
+		                }
+		            )
+		        }
+		    }
+
+		    private fun showImportCenterMarker(center: LatLng) {
+		        val map = formMap ?: return
+		        importCenterMarker?.remove()
+		        // Use the same marker style as distance-measure start point.
 	        importCenterMarker = map.addMarker(
 	            MarkerOptions()
 	                .position(center)
@@ -489,12 +724,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        formMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 18f))
 	    }
 
-	    private fun clearImportMarkers() {
-	        importCenterMarker?.remove()
-	        importCenterMarker = null
-	        importMapPickEnabled = false
-	        updateImportMapClickListener()
-	    }
+		    private fun clearImportMarkers() {
+		        importCenterMarker?.remove()
+		        importCenterMarker = null
+		        importMyLocationMarker?.remove()
+		        importMyLocationMarker = null
+		        importMapPickEnabled = false
+		        updateImportMapClickListener()
+		    }
 
 	    private fun applyImportMapPadding(enabled: Boolean) {
 	        val map = formMap ?: return
@@ -512,8 +749,18 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityGutterFormBinding.inflate(layoutInflater)
-        setContentView(binding.root)
+	        binding = ActivityGutterFormBinding.inflate(layoutInflater)
+	        setContentView(binding.root)
+	        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+	        // Cache host (MainActivity) last known location for fast "nearby" lookup (no waiting for GPS fix here).
+	        val hostLat = intent.getDoubleExtra(EXTRA_HOST_LAST_LAT, Double.NaN)
+	        val hostLng = intent.getDoubleExtra(EXTRA_HOST_LAST_LNG, Double.NaN)
+	        hostLastLocationTime = intent.getLongExtra(EXTRA_HOST_LAST_TIME, 0L)
+	        hostLastLocationAccuracy = intent.getFloatExtra(EXTRA_HOST_LAST_ACC, -1f)
+	        if (!hostLat.isNaN() && !hostLng.isNaN()) {
+	            hostLastLatLng = LatLng(hostLat, hostLng)
+	        }
 
         waypointLabels = intent.getStringArrayListExtra(EXTRA_WAYPOINT_LABELS) ?: arrayListOf()
         latitudes  = intent.getDoubleArrayExtra(EXTRA_LATITUDES)  ?: doubleArrayOf()

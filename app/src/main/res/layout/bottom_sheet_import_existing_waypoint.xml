@@ -40,9 +40,15 @@
             android:textSize="18sp"
             android:textStyle="bold" />
 
-        <View
+        <ImageButton
+            android:id="@+id/btnMyLocation"
             android:layout_width="48dp"
-            android:layout_height="48dp" />
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="現在位置"
+            android:padding="12dp"
+            android:src="@drawable/ic_my_location"
+            android:tint="@color/colorPrimary" />
     </LinearLayout>
 
     <!-- Capsule tabs -->
@@ -122,15 +128,62 @@
         android:visibility="gone"
         android:text="請點選上方地圖以查詢附近點位" />
 
-    <!-- List -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvWaypoints"
+    <!-- Content container with loading overlay (positioned at top half of list) -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingBottom="12dp"
-        android:clipToPadding="false"
-        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+        android:layout_weight="1">
+
+        <!-- List -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvWaypoints"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="12dp"
+            android:clipToPadding="false"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
+
+        <!-- Loading overlay (positioned at top-center of content area) -->
+        <FrameLayout
+            android:id="@+id/loadingOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="#66000000"
+            android:clickable="true"
+            android:focusable="true"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="32dp"
+                android:background="@color/colorSurface"
+                android:gravity="center"
+                android:orientation="vertical"
+                android:padding="24dp"
+                android:elevation="4dp">
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:indeterminate="true"
+                    app:indicatorColor="@color/colorPrimary"
+                    app:trackColor="@color/border_grey" />
+
+                <TextView
+                    android:id="@+id/tvLoading"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/msg_loading_waypoint"
+                    android:textColor="@color/text_grey"
+                    android:textSize="14sp" />
+
+            </LinearLayout>
+        </FrameLayout>
+
+    </FrameLayout>
 
     <!-- Bottom full-width import button -->
     <com.google.android.material.button.MaterialButton
@@ -149,43 +202,5 @@
         android:textColor="@color/white"
         app:backgroundTint="@color/border_grey"
         app:cornerRadius="14dp" />
-
-    <!-- Loading overlay -->
-    <FrameLayout
-        android:id="@+id/loadingOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="#66000000"
-        android:clickable="true"
-        android:focusable="true"
-        android:visibility="gone">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:background="@drawable/bg_form_sheet"
-            android:gravity="center"
-            android:orientation="vertical"
-            android:padding="24dp">
-
-            <com.google.android.material.progressindicator.CircularProgressIndicator
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:indeterminate="true"
-                app:indicatorColor="@color/colorPrimary"
-                app:trackColor="@color/border_grey" />
-
-            <TextView
-                android:id="@+id/tvLoading"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/msg_loading_waypoint"
-                android:textColor="@color/text_grey"
-                android:textSize="14sp" />
-
-        </LinearLayout>
-    </FrameLayout>
 
 </LinearLayout>

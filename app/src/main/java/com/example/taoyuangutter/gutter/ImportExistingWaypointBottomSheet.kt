@@ -55,6 +55,9 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
         /** 切換頁面時清除地圖點位（候選點/選取點） */
         fun onPageSwitched()
+
+        /** 使用「目前位置」重新載入 Nearby 清單 */
+        fun onRequestMyLocation()
     }
 
     var callbacks: Callbacks? = null
@@ -66,6 +69,11 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     private lateinit var adapter: ImportWaypointAdapter
 
     private var selected: NodeDetails? = null
+    // Keep two pages' list content independent.
+    private var nearbyRows: List<ImportWaypointAdapter.Row> =
+        listOf(ImportWaypointAdapter.Row.State("使用目前位置查詢附近點位"))
+    private var searchRows: List<ImportWaypointAdapter.Row> =
+        listOf(ImportWaypointAdapter.Row.State("請輸入座標編號 (XY_NUM) 後按搜尋"))
     private var searchJob: Job? = null
     private var closestJob: Job? = null
     private var searchSeq: Int = 0
@@ -75,6 +83,9 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     private var currentPage: Page = Page.NEARBY
 
     private var routeToActivity: Boolean = false
+    private var pendingAutoNearbyLatLng: LatLng? = null
+    private var pendingAutoNearbyError: String? = null
+    private var pendingLocatingMessage: String? = null
 
 
     override fun getTheme(): Int = R.style.TransparentBottomSheetDialog
@@ -104,6 +115,18 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
         // Default: Nearby
         renderPage(Page.NEARBY)
+        pendingAutoNearbyLatLng?.let { latLng ->
+            pendingAutoNearbyLatLng = null
+            startNearbyAutoSearch(latLng)
+        }
+        pendingAutoNearbyError?.let { msg ->
+            pendingAutoNearbyError = null
+            showNearbyAutoError(msg)
+        }
+        pendingLocatingMessage?.let { msg ->
+            pendingLocatingMessage = null
+            showLocating(msg)
+        }
 
         // IME: move the whole sheet up so the search field is never covered
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
@@ -212,16 +235,77 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     }
 
     fun onMapClicked(latLng: LatLng) {
+        // Spec update: Nearby uses GPS current location; map click is disabled.
+        // Keep this method for backward compatibility, but no-op to avoid accidental triggers.
+        return
+    }
+
+    /**
+     * Nearby page: automatically query closest nodes by the given GPS lat/lng.
+     * This replaces the old "tap map to pick a center" flow.
+     */
+    fun startNearbyAutoSearch(latLng: LatLng) {
+        if (!isAdded) {
+            pendingAutoNearbyLatLng = latLng
+            return
+        }
+        if (_binding == null) {
+            pendingAutoNearbyLatLng = latLng
+            return
+        }
         if (currentPage != Page.NEARBY) return
-        callbacks?.onNearbyCenterChanged(latLng)
-        // 重新點地圖時才覆蓋清單；同時清掉目前選取
+        binding.tvNearbyHint.isVisible = true
+        binding.tvNearbyHint.text = "使用目前位置查詢附近點位中…"
         clearSelection()
         performClosestSearch(latLng)
     }
 
+    /** Nearby page: show a locating state (no API call). */
+    fun showLocating(message: String = "定位中…") {
+        if (!isAdded) {
+            pendingLocatingMessage = message
+            return
+        }
+        if (_binding == null) {
+            pendingLocatingMessage = message
+            return
+        }
+        if (currentPage != Page.NEARBY) return
+        clearSelection()
+        binding.tvNearbyHint.isVisible = true
+        binding.tvNearbyHint.text = message
+        // Only affect Nearby page list.
+        nearbyRows = listOf(ImportWaypointAdapter.Row.State(message))
+        adapter.updateRows(nearbyRows)
+        setLoading(true, message)
+    }
+
+    /** Stop the locating spinner state (does not change list contents). */
+    fun hideLocating() {
+        if (!isAdded) return
+        if (_binding == null) return
+        setLoading(false)
+    }
+
+    fun showNearbyAutoError(message: String) {
+        if (!isAdded) {
+            pendingAutoNearbyError = message
+            return
+        }
+        if (_binding == null) {
+            pendingAutoNearbyError = message
+            return
+        }
+        if (currentPage != Page.NEARBY) return
+        binding.tvNearbyHint.isVisible = true
+        binding.tvNearbyHint.text = message
+        showErrorState(message)
+        setLoading(false)
+    }
+
     private fun setupRecycler() {
         adapter = ImportWaypointAdapter(
-            rows = listOf(ImportWaypointAdapter.Row.State("請切換頁籤選擇點位")),
+            rows = nearbyRows,
             onItemSelected = { item -> onSelected(item) }
         )
         binding.rvWaypoints.layoutManager = LinearLayoutManager(requireContext())
@@ -258,14 +342,19 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
             Page.NEARBY -> {
                 binding.searchBar.isVisible = false
                 binding.tvNearbyHint.isVisible = true
-                binding.tvNearbyHint.text = "請點選上方地圖以取得經緯度（附近查詢待接）"
-                callbacks?.onMapPickModeChanged(true)
+                binding.tvNearbyHint.text = "使用目前位置查詢附近點位"
+                // Use VISIBLE/INVISIBLE (not GONE) to prevent the centered title from "jumping".
+                binding.btnMyLocation.visibility = View.VISIBLE
+                callbacks?.onMapPickModeChanged(false)
+                adapter.updateRows(nearbyRows)
                 // 不清列表；只清選取與地圖 marker
             }
             Page.SEARCH -> {
                 binding.searchBar.isVisible = true
                 binding.tvNearbyHint.isVisible = false
+                binding.btnMyLocation.visibility = View.INVISIBLE
                 callbacks?.onMapPickModeChanged(false)
+                adapter.updateRows(searchRows)
                 // 不清列表；只清選取與地圖 marker
             }
         }
@@ -284,6 +373,8 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
     private fun setupButtons() {
         binding.btnClose.setOnClickListener { dismissAllowingStateLoss() }
+        binding.btnMyLocation.isVisible = true
+        binding.btnMyLocation.setOnClickListener { callbacks?.onRequestMyLocation() }
 
         binding.btnImport.isEnabled = false
         binding.btnImport.backgroundTintList =
@@ -296,19 +387,25 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun showHintState(message: String = "請切換頁籤選擇點位") {
-        adapter.updateRows(listOf(ImportWaypointAdapter.Row.State(message)))
+        setRowsFor(currentPage, listOf(ImportWaypointAdapter.Row.State(message)))
     }
 
     private fun showEmptyState() {
-        adapter.updateRows(listOf(ImportWaypointAdapter.Row.State("無資料")))
+        setRowsFor(currentPage, listOf(ImportWaypointAdapter.Row.State("無資料")))
     }
 
     private fun showErrorState(message: String) {
-        adapter.updateRows(listOf(ImportWaypointAdapter.Row.State(message)))
+        setRowsFor(currentPage, listOf(ImportWaypointAdapter.Row.State(message)))
     }
 
     private fun updateResultRows(results: List<NodeDetails>) {
-        adapter.updateRows(results.map { ImportWaypointAdapter.Row.Waypoint(it) })
+        setRowsFor(currentPage, results.map { ImportWaypointAdapter.Row.Waypoint(it) })
+    }
+
+    private fun setRowsFor(page: Page, rows: List<ImportWaypointAdapter.Row>) {
+        if (page == Page.NEARBY) nearbyRows = rows else searchRows = rows
+        if (_binding == null) return
+        if (currentPage == page) adapter.updateRows(rows)
     }
 
     private fun clearSelection() {
@@ -345,8 +442,9 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         closestJob?.cancel()
         setLoading(true, "載入中…")
         binding.tvNearbyHint.text =
-            "已選擇地圖位置：(${String.format("%.6f", latLng.latitude)}, ${String.format("%.6f", latLng.longitude)})"
+            "查詢位置：(${String.format("%.6f", latLng.latitude)}, ${String.format("%.6f", latLng.longitude)})"
         val seq = ++closestSeq
+        val targetPage = Page.NEARBY
 
         closestJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -359,23 +457,22 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                 when (result) {
                     is ApiResult.Success -> {
                         val list = result.data.data ?: emptyList()
-                        if (list.isEmpty()) {
-                            showEmptyState()
-                        } else {
-                            updateResultRows(list)
-                        }
+                        if (list.isEmpty())
+                            setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("無資料")))
+                        else
+                            setRowsFor(targetPage, list.map { ImportWaypointAdapter.Row.Waypoint(it) })
                         // 初次不在地圖顯示任何候選點；選取後才縮放移動
                     }
                     is ApiResult.Error -> {
                         Toast.makeText(ctx, "載入失敗：${result.message}", Toast.LENGTH_SHORT).show()
-                        showErrorState("載入失敗：${result.message}")
+                        setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("載入失敗：${result.message}")))
                     }
                 }
             } catch (e: CancellationException) {
                 // Ignore.
             } catch (e: Exception) {
                 Toast.makeText(ctx, "發生錯誤：${e.message}", Toast.LENGTH_SHORT).show()
-                showErrorState("發生錯誤：${e.message ?: "未知錯誤"}")
+                setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("發生錯誤：${e.message ?: "未知錯誤"}")))
             } finally {
                 if (seq == closestSeq) setLoading(false)
             }
@@ -386,7 +483,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         if (currentPage != Page.SEARCH) return
         val query = rawQuery.trim()
         if (query.isEmpty()) {
-            showHintState(message = "請輸入座標編號 (XY_NUM) 後按搜尋")
+            setRowsFor(Page.SEARCH, listOf(ImportWaypointAdapter.Row.State("請輸入座標編號 (XY_NUM) 後按搜尋")))
             return
         }
 
@@ -402,6 +499,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         clearSelection()
         setLoading(true, "載入中…")
         val seq = ++searchSeq
+        val targetPage = Page.SEARCH
 
         searchJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
@@ -410,22 +508,21 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                 when (result) {
                     is ApiResult.Success -> {
                         val list = result.data.data ?: emptyList()
-                        if (list.isEmpty()) {
-                            showEmptyState()
-                        } else {
-                            updateResultRows(list)
-                        }
+                        if (list.isEmpty())
+                            setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("無資料")))
+                        else
+                            setRowsFor(targetPage, list.map { ImportWaypointAdapter.Row.Waypoint(it) })
                     }
                     is ApiResult.Error -> {
                         Toast.makeText(ctx, "載入失敗：${result.message}", Toast.LENGTH_SHORT).show()
-                        showErrorState("載入失敗：${result.message}")
+                        setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("載入失敗：${result.message}")))
                     }
                 }
             } catch (e: CancellationException) {
                 // Ignore.
             } catch (e: Exception) {
                 Toast.makeText(ctx, "發生錯誤：${e.message}", Toast.LENGTH_SHORT).show()
-                showErrorState("發生錯誤：${e.message ?: "未知錯誤"}")
+                setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("發生錯誤：${e.message ?: "未知錯誤"}")))
             } finally {
                 if (seq == searchSeq) setLoading(false)
             }

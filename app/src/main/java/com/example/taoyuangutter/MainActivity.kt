@@ -11,6 +11,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.drawable.Drawable
+import android.location.Location
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -148,6 +149,8 @@ class MainActivity : AppCompatActivity(),
     // ── 定位 ─────────────────────────────────────────────────────────────
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
+    /** 主地圖最近一次取得的定位（供表單/匯入既有點位快速使用，避免再次等待 GPS fix）。 */
+    private var lastKnownLocation: Location? = null
 
     // ── Repository ───────────────────────────────────────────────────────
     private val gutterRepository = GutterRepository()
@@ -969,6 +972,7 @@ class MainActivity : AppCompatActivity(),
             wp.basicData,
             layer
         )
+        attachHostLastLocation(intent)
         gutterFormLauncher.launch(intent)
     }
 
@@ -1012,8 +1016,20 @@ class MainActivity : AppCompatActivity(),
 	            wmtsLayer = layer,
 	            sessionIsOffline = currentSessionIsOffline
 	        )
+	        attachHostLastLocation(intent)
 	        gutterFormLauncher.launch(intent)
 	    }
+
+    private fun attachHostLastLocation(intent: Intent) {
+        val loc = lastKnownLocation ?: return
+        intent.putExtra(GutterFormActivity.EXTRA_HOST_LAST_LAT, loc.latitude)
+        intent.putExtra(GutterFormActivity.EXTRA_HOST_LAST_LNG, loc.longitude)
+        intent.putExtra(GutterFormActivity.EXTRA_HOST_LAST_TIME, loc.time)
+        intent.putExtra(
+            GutterFormActivity.EXTRA_HOST_LAST_ACC,
+            if (loc.hasAccuracy()) loc.accuracy else -1f
+        )
+    }
 
     private fun currentWmtsLayer(): String =
         when (currentMapMode) {
@@ -1116,7 +1132,17 @@ class MainActivity : AppCompatActivity(),
         googleMap?.uiSettings?.isMyLocationButtonEnabled = false
         val cts = CancellationTokenSource()
         fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cts.token)
-            .addOnSuccessListener { loc -> if (loc != null) googleMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(loc.latitude, loc.longitude), 18f)) }
+            .addOnSuccessListener { loc ->
+                if (loc != null) {
+                    lastKnownLocation = loc
+                    googleMap?.animateCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(loc.latitude, loc.longitude),
+                            18f
+                        )
+                    )
+                }
+            }
     }
 
     @Suppress("UNCHECKED_CAST")
