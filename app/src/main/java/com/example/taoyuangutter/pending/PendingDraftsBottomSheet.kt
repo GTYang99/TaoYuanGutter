@@ -77,8 +77,8 @@ class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
             skipCollapsed = true
         }
 
-        // 半透明遮罩，讓地圖背景稍微變暗，凸顯操作介面
-        bsDialog.window?.setDimAmount(0.5f)
+        // 不使用黑色遮罩，保持背景地圖可見
+        bsDialog.window?.setDimAmount(0f)
     }
 
     /**

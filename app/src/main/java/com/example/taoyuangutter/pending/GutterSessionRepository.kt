@@ -12,30 +12,30 @@ import com.google.gson.reflect.TypeToken
  */
 class GutterSessionRepository(context: Context) {
 
-    private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    private val gson  = Gson()
+    private val appContext = context.applicationContext
+    private val prefs = appContext.getSharedPreferences(LEGACY_PREFS_NAME, Context.MODE_PRIVATE)
+    private val gson = Gson()
+    private val draftDao = GutterDraftDatabase.getInstance(appContext).draftDao()
 
     companion object {
-        private const val PREFS_NAME = "gutter_session_drafts"
-        private const val KEY_DRAFTS = "session_drafts_json"
+        private const val LEGACY_PREFS_NAME = "gutter_session_drafts"
+        private const val LEGACY_KEY_DRAFTS = "session_drafts_json"
+        private const val KEY_LEGACY_MIGRATED = "legacy_drafts_migrated"
+    }
+
+    init {
+        migrateLegacyDraftsIfNeeded()
     }
 
     // ── 讀取 ──────────────────────────────────────────────────────────────
 
     /** 取得所有草稿，依儲存時間降冪排列（最新的在最前面）。 */
     fun getAll(): List<GutterSessionDraft> {
-        val json = prefs.getString(KEY_DRAFTS, null) ?: return emptyList()
-        return try {
-            val type = object : TypeToken<List<GutterSessionDraft>>() {}.type
-            val list: List<GutterSessionDraft> = gson.fromJson(json, type)
-            list.sortedByDescending { it.savedAt }
-        } catch (e: Exception) {
-            emptyList()
-        }
+        return draftDao.getAll().mapNotNull(::entityToDraft)
     }
 
     /** 依 id 取得單一草稿，找不到時回傳 null。 */
-    fun getById(id: Long): GutterSessionDraft? = getAll().firstOrNull { it.id == id }
+    fun getById(id: Long): GutterSessionDraft? = draftDao.getById(id)?.let(::entityToDraft)
 
     // ── 寫入 ──────────────────────────────────────────────────────────────
 
@@ -44,21 +44,70 @@ class GutterSessionRepository(context: Context) {
      * 若 [draft.id] 已存在，則以新內容覆蓋；否則新增。
      */
     fun save(draft: GutterSessionDraft) {
-        val current = getAll().toMutableList()
-        val idx = current.indexOfFirst { it.id == draft.id }
-        if (idx >= 0) current[idx] = draft else current.add(0, draft)
-        persist(current)
+        draftDao.upsert(draft.toEntity())
     }
 
     /** 依 id 刪除一筆草稿。 */
     fun delete(id: Long) {
-        val updated = getAll().filter { it.id != id }
-        persist(updated)
+        draftDao.deleteById(id)
     }
 
     // ── 私有工具 ──────────────────────────────────────────────────────────
 
-    private fun persist(drafts: List<GutterSessionDraft>) {
-        prefs.edit().putString(KEY_DRAFTS, gson.toJson(drafts)).apply()
+    private fun migrateLegacyDraftsIfNeeded() {
+        if (prefs.getBoolean(KEY_LEGACY_MIGRATED, false)) return
+        if (draftDao.count() > 0) {
+            prefs.edit().putBoolean(KEY_LEGACY_MIGRATED, true).apply()
+            return
+        }
+
+        val legacyJson = prefs.getString(LEGACY_KEY_DRAFTS, null)
+        val legacyDrafts = parseLegacyDrafts(legacyJson)
+        if (legacyDrafts.isNotEmpty()) {
+            legacyDrafts.forEach { draftDao.upsert(it.toEntity()) }
+        }
+
+        prefs.edit()
+            .remove(LEGACY_KEY_DRAFTS)
+            .putBoolean(KEY_LEGACY_MIGRATED, true)
+            .apply()
+    }
+
+    private fun parseLegacyDrafts(json: String?): List<GutterSessionDraft> {
+        if (json.isNullOrBlank()) return emptyList()
+        return try {
+            val type = object : TypeToken<List<GutterSessionDraft>>() {}.type
+            gson.fromJson<List<GutterSessionDraft>>(json, type).orEmpty()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun entityToDraft(entity: DraftEntity): GutterSessionDraft? {
+        val waypoints = try {
+            val type = object : TypeToken<List<WaypointSnapshot>>() {}.type
+            gson.fromJson<List<WaypointSnapshot>>(entity.waypointsJson, type).orEmpty()
+        } catch (_: Exception) {
+            return null
+        }
+        return GutterSessionDraft(
+            id = entity.id,
+            savedAt = entity.savedAt,
+            kind = entity.kind,
+            isOffline = entity.isOffline,
+            isSinglePoint = entity.isSinglePoint,
+            waypoints = waypoints
+        )
+    }
+
+    private fun GutterSessionDraft.toEntity(): DraftEntity {
+        return DraftEntity(
+            id = id,
+            savedAt = savedAt,
+            kind = kind,
+            isOffline = isOffline,
+            isSinglePoint = isSinglePoint,
+            waypointsJson = gson.toJson(waypoints)
+        )
     }
 }

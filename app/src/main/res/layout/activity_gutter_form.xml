@@ -18,14 +18,15 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- ② 半透明黑色 overlay（分出地圖與表單的層次） -->
+    <!-- ② 保留圖層位置但不再使用黑色遮罩 -->
     <View
         android:id="@+id/mapDimOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#66000000"
+        android:background="@android:color/transparent"
         android:clickable="false"
-        android:focusable="false" />
+        android:focusable="false"
+        android:visibility="gone" />
 
     <!-- ③ 表單面板（高度由程式設定為螢幕 3/4，鍵盤彈出時上移） -->
     <androidx.coordinatorlayout.widget.CoordinatorLayout

@@ -40,6 +40,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.gms.maps.model.Polyline
+import com.google.android.gms.maps.model.PolylineOptions
 import com.google.android.gms.maps.model.TileOverlay
 import com.google.android.gms.maps.model.TileOverlayOptions
 import com.google.android.gms.maps.model.UrlTileProvider
@@ -54,6 +56,7 @@ import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import android.content.pm.PackageManager
 import com.example.taoyuangutter.common.LocationPickEvents
+import com.example.taoyuangutter.map.MarkerIconFactory
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CancellationException
@@ -209,7 +212,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            if (!wmtsLayer.isNullOrEmpty()) {
                 putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
             }
-            basicData?.let { fillDataExtras(this, it) }
+            basicData?.let { GutterFormContract.putFormDataExtras(this, it) }
         }
 
         fun newViewIntent(
@@ -231,7 +234,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             if (!wmtsLayer.isNullOrEmpty()) {
                 putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
             }
-            fillDataExtras(this, basicData)
+            GutterFormContract.putFormDataExtras(this, basicData)
         }
 
         /**
@@ -251,36 +254,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 if (draftId > 0L) putExtra(EXTRA_SESSION_DRAFT_ID, draftId)
             }
 
-        private fun fillDataExtras(intent: Intent, data: HashMap<String, String>) {
-            intent.putExtra(EXTRA_DATA_GUTTER_ID,   data["SPI_NUM"]    ?: data["gutterId"] ?: "")
-            intent.putExtra(EXTRA_DATA_GUTTER_TYPE, data["NODE_TYP"]   ?: data["gutterType"] ?: "")
-            intent.putExtra(EXTRA_DATA_MAT_TYP,     data["MAT_TYP"]    ?: data["matTyp"] ?: "")
-            intent.putExtra(EXTRA_DATA_COORD_X,     data["NODE_X"]     ?: data["coordX"] ?: "")
-            intent.putExtra(EXTRA_DATA_COORD_Y,     data["NODE_Y"]     ?: data["coordY"] ?: "")
-            intent.putExtra(EXTRA_DATA_COORD_Z,     data["NODE_LE"]    ?: data["coordZ"] ?: "")
-            intent.putExtra(EXTRA_DATA_MEASURE_ID,  data["XY_NUM"]     ?: data["xyNum"] ?: "")
-            val coverDep = data["COVER_DEP"]
-                ?: data["COVER_THICKNESS"]
-                ?: data["coverDep"]
-                ?: data["coverThickness"]
-                ?: ""
-            intent.putExtra(EXTRA_DATA_COVER_DEP, coverDep)
-            // 相容：舊版 key
-            intent.putExtra(EXTRA_DATA_COVER_THICKNESS, coverDep)
-            intent.putExtra(EXTRA_DATA_DEPTH,       data["NODE_DEP"]   ?: data["depth"] ?: "")
-            intent.putExtra(EXTRA_DATA_TOP_WIDTH,   data["NODE_WID"]   ?: data["topWidth"] ?: "")
-            intent.putExtra(EXTRA_DATA_IS_BROKEN,   data["IS_BROKEN"]  ?: data["isBroken"] ?: "")
-            intent.putExtra(EXTRA_DATA_IS_HANGING,  data["IS_HANGING"] ?: data["isHanging"] ?: "")
-            intent.putExtra(EXTRA_DATA_IS_SILT,     data["IS_SILT"]    ?: data["isSilt"] ?: "")
-            intent.putExtra(EXTRA_DATA_IS_CANTOPEN, data["IS_CANTOPEN"] ?: data["isCantOpen"] ?: "")
-            intent.putExtra(EXTRA_DATA_IS_PENDING_DEPLOY, data["IS_PENDING_DEPLOY"] ?: data["is_pendingDeploy"] ?: data["isPendingDeploy"] ?: "")
-            intent.putExtra(EXTRA_DATA_REMARKS,     data["NODE_NOTE"]  ?: data["remarks"] ?: "")
-            intent.putExtra(EXTRA_DATA_PHOTO_1,     data["photo1"]     ?: "")
-            intent.putExtra(EXTRA_DATA_PHOTO_2,     data["photo2"]     ?: "")
-            intent.putExtra(EXTRA_DATA_PHOTO_3,     data["photo3"]     ?: "")
-            intent.putExtra(EXTRA_DATA_XY_NUM,      data["XY_NUM"]     ?: data["xyNum"] ?: "")
-            intent.putExtra(EXTRA_DATA_NODE_ID,      data["_nodeId"]    ?: "") // 傳入 node_id（編輯模式）
-        }
     }
 
     // ── 狀態欄位 ──────────────────────────────────────────────────────────
@@ -292,6 +265,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var waypointIndex = 0
     private var isViewMode    = false
     private var isEditMode    = false // 新增：是否為編輯模式
+    private var launchedInViewMode = false
 
     /** true → 離線模式，儲存至本機草稿，不向 MainActivity 回傳 result */
     private var isOfflineMode  = false
@@ -308,6 +282,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     // ── 背景地圖 ──────────────────────────────────────────────────────────
     private var formMap: GoogleMap? = null
     private var formMapTileOverlay: TileOverlay? = null
+    private val sessionMarkers = mutableListOf<Marker>()
+    private var sessionPolyline: Polyline? = null
+    private var importMapPaddingEnabled = false
     private val gutterRepository = GutterRepository()
 	    private val locationPickerLauncher = registerForActivityResult(
 	        ActivityResultContracts.StartActivityForResult()
@@ -319,7 +296,18 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (latitude.isNaN() || longitude.isNaN()) return@registerForActivityResult
         currentLat = latitude
         currentLng = longitude
+        if (currentIndex in sessionWaypoints.indices) {
+            sessionWaypoints[currentIndex] = sessionWaypoints[currentIndex].copy(
+                latitude = latitude,
+                longitude = longitude
+            )
+        }
         pagerAdapter.getBasicInfoFragment()?.updateCoordinates(longitude, latitude)
+        formMap?.let { map ->
+            renderSessionPreview(map)
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 18f))
+        }
+        queueSessionDraftSync()
 
         // 表單仍開著時，立即通知 MainActivity 更新背景地圖的點位與線段
         val draftId = sessionDraftId.takeIf { it > 0L }
@@ -494,7 +482,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		                    clearImportMarkers()
 		                    pendingImportSheetForLocation = null
 		                    binding.formPanel.visibility = View.VISIBLE
-		                    binding.mapDimOverlay.visibility = View.VISIBLE
+		                    binding.mapDimOverlay.visibility = View.GONE
 		                    applyImportMapPadding(false)
 		                }
 
@@ -733,15 +721,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		        updateImportMapClickListener()
 		    }
 
-	    private fun applyImportMapPadding(enabled: Boolean) {
-	        val map = formMap ?: return
-	        if (enabled) {
-	            val half = resources.displayMetrics.heightPixels / 2
-	            map.setPadding(0, 0, 0, half)
-	        } else {
-	            map.setPadding(0, 0, 0, 0)
-	        }
-	    }
+    private fun applyImportMapPadding(enabled: Boolean) {
+        importMapPaddingEnabled = enabled
+        updateFormMapViewportPadding()
+    }
 
     /** 本點位的原始 GPS 座標（來自地圖選點），永遠保留以確保 result 能帶回正確定位 */
     private var currentLat: Double = 0.0
@@ -768,6 +751,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         currentIndex  = intent.getIntExtra(EXTRA_CURRENT_INDEX, 0)
         waypointIndex = intent.getIntExtra(EXTRA_WAYPOINT_INDEX, 0)
         isViewMode    = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
+        launchedInViewMode = isViewMode
         isEditMode    = intent.getBooleanExtra(EXTRA_IS_EDIT_MODE, false) // 取得編輯模式旗標
         isOfflineMode = intent.getBooleanExtra(EXTRA_OFFLINE_MODE, false)
         nodeId        = intent.getStringExtra(EXTRA_DATA_NODE_ID)?.toIntOrNull()
@@ -809,26 +793,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 "NODE_X"     to (intent.getStringExtra(EXTRA_DATA_COORD_X)     ?: ""),
                 "NODE_Y"     to (intent.getStringExtra(EXTRA_DATA_COORD_Y)     ?: ""),
                 "NODE_LE"    to (intent.getStringExtra(EXTRA_DATA_COORD_Z)     ?: ""),
-                "XY_NUM"     to (intent.getStringExtra(EXTRA_DATA_MEASURE_ID)  ?: ""),
-                // 相容：優先讀 COVER_DEP，沒有就回退 COVER_THICKNESS
-                "COVER_DEP" to (
-                    intent.getStringExtra(EXTRA_DATA_COVER_DEP)
-                        ?: intent.getStringExtra(EXTRA_DATA_COVER_THICKNESS)
-                        ?: ""
-                ),
-                "NODE_DEP"   to (intent.getStringExtra(EXTRA_DATA_DEPTH)       ?: ""),
-                "NODE_WID"   to (intent.getStringExtra(EXTRA_DATA_TOP_WIDTH)   ?: ""),
-                "IS_BROKEN"  to (intent.getStringExtra(EXTRA_DATA_IS_BROKEN)   ?: ""),
-                "IS_HANGING" to (intent.getStringExtra(EXTRA_DATA_IS_HANGING)  ?: ""),
-                "IS_SILT"    to (intent.getStringExtra(EXTRA_DATA_IS_SILT)     ?: ""),
-                "IS_CANTOPEN" to (intent.getStringExtra(EXTRA_DATA_IS_CANTOPEN) ?: ""),
-                "IS_PENDING_DEPLOY" to (intent.getStringExtra(EXTRA_DATA_IS_PENDING_DEPLOY) ?: ""),
-                "NODE_NOTE"  to (intent.getStringExtra(EXTRA_DATA_REMARKS)     ?: ""),
-                "photo1"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_1)     ?: ""),
-                "photo2"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_2)     ?: ""),
-                "photo3"     to (intent.getStringExtra(EXTRA_DATA_PHOTO_3)     ?: ""),
-                "XY_NUM"     to (intent.getStringExtra(EXTRA_DATA_XY_NUM)      ?: "")
-            )
+                "XY_NUM"     to (intent.getStringExtra(EXTRA_DATA_MEASURE_ID)  ?: "")
+            ).apply {
+                putAll(GutterFormContract.readFormData(intent))
+            }
         }
 
         // 全螢幕地圖背景 + 表單面板（不論離線或一般模式皆使用新版佈局）
@@ -900,11 +868,15 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.formPanel.layoutParams = binding.formPanel.layoutParams.apply {
             height = panelHeight
         }
+        binding.formPanel.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ ->
+            updateFormMapViewportPadding()
+        }
 
         // 套用 system bar insets
         ViewCompat.setOnApplyWindowInsetsListener(binding.formPanel) { _, insets ->
             val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            binding.appBarLayout.setPadding(0, bars.top, 0, 0)
+            val compactTopSpacing = (8 * resources.displayMetrics.density).toInt()
+            binding.appBarLayout.setPadding(0, compactTopSpacing, 0, 0)
             val fabParams = binding.fabSubmit.layoutParams as CoordinatorLayout.LayoutParams
             fabParams.bottomMargin = (24 * resources.displayMetrics.density).toInt() + bars.bottom
             binding.fabSubmit.layoutParams = fabParams
@@ -923,6 +895,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     val navInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
                     binding.formPanel.translationY =
                         -maxOf(0, imeInsets.bottom - navInsets.bottom).toFloat()
+                    updateFormMapViewportPadding()
                     return insets
                 }
             }
@@ -944,12 +917,78 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         map.mapType = GoogleMap.MAP_TYPE_NONE
         val wmtsLayer = intent.getStringExtra(EXTRA_WMTS_LAYER) ?: "EMAP"
         setWmtsTiles(wmtsLayer)
+        renderSessionPreview(map)
+        updateFormMapViewportPadding()
 
-        // 若沒有既有座標，先以桃園作為初始鏡頭（表單內地圖不做定位跳轉）
-        val lat = if (currentLat != 0.0) currentLat else 24.9929
-        val lng = if (currentLng != 0.0) currentLng else 121.3011
-        map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
+        val currentWaypoint = sessionWaypoints.getOrNull(currentIndex)
+        val currentTarget = currentWaypoint?.latitude?.let { wpLat ->
+            currentWaypoint.longitude?.let { wpLng -> LatLng(wpLat, wpLng) }
+        }
+        if (currentTarget != null) {
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(currentTarget, 18f))
+        } else {
+            // 若沒有既有座標，先以桃園作為初始鏡頭（表單內地圖不做定位跳轉）
+            val lat = if (currentLat != 0.0) currentLat else 24.9929
+            val lng = if (currentLng != 0.0) currentLng else 121.3011
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
+        }
         updateImportMapClickListener()
+    }
+
+    private fun updateFormMapViewportPadding() {
+        val map = formMap ?: return
+        val bottomInset = if (importMapPaddingEnabled) {
+            resources.displayMetrics.heightPixels / 2
+        } else if (binding.formPanel.visibility == View.VISIBLE) {
+            (binding.formPanel.height + binding.formPanel.translationY).toInt().coerceAtLeast(0)
+        } else {
+            0
+        }
+        map.setPadding(0, 0, 0, bottomInset)
+    }
+
+    private fun renderSessionPreview(map: GoogleMap) {
+        sessionMarkers.forEach { it.remove() }
+        sessionMarkers.clear()
+        sessionPolyline?.remove()
+        sessionPolyline = null
+
+        val pointsForLine = mutableListOf<LatLng>()
+        sessionWaypoints.forEachIndexed { idx, wp ->
+            val lat = wp.latitude ?: return@forEachIndexed
+            val lng = wp.longitude ?: return@forEachIndexed
+            val pos = LatLng(lat, lng)
+            val type = WaypointType.entries.firstOrNull { it.name == wp.type } ?: WaypointType.NODE
+            val isPendingDeploy = when (wp.basicData["IS_PENDING_DEPLOY"]?.trim()?.lowercase()) {
+                "1", "true", "y", "yes" -> true
+                else -> false
+            }
+            val icon = if (idx == currentIndex) {
+                MarkerIconFactory.enlarged(this, type, isPendingDeploy)
+            } else {
+                MarkerIconFactory.normal(this, type, isPendingDeploy)
+            }
+            val marker = map.addMarker(
+                MarkerOptions()
+                    .position(pos)
+                    .title(wp.label)
+                    .icon(icon)
+                    .anchor(0.5f, 0.5f)
+            )
+            marker?.let { sessionMarkers.add(it) }
+            pointsForLine.add(pos)
+        }
+
+        if (pointsForLine.size >= 2) {
+            sessionPolyline = map.addPolyline(
+                PolylineOptions()
+                    .addAll(pointsForLine)
+                    .width(10f)
+                    .geodesic(true)
+                    .color(android.graphics.Color.parseColor("#562ECB"))
+                    .clickable(false)
+            )
+        }
     }
 
     private fun setWmtsTiles(layer: String) {
@@ -980,9 +1019,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             binding.btnBack.contentDescription = "取消"
             binding.btnBack.setOnClickListener { saveOfflineAndClose(silent = true) }
         } else {
-            binding.btnBack.setOnClickListener {
-                if (!isViewMode) confirmOrDiscardAndClose() else finish()
-            }
+            binding.btnBack.setOnClickListener { handleNavigateBack() }
         }
 
         if (isViewMode) {
@@ -1009,6 +1046,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         attachDraftSyncCallbacks()
     }
 
+    private fun returnToPreviewMode() {
+        isViewMode = true
+        binding.btnEdit.visibility = View.VISIBLE
+        binding.btnDone.visibility = View.GONE
+        binding.fabSubmit.visibility = View.GONE
+        binding.btnEdit.setOnClickListener { enterEditMode() }
+        pagerAdapter.getBasicInfoFragment()?.setEditable(false)
+        pagerAdapter.getPhotosFragment()?.setEditable(false)
+    }
+
     private fun saveAndFinish() {
         val data = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
         val (photo1, photo2, photo3) =
@@ -1020,27 +1067,17 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun dispatchEditResult(
         data: Map<String, String>, photo1: String?, photo2: String?, photo3: String?
     ) {
-        val resultIntent = Intent().apply {
-            putExtra(RESULT_WAYPOINT_INDEX,   waypointIndex)
-            if (!isEditMode) putExtra(RESULT_DATA_GUTTER_ID, data["SPI_NUM"] ?: "")
-            putExtra(RESULT_DATA_GUTTER_TYPE, data["NODE_TYP"]   ?: "")
-            putExtra(RESULT_DATA_MAT_TYP,     data["MAT_TYP"]    ?: "")
-            putExtra(RESULT_DATA_COORD_X,     data["NODE_X"]     ?: "")
-            putExtra(RESULT_DATA_COORD_Y,     data["NODE_Y"]     ?: "")
-            putExtra(RESULT_DATA_COORD_Z,     data["NODE_LE"]    ?: "")
-            putExtra(RESULT_DATA_MEASURE_ID,  data["XY_NUM"]     ?: "")
-            putExtra(RESULT_DATA_DEPTH,       data["NODE_DEP"]   ?: "")
-            putExtra(RESULT_DATA_TOP_WIDTH,   data["NODE_WID"]   ?: "")
-            putExtra(RESULT_DATA_IS_BROKEN,   data["IS_BROKEN"]  ?: "")
-            putExtra(RESULT_DATA_IS_HANGING,  data["IS_HANGING"] ?: "")
-            putExtra(RESULT_DATA_IS_SILT,     data["IS_SILT"]    ?: "")
-            putExtra(RESULT_DATA_IS_CANTOPEN, data["IS_CANTOPEN"] ?: "")
-            putExtra(RESULT_DATA_IS_PENDING_DEPLOY, data["IS_PENDING_DEPLOY"] ?: "")
-            putExtra(RESULT_DATA_REMARKS,     data["NODE_NOTE"]  ?: "")
-            putExtra(RESULT_DATA_PHOTO_1,     photo1             ?: "")
-            putExtra(RESULT_DATA_PHOTO_2,     photo2             ?: "")
-            putExtra(RESULT_DATA_PHOTO_3,     photo3             ?: "")
-        }
+            val resultIntent = Intent().apply {
+                GutterFormContract.putResultData(
+                    intent = this,
+                    waypointIndex = waypointIndex,
+                    basicData = data,
+                    photo1 = photo1,
+                    photo2 = photo2,
+                    photo3 = photo3,
+                    includeSpiNum = !isEditMode
+                )
+            }
         setResult(Activity.RESULT_OK, resultIntent)
         finish()
     }
@@ -1145,7 +1182,22 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun saveDraftAndClose() {
-        if (isOfflineMode) saveOfflineAndClose(silent = true) else confirmOrDiscardAndClose()
+        if (isOfflineMode) saveOfflineAndClose(silent = true) else handleNavigateBack()
+    }
+
+    private fun handleNavigateBack() {
+        if (launchedInViewMode && isEditMode && !isViewMode) {
+            returnToPreviewMode()
+            return
+        }
+        if (isViewMode) {
+            finish()
+            return
+        }
+        lifecycleScope.launch {
+            syncSessionDraftNow()
+            buildAndFinishWithResult()
+        }
     }
 
     /**
@@ -1200,31 +1252,17 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         fun dispatchResult() {
             val resultIntent = Intent().apply {
-                putExtra(RESULT_LATITUDE,         effectiveLat)
-                putExtra(RESULT_LONGITUDE,        effectiveLng)
-                putExtra(RESULT_WAYPOINT_INDEX,   waypointIndex)
-                if (!isEditMode) putExtra(RESULT_DATA_GUTTER_ID, basicData["SPI_NUM"] ?: "")
-                putExtra(RESULT_DATA_GUTTER_TYPE, basicData["NODE_TYP"]   ?: "")
-                putExtra(RESULT_DATA_MAT_TYP,     basicData["MAT_TYP"]    ?: "")
-                putExtra(RESULT_DATA_COORD_X,     basicData["NODE_X"]     ?: "")
-                putExtra(RESULT_DATA_COORD_Y,     basicData["NODE_Y"]     ?: "")
-                putExtra(RESULT_DATA_COORD_Z,     basicData["NODE_LE"]    ?: "")
-                putExtra(RESULT_DATA_MEASURE_ID,  basicData["XY_NUM"]     ?: "")
-                val coverDep = basicData["COVER_DEP"] ?: basicData["COVER_THICKNESS"] ?: ""
-                putExtra(RESULT_DATA_COVER_DEP, coverDep)
-                // 相容：舊版 key
-                putExtra(RESULT_DATA_COVER_THICKNESS, coverDep)
-                putExtra(RESULT_DATA_DEPTH,       basicData["NODE_DEP"]   ?: "")
-                putExtra(RESULT_DATA_TOP_WIDTH,   basicData["NODE_WID"]   ?: "")
-                putExtra(RESULT_DATA_IS_BROKEN,   basicData["IS_BROKEN"]  ?: "")
-                putExtra(RESULT_DATA_IS_HANGING,  basicData["IS_HANGING"] ?: "")
-                putExtra(RESULT_DATA_IS_SILT,     basicData["IS_SILT"]    ?: "")
-                putExtra(RESULT_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: "")
-                putExtra(RESULT_DATA_IS_PENDING_DEPLOY, basicData["IS_PENDING_DEPLOY"] ?: "")
-                putExtra(RESULT_DATA_REMARKS,     basicData["NODE_NOTE"]  ?: "")
-                putExtra(RESULT_DATA_PHOTO_1,     photo1                  ?: "")
-                putExtra(RESULT_DATA_PHOTO_2,     photo2                  ?: "")
-                putExtra(RESULT_DATA_PHOTO_3,     photo3                  ?: "")
+                GutterFormContract.putResultData(
+                    intent = this,
+                    waypointIndex = waypointIndex,
+                    latitude = effectiveLat,
+                    longitude = effectiveLng,
+                    basicData = basicData,
+                    photo1 = photo1,
+                    photo2 = photo2,
+                    photo3 = photo3,
+                    includeSpiNum = !isEditMode
+                )
             }
             setResult(Activity.RESULT_OK, resultIntent)
             finish()
@@ -1442,7 +1480,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     override fun onBackPressed() {
         when {
             isOfflineMode -> saveOfflineAndClose(silent = true) // 離線：離開表單一律存草稿
-            !isViewMode   -> confirmOrDiscardAndClose()  // 編輯模式：資料不完整則彈窗確認
+            !isViewMode   -> handleNavigateBack()
             else          -> super.onBackPressed()
         }
     }

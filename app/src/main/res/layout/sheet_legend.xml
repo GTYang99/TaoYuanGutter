@@ -5,12 +5,11 @@
     android:orientation="vertical"
     android:background="@drawable/bg_form_sheet">
 
-    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:orientation="horizontal"
         android:gravity="center_vertical"
+        android:orientation="horizontal"
         android:paddingStart="8dp"
         android:paddingEnd="16dp">
 
@@ -18,10 +17,10 @@
             android:id="@+id/btnClose"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@drawable/ic_close"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="關閉"
-            android:padding="12dp" />
+            android:padding="12dp"
+            android:src="@drawable/ic_close" />
 
         <TextView
             android:layout_width="0dp"
@@ -41,108 +40,122 @@
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:fillViewport="false"
         android:overScrollMode="ifContentScrolls">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="start"
             android:paddingStart="24dp"
+            android:paddingTop="8dp"
             android:paddingEnd="24dp"
-            android:paddingTop="10dp"
-            android:paddingBottom="22dp">
+            android:paddingBottom="28dp">
 
-            <!-- Title -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="18dp"
                 android:text="@string/legend_dialog_plan_title"
                 android:textColor="@color/black"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:textSize="24sp"
+                android:textStyle="bold" />
 
-            <!-- Default (subtitle) -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
                 android:text="@string/legend_dialog_default_subtitle"
                 android:textColor="@color/textColorSecondary"
-                android:textSize="13sp"
-                android:layout_marginBottom="12dp" />
+                android:textSize="14sp" />
 
-            <!-- 待匯入座標資訊 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="18dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <View
-                    android:layout_width="28dp"
-                    android:layout_height="4dp"
+                    android:layout_width="52dp"
+                    android:layout_height="8dp"
                     android:background="@drawable/bg_legend_line"
                     android:backgroundTint="#FFC300" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/legend_pending_coords"
-                    android:textColor="@color/black"
+                    android:layout_marginStart="18dp"
+                    android:text="待匯入座標資訊"
+                    android:textColor="@color/textColorPrimary"
                     android:textSize="15sp" />
             </LinearLayout>
 
-            <!-- 已完成 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="18dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <View
-                    android:layout_width="28dp"
-                    android:layout_height="4dp"
+                    android:layout_width="52dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/bg_legend_line"
+                    android:backgroundTint="#1962FF" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="18dp"
+                    android:text="待繪製"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="18dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="52dp"
+                    android:layout_height="8dp"
                     android:background="@drawable/bg_legend_line"
                     android:backgroundTint="#000000" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/legend_completed"
-                    android:textColor="@color/black"
+                    android:layout_marginStart="18dp"
+                    android:text="已完成"
+                    android:textColor="@color/textColorPrimary"
                     android:textSize="15sp" />
             </LinearLayout>
 
-            <!-- 待修正 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="18dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <View
-                    android:layout_width="28dp"
-                    android:layout_height="4dp"
+                    android:layout_width="52dp"
+                    android:layout_height="8dp"
                     android:background="@drawable/bg_legend_line"
                     android:backgroundTint="#FF58E0" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/legend_to_be_fixed"
-                    android:textColor="@color/black"
+                    android:layout_marginStart="18dp"
+                    android:text="待修正"
+                    android:textColor="@color/textColorPrimary"
                     android:textSize="15sp" />
             </LinearLayout>
 
-            <!-- 非本公司管轄 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -151,131 +164,160 @@
                 android:orientation="horizontal">
 
                 <View
-                    android:layout_width="28dp"
-                    android:layout_height="4dp"
+                    android:layout_width="52dp"
+                    android:layout_height="8dp"
                     android:background="@drawable/bg_legend_line"
                     android:backgroundTint="#B4B4B4" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/legend_not_jurisdiction"
-                    android:textColor="@color/black"
+                    android:layout_marginStart="18dp"
+                    android:text="非本公司管轄"
+                    android:textColor="@color/textColorPrimary"
                     android:textSize="15sp" />
             </LinearLayout>
 
-            <!-- View/Edit Section -->
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/legend_dialog_view_edit_title"
-                android:textColor="@color/black"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
-
-            <!-- 側溝線段 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="28dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <View
-                    android:layout_width="28dp"
-                    android:layout_height="4dp"
+                    android:layout_width="52dp"
+                    android:layout_height="16dp"
+                    android:background="@drawable/bg_legend_outline_pending" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="18dp"
+                    android:text="待架站(外框)"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="18dp"
+                android:text="@string/legend_dialog_view_edit_title"
+                android:textColor="@color/textColorSecondary"
+                android:textSize="20sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="18dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="72dp"
+                    android:layout_height="8dp"
                     android:background="@drawable/bg_legend_line"
                     android:backgroundTint="#562ECB" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/legend_gutter_line"
-                    android:textColor="@color/black"
+                    android:layout_marginStart="18dp"
+                    android:text="側溝線段"
+                    android:textColor="@color/textColorPrimary"
                     android:textSize="15sp" />
             </LinearLayout>
 
-            <!-- 起點點位 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="16dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <ImageView
                     android:layout_width="28dp"
-                    android:layout_height="22dp"
-                    android:scaleType="center"
+                    android:layout_height="28dp"
                     android:src="@drawable/ic_legend_start" />
 
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="12dp"
+                    android:src="@drawable/ic_legend_start_pending" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/legend_start_point"
-                    android:textColor="@color/black"
+                    android:layout_marginStart="18dp"
+                    android:text="起點 / 待架站起點"
+                    android:textColor="@color/textColorPrimary"
                     android:textSize="15sp" />
             </LinearLayout>
 
-            <!-- 節點點位 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
+                android:layout_marginBottom="16dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <ImageView
                     android:layout_width="28dp"
-                    android:layout_height="22dp"
-                    android:scaleType="center"
+                    android:layout_height="28dp"
                     android:src="@drawable/ic_legend_node" />
 
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="12dp"
+                    android:src="@drawable/ic_legend_node_pending" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/legend_node_point"
-                    android:textColor="@color/black"
+                    android:layout_marginStart="18dp"
+                    android:text="節點 / 待架站節點"
+                    android:textColor="@color/textColorPrimary"
                     android:textSize="15sp" />
             </LinearLayout>
 
-            <!-- 終點點位 -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="18dp"
+                android:layout_marginBottom="28dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
                 <ImageView
                     android:layout_width="28dp"
-                    android:layout_height="22dp"
-                    android:scaleType="center"
+                    android:layout_height="28dp"
                     android:src="@drawable/ic_legend_end" />
+
+                <ImageView
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="12dp"
+                    android:src="@drawable/ic_legend_end_pending" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/legend_end_point"
-                    android:textColor="@color/black"
+                    android:layout_marginStart="18dp"
+                    android:text="終點 / 待架站終點"
+                    android:textColor="@color/textColorPrimary"
                     android:textSize="15sp" />
             </LinearLayout>
 
-            <!-- Water Dept -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="18dp"
                 android:text="@string/legend_dialog_water_dept_title"
                 android:textColor="@color/black"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:textSize="24sp"
+                android:textStyle="bold" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -285,29 +327,41 @@
                 android:orientation="horizontal">
 
                 <View
-                    android:layout_width="28dp"
-                    android:layout_height="4dp"
+                    android:layout_width="52dp"
+                    android:layout_height="8dp"
                     android:background="@drawable/bg_legend_line"
                     android:backgroundTint="@color/legend_water_dept_old" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/legend_dialog_water_dept_item"
-                    android:textColor="@color/black"
+                    android:layout_marginStart="18dp"
+                    android:text="水務局舊資料"
+                    android:textColor="@color/textColorPrimary"
                     android:textSize="15sp" />
             </LinearLayout>
 
-            <!-- Possible Gutter -->
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/legend_dialog_possible_gutter_title"
-                android:textColor="@color/black"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:layout_marginBottom="12dp" />
+                android:layout_marginBottom="18dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <View
+                    android:layout_width="52dp"
+                    android:layout_height="8dp"
+                    android:background="@drawable/bg_legend_line"
+                    android:backgroundTint="@color/legend_possible_gutter" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="18dp"
+                    android:text="可能側溝位置"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="15sp" />
+            </LinearLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -315,18 +369,17 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
-                <View
+                <ImageView
                     android:layout_width="28dp"
-                    android:layout_height="4dp"
-                    android:background="@drawable/bg_legend_line"
-                    android:backgroundTint="@color/legend_possible_gutter" />
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_legend_no_waypoint" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="14dp"
-                    android:text="@string/legend_dialog_possible_gutter_item"
-                    android:textColor="@color/black"
+                    android:layout_marginStart="18dp"
+                    android:text="無側溝點位"
+                    android:textColor="@color/textColorPrimary"
                     android:textSize="15sp" />
             </LinearLayout>
 

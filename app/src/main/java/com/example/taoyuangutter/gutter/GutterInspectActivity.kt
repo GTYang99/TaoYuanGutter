@@ -44,6 +44,11 @@ import kotlinx.coroutines.launch
  */
 class GutterInspectActivity : AppCompatActivity() {
 
+    private data class EditPreloadResult(
+        val waypoints: List<Waypoint>,
+        val hasFailure: Boolean
+    )
+
     private lateinit var binding: ActivityGutterInspectBinding
     private var ditch: DitchDetails? = null
     private var wgsLatitudes: DoubleArray = doubleArrayOf()
@@ -56,6 +61,13 @@ class GutterInspectActivity : AppCompatActivity() {
     private var endPhoto3: String? = null
 
     private val repository = GutterRepository()
+
+    private fun parseLooseBoolean(raw: String?): Boolean {
+        return when (raw?.trim()?.lowercase()) {
+            "1", "true", "y", "yes" -> true
+            else -> false
+        }
+    }
 
     companion object {
         private const val EXTRA_DITCH_JSON        = "ditch_json"
@@ -154,8 +166,10 @@ class GutterInspectActivity : AppCompatActivity() {
 
     private fun applyBottomSheetWindow() {
         window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
+        window.addFlags(WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL)
         // 確保視窗背景透明，以顯示佈局的圓角
         window.setBackgroundDrawableResource(android.R.color.transparent)
+        setFinishOnTouchOutside(false)
 
         val screenH = resources.displayMetrics.heightPixels
         window.setLayout(WindowManager.LayoutParams.MATCH_PARENT, screenH * 3 / 4)
@@ -251,11 +265,6 @@ class GutterInspectActivity : AppCompatActivity() {
         finish()
     }
 
-    /**
-     * 編輯前預載（版本 1）：
-     * - 先打所有點位的 v1/node/nodeDetails（預熱資料）
-     * - 不提示、不阻擋進入編輯；缺漏在「送出/更新前」才統一檢查
-     */
     private fun preloadAllNodeDetailsThenOpenEditForm() {
         val d = ditch ?: return
         val token = LoginActivity.getSavedToken(this) ?: run {
@@ -273,26 +282,135 @@ class GutterInspectActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                d.nodes.forEach { node ->
-                    val nodeId = node.nodeId
-                    // 預熱：不管成功失敗都繼續，且不提示使用者
-                    when (repository.getNodeDetails(nodeId, token)) {
-                        is ApiResult.Success -> Unit
-                        is ApiResult.Error -> Unit
+                val preloadResult = preloadEditableWaypoints(d, token)
+                if (preloadResult.hasFailure) {
+                    showEditPreloadWarning {
+                        openEditForm(preloadResult.waypoints)
                     }
+                } else {
+                    openEditForm(preloadResult.waypoints)
                 }
-
-                openEditForm()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                // 預載失敗不阻擋編輯：直接進入編輯畫面，送出前會再檢查
-                openEditForm()
+                showEditPreloadWarning {
+                    openEditForm(ditchToWaypoints(d))
+                }
             } finally {
                 binding.btnEdit.isEnabled = true
                 binding.btnEdit.alpha = 1.0f
             }
         }
+    }
+
+    private suspend fun preloadEditableWaypoints(
+        ditch: DitchDetails,
+        token: String
+    ): EditPreloadResult {
+        val orderedNodes = ditch.nodes.sortedWith(
+            compareBy(
+                { when (it.nodeAtt) { "1" -> 0; "3" -> 2; else -> 1 } },
+                { it.nodeNum?.toIntOrNull() ?: Int.MAX_VALUE }
+            )
+        )
+        val result = ditchToWaypoints(ditch).toMutableList()
+        var hasFailure = false
+
+        orderedNodes.forEachIndexed { idx, node ->
+            val target = result.getOrNull(idx) ?: run {
+                hasFailure = true
+                return@forEachIndexed
+            }
+            val nodeResult = repository.getNodeDetails(node.nodeId, token)
+            val nodeDetails = when (nodeResult) {
+                is ApiResult.Success -> nodeResult.data.data?.firstOrNull()
+                is ApiResult.Error -> null
+            }
+            if (nodeDetails == null) {
+                hasFailure = true
+                return@forEachIndexed
+            }
+            val lat = nodeDetails.latitude?.toDoubleOrNull() ?: target.latLng?.latitude ?: wgsLatitudes.getOrNull(idx)
+            val lng = nodeDetails.longitude?.toDoubleOrNull() ?: target.latLng?.longitude ?: wgsLongitudes.getOrNull(idx)
+            val latLng = if (lat != null && lng != null) LatLng(lat, lng) else null
+
+            suspend fun downloadRequiredPhoto(category: String, prefix: String): String {
+                val url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == category }?.url
+                if (url.isNullOrBlank()) return ""
+                return repository.downloadImageToLocalContentUri(
+                    context = this,
+                    url = url,
+                    prefix = prefix
+                )?.toString() ?: run {
+                    hasFailure = true
+                    ""
+                }
+            }
+
+            val photo1 = downloadRequiredPhoto("1", "EDIT_${node.nodeId}_1_")
+            val photo2 = downloadRequiredPhoto("2", "EDIT_${node.nodeId}_2_")
+            val photo3 = downloadRequiredPhoto("3", "EDIT_${node.nodeId}_3_")
+
+            val basicData = hashMapOf(
+                "_nodeId" to node.nodeId.toString(),
+                "SPI_NUM" to ditch.spiNum,
+                "NODE_TYP" to (nodeDetails.nodeTyP ?: ""),
+                "MAT_TYP" to (nodeDetails.matTyp ?: ""),
+                "NODE_X" to (nodeDetails.longitude ?: ""),
+                "NODE_Y" to (nodeDetails.latitude ?: ""),
+                "NODE_LE" to (nodeDetails.nodeLe ?: ""),
+                "XY_NUM" to (nodeDetails.xyNum ?: ""),
+                "COVER_DEP" to nodeDetails.coverDepAsString,
+                "NODE_DEP" to nodeDetails.nodeDepAsString,
+                "NODE_WID" to nodeDetails.nodeWidAsString,
+                "IS_CANTOPEN" to (if (nodeDetails.isCantOpenAsBoolean) "1" else "0"),
+                "IS_PENDING_DEPLOY" to (if (parseLooseBoolean(node.isPendingDeploy)) "1" else "0"),
+                "IS_BROKEN" to (nodeDetails.isBroken ?: ""),
+                "IS_HANGING" to (nodeDetails.isHanging ?: ""),
+                "IS_SILT" to (nodeDetails.isSilt ?: ""),
+                "NODE_NOTE" to (nodeDetails.note ?: ""),
+                "photo1" to photo1,
+                "photo2" to photo2,
+                "photo3" to photo3
+            )
+
+            target.latLng = latLng
+            target.basicData = basicData
+        }
+
+        return EditPreloadResult(
+            waypoints = result,
+            hasFailure = hasFailure
+        )
+    }
+
+    private fun openEditForm(waypoints: List<Waypoint>) {
+        val d = ditch ?: return
+        val snapshots = waypoints.map { wp ->
+            WaypointSnapshot(
+                type = wp.type.name,
+                label = wp.label,
+                latitude = wp.latLng?.latitude,
+                longitude = wp.latLng?.longitude,
+                basicData = wp.basicData
+            )
+        }
+
+        val resultIntent = Intent().apply {
+            putExtra(EXTRA_RESULT_WAYPOINTS_JSON, Gson().toJson(snapshots))
+            putExtra(EXTRA_RESULT_SPI_NUM, d.spiNum)
+            putExtra(EXTRA_RESULT_IS_CURVE, d.isCurve ?: "0")
+        }
+        setResult(RESULT_EDIT_DITCH, resultIntent)
+        finish()
+    }
+
+    private fun showEditPreloadWarning(onContinue: () -> Unit) {
+        android.app.AlertDialog.Builder(this)
+            .setTitle("資料讀取失敗")
+            .setMessage("部分點位資料或照片下載失敗，進入編輯後可能需要補齊。")
+            .setPositiveButton("繼續進入") { _, _ -> onContinue() }
+            .show()
     }
 
     /**

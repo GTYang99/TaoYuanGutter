@@ -9,34 +9,27 @@ import com.example.taoyuangutter.gutter.WaypointType
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 
-object MarkerIconFactory {
-    fun normal(context: Context, type: WaypointType): BitmapDescriptor =
-        fromVector(context, resIdFor(type))
+class MarkerIconFactory(
+    private val context: Context
+) {
+    companion object {
+        fun normal(context: Context, type: WaypointType, isPendingDeploy: Boolean = false): BitmapDescriptor {
+            return MarkerIconFactory(context).icon(type, isPendingDeploy)
+        }
 
-    fun enlarged(context: Context, type: WaypointType, scale: Float = 1.5f): BitmapDescriptor {
-        val drawable = ContextCompat.getDrawable(context, resIdFor(type))
-            ?: return BitmapDescriptorFactory.defaultMarker()
-        val width = (drawable.intrinsicWidth * scale).toInt().coerceAtLeast(1)
-        val height = (drawable.intrinsicHeight * scale).toInt().coerceAtLeast(1)
-        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-        val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
-        drawable.draw(canvas)
-        return BitmapDescriptorFactory.fromBitmap(bitmap)
+        fun enlarged(context: Context, type: WaypointType, isPendingDeploy: Boolean = false): BitmapDescriptor {
+            return MarkerIconFactory(context).enlargedIcon(type, isPendingDeploy)
+        }
     }
 
-    private fun resIdFor(type: WaypointType): Int = when (type) {
-        WaypointType.START -> R.drawable.ic_legend_start
-        WaypointType.NODE -> R.drawable.ic_legend_node
-        WaypointType.END -> R.drawable.ic_legend_end
-    }
-
-    private fun fromVector(context: Context, resId: Int): BitmapDescriptor {
+    fun icon(type: WaypointType, isPendingDeploy: Boolean = false): BitmapDescriptor {
+        val resId = markerResId(type, isPendingDeploy)
         val drawable = ContextCompat.getDrawable(context, resId)
             ?: return BitmapDescriptorFactory.defaultMarker()
+
         val bitmap = Bitmap.createBitmap(
-            drawable.intrinsicWidth.coerceAtLeast(1),
-            drawable.intrinsicHeight.coerceAtLeast(1),
+            drawable.intrinsicWidth,
+            drawable.intrinsicHeight,
             Bitmap.Config.ARGB_8888
         )
         val canvas = Canvas(bitmap)
@@ -44,5 +37,25 @@ object MarkerIconFactory {
         drawable.draw(canvas)
         return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
-}
 
+    fun enlargedIcon(type: WaypointType, isPendingDeploy: Boolean = false): BitmapDescriptor {
+        val resId = markerResId(type, isPendingDeploy)
+        val drawable = ContextCompat.getDrawable(context, resId)
+            ?: return BitmapDescriptorFactory.defaultMarker()
+
+        val scale = 1.5f
+        val width = (drawable.intrinsicWidth * scale).toInt()
+        val height = (drawable.intrinsicHeight * scale).toInt()
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return BitmapDescriptorFactory.fromBitmap(bitmap)
+    }
+
+    private fun markerResId(type: WaypointType, isPendingDeploy: Boolean): Int = when (type) {
+        WaypointType.START -> if (isPendingDeploy) R.drawable.ic_legend_start_pending else R.drawable.ic_legend_start
+        WaypointType.NODE -> if (isPendingDeploy) R.drawable.ic_legend_node_pending else R.drawable.ic_legend_node
+        WaypointType.END -> if (isPendingDeploy) R.drawable.ic_legend_end_pending else R.drawable.ic_legend_end
+    }
+}

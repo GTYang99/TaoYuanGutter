@@ -13,6 +13,7 @@ import android.view.Window
 import android.view.WindowManager
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.FragmentActivity
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -70,6 +71,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
          * 新增模式下 storeDitch 失敗時回呼（供 MainActivity 存為待上傳草稿）。
          */
         fun onGutterSaveFailed(waypoints: List<Waypoint>)
+        /** BottomSheet 可視高度變動時，通知 MainActivity 更新地圖可視區。 */
+        fun onSheetViewportInsetChanged(bottomInsetPx: Int)
     }
 
     /**
@@ -116,9 +119,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private var originalWaypointsSnapshot: List<WaypointSnapshot> = emptyList()
     /** 編輯模式預載 node details 中，阻擋再次抓取與提交流程。 */
     private var isPreloadingEditDetails: Boolean = false
-
-    /** iOS 風格左滑：目前已展開「刪除」按鈕的 item position，-1 代表無 */
-    private var openedSwipePosition: Int = -1
 
     private fun parseLooseBoolean(raw: String?): Boolean {
         val v = raw?.trim()?.lowercase()
@@ -245,6 +245,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     LatLng(snap.latitude, snap.longitude) else null
                 waypoints.add(Waypoint(type, snap.label, latLng, snap.basicData))
             }
+            if (editSpiNum.isBlank()) {
+                editSpiNum = waypoints.firstOrNull { it.type == WaypointType.START }
+                    ?.basicData
+                    ?.get("SPI_NUM")
+                    .orEmpty()
+            }
         } catch (e: Exception) {
             // 解析失敗：保留預設 [起點, 終點]
         }
@@ -275,19 +281,26 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         setupTitle()
 
         if (editSpiNum.isNotEmpty()) {
-            preloadEditWaypointDetails()
+            if (hasEmbeddedEditDetails()) {
+                originalWaypointsSnapshot = takeWaypointSnapshot()
+                originalIsCurve = isCurve
+                updateSubmitButtonState()
+            } else {
+                preloadEditWaypointDetails()
+            }
         }
     }
 
     override fun onStart() {
         super.onStart()
-        // 降低遮罩不透明度，讓背景地圖更容易看清楚
-        dialog?.window?.setDimAmount(0.15f)
+        // 不使用黑色遮罩，保持背景地圖清晰
+        dialog?.window?.setDimAmount(0f)
         // 觸碰 sheet 外部不 dismiss（地圖滑動由 Window.Callback 路由處理）
         dialog?.setCanceledOnTouchOutside(false)
     }
 
     override fun onDestroyView() {
+        (activity as? LocationPickerHost)?.onSheetViewportInsetChanged(0)
         super.onDestroyView()
         _binding = null
     }
@@ -343,6 +356,20 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 isHideable     = false
                 skipCollapsed  = true
             }
+            getBehavior()?.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+                override fun onStateChanged(bottomSheet: View, newState: Int) {
+                    if (newState == BottomSheetBehavior.STATE_HIDDEN) {
+                        (activity as? LocationPickerHost)?.onSheetViewportInsetChanged(0)
+                    } else {
+                        notifySheetViewportInset()
+                    }
+                }
+
+                override fun onSlide(bottomSheet: View, slideOffset: Float) {
+                    notifySheetViewportInset()
+                }
+            })
+            sheetView?.post { notifySheetViewportInset() }
 
             // ── 地圖觸碰穿透：Window.Callback 路由 ───────────────────────
             // ACTION_DOWN 落在 sheet 上方（地圖區）→ 轉發給 MainActivity 讓地圖處理
@@ -376,6 +403,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         (dialog as? BottomSheetDialog)
             ?.findViewById(com.google.android.material.R.id.design_bottom_sheet)
 
+    private fun notifySheetViewportInset() {
+        val sheetView = getSheetView() ?: return
+        val parent = sheetView.parent as? View ?: return
+        val visibleHeight =
+            (parent.height - (sheetView.top + sheetView.translationY)).toInt().coerceAtLeast(0)
+        (activity as? LocationPickerHost)?.onSheetViewportInsetChanged(visibleHeight)
+    }
+
     /** MainActivity 取得目前 sheet 內的 waypoints（新增模式用） */
     fun getWaypoints(): List<Waypoint> = waypoints.toList()
 
@@ -390,6 +425,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             .setDuration(250)
             .withEndAction {
                 dialog?.window?.decorView?.visibility = android.view.View.INVISIBLE
+                (activity as? LocationPickerHost)?.onSheetViewportInsetChanged(0)
             }
             .start()
     }
@@ -402,35 +438,19 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         sheetView.animate()
             .translationY(0f)
             .setDuration(250)
+            .withEndAction { notifySheetViewportInset() }
             .start()
-        dialog?.window?.setDimAmount(0.15f)
+        dialog?.window?.setDimAmount(0f)
         dialog?.setCanceledOnTouchOutside(false)
     }
 
     // ── RecyclerView + ItemTouchHelper ───────────────────────────────────
-
-    /**
-     * 關閉目前已展開刪除按鈕的 item，動畫收回前景到 0，
-     * 若 ViewHolder 不可見則直接通知 Adapter 重繪。
-     */
-    private fun closeOpenedSwipeItem() {
-        val pos = openedSwipePosition
-        if (pos < 0 || _binding == null) return
-        openedSwipePosition = -1
-        val vh = binding.rvWaypoints.findViewHolderForAdapterPosition(pos) as? WaypointAdapter.ViewHolder
-        if (vh != null) {
-            vh.foreground.animate().translationX(0f).setDuration(150).start()
-        } else {
-            adapter.notifyItemChanged(pos)
-        }
-    }
 
     private fun setupRecyclerView() {
         adapter = WaypointAdapter(
             items = waypoints,
             alwaysShowXyNumIfPresent = isInspectMode || editSpiNum.isNotEmpty()
         ) { position ->
-            closeOpenedSwipeItem()
             if (isInspectMode) {
                 // 檢視模式：開啟表單檢視（唯讀）
                 (requireActivity() as? LocationPickerHost)
@@ -446,10 +466,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
         }
 
-        val swipeBtnWidthPx by lazy {
-            (80 * resources.displayMetrics.density).toInt()
-        }
-
+        var dragChanged = false
         val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN, ItemTouchHelper.LEFT
         ) {
@@ -477,36 +494,27 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 viewHolder: RecyclerView.ViewHolder,
                 target: RecyclerView.ViewHolder
             ): Boolean {
-                closeOpenedSwipeItem()
                 val from = viewHolder.adapterPosition
                 val to   = target.adapterPosition
                 val moved = waypoints.removeAt(from)
                 waypoints.add(to, moved)
+                reclassifyWaypoints()
                 adapter.notifyItemMoved(from, to)
+                adapter.notifyItemRangeChanged(minOf(from, to), kotlin.math.abs(from - to) + 1)
+                dragChanged = true
                 return true
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val pos = viewHolder.adapterPosition
                 if (pos < 0 || pos >= waypoints.size) return
-                // 安全檢查：只允許節點展開刪除按鈕
+                // 安全檢查：只允許節點左滑直接刪除
                 if (waypoints[pos].type != WaypointType.NODE) {
                     adapter.notifyItemChanged(pos)
                     return
                 }
-                // 關閉上一個已展開的 item
-                val prevPos = openedSwipePosition
-                if (prevPos >= 0 && prevPos != pos) {
-                    val prevVh = binding.rvWaypoints
-                        .findViewHolderForAdapterPosition(prevPos) as? WaypointAdapter.ViewHolder
-                    if (prevVh != null) {
-                        prevVh.foreground.animate().translationX(0f).setDuration(150).start()
-                    } else {
-                        adapter.notifyItemChanged(prevPos)
-                    }
-                }
-                openedSwipePosition = pos
-                // clearView 會負責把前景固定在 -swipeBtnWidthPx
+                waypoints.removeAt(pos)
+                renumberAll()
             }
 
             override fun onChildDraw(
@@ -519,26 +527,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             ) {
                 if (actionState == ItemTouchHelper.ACTION_STATE_SWIPE) {
                     val holder = viewHolder as? WaypointAdapter.ViewHolder ?: return
-                    val pos = viewHolder.adapterPosition
-
-                    // 若使用者開始滑動另一個 item，先關閉已展開的那個
-                    if (isCurrentlyActive) {
-                        val prev = openedSwipePosition
-                        if (prev >= 0 && prev != pos) {
-                            closeOpenedSwipeItem()
-                        }
-                    }
-
-                    // 僅平移前景層，並根據目前是否已展開來計算位移
-                    // 避免重新觸摸已展開項時 dX 從 0 開始導致畫面閃跳回 0
-                    val translationX = if (pos == openedSwipePosition) {
-                        // 已經是展開狀態，位移從 -swipeBtnWidthPx 開始
-                        (dX - swipeBtnWidthPx).coerceIn(-swipeBtnWidthPx.toFloat(), 0f)
-                    } else {
-                        // 尚未展開
-                        dX.coerceIn(-swipeBtnWidthPx.toFloat(), 0f)
-                    }
+                    val translationX = dX.coerceAtMost(0f)
                     holder.foreground.translationX = translationX
+                    holder.binding.tvDeleteAction.layoutParams =
+                        holder.binding.tvDeleteAction.layoutParams.apply {
+                            width = kotlin.math.abs(translationX).toInt()
+                        }
                     // 不呼叫 super，避免整個 itemView 被平移
                 } else {
                     super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive)
@@ -552,32 +546,19 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 super.clearView(recyclerView, viewHolder)
                 val pos    = viewHolder.adapterPosition
                 val holder = viewHolder as? WaypointAdapter.ViewHolder ?: return
-                
-                // 若位移已經回到 0，代表使用者主動關閉或取消滑動
-                if (holder.foreground.translationX == 0f && pos == openedSwipePosition) {
-                    openedSwipePosition = -1
-                }
 
-                if (pos == openedSwipePosition) {
-                    // 展開狀態：前景固定在 -swipeBtnWidthPx，露出刪除按鈕
-                    holder.foreground.translationX = -swipeBtnWidthPx.toFloat()
-                } else {
-                    holder.foreground.translationX = 0f
-                    if (!isInspectMode) renumberAll()
+                if (dragChanged) {
+                    dragChanged = false
+                    renumberAll()
+                    return
                 }
+                holder.foreground.translationX = 0f
+                holder.binding.tvDeleteAction.layoutParams =
+                    holder.binding.tvDeleteAction.layoutParams.apply {
+                        width = 0
+                    }
             }
         })
-
-        // 點擊「刪除」按鈕：移除節點
-        adapter.onSwipeDeleteClick = { pos ->
-            if (pos in waypoints.indices && waypoints[pos].type == WaypointType.NODE) {
-                openedSwipePosition = -1
-                waypoints.removeAt(pos)
-                adapter.notifyItemRemoved(pos)
-                renumberAll()
-                updateSubmitButtonState()
-            }
-        }
 
         adapter.startDragListener = { if (!isInspectMode) touchHelper.startDrag(it) }
         // 在檢視模式隱藏拖曳把手
@@ -588,13 +569,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             layoutManager = LinearLayoutManager(context)
             adapter = this@AddGutterBottomSheet.adapter
             isNestedScrollingEnabled = true
-            // 滾動時關閉已展開的刪除按鈕
-            addOnScrollListener(object : RecyclerView.OnScrollListener() {
-                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
-                    // 增加閾值，避免點擊刪除按鈕時的微小垂直手震導致按鈕自動收合
-                    if (Math.abs(dy) > 10) closeOpenedSwipeItem()
-                }
-            })
         }
     }
 
@@ -620,8 +594,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnSubmitGutter.visibility  = View.GONE
             binding.btnDeleteGutter.visibility  = View.GONE
         } else if (editSpiNum.isNotEmpty()) {
-            // 編輯模式：不可新增節點；弧線狀態可調整
-            binding.btnAddNode.visibility = View.GONE
+            // 編輯模式：弧線狀態可調整；非弧線時允許新增節點
             binding.btnDeleteGutter.visibility = View.VISIBLE
             binding.btnSubmitGutter.text = getString(R.string.btn_update_gutter)
             updateSubmitButtonState()
@@ -640,6 +613,16 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 updateSubmitButtonState()
             }
             updateCurveToggleUi()
+
+            binding.btnAddNode.setOnClickListener {
+                val nodeCount  = waypoints.count { it.type == WaypointType.NODE }
+                val insertIdx  = waypoints.size - 1
+                waypoints.add(insertIdx, Waypoint(WaypointType.NODE, "節點${nodeCount + 1}"))
+                adapter.notifyItemInserted(insertIdx)
+                binding.rvWaypoints.scrollToPosition(insertIdx)
+                onWaypointsChanged?.invoke(waypoints.toList())
+                updateSubmitButtonState()
+            }
 
             binding.btnDeleteGutter.setOnClickListener {
                 (requireActivity() as? LocationPickerHost)?.onDeleteGutter(editSpiNum)
@@ -698,34 +681,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     Toast.makeText(requireContext(), getString(R.string.msg_end_point_required), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-
-	                // ② 自動移除「未選座標」或「資料不完整」的節點
-	                // 必填欄位：NODE_TYP、NODE_X、NODE_Y、XY_NUM、MAT_TYP、NODE_DEP、NODE_WID
-	                // 例外：IS_CANTOPEN=1 時，下方欄位由設計上為空（MAT_TYP / NODE_DEP / NODE_WID…），不納入必填判斷
-	                // 照片：三張都需拍攝（photo1/2/3 均非空）
-	                val baseRequiredBasicKeys = listOf(
-	                    "NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM"
-	                )
-	                val requiredWhenCanOpenKeys = listOf("MAT_TYP", "NODE_DEP", "NODE_WID")
-	                val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
-	                val validWaypoints = waypoints.filter { wp ->
-	                    if (wp.type != WaypointType.NODE) return@filter true
-	                    val isCantOpen    = wp.basicData["IS_CANTOPEN"] == "1"
-	                    val effectiveKeys = if (isCantOpen) baseRequiredBasicKeys
-	                                        else baseRequiredBasicKeys + requiredWhenCanOpenKeys
-	                    val hasLocation   = wp.latLng != null
-	                    val hasBasicData  = effectiveKeys.all { wp.basicData[it]?.isNotEmpty() == true }
-	                    val hasAllPhotos  = requiredPhotoKeys.all { wp.basicData[it]?.isNotEmpty() == true }
-	                    hasLocation && hasBasicData && hasAllPhotos
-	                }
-                val removedCount = waypoints.size - validWaypoints.size
-                if (removedCount > 0) {
-                    Toast.makeText(
-                        requireContext(),
-                        "已自動移除 $removedCount 個未完成設定的節點",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                val submittedWaypoints = waypoints.toList()
 
                 val token = LoginActivity.getSavedToken(requireContext()) ?: run {
                     Toast.makeText(requireContext(), getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
@@ -734,48 +690,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
                 // 立即清除地圖暫存資料（新增模式不可回頭）
                 val host = requireActivity() as? LocationPickerHost
-                host?.onGutterSubmitted(validWaypoints)
+                host?.onGutterSubmitted(submittedWaypoints)
                 val activity = requireActivity()
-                dismiss()
+                setSubmitLoading(true, "上傳中…")
 
                 // 呼叫 storeDitch（不帶 SPI_NUM，由後端分配）
-                activity.lifecycleScope.launch {
-                    try {
-                        val request = buildStoreDitchRequest(validWaypoints, null)
-                        android.util.Log.i("StoreDitch", "add request(obj)=$request")
-                        when (val result = repository.storeDitch(request, token)) {
-                            is ApiResult.Success -> {
-                                val nodes = result.data.data?.nodes ?: emptyList()
-                                (activity as? LocationPickerHost)
-                                    ?.onGutterSaved(null, validWaypoints, nodes)
-                            }
-                            is ApiResult.Error -> {
-                                android.util.Log.e(
-                                    "StoreDitch",
-                                    "add failed: message=${result.message}, code=${result.code}"
-                                )
-                                Toast.makeText(
-                                    activity,
-                                    activity.getString(R.string.msg_upload_failed_saved_draft),
-                                    Toast.LENGTH_LONG
-                                ).show()
-                                (activity as? LocationPickerHost)
-                                    ?.onGutterSaveFailed(validWaypoints)
-                            }
-                        }
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        android.util.Log.e("StoreDitch", "add exception: ${e.message}", e)
-                        Toast.makeText(
-                            activity,
-                            activity.getString(R.string.msg_upload_failed_saved_draft),
-                            Toast.LENGTH_LONG
-                        ).show()
-                        (activity as? LocationPickerHost)
-                            ?.onGutterSaveFailed(validWaypoints)
-                    }
-                }
+                submitNewGutterRequest(activity, submittedWaypoints, token)
             }
         }
     }
@@ -847,28 +767,89 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             "StoreDitch",
                             "edit failed: message=${result.message}, code=${result.code}"
                         )
-                        Toast.makeText(
-                            requireContext(),
-                            "更新失敗：${result.message}",
-                            Toast.LENGTH_LONG
-                        ).show()
-                        // 更新失敗 → 存入待上傳草稿，讓使用者可以稍後重試
-                        (requireActivity() as? LocationPickerHost)
-                            ?.onGutterSaveFailed(waypoints.toList())
-                        // 恢復按鈕狀態，讓使用者可以重試
                         updateSubmitButtonState()
+                        showStoreDitchFailureDialog(
+                            activity = requireActivity(),
+                            message = "更新失敗：${result.message}",
+                            onRetry = { performEditSubmit() },
+                            onSaveDraft = { dismissAllowingStateLoss() }
+                        )
                     }
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("StoreDitch", "edit exception: ${e.message}", e)
-                Toast.makeText(requireContext(), getString(R.string.msg_upload_failed_saved_draft), Toast.LENGTH_LONG).show()
-                (requireActivity() as? LocationPickerHost)
-                    ?.onGutterSaveFailed(waypoints.toList())
                 updateSubmitButtonState()
+                showStoreDitchFailureDialog(
+                    activity = requireActivity(),
+                    message = "更新失敗，請檢查網路後再試。",
+                    onRetry = { performEditSubmit() },
+                    onSaveDraft = { dismissAllowingStateLoss() }
+                )
             }
         }
+    }
+
+    private fun submitNewGutterRequest(
+        activity: FragmentActivity,
+        validWaypoints: List<Waypoint>,
+        token: String
+    ) {
+        activity.lifecycleScope.launch {
+            try {
+                val request = buildStoreDitchRequest(validWaypoints, null)
+                android.util.Log.i("StoreDitch", "add request(obj)=$request")
+                when (val result = repository.storeDitch(request, token)) {
+                    is ApiResult.Success -> {
+                        val resolvedSpiNum = result.data.data?.spiNum
+                        val nodes = result.data.data?.nodes ?: emptyList()
+                        (activity as? LocationPickerHost)
+                            ?.onGutterSaved(resolvedSpiNum, validWaypoints, nodes)
+                    }
+                    is ApiResult.Error -> {
+                        android.util.Log.e(
+                            "StoreDitch",
+                            "add failed: message=${result.message}, code=${result.code}"
+                        )
+                        setSubmitLoading(false)
+                        showStoreDitchFailureDialog(
+                            activity = activity,
+                            message = "上傳失敗：${result.message}",
+                            onRetry = { submitNewGutterRequest(activity, validWaypoints, token) },
+                            onSaveDraft = { dismissAllowingStateLoss() }
+                        )
+                    }
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("StoreDitch", "add exception: ${e.message}", e)
+                setSubmitLoading(false)
+                showStoreDitchFailureDialog(
+                    activity = activity,
+                    message = "上傳失敗，請檢查網路後再試。",
+                    onRetry = { submitNewGutterRequest(activity, validWaypoints, token) },
+                    onSaveDraft = { dismissAllowingStateLoss() }
+                )
+            }
+        }
+    }
+
+    private fun showStoreDitchFailureDialog(
+        activity: FragmentActivity,
+        message: String,
+        onRetry: () -> Unit,
+        onSaveDraft: () -> Unit
+    ) {
+        if (activity.isFinishing || activity.isDestroyed) return
+        MaterialAlertDialogBuilder(activity)
+            .setTitle("上傳失敗")
+            .setMessage(message)
+            .setNegativeButton("存入草稿") { _, _ -> onSaveDraft() }
+            .setPositiveButton("重傳") { _, _ -> onRetry() }
+            .setCancelable(false)
+            .show()
     }
 
     // ── 調轉：整條側溝方向翻轉 ────────────────────────────────────────────
@@ -892,9 +873,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     // ── 依位置重新命名全部 waypoints ──────────────────────────────────────
     private fun renumberAll() {
-        // notifyDataSetChanged 會重繪所有 item，translationX 回歸 0；
-        // 若此時有展開的刪除按鈕，一律關閉（不需要動畫，直接重設）
-        openedSwipePosition = -1
         var nodeCount = 0
         waypoints.forEachIndexed { idx, wp ->
             when (idx) {
@@ -906,6 +884,27 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         adapter.notifyDataSetChanged()
         onWaypointsChanged?.invoke(waypoints.toList())
         updateSubmitButtonState()
+    }
+
+    private fun reclassifyWaypoints() {
+        var nodeCount = 0
+        waypoints.forEachIndexed { idx, wp ->
+            when (idx) {
+                0 -> {
+                    wp.type = WaypointType.START
+                    wp.label = "起點"
+                }
+                waypoints.lastIndex -> {
+                    wp.type = WaypointType.END
+                    wp.label = "終點"
+                }
+                else -> {
+                    nodeCount += 1
+                    wp.type = WaypointType.NODE
+                    wp.label = "節點$nodeCount"
+                }
+            }
+        }
     }
 
     // ── 編輯模式：變更偵測與按鈕狀態更新 ────────────────────────────────
@@ -939,6 +938,17 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             if (wp.basicData != orig.basicData)         return true
         }
         return false
+    }
+
+    private fun hasEmbeddedEditDetails(): Boolean {
+        if (editSpiNum.isEmpty()) return false
+        return waypoints.isNotEmpty() && waypoints.all { wp ->
+            val data = wp.basicData
+            !data["_nodeId"].isNullOrBlank() &&
+                !data["SPI_NUM"].isNullOrBlank() &&
+                !data["NODE_TYP"].isNullOrBlank() &&
+                !data["XY_NUM"].isNullOrBlank()
+        }
     }
 
     /**
@@ -986,7 +996,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         }
 
         val baseRequiredBasicKeys = listOf("NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM")
-        val requiredWhenCanOpenKeys = listOf("MAT_TYP", "NODE_DEP", "NODE_WID")
+        val requiredWhenCanOpenKeys = listOf(
+            "MAT_TYP",
+            "COVER_DEP",
+            "NODE_DEP",
+            "NODE_WID",
+            "IS_BROKEN",
+            "IS_HANGING",
+            "IS_SILT"
+        )
         val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
 
         val issues = mutableListOf<String>()
@@ -1105,9 +1123,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             put("IS_HANGING", nd.isHanging ?: get("IS_HANGING") ?: "")
                             put("IS_SILT", nd.isSilt ?: get("IS_SILT") ?: "")
                             put("NODE_NOTE", nd.note ?: get("NODE_NOTE") ?: "")
-                            if (p1.isNotEmpty()) put("photo1", p1)
-                            if (p2.isNotEmpty()) put("photo2", p2)
-                            if (p3.isNotEmpty()) put("photo3", p3)
+                            if (get("photo1").isNullOrBlank() && p1.isNotEmpty()) put("photo1", p1)
+                            if (get("photo2").isNullOrBlank() && p2.isNotEmpty()) put("photo2", p2)
+                            if (get("photo3").isNullOrBlank() && p3.isNotEmpty()) put("photo3", p3)
                         }
                         waypoints[targetIndex].basicData = merged
                     }
@@ -1144,6 +1162,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         binding.cbCurve.isEnabled = !show
         binding.btnDeleteGutter.isEnabled = !show
         binding.rvWaypoints.isEnabled = !show
+    }
+
+    private fun setSubmitLoading(show: Boolean, buttonLabel: String = "新增側溝") {
+        if (_binding == null) return
+        binding.loadingOverlay.visibility = if (show) View.VISIBLE else View.GONE
+        binding.btnAddNode.isEnabled = !show
+        binding.btnReverse.isEnabled = !show
+        binding.btnSubmitGutter.isEnabled = !show
+        binding.cbCurve.isEnabled = !show
+        binding.btnDeleteGutter.isEnabled = !show
+        binding.rvWaypoints.isEnabled = !show
+        binding.btnSubmitGutter.text = if (show) buttonLabel else getString(R.string.btn_add_gutter)
     }
 
     /** 清除指定點位的座標與基本資料（使用者放棄填寫時呼叫） */
@@ -1227,19 +1257,20 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 android.graphics.Color.parseColor("#616161")
         )
 
-        // 弧線：禁用新增節點
-        if (isCurve) binding.btnAddNode.visibility = View.GONE
-        else if (editSpiNum.isEmpty()) binding.btnAddNode.visibility = View.VISIBLE
+        binding.btnAddNode.visibility =
+            if (isInspectMode || isCurve) View.GONE else View.VISIBLE
     }
 
     private fun validateCurvePointCountOrAlert(): Boolean {
         if (!isCurve) return true
-        // Any NODE means >2 points (START/END plus nodes)
-        val hasExtraNodes = waypoints.any { it.type == WaypointType.NODE }
-        if (!hasExtraNodes) return true
+        val isExactlyTwoPoints =
+            waypoints.size == 2 &&
+                waypoints.firstOrNull()?.type == WaypointType.START &&
+                waypoints.lastOrNull()?.type == WaypointType.END
+        if (isExactlyTwoPoints) return true
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("點位數量超過 2")
-            .setMessage("弧線上傳僅支援起點與終點兩點。\n目前草稿包含第三個以上的點位，請先刪除多餘節點後再上傳弧線。")
+            .setTitle("弧線點位數量錯誤")
+            .setMessage("弧線上傳僅支援起點與終點兩點。\n請確認目前只有 2 個點位後再上傳。")
             .setPositiveButton("確定", null)
             .show()
         return false
