@@ -105,7 +105,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private val logTag = "GutterFormActivity"
 
-			    companion object {
+    companion object {
         const val EXTRA_WAYPOINT_LABELS  = "waypoint_labels"
         const val EXTRA_LATITUDES        = "latitudes"
         const val EXTRA_LONGITUDES       = "longitudes"
@@ -182,24 +182,30 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val RESULT_DATA_PHOTO_2     = "r_photo2"
         const val RESULT_DATA_PHOTO_3     = "r_photo3"
 
+        // ── Reference Route (Gray Curve) ─────────────────────────────────
+        const val EXTRA_REF_LATITUDES  = "extra_ref_latitudes"
+        const val EXTRA_REF_LONGITUDES = "extra_ref_longitudes"
+
         // ── Factory ───────────────────────────────────────────────────────
 
-	        fun newIntent(
-	            context: Context,
-	            labels: ArrayList<String>,
-	            lats: DoubleArray,
-	            lngs: DoubleArray,
-	            index: Int = 0,
-	            basicData: HashMap<String, String>? = null,
-	            isEditMode: Boolean = false,
-	            sessionDraftId: Long = 0L,
-	            sessionWaypointsJson: String? = null,
-	            wmtsLayer: String? = null,
-	            sessionIsOffline: Boolean = false
-	        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
-	            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, labels)
-	            putExtra(EXTRA_LATITUDES, lats)
-	            putExtra(EXTRA_LONGITUDES, lngs)
+		        fun newIntent(
+		            context: Context,
+		            labels: ArrayList<String>,
+		            lats: DoubleArray,
+		            lngs: DoubleArray,
+		            index: Int = 0,
+		            basicData: HashMap<String, String>? = null,
+		            isEditMode: Boolean = false,
+		            sessionDraftId: Long = 0L,
+		            sessionWaypointsJson: String? = null,
+		            wmtsLayer: String? = null,
+		            sessionIsOffline: Boolean = false,
+                    referenceLats: DoubleArray = doubleArrayOf(),
+                    referenceLngs: DoubleArray = doubleArrayOf()
+		        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
+		            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, labels)
+		            putExtra(EXTRA_LATITUDES, lats)
+		            putExtra(EXTRA_LONGITUDES, lngs)
 	            putExtra(EXTRA_CURRENT_INDEX, index)
 	            putExtra(EXTRA_WAYPOINT_INDEX, index)   // 與 currentIndex 一致，確保 buildAndFinishWithResult 回傳正確索引
 	            putExtra(EXTRA_VIEW_MODE, false)
@@ -209,33 +215,43 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            if (!sessionWaypointsJson.isNullOrEmpty()) {
 	                putExtra(EXTRA_SESSION_WAYPOINTS_JSON, sessionWaypointsJson)
 	            }
-	            if (!wmtsLayer.isNullOrEmpty()) {
-                putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
-            }
-            basicData?.let { GutterFormContract.putFormDataExtras(this, it) }
-        }
+		            if (!wmtsLayer.isNullOrEmpty()) {
+	                putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
+	            }
+                if (referenceLats.isNotEmpty() && referenceLngs.isNotEmpty()) {
+                    putExtra(EXTRA_REF_LATITUDES, referenceLats)
+                    putExtra(EXTRA_REF_LONGITUDES, referenceLngs)
+                }
+	            basicData?.let { GutterFormContract.putFormDataExtras(this, it) }
+	        }
 
-        fun newViewIntent(
-            context: Context,
-            label: String,
-            lat: Double,
-            lng: Double,
-            waypointIndex: Int,
-            basicData: HashMap<String, String>,
-            wmtsLayer: String? = null
-        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
-            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, arrayListOf(label))
-            putExtra(EXTRA_LATITUDES, doubleArrayOf(lat))
-            putExtra(EXTRA_LONGITUDES, doubleArrayOf(lng))
+	        fun newViewIntent(
+	            context: Context,
+	            label: String,
+	            lat: Double,
+	            lng: Double,
+	            waypointIndex: Int,
+	            basicData: HashMap<String, String>,
+	            wmtsLayer: String? = null,
+                referenceLats: DoubleArray = doubleArrayOf(),
+                referenceLngs: DoubleArray = doubleArrayOf()
+	        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
+	            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, arrayListOf(label))
+	            putExtra(EXTRA_LATITUDES, doubleArrayOf(lat))
+	            putExtra(EXTRA_LONGITUDES, doubleArrayOf(lng))
             putExtra(EXTRA_CURRENT_INDEX, 0)
             putExtra(EXTRA_VIEW_MODE, true)
             putExtra(EXTRA_WAYPOINT_INDEX, waypointIndex)
             putExtra(EXTRA_IS_EDIT_MODE, true) // 編輯模式為 true
-            if (!wmtsLayer.isNullOrEmpty()) {
-                putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
-            }
-            GutterFormContract.putFormDataExtras(this, basicData)
-        }
+	            if (!wmtsLayer.isNullOrEmpty()) {
+	                putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
+	            }
+                if (referenceLats.isNotEmpty() && referenceLngs.isNotEmpty()) {
+                    putExtra(EXTRA_REF_LATITUDES, referenceLats)
+                    putExtra(EXTRA_REF_LONGITUDES, referenceLngs)
+                }
+	            GutterFormContract.putFormDataExtras(this, basicData)
+	        }
 
         /**
          * 離線模式：不需地圖點位，座標固定 (0.0, 0.0)。
@@ -284,46 +300,37 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var formMapTileOverlay: TileOverlay? = null
     private val sessionMarkers = mutableListOf<Marker>()
     private var sessionPolyline: Polyline? = null
+    private var referencePolyline: Polyline? = null
     private var importMapPaddingEnabled = false
     private val gutterRepository = GutterRepository()
-	    private val locationPickerLauncher = registerForActivityResult(
-	        ActivityResultContracts.StartActivityForResult()
-	    ) { result ->
-        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
-        val data = result.data ?: return@registerForActivityResult
-        val latitude = data.getDoubleExtra(MapPointPickerActivity.RESULT_LATITUDE, Double.NaN)
-        val longitude = data.getDoubleExtra(MapPointPickerActivity.RESULT_LONGITUDE, Double.NaN)
-        if (latitude.isNaN() || longitude.isNaN()) return@registerForActivityResult
-        currentLat = latitude
-        currentLng = longitude
-        if (currentIndex in sessionWaypoints.indices) {
-            sessionWaypoints[currentIndex] = sessionWaypoints[currentIndex].copy(
-                latitude = latitude,
-                longitude = longitude
-            )
-        }
-        pagerAdapter.getBasicInfoFragment()?.updateCoordinates(longitude, latitude)
-        formMap?.let { map ->
-            renderSessionPreview(map)
-            map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 18f))
-        }
-        queueSessionDraftSync()
 
-        // 表單仍開著時，立即通知 MainActivity 更新背景地圖的點位與線段
-        val draftId = sessionDraftId.takeIf { it > 0L }
-            ?: intent.getLongExtra(EXTRA_SESSION_DRAFT_ID, 0L)
-        if (draftId > 0L) {
-            sendBroadcast(
-                Intent(LocationPickEvents.ACTION_WAYPOINT_LOCATION_CHANGED).apply {
-                    setPackage(packageName)
-                    putExtra(LocationPickEvents.EXTRA_SESSION_DRAFT_ID, draftId)
-                    putExtra(LocationPickEvents.EXTRA_WAYPOINT_INDEX, currentIndex)
-                    putExtra(LocationPickEvents.EXTRA_LATITUDE, latitude)
-                    putExtra(LocationPickEvents.EXTRA_LONGITUDE, longitude)
-                }
-            )
-        }
-	    }
+    // 灰色參考線（由 MainActivity 傳入的弧線展開點列）
+    private var referencePoints: List<LatLng> = emptyList()
+    // 僅在座標真的變更後才顯示紫色線段（避免一進表單就畫出編輯線）
+    private var initialLatLngSnapshot: List<Pair<Long, Long>> = emptyList()
+    private var hasShownEditPolyline: Boolean = false
+		    private val locationPickerLauncher = registerForActivityResult(
+		        ActivityResultContracts.StartActivityForResult()
+		    ) { result ->
+	        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+	        val data = result.data ?: return@registerForActivityResult
+	        val latitude = data.getDoubleExtra(MapPointPickerActivity.RESULT_LATITUDE, Double.NaN)
+	        val longitude = data.getDoubleExtra(MapPointPickerActivity.RESULT_LONGITUDE, Double.NaN)
+	        if (latitude.isNaN() || longitude.isNaN()) return@registerForActivityResult
+	        currentLat = latitude
+	        currentLng = longitude
+	        if (currentIndex in sessionWaypoints.indices) {
+	            sessionWaypoints[currentIndex] = sessionWaypoints[currentIndex].copy(
+	                latitude = latitude,
+	                longitude = longitude
+	            )
+	        }
+	        pagerAdapter.getBasicInfoFragment()?.updateCoordinates(longitude, latitude)
+	        formMap?.let { map ->
+	            renderSessionPreview(map)
+	            map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 18f))
+	        }
+		    }
 
 		    // ── 匯入既有點位（半屏 BottomSheet；上半部沿用本頁背景地圖） ─────────────
 
@@ -758,6 +765,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         sessionDraftId = intent.getLongExtra(EXTRA_SESSION_DRAFT_ID, 0L)
         restoreSessionWaypoints()
 
+        // 灰色參考線（弧線展開點列）：由 MainActivity 傳入，供表單期間對照
+        val refLats = intent.getDoubleArrayExtra(EXTRA_REF_LATITUDES) ?: doubleArrayOf()
+        val refLngs = intent.getDoubleArrayExtra(EXTRA_REF_LONGITUDES) ?: doubleArrayOf()
+        referencePoints = buildReferencePoints(refLats, refLngs)
+
         // 離線模式開啟既有草稿：將 repo 中儲存的 basicData 填入 sessionWaypoints[0]，
         // 確保任何時機觸發的 syncSessionDraftNow() 都有正確基底資料，不會以空值覆寫。
         if (isOfflineMode && sessionDraftId > 0L && sessionWaypoints.isNotEmpty()) {
@@ -770,6 +782,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         originalSessionWaypoint = sessionWaypoints.getOrNull(currentIndex)?.copy(
             basicData = HashMap(sessionWaypoints.getOrNull(currentIndex)?.basicData ?: hashMapOf())
         )
+
+        // 紫色線段顯示 gating：只有當 waypoint 的 lat/lng 跟進入表單時不一致才顯示
+        initialLatLngSnapshot = buildLatLngSnapshot(sessionWaypoints)
+        hasShownEditPolyline = false
 
         val label = waypointLabels.getOrElse(currentIndex) { "點位" }
         val lat   = latitudes.getOrElse(currentIndex)  { 0.0 }
@@ -819,15 +835,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
     }
 
-	    override fun onPause() {
-	        if (!isFinishing) {
-	            draftSyncJob?.cancel()
-	            draftSyncJob = lifecycleScope.launch {
-	                syncSessionDraftNow()
-	            }
-	        }
-	        super.onPause()
-	    }
+		    override fun onPause() {
+		        // 只有離線模式才允許在未「完成」前自動寫入草稿；線上模式返回即視為放棄，不記錄修改
+		        if (isOfflineMode && !isFinishing) {
+		            draftSyncJob?.cancel()
+		            draftSyncJob = lifecycleScope.launch {
+		                syncSessionDraftNow()
+		            }
+		        }
+		        super.onPause()
+		    }
 
     private fun buildEmptyData(lat: Double, lng: Double) = hashMapOf(
         // 編輯模式下，側溝編號預設為空字串，以符合「不用顯示側溝編號欄位」的需求
@@ -948,6 +965,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun renderSessionPreview(map: GoogleMap) {
+        renderReferencePolyline(map)
         sessionMarkers.forEach { it.remove() }
         sessionMarkers.clear()
         sessionPolyline?.remove()
@@ -979,7 +997,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             pointsForLine.add(pos)
         }
 
-        if (pointsForLine.size >= 2) {
+        val shouldShowPurple = shouldShowEditPolyline()
+        if (pointsForLine.size >= 2 && shouldShowPurple) {
             sessionPolyline = map.addPolyline(
                 PolylineOptions()
                     .addAll(pointsForLine)
@@ -989,6 +1008,55 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     .clickable(false)
             )
         }
+    }
+
+    private fun renderReferencePolyline(map: GoogleMap) {
+        referencePolyline?.remove()
+        referencePolyline = null
+        if (referencePoints.size < 2) return
+        referencePolyline = map.addPolyline(
+            PolylineOptions()
+                .addAll(referencePoints)
+                .width(8f)
+                .geodesic(true)
+                .color(android.graphics.Color.parseColor("#B4B4B4"))
+                .clickable(false)
+        )
+    }
+
+    private fun buildReferencePoints(lats: DoubleArray, lngs: DoubleArray): List<LatLng> {
+        if (lats.isEmpty() || lngs.isEmpty()) return emptyList()
+        val n = minOf(lats.size, lngs.size)
+        val out = ArrayList<LatLng>(n)
+        for (i in 0 until n) {
+            val lat = lats[i]
+            val lng = lngs[i]
+            if (lat !in -90.0..90.0) continue
+            if (lng !in -180.0..180.0) continue
+            out.add(LatLng(lat, lng))
+        }
+        return out
+    }
+
+    private fun buildLatLngSnapshot(waypoints: List<WaypointSnapshot>): List<Pair<Long, Long>> {
+        fun quantize(v: Double): Long = kotlin.math.round(v * 1_000_000.0).toLong()
+        return waypoints.mapNotNull { wp ->
+            val lat = wp.latitude ?: return@mapNotNull null
+            val lng = wp.longitude ?: return@mapNotNull null
+            quantize(lat) to quantize(lng)
+        }.sortedWith(compareBy({ it.first }, { it.second }))
+    }
+
+    private fun shouldShowEditPolyline(): Boolean {
+        // 若沒有參考線資料（一般線段/非弧線流程），沿用既有行為：永遠顯示紫色線段
+        if (referencePoints.size < 2) return true
+        // 檢視模式不允許改座標，不顯示紫色線段
+        if (isViewMode) return false
+        if (hasShownEditPolyline) return true
+        val current = buildLatLngSnapshot(sessionWaypoints)
+        val changed = current != initialLatLngSnapshot
+        if (changed) hasShownEditPolyline = true
+        return hasShownEditPolyline
     }
 
     private fun setWmtsTiles(layer: String) {
@@ -1185,20 +1253,48 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (isOfflineMode) saveOfflineAndClose(silent = true) else handleNavigateBack()
     }
 
-    private fun handleNavigateBack() {
-        if (launchedInViewMode && isEditMode && !isViewMode) {
-            returnToPreviewMode()
-            return
-        }
-        if (isViewMode) {
-            finish()
-            return
-        }
-        lifecycleScope.launch {
-            syncSessionDraftNow()
-            buildAndFinishWithResult()
-        }
-    }
+	    private fun handleNavigateBack() {
+	        if (launchedInViewMode && isEditMode && !isViewMode) {
+	            // 檢視→編輯→返回：不儲存，直接還原進入編輯前的資料
+	            restoreCurrentWaypointState()
+	            formMap?.let { renderSessionPreview(it) }
+	            returnToPreviewMode()
+	            return
+	        }
+	        if (isViewMode) {
+	            finish()
+	            return
+	        }
+	        confirmDiscardAndClose()
+	    }
+
+	    private fun confirmDiscardAndClose() {
+	        // 線上模式：返回一律視為放棄，不回傳 RESULT_OK（避免 MainActivity 記錄未儲存修改）
+	        draftSyncJob?.cancel()
+
+	        if (isEditMode) {
+	            AlertDialog.Builder(this)
+	                .setTitle("放棄修改")
+	                .setMessage("確定要放棄此次修改並返回嗎？")
+	                .setPositiveButton("確定放棄") { _, _ ->
+	                    setResult(Activity.RESULT_CANCELED)
+	                    finish()
+	                }
+	                .setNegativeButton("繼續填寫", null)
+	                .show()
+	        } else {
+	            AlertDialog.Builder(this)
+	                .setTitle("放棄填寫")
+	                .setMessage("確定要放棄此次填寫並返回嗎？")
+	                .setPositiveButton("確定返回") { _, _ ->
+	                    val deleteIntent = Intent().putExtra(RESULT_WAYPOINT_INDEX, waypointIndex)
+	                    setResult(RESULT_DELETE, deleteIntent)
+	                    finish()
+	                }
+	                .setNegativeButton("繼續填寫", null)
+	                .show()
+	        }
+	    }
 
     /**
      * 按下返回時：
@@ -1215,11 +1311,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 AlertDialog.Builder(this)
                     .setTitle("放棄修改")
                     .setMessage("確定要放棄此次修改並返回嗎？")
-                    .setPositiveButton("確定放棄") { _, _ ->
-                        restoreCurrentWaypointDraft()
-                        setResult(Activity.RESULT_CANCELED)
-                        finish()
-                    }
+	                    .setPositiveButton("確定放棄") { _, _ ->
+	                        restoreCurrentWaypointState()
+	                        setResult(Activity.RESULT_CANCELED)
+	                        finish()
+	                    }
                     .setNegativeButton("繼續填寫", null)
                     .show()
             } else {
@@ -1304,6 +1400,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun queueSessionDraftSync() {
+        if (!isOfflineMode) return
         if (isViewMode) return
         if (currentIndex !in sessionWaypoints.indices) return
         draftSyncJob?.cancel()
@@ -1313,9 +1410,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         }
     }
 
-		    private suspend fun syncSessionDraftNow() {
-		        if (isViewMode) return
-		        if (currentIndex !in sessionWaypoints.indices) return
+			    private suspend fun syncSessionDraftNow() {
+                    if (!isOfflineMode) return
+			        if (isViewMode) return
+			        if (currentIndex !in sessionWaypoints.indices) return
 
 	        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
 	        val (photo1, photo2, photo3) = pagerAdapter.getPhotosFragment()?.getPhotoPaths()
@@ -1367,32 +1465,21 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        )
 	    }
 
-	    private fun restoreCurrentWaypointDraft() {
-	        if (isOfflineMode) return
-	        val original = originalSessionWaypoint ?: return
-	        if (currentIndex !in sessionWaypoints.indices) return
-        draftSyncJob?.cancel()
-        sessionWaypoints[currentIndex] = original.copy(
-            basicData = HashMap(original.basicData)
-        )
-	        val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
-	        sessionDraftId = resolvedDraftId
-
-	        val repo = GutterSessionRepository(this)
-	        val existingDraft = repo.getById(resolvedDraftId)
-	        val preservedIsOffline = existingDraft?.isOffline
-	            ?: (isOfflineMode || intent.getBooleanExtra(EXTRA_SESSION_IS_OFFLINE, false))
-	        val preservedIsSinglePoint = existingDraft?.isSinglePoint ?: isOfflineMode
-	        repo.save(
-	            GutterSessionDraft(
-	                id = resolvedDraftId,
-	                savedAt = System.currentTimeMillis(),
-	                isOffline = isOfflineMode || preservedIsOffline,
-	                isSinglePoint = preservedIsSinglePoint,
-	                waypoints = sessionWaypoints.toList()
-	            )
-	        )
-	    }
+		    private fun restoreCurrentWaypointState() {
+		        if (isOfflineMode) return
+		        val original = originalSessionWaypoint ?: return
+		        if (currentIndex !in sessionWaypoints.indices) return
+		        draftSyncJob?.cancel()
+		        sessionWaypoints[currentIndex] = original.copy(basicData = HashMap(original.basicData))
+		        // 同步回表單欄位（座標）
+		        val lat = original.latitude
+		        val lng = original.longitude
+		        if (lat != null && lng != null) {
+		            currentLat = lat
+		            currentLng = lng
+		            pagerAdapter.getBasicInfoFragment()?.updateCoordinates(lng, lat)
+		        }
+		    }
 
     // ── 上傳等待遮罩 ─────────────────────────────────────────────────────
 

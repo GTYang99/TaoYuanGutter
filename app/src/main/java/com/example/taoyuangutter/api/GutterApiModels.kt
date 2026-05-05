@@ -183,7 +183,7 @@ data class GeoFeature(
 data class GeoGeometry(
     @SerializedName("type")        val type: String,
     /** 每個元素為 [longitude, latitude] */
-    @SerializedName("coordinates") val coordinates: List<List<Double>>
+    @SerializedName("coordinates") val coordinates: List<List<Any?>?>
 )
 
 /** Feature 附屬屬性 */

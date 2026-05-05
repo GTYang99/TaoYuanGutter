@@ -20,8 +20,11 @@ class GutterFormNavigator(
         waypoint: Waypoint,
         latLng: LatLng,
         wmtsLayer: String,
-        hostLastLocation: Location?
+        hostLastLocation: Location?,
+        referencePoints: List<LatLng> = emptyList()
     ): Intent {
+        val refLats = referencePoints.map { it.latitude }.toDoubleArray()
+        val refLngs = referencePoints.map { it.longitude }.toDoubleArray()
         return GutterFormActivity.newViewIntent(
             context,
             waypoint.label,
@@ -29,7 +32,9 @@ class GutterFormNavigator(
             latLng.longitude,
             waypointIndex,
             waypoint.basicData,
-            wmtsLayer
+            wmtsLayer,
+            referenceLats = refLats,
+            referenceLngs = refLngs
         ).also { attachHostLastLocation(it, hostLastLocation) }
     }
 
@@ -41,7 +46,8 @@ class GutterFormNavigator(
         currentSessionDraftId: Long?,
         wmtsLayer: String,
         sessionIsOffline: Boolean,
-        hostLastLocation: Location?
+        hostLastLocation: Location?,
+        referencePoints: List<LatLng> = emptyList()
     ): AddFormLaunch {
         val ensuredDraftId = currentSessionDraftId ?: System.currentTimeMillis()
         val labels = ArrayList(currentWaypoints.map { it.label })
@@ -69,7 +75,9 @@ class GutterFormNavigator(
             sessionDraftId = ensuredDraftId,
             sessionWaypointsJson = sessionWaypointsJson,
             wmtsLayer = wmtsLayer,
-            sessionIsOffline = sessionIsOffline
+            sessionIsOffline = sessionIsOffline,
+            referenceLats = referencePoints.map { it.latitude }.toDoubleArray(),
+            referenceLngs = referencePoints.map { it.longitude }.toDoubleArray()
         ).also { attachHostLastLocation(it, hostLastLocation) }
         return AddFormLaunch(intent = intent, draftId = ensuredDraftId)
     }

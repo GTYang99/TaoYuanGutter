@@ -242,6 +242,14 @@ class MainActivity : AppCompatActivity(),
     /** true = 正在編輯/檢視/新增模式，禁止 loadGuttersByViewport 自動加載 */
     private var isInEditingMode = false
 
+    // ── 檢視/編輯流程的灰色參考線（弧線/線段） ─────────────────────────────
+    private var isReferenceRouteActive: Boolean = false
+    private var referenceRoutePoints: List<LatLng> = emptyList()
+
+    // ── 編輯模式：僅在 latLng 變更後顯示紫色線段 ─────────────────────────
+    private var editLatLngSnapshot: List<Pair<Long, Long>>? = null
+    private var hasShownEditPolyline: Boolean = false
+
     // ── 地圖疊加層 ────────────────────────────────────────────────────────
     private val submittedPolylines = mutableListOf<Polyline>()
     private var currentWaypoints: List<Waypoint> = emptyList()
@@ -313,6 +321,8 @@ class MainActivity : AppCompatActivity(),
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
             binding.btnAddGutter.visibility = View.VISIBLE
+            // 從表單返回時，保險重繪灰色參考線（避免地圖被重建或被其他流程清掉）
+            renderReferenceRouteIfActive()
 
             when {
                 activeSheet != null -> {
@@ -339,30 +349,30 @@ class MainActivity : AppCompatActivity(),
 	                            // ── 更新表單填寫的基本資料 ──────────────────────────
 	                            // 先做照片 URI 正規化（避免多節點上傳照片卡住），再回寫 basicData，並立刻刷新工作層 marker
 	                            val rawData = GutterFormContract.readResultData(result.data)
-	                            lifecycleScope.launch {
-	                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
-	                                    context = this@MainActivity,
-	                                    basicData = rawData,
-	                                    prefix = "GUTTER_EXT_"
-	                                )
-	                                liveSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
-	                                // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
-	                                currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
-	                                refreshWorkingLayer(currentWaypoints)
-	                            }
-		                        }
+		                            lifecycleScope.launch {
+		                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
+		                                    context = this@MainActivity,
+		                                    basicData = rawData,
+		                                    prefix = "GUTTER_EXT_"
+		                                )
+		                                liveSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
+		                                // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
+		                                currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
+		                                refreshWorkingForEditFlow(currentWaypoints)
+		                            }
+			                        }
                         GutterFormActivity.RESULT_DELETE -> if (pendingWaypointFormIndex >= 0) {
                             // 使用者放棄填寫 → 清除該點位的座標與資料（同時更新地圖大頭針）
                             liveSheet?.clearWaypointLocation(pendingWaypointFormIndex)
                         }
                     }
-	                    resetHighlightedMarker()
+		                    resetHighlightedMarker()
                         currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
-                        refreshWorkingLayer(currentWaypoints)
-	                    pendingWaypointFormIndex = -1
-	                    liveSheet?.showSelf()
-	                    if (currentWaypoints.isNotEmpty()) {
-                            mapCameraController.fitCameraToWaypoints(currentWaypoints)
+                        refreshWorkingForEditFlow(currentWaypoints)
+		                    pendingWaypointFormIndex = -1
+		                    liveSheet?.showSelf()
+		                    if (currentWaypoints.isNotEmpty()) {
+	                            mapCameraController.fitCameraToWaypoints(currentWaypoints)
                         }
 	                }
 	                inspectSheet != null -> {
@@ -381,12 +391,12 @@ class MainActivity : AppCompatActivity(),
 		                            }
 		                        }
 		                    }
-	                    inspectSheet?.showSelf()
-	                    mapCameraController.fitCameraToWaypoints(inspectWaypoints)
-	                }
-	                else -> clearWorkingMarkers()
-	            }
-	        }
+                    inspectSheet?.showSelf()
+                    mapCameraController.fitCameraToWaypoints(inspectWaypoints)
+                }
+                else -> clearWorkingMarkers()
+            }
+        }
 
     // ── GutterInspectActivity 的 launcher ────────────────────────────
         inspectLauncher = registerForActivityResult(
@@ -430,7 +440,9 @@ class MainActivity : AppCompatActivity(),
                 scopeGutterPolylineController.clear()
                 submittedPolylines.forEach { it.remove() }
                 submittedPolylines.clear()
-                gutterMapController.showBaselineRoute(wps)
+                // 進入編輯時保留檢視期間的灰色參考線；紫色工作線延後到 latLng 真正變更才出現
+                editLatLngSnapshot = buildLatLngSnapshot(wps)
+                hasShownEditPolyline = false
 
                 val sheet = AddGutterBottomSheet.newInstanceForEdit(wps, spiNum, isCurve)
                 var lastWaypointsSize = wps.size
@@ -443,11 +455,13 @@ class MainActivity : AppCompatActivity(),
                         shouldReturnToInspectPreview = false
                         if (reopenInspectPreview) {
                             currentWaypoints = inspectWaypoints
-                            refreshWorkingLayer(inspectWaypoints)
+                            // 返回檢視：維持灰色參考線，不顯示紫色工作線
+                            refreshWorkingMarkers(inspectWaypoints)
                             inspectPreviewIntent?.let { inspectLauncher.launch(Intent(it)) }
                         } else {
                             // ── 編輯 Sheet 被 dismiss（關閉）時，清除工作層並恢復其他線段顯示 ──
                             isInEditingMode = false  // 允許自動加載 polylines
+                            clearReferenceRoute()
                             gutterMapController.clearPreviewLayer()
                             // 重新加載所有正式線段與暫時提交線
                             loadGuttersByViewport(showFeedback = true)
@@ -456,7 +470,21 @@ class MainActivity : AppCompatActivity(),
                         val shouldRefit = updated.size > lastWaypointsSize
                         lastWaypointsSize = updated.size
                         currentWaypoints = updated.toMutableList()
-                        refreshWorkingLayer(updated)
+                        val after = buildLatLngSnapshot(updated)
+                        if (!hasShownEditPolyline) {
+                            val before = editLatLngSnapshot
+                            val latLngChanged = before == null || after != before
+                            if (latLngChanged) {
+                                hasShownEditPolyline = true
+                                editLatLngSnapshot = after
+                                refreshWorkingLayer(updated)
+                            } else {
+                                refreshWorkingMarkers(updated)
+                            }
+                        } else {
+                            editLatLngSnapshot = after
+                            refreshWorkingLayer(updated)
+                        }
                         autoSaveSessionDraft(updated)
                         if (shouldRefit) {
                             mapCameraController.fitCameraToWaypoints(
@@ -472,12 +500,14 @@ class MainActivity : AppCompatActivity(),
 
                 // 初始化地圖：繪製線段大頭針並將視角自動對齊至整條側溝
                 currentWaypoints = wps.toMutableList()
-                refreshWorkingLayer(wps)
+                // 進入編輯時先不顯示紫色線段；等座標真的變更後才顯示
+                refreshWorkingMarkers(wps)
                 mapCameraController.fitCameraToWaypoints(wps)
                 // fitCameraToWaypoints 會觸發 setOnCameraIdleListener → loadGuttersByViewportDebounced()
             } else {
                 // ── 從檢視模式返回（不編輯）時，清除起終點標記並恢復其他線段顯示 ──
                 isInEditingMode = false  // 允許自動加載 polylines
+                clearReferenceRoute()
                 gutterMapController.clearPreviewLayer()
                 clearWorkingMarkers()   // 移除檢視模式新增的起點／節點／終點標記
                 loadGuttersByViewport(showFeedback = true)
@@ -615,6 +645,9 @@ class MainActivity : AppCompatActivity(),
         measureManager = DistanceMeasureManager(map, measureConfig) { meters ->
             updateMeasureDistanceDisplay(meters)
         }
+
+        // 若在檢視/編輯流程中地圖被重建，確保灰色參考線能被重繪回來
+        renderReferenceRouteIfActive()
     }
 
     // ── LocationPickerHost 實作 ───────────────────────────────────────────
@@ -760,7 +793,8 @@ class MainActivity : AppCompatActivity(),
         inspectPreviewIntent = null
         // 斷開 onDismiss 回呼，避免 dismiss 後觸發重複清除；API 結果由 onGutterSaved 回報
         activeSheet?.onWaypointsChanged = null
-        gutterMapController.clearPreviewLayer()
+        // 保留 baseline（灰色參考線）直到 onGutterSaved 確認 storeDitch 成功再清除
+        gutterMapController.clearWorkingLayer()
         activeSheet = null
         clearWorkingMarkers()
         binding.btnAddGutter.visibility = View.VISIBLE
@@ -918,7 +952,13 @@ class MainActivity : AppCompatActivity(),
                         shouldReturnToInspectPreview = false
                         inspectWaypoints = buildInspectWaypoints(result.data.nodeDetailsList)
                         currentWaypoints = inspectWaypoints
-                        refreshWorkingLayer(inspectWaypoints)
+                        val isCurve = result.data.ditch.isCurve?.trim() == "1" ||
+                            result.data.ditch.isCurve?.trim()?.equals("true", true) == true
+                        // 檢視模式：顯示灰色參考線（使用 scopeSearch 線段點位），不畫紫色工作線
+                        // is_curve 的情境下，scopeSearch 可能已提供 Bezier 展開後的點位；直接畫即可。
+                        val referencePoints = start.routeWaypoints.mapNotNull { it.latLng }
+                        setReferenceRoute(referencePoints)
+                        refreshWorkingMarkers(inspectWaypoints)
                         inspectLauncher.launch(result.data.intent)
                     }
                     is ApiResult.Error -> {
@@ -942,6 +982,10 @@ class MainActivity : AppCompatActivity(),
     override fun onGutterSaved(spiNum: String?, waypoints: List<Waypoint>, nodes: List<DitchNode>) {
         shouldReturnToInspectPreview = false
         inspectPreviewIntent = null
+        // 只有在 storeDitch 成功後才清除灰色參考線（reference）
+        clearReferenceRoute()
+        editLatLngSnapshot = null
+        hasShownEditPolyline = false
         val (persistedWaypoints, pendingDraftId) = persistServerIdsIntoDraft(spiNum, waypoints, nodes)
 
         val token = LoginActivity.getSavedToken(this) ?: run {
@@ -1004,6 +1048,7 @@ class MainActivity : AppCompatActivity(),
                             scopeGutterPolylineController.remove(spiNum)
                             // 關閉 BottomSheet 並清除暫存標記
                             activeSheet?.onWaypointsChanged = null
+                            clearReferenceRoute()
                             gutterMapController.clearPreviewLayer()
                             activeSheet?.dismiss()
                             activeSheet = null
@@ -1090,7 +1135,8 @@ class MainActivity : AppCompatActivity(),
             waypoint = wp,
             latLng = latLng,
             wmtsLayer = currentWmtsLayer(),
-            hostLastLocation = lastKnownLocation
+            hostLastLocation = lastKnownLocation,
+            referencePoints = if (isReferenceRouteActive) referenceRoutePoints else emptyList()
         )
         gutterFormLauncher.launch(intent)
     }
@@ -1114,7 +1160,8 @@ class MainActivity : AppCompatActivity(),
             currentSessionDraftId = currentSessionDraftId,
             wmtsLayer = currentWmtsLayer(),
             sessionIsOffline = currentSessionIsOffline,
-            hostLastLocation = lastKnownLocation
+            hostLastLocation = lastKnownLocation,
+            referencePoints = if (isReferenceRouteActive) referenceRoutePoints else emptyList()
         )
         currentSessionDraftId = launch.draftId
         gutterFormLauncher.launch(launch.intent)
@@ -1154,7 +1201,12 @@ class MainActivity : AppCompatActivity(),
                         shouldReturnToInspectPreview = false
                         inspectWaypoints = buildInspectWaypoints(result.data.nodeDetailsList)
                         currentWaypoints = inspectWaypoints
-                        refreshWorkingLayer(inspectWaypoints)
+                        val isCurve = result.data.ditch.isCurve?.trim() == "1" ||
+                            result.data.ditch.isCurve?.trim()?.equals("true", true) == true
+                        // 檢視模式：顯示灰色參考線（使用 scopeSearch 線段點位），不畫紫色工作線
+                        val referencePoints = start.routeWaypoints.mapNotNull { it.latLng }
+                        setReferenceRoute(referencePoints)
+                        refreshWorkingMarkers(inspectWaypoints)
 
                         // 若有進行中的新增流程 sheet，先隱藏它（不 dismiss，
                         // 讓使用者按返回時仍可繼續；若最終進入編輯模式則由 inspectLauncher 清除）
@@ -1384,6 +1436,59 @@ class MainActivity : AppCompatActivity(),
 
     private fun refreshWorkingMarkers(waypoints: List<Waypoint>) {
         gutterMapController.refreshWorkingMarkers(waypoints)
+    }
+
+    /**
+     * 編輯流程用刷新：僅在 latLng 真正改變後才開始顯示紫色線段。
+     * - 在使用者還沒移動/更新座標前：只更新 markers（保留灰色參考線作對照）
+     * - 一旦座標改變：開始顯示/更新紫色線段
+     */
+    private fun refreshWorkingForEditFlow(waypoints: List<Waypoint>) {
+        // 非編輯流程（例如新增/檢視）沿用原本行為
+        if (activeSheet == null || activeSheet?.isEditMode() != true) {
+            refreshWorkingLayer(waypoints)
+            return
+        }
+
+        val after = buildLatLngSnapshot(waypoints)
+        if (!hasShownEditPolyline) {
+            val before = editLatLngSnapshot
+            val latLngChanged = before == null || after != before
+            if (latLngChanged) {
+                hasShownEditPolyline = true
+                editLatLngSnapshot = after
+                refreshWorkingLayer(waypoints)
+            } else {
+                refreshWorkingMarkers(waypoints)
+            }
+        } else {
+            editLatLngSnapshot = after
+            refreshWorkingLayer(waypoints)
+        }
+    }
+
+    private fun buildLatLngSnapshot(waypoints: List<Waypoint>): List<Pair<Long, Long>> {
+        fun quantize(v: Double): Long = kotlin.math.round(v * 1_000_000.0).toLong()
+        return waypoints.mapNotNull { it.latLng }
+            .map { quantize(it.latitude) to quantize(it.longitude) }
+            .sortedWith(compareBy({ it.first }, { it.second }))
+    }
+
+    private fun setReferenceRoute(points: List<LatLng>) {
+        isReferenceRouteActive = true
+        referenceRoutePoints = points
+        gutterMapController.showReferenceRoute(points)
+    }
+
+    private fun clearReferenceRoute() {
+        isReferenceRouteActive = false
+        referenceRoutePoints = emptyList()
+        gutterMapController.clearReferenceRoute()
+    }
+
+    private fun renderReferenceRouteIfActive() {
+        if (!isReferenceRouteActive) return
+        gutterMapController.showReferenceRoute(referenceRoutePoints)
     }
 
     private fun clearWorkingMarkers() {
