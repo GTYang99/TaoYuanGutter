@@ -457,7 +457,13 @@ class MainActivity : AppCompatActivity(),
                             currentWaypoints = inspectWaypoints
                             // 返回檢視：維持灰色參考線，不顯示紫色工作線
                             refreshWorkingMarkers(inspectWaypoints)
-                            inspectPreviewIntent?.let { inspectLauncher.launch(Intent(it)) }
+                            val reopened = inspectPreviewIntent?.let { launchInspectSafely(Intent(it)) } == true
+                            if (!reopened) {
+                                isInEditingMode = false
+                                clearReferenceRoute()
+                                gutterMapController.clearPreviewLayer()
+                                loadGuttersByViewport(showFeedback = true)
+                            }
                         } else {
                             // ── 編輯 Sheet 被 dismiss（關閉）時，清除工作層並恢復其他線段顯示 ──
                             isInEditingMode = false  // 允許自動加載 polylines
@@ -577,6 +583,18 @@ class MainActivity : AppCompatActivity(),
         super.onSaveInstanceState(outState)
         // 儲存正在開啟表單的點位索引，確保 MainActivity 重建後仍能正確回寫
         outState.putInt(KEY_PENDING_WP_INDEX, pendingWaypointFormIndex)
+    }
+
+    private fun launchInspectSafely(intent: Intent): Boolean {
+        if (isFinishing || isDestroyed) return false
+        if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)) return false
+        return runCatching {
+            inspectLauncher.launch(intent)
+            true
+        }.getOrElse {
+            android.util.Log.w("MainActivity", "Skip inspect launch due to lifecycle state", it)
+            false
+        }
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -959,7 +977,7 @@ class MainActivity : AppCompatActivity(),
                         val referencePoints = start.routeWaypoints.mapNotNull { it.latLng }
                         setReferenceRoute(referencePoints)
                         refreshWorkingMarkers(inspectWaypoints)
-                        inspectLauncher.launch(result.data.intent)
+                        launchInspectSafely(result.data.intent)
                     }
                     is ApiResult.Error -> {
                         isInEditingMode = false
@@ -1212,7 +1230,7 @@ class MainActivity : AppCompatActivity(),
                         // 讓使用者按返回時仍可繼續；若最終進入編輯模式則由 inspectLauncher 清除）
                         activeSheet?.hideSelf()
                         mainBlockingUiController.setInspectLoading(false)
-                        inspectLauncher.launch(result.data.intent)
+                        launchInspectSafely(result.data.intent)
                         // isInspecting 在 inspectLauncher 結果回呼中重置
                     }
                     is ApiResult.Error -> {
