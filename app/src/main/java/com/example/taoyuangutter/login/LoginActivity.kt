@@ -2,10 +2,13 @@ package com.example.taoyuangutter.login
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Rect
 import android.os.Bundle
 import android.text.method.HideReturnsTransformationMethod
 import android.text.method.PasswordTransformationMethod
+import android.view.MotionEvent
 import android.view.View
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
@@ -53,6 +56,23 @@ class LoginActivity : AppCompatActivity() {
         setupLoginButtonListener()
         setupPasswordToggle()
         setupOfflineButtons()
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.action == MotionEvent.ACTION_DOWN) {
+            val focusedView = currentFocus
+            if (focusedView != null) {
+                val rect = Rect()
+                focusedView.getGlobalVisibleRect(rect)
+                val isOutsideFocusedView = !rect.contains(ev.rawX.toInt(), ev.rawY.toInt())
+                if (isOutsideFocusedView) {
+                    focusedView.clearFocus()
+                    val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+                    imm?.hideSoftInputFromWindow(focusedView.windowToken, 0)
+                }
+            }
+        }
+        return super.dispatchTouchEvent(ev)
     }
 
     private fun setupPasswordToggle() {
@@ -132,7 +152,11 @@ class LoginActivity : AppCompatActivity() {
                     }
                     is ApiResult.Error -> {
                         setLoading(false)
-                        Toast.makeText(this@LoginActivity, result.message, Toast.LENGTH_LONG).show()
+                        Toast.makeText(
+                            this@LoginActivity,
+                            toUserFriendlyLoginError(result.message),
+                            Toast.LENGTH_LONG
+                        ).show()
                     }
                 }
             }
@@ -155,5 +179,25 @@ class LoginActivity : AppCompatActivity() {
         binding.loginButton.isEnabled = !loading
         // 若 layout 有 progressBar 可在此控制顯示；目前以按鈕 enabled 狀態作為視覺回饋
         binding.loginButton.text = if (loading) "登入中…" else "登入"
+    }
+
+    private fun toUserFriendlyLoginError(rawMessage: String?): String {
+        val message = rawMessage?.trim().orEmpty()
+        if (message.isEmpty()) return "登入失敗，請稍後再試"
+
+        val lowered = message.lowercase()
+        return when {
+            "certpathvalidatorexception" in lowered ||
+                "trust anchor" in lowered ||
+                "ssl" in lowered ||
+                "handshake" in lowered -> "無法建立安全連線（憑證驗證失敗），請聯絡系統管理員"
+            "unknownhostexception" in lowered ||
+                "unable to resolve host" in lowered ||
+                "failed to connect" in lowered ||
+                "connectexception" in lowered -> "目前無法連線到伺服器，請確認網路或稍後再試"
+            "sockettimeoutexception" in lowered ||
+                "timeout" in lowered -> "連線逾時，請確認網路後再試"
+            else -> message
+        }
     }
 }
