@@ -1307,7 +1307,8 @@ class MainActivity : AppCompatActivity(),
                 showPlan = state.showPlan,
                 showWaterOld = state.showWaterOld,
                 showPossible = state.showPossible,
-                showRegion = state.showRegion
+                showRegion = state.showRegion,
+                showNoDitchPoints = state.showNoDitchPoints
             ).show(supportFragmentManager, "LayersBottomSheet")
         }
         binding.btnMyLocation.setOnClickListener {
@@ -1698,8 +1699,14 @@ class MainActivity : AppCompatActivity(),
         mapOverlayController.setBaseLayer(layer)
     }
 
-    override fun onOverlayTogglesChanged(showPlan: Boolean, showWaterOld: Boolean, showPossible: Boolean, showRegion: Boolean) {
-        mapOverlayController.updateOverlayToggles(showPlan, showWaterOld, showPossible, showRegion)
+    override fun onOverlayTogglesChanged(
+        showPlan: Boolean,
+        showWaterOld: Boolean,
+        showPossible: Boolean,
+        showRegion: Boolean,
+        showNoDitchPoints: Boolean
+    ) {
+        mapOverlayController.updateOverlayToggles(showPlan, showWaterOld, showPossible, showRegion, showNoDitchPoints)
     }
 
     // ── 測距模式 ──────────────────────────────────────────────────────────────

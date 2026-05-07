@@ -15,19 +15,22 @@ class MapOverlayController(
         val showPlan: Boolean,
         val showWaterOld: Boolean,
         val showPossible: Boolean,
-        val showRegion: Boolean
+        val showRegion: Boolean,
+        val showNoDitchPoints: Boolean
     )
 
     private var currentTileOverlay: TileOverlay? = null
     private var planWmsOverlay: TileOverlay? = null
     private var waterOldWmsOverlay: TileOverlay? = null
     private var regionWmsOverlay: TileOverlay? = null
+    private var noDitchPointsWmsOverlay: TileOverlay? = null
 
     private var currentLayer: String = LayersBottomSheet.LAYER_EMAP
     private var showPlanOverlay = true
     private var showWaterOldOverlay = true
     private var showPossibleOverlay = true
     private var showRegionOverlay = true
+    private var showNoDitchPointsOverlay = false
 
     fun currentLayer(): String = currentLayer
 
@@ -36,7 +39,8 @@ class MapOverlayController(
         showPlan = showPlanOverlay,
         showWaterOld = showWaterOldOverlay,
         showPossible = showPossibleOverlay,
-        showRegion = showRegionOverlay
+        showRegion = showRegionOverlay,
+        showNoDitchPoints = showNoDitchPointsOverlay
     )
 
     fun setBaseLayer(layer: String) {
@@ -59,12 +63,14 @@ class MapOverlayController(
         showPlan: Boolean,
         showWaterOld: Boolean,
         showPossible: Boolean,
-        showRegion: Boolean
+        showRegion: Boolean,
+        showNoDitchPoints: Boolean
     ) {
         showPlanOverlay = showPlan
         showWaterOldOverlay = showWaterOld
         showPossibleOverlay = showPossible
         showRegionOverlay = showRegion
+        showNoDitchPointsOverlay = showNoDitchPoints
         applyWmsOverlays()
     }
 
@@ -120,6 +126,23 @@ class MapOverlayController(
         } else {
             regionWmsOverlay?.remove()
             regionWmsOverlay = null
+        }
+
+        if (showNoDitchPointsOverlay) {
+            if (noDitchPointsWmsOverlay == null) {
+                val provider = Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    layers = "map_no_ditch_points",
+                    styles = "TY_RSGDBIP_無側溝點位_test",
+                    format = "image/png8"
+                )
+                noDitchPointsWmsOverlay = map.addTileOverlay(
+                    TileOverlayOptions().tileProvider(provider).zIndex(0.2f).transparency(0f)
+                )
+            }
+        } else {
+            noDitchPointsWmsOverlay?.remove()
+            noDitchPointsWmsOverlay = null
         }
     }
 }

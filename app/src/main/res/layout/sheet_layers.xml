@@ -111,6 +111,18 @@
                 android:textSize="16sp"
                 android:paddingVertical="6dp" />
 
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/cbNoDitchPoints"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:checked="false"
+                android:buttonTint="@color/colorPrimary"
+                android:text="@string/layers_sheet_no_ditch_points"
+                android:textColor="@color/black"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:paddingVertical="6dp" />
+
             <!-- Basemap -->
             <TextView
                 android:layout_width="match_parent"
@@ -285,4 +297,3 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>
-

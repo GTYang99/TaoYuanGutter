@@ -16,7 +16,13 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
 
     interface Host {
         fun onLayerSelected(layer: String)
-        fun onOverlayTogglesChanged(showPlan: Boolean, showWaterOld: Boolean, showPossible: Boolean, showRegion: Boolean) { /* optional */ }
+        fun onOverlayTogglesChanged(
+            showPlan: Boolean,
+            showWaterOld: Boolean,
+            showPossible: Boolean,
+            showRegion: Boolean,
+            showNoDitchPoints: Boolean
+        ) { /* optional */ }
     }
 
     private var _binding: SheetLayersBinding? = null
@@ -39,6 +45,7 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
         val showWaterOld = arguments?.getBoolean(ARG_SHOW_WATER_OLD, true) ?: true
         val showPossible = arguments?.getBoolean(ARG_SHOW_POSSIBLE, true) ?: true
         val showRegion = arguments?.getBoolean(ARG_SHOW_REGION, true) ?: true
+        val showNoDitchPoints = arguments?.getBoolean(ARG_SHOW_NO_DITCH_POINTS, false) ?: false
         updateBasemapUi(selected)
 
         // Fill layer codes
@@ -52,7 +59,8 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
                 showPlan = binding.cbPlan.isChecked,
                 showWaterOld = binding.cbWaterOld.isChecked,
                 showPossible = binding.cbPossible.isChecked,
-                showRegion = binding.cbRegion.isChecked
+                showRegion = binding.cbRegion.isChecked,
+                showNoDitchPoints = binding.cbNoDitchPoints.isChecked
             )
         }
         // Apply initial state from args before wiring listeners.
@@ -60,10 +68,12 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
         binding.cbWaterOld.isChecked = showWaterOld
         binding.cbPossible.isChecked = showPossible
         binding.cbRegion.isChecked = showRegion
+        binding.cbNoDitchPoints.isChecked = showNoDitchPoints
         binding.cbPlan.setOnCheckedChangeListener { _, _ -> dispatchOverlayToggles() }
         binding.cbWaterOld.setOnCheckedChangeListener { _, _ -> dispatchOverlayToggles() }
         binding.cbPossible.setOnCheckedChangeListener { _, _ -> dispatchOverlayToggles() }
         binding.cbRegion.setOnCheckedChangeListener { _, _ -> dispatchOverlayToggles() }
+        binding.cbNoDitchPoints.setOnCheckedChangeListener { _, _ -> dispatchOverlayToggles() }
         dispatchOverlayToggles()
 
         binding.cardEMap.setOnClickListener { selectBasemap(LAYER_EMAP) }
@@ -120,6 +130,7 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
         private const val ARG_SHOW_WATER_OLD = "show_water_old"
         private const val ARG_SHOW_POSSIBLE = "show_possible"
         private const val ARG_SHOW_REGION = "show_region"
+        private const val ARG_SHOW_NO_DITCH_POINTS = "show_no_ditch_points"
 
         const val LAYER_EMAP = "EMAP"
         const val LAYER_EMAP01 = "EMAP01"
@@ -130,7 +141,8 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
             showPlan: Boolean = true,
             showWaterOld: Boolean = true,
             showPossible: Boolean = true,
-            showRegion: Boolean = true
+            showRegion: Boolean = true,
+            showNoDitchPoints: Boolean = false
         ): LayersBottomSheet =
             LayersBottomSheet().apply {
                 arguments = Bundle().apply {
@@ -139,6 +151,7 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
                     putBoolean(ARG_SHOW_WATER_OLD, showWaterOld)
                     putBoolean(ARG_SHOW_POSSIBLE, showPossible)
                     putBoolean(ARG_SHOW_REGION, showRegion)
+                    putBoolean(ARG_SHOW_NO_DITCH_POINTS, showNoDitchPoints)
                 }
             }
     }
