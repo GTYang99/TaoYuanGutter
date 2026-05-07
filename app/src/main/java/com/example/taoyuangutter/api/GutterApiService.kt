@@ -227,6 +227,21 @@ interface GutterApiService {
         @Query("SPI_NUM")        spiNum: String,
         @Header("Authorization") authorization: String
     ): Response<DeleteDitchResponse>
+
+    /**
+     * 回報無側溝座標。
+     *
+     * POST /api/v1/map/storeNoDitch
+     * Authorization: Bearer {token}
+     *
+     * Body: [StoreNoDitchRequest]
+     * Response: [StoreNoDitchResponse]
+     */
+    @POST("api/v1/map/storeNoDitch")
+    suspend fun storeNoDitch(
+        @Body                    request: StoreNoDitchRequest,
+        @Header("Authorization") authorization: String
+    ): Response<StoreNoDitchResponse>
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -270,7 +285,7 @@ object GutterApiClient {
 
     val instance: GutterApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(DEMO_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

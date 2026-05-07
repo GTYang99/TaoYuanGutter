@@ -55,6 +55,11 @@ class GutterRepository(
             ?.takeIf { it.isNotBlank() }
     }
 
+    private fun parseApiErrorEnvelope(errorBody: String?): ApiErrorEnvelope? {
+        if (errorBody.isNullOrBlank()) return null
+        return runCatching { Gson().fromJson(errorBody, ApiErrorEnvelope::class.java) }.getOrNull()
+    }
+
     // ── 登入 ──────────────────────────────────────────────────────────────
 
     /**
@@ -234,6 +239,53 @@ class GutterRepository(
                     message = "查詢失敗（${response.code()}）",
                     code    = response.code()
                 )
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
+    // ── 回報無側溝（storeNoDitch）────────────────────────────────────────
+
+    /**
+     * 回報「無側溝」座標與備註。
+     *
+     * @param token Bearer token（不含 "Bearer " 前綴）
+     */
+    suspend fun storeNoDitch(
+        latitude: Double,
+        longitude: Double,
+        note: String,
+        token: String
+    ): ApiResult<StoreNoDitchResponse> {
+        return try {
+            val response = api.storeNoDitch(
+                request = StoreNoDitchRequest(
+                    note = note,
+                    latitude = latitude,
+                    longitude = longitude
+                ),
+                authorization = "Bearer $token"
+            )
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.isSuccessful && body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "送出失敗",
+                        code = response.code()
+                    )
+                }
+                else -> {
+                    val errJson = runCatching { response.errorBody()?.string() }.getOrNull()
+                    val env = parseApiErrorEnvelope(errJson)
+                    val detail = env?.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: env?.message ?: "送出失敗（${response.code()}）",
+                        code = response.code()
+                    )
+                }
             }
         } catch (e: Exception) {
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")

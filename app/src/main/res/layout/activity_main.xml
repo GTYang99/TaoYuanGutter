@@ -122,12 +122,24 @@
             android:id="@+id/btnMeasureDistance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
             android:contentDescription="@string/measure_mode_title"
             android:src="@drawable/ic_ruler"
             app:backgroundTint="@color/white"
             app:tint="@color/colorPrimary"
             app:fabSize="mini" />
 
+        <!-- 回報無側溝 -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnReportNoDitch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:contentDescription="@string/no_ditch_fab_desc"
+            android:src="@drawable/ic_exclamationmark_bubble"
+            app:backgroundTint="@color/white"
+            app:tint="@color/colorPrimary"
+            app:fabSize="mini" />
     </LinearLayout>
 
     <!-- 測距準星（畫面正中央，測距模式時才顯示） -->

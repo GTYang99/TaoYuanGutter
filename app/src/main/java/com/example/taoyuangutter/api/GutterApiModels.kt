@@ -555,6 +555,30 @@ data class AllNodeDetailsResponse(
 )
 
 // ════════════════════════════════════════════════════════════════
+//  POST /api/v1/map/storeNoDitch  ── 回報無側溝
+// ════════════════════════════════════════════════════════════════
+
+data class StoreNoDitchRequest(
+    @SerializedName("note")      val note: String,
+    @SerializedName("latitude")  val latitude: Double,
+    @SerializedName("longitude") val longitude: Double
+)
+
+data class StoreNoDitchData(
+    @SerializedName("id")        val id: Int?,
+    @SerializedName("latitude")  val latitude: Double?,
+    @SerializedName("longitude") val longitude: Double?
+)
+
+/** 回報無側溝 API 回應（200 / 401 / 422 / 500 共用） */
+data class StoreNoDitchResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data")    val data: StoreNoDitchData?,
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+// ════════════════════════════════════════════════════════════════
 //  通用錯誤包裝
 // ════════════════════════════════════════════════════════════════
 

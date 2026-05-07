@@ -11,6 +11,7 @@ import android.graphics.Path
 import android.graphics.drawable.Drawable
 import android.location.Location
 import android.os.Bundle
+import android.graphics.Point
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,6 +22,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import android.net.Uri
 import com.example.taoyuangutter.common.LocationPickEvents
@@ -48,6 +50,8 @@ import com.example.taoyuangutter.login.AuthNavigator
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.main.MainBlockingUiController
 import com.example.taoyuangutter.main.MeasureModeUiController
+import com.example.taoyuangutter.main.NoDitchReportBottomSheet
+import com.example.taoyuangutter.main.NoDitchReportViewModel
 import com.example.taoyuangutter.map.DistanceMeasureManager
 import com.example.taoyuangutter.map.GutterMapController
 import com.example.taoyuangutter.map.InspectMarkerController
@@ -97,7 +101,8 @@ import kotlin.math.max
 class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
     AddGutterBottomSheet.LocationPickerHost,
-    LayersBottomSheet.Host {
+    LayersBottomSheet.Host,
+    NoDitchReportBottomSheet.Host {
 
     companion object {
         private const val KEY_PENDING_WP_INDEX = "pending_wp_index"
@@ -270,6 +275,11 @@ class MainActivity : AppCompatActivity(),
     private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
     private lateinit var addCurveLauncher: ActivityResultLauncher<Intent>
     private lateinit var measureModeUiController: MeasureModeUiController
+
+    // ── 回報無側溝 ──────────────────────────────────────────────────────────
+    private var noDitchMarker: com.google.android.gms.maps.model.Marker? = null
+    private var noDitchPickedLatLng: LatLng? = null
+    private var isNoDitchPickMode: Boolean = false
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -662,6 +672,11 @@ class MainActivity : AppCompatActivity(),
         )
         measureManager = DistanceMeasureManager(map, measureConfig) { meters ->
             updateMeasureDistanceDisplay(meters)
+        }
+
+        // 若 BottomSheet 已開啟，且地圖因系統重建而重新初始化，需重新掛上選點 listener
+        if (supportFragmentManager.findFragmentByTag(NoDitchReportBottomSheet.TAG) != null) {
+            onNoDitchRequestEnterPickMode()
         }
 
         // 若在檢視/編輯流程中地圖被重建，確保灰色參考線能被重繪回來
@@ -1305,12 +1320,20 @@ class MainActivity : AppCompatActivity(),
                 }
             )
         }
+        binding.btnReportNoDitch.setOnClickListener { openNoDitchReport() }
         binding.btnMeasureDistance.setOnClickListener { toggleMeasureMode() }
         binding.measurePanel.btnMeasureReset.setOnClickListener { measureManager?.reset() }
         binding.measurePanel.btnMeasureClose.setOnClickListener { exitMeasureMode() }
         binding.btnAddGutter.setOnClickListener {
             openAddGutterFlow()
         }
+    }
+
+    private fun openNoDitchReport() {
+        // 避免測距模式與回報模式同時占用 map click listener
+        if (measureManager?.isMeasuring == true) exitMeasureMode()
+        if (supportFragmentManager.findFragmentByTag(NoDitchReportBottomSheet.TAG) != null) return
+        NoDitchReportBottomSheet().show(supportFragmentManager, NoDitchReportBottomSheet.TAG)
     }
 
     /** 原本的「新增側溝」流程，從 FAB 移入獨立方法。 */
@@ -1707,5 +1730,156 @@ class MainActivity : AppCompatActivity(),
      */
     private fun updateMeasureDistanceDisplay(meters: Double?) {
         measureModeUiController.updateDistanceDisplay(meters)
+    }
+
+    // ── 回報無側溝（BottomSheet）──────────────────────────────────────────
+
+    override fun onNoDitchRequestEnterPickMode() {
+        isNoDitchPickMode = true
+        val vm = ViewModelProvider(this)[NoDitchReportViewModel::class.java]
+        val selected = vm.selectedLatLng.value
+
+        if (selected != null) {
+            // Config change 後重建 Activity 時，從 ViewModel 恢復 marker
+            if (noDitchPickedLatLng == null) {
+                noDitchPickedLatLng = selected
+                clearNoDitchMarker()
+                noDitchMarker = googleMap?.addMarker(
+                    com.google.android.gms.maps.model.MarkerOptions()
+                        .position(selected)
+                        .icon(buildNoDitchMarkerIcon())
+                        .anchor(0.5f, 1.0f)
+                )
+            }
+            setNoDitchMapClickListenerEnabled(false)
+        } else {
+            noDitchPickedLatLng = null
+            clearNoDitchMarker()
+            setNoDitchMapClickListenerEnabled(true)
+        }
+    }
+
+    override fun onNoDitchRequestExitPickMode() {
+        isNoDitchPickMode = false
+        setNoDitchMapClickListenerEnabled(false)
+        noDitchPickedLatLng = null
+        clearNoDitchMarker()
+    }
+
+    override fun onNoDitchRequestResetPick() {
+        noDitchPickedLatLng = null
+        clearNoDitchMarker()
+        if (isNoDitchPickMode) setNoDitchMapClickListenerEnabled(true)
+    }
+
+    override fun onNoDitchSubmitRequested(latLng: LatLng, note: String) {
+        val token = LoginActivity.getSavedToken(this)
+        val sheet = supportFragmentManager.findFragmentByTag(NoDitchReportBottomSheet.TAG) as? NoDitchReportBottomSheet
+        if (token.isNullOrEmpty()) {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(getString(R.string.no_ditch_mode_title))
+                .setMessage(getString(R.string.msg_not_logged_in))
+                .setPositiveButton(android.R.string.ok, null)
+                .show()
+            return
+        }
+
+        sheet?.setSubmitting(true)
+        lifecycleScope.launch {
+            val result = gutterRepository.storeNoDitch(
+                latitude = latLng.latitude,
+                longitude = latLng.longitude,
+                note = note,
+                token = token
+            )
+            sheet?.setSubmitting(false)
+
+            when (result) {
+                is ApiResult.Success -> {
+                    val message = result.data.message ?: getString(R.string.msg_submit_success)
+                    MaterialAlertDialogBuilder(this@MainActivity)
+                        .setTitle(getString(R.string.no_ditch_mode_title))
+                        .setMessage(message)
+                        .setPositiveButton(android.R.string.ok) { _, _ ->
+                            supportFragmentManager.findFragmentByTag(NoDitchReportBottomSheet.TAG)
+                                ?.let { (it as? NoDitchReportBottomSheet)?.dismissAllowingStateLoss() }
+                        }
+                        .show()
+                }
+                is ApiResult.Error -> {
+                    MaterialAlertDialogBuilder(this@MainActivity)
+                        .setTitle(getString(R.string.no_ditch_mode_title))
+                        .setMessage(result.message)
+                        .setPositiveButton(android.R.string.ok, null)
+                        .show()
+                }
+            }
+        }
+    }
+
+    override fun onNoDitchRequestPickFromScreen(rawX: Float, rawY: Float) {
+        if (!isNoDitchPickMode) return
+        if (noDitchPickedLatLng != null) return
+        val map = googleMap ?: return
+        val mapView = supportFragmentManager.findFragmentById(R.id.map)?.view ?: return
+
+        val loc = IntArray(2)
+        mapView.getLocationOnScreen(loc)
+        val x = (rawX - loc[0]).toInt()
+        val y = (rawY - loc[1]).toInt()
+        if (x < 0 || y < 0 || x > mapView.width || y > mapView.height) return
+
+        val latLng = map.projection.fromScreenLocation(Point(x, y))
+        onNoDitchLatLngPicked(latLng)
+    }
+
+    private fun setNoDitchMapClickListenerEnabled(enabled: Boolean) {
+        val map = googleMap ?: return
+        if (!enabled) {
+            map.setOnMapClickListener(null)
+            return
+        }
+        map.setOnMapClickListener { latLng ->
+            if (!isNoDitchPickMode) return@setOnMapClickListener
+            if (noDitchPickedLatLng != null) return@setOnMapClickListener
+            android.util.Log.d("NoDitch", "Picked latLng=${latLng.latitude},${latLng.longitude}")
+            onNoDitchLatLngPicked(latLng)
+        }
+    }
+
+    private fun onNoDitchLatLngPicked(latLng: LatLng) {
+        val map = googleMap ?: return
+        noDitchPickedLatLng = latLng
+        clearNoDitchMarker()
+        noDitchMarker = map.addMarker(
+            com.google.android.gms.maps.model.MarkerOptions()
+                .position(latLng)
+                .icon(buildNoDitchMarkerIcon())
+                .anchor(0.5f, 1.0f)
+        )
+        // 選點後禁止再次點擊地圖，直到按下「重設點位」
+        setNoDitchMapClickListenerEnabled(false)
+
+        (supportFragmentManager.findFragmentByTag(NoDitchReportBottomSheet.TAG) as? NoDitchReportBottomSheet)
+            ?.onLatLngPicked(latLng)
+    }
+
+    private fun clearNoDitchMarker() {
+        noDitchMarker?.remove()
+        noDitchMarker = null
+    }
+
+    private fun buildNoDitchMarkerIcon(): com.google.android.gms.maps.model.BitmapDescriptor {
+        val drawable = ContextCompat.getDrawable(this, R.drawable.ic_exclamationmark_bubble_marker)
+            ?: return com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker()
+        val bitmap = Bitmap.createBitmap(
+            drawable.intrinsicWidth,
+            drawable.intrinsicHeight,
+            Bitmap.Config.ARGB_8888
+        )
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 }
