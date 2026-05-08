@@ -6,13 +6,9 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.drawable.Drawable
+import android.graphics.Point
 import android.location.Location
 import android.os.Bundle
-import android.graphics.Point
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -31,7 +27,6 @@ import android.net.Uri
 import com.example.taoyuangutter.common.LocationPickEvents
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.api.ApiResult
-import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -42,11 +37,11 @@ import com.example.taoyuangutter.gutter.AddGutterBottomSheet
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.GutterFormContract
 import com.example.taoyuangutter.gutter.GutterFormNavigator
-import com.example.taoyuangutter.gutter.InspectFlowCoordinator
 import com.example.taoyuangutter.gutter.GutterInspectActivity
 import com.example.taoyuangutter.gutter.GutterSheetSessionBinder
 import com.example.taoyuangutter.gutter.GutterSessionFlowCoordinator
 import com.example.taoyuangutter.gutter.GutterSessionUiCoordinator
+import com.example.taoyuangutter.gutter.InspectFlowCoordinator
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.AuthNavigator
@@ -72,8 +67,6 @@ import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterDraftCoordinator
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.DraftPhotoCleaner
-import com.example.taoyuangutter.pending.KIND_CURVE
-import com.example.taoyuangutter.pending.PendingDraftsBottomSheet
 import com.example.taoyuangutter.pending.PendingDraftSheetNavigator
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -82,23 +75,17 @@ import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
-import kotlin.collections.map
 import kotlin.math.max
 
 class MainActivity : AppCompatActivity(),
@@ -179,7 +166,7 @@ class MainActivity : AppCompatActivity(),
         GutterMapController(
             mapProvider = { googleMap },
             markerIconProvider = { type, isPending -> markerIconFactory.icon(type, isPending) },
-            polylineColorProvider = { isCurve -> resolveGutterPolylineColor(isCurve) },
+            polylineColorProvider = { isCurve -> resolveGutterPolylineColor() },
             pendingFlagParser = ::parseLooseBoolean
         )
     }
@@ -1383,12 +1370,6 @@ class MainActivity : AppCompatActivity(),
         )
     }
 
-    /** 開啟「新增曲線」畫面。 */
-    private fun openAddCurveFlow() {
-        val intent = Intent(this, AddCurveActivity::class.java)
-            .putExtra(AddCurveActivity.EXTRA_FORCE_OFFLINE_MODE, isOfflineMainMode)
-        addCurveLauncher.launch(intent)
-    }
 
     /** 顯示「待上傳草稿」BottomSheet，並處理「繼續編輯」回呼。 */
     private fun showPendingDraftsSheet() {
@@ -1584,12 +1565,6 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun showInspectMarkers(
-        nodes: List<com.example.taoyuangutter.api.NodeDetails>,
-        pendingByNodeId: Map<Int, Boolean> = emptyMap()
-    ) {
-        inspectMarkerController.showInspectMarkers(nodes, pendingByNodeId)
-    }
 
     private fun drawSubmittedGutter(waypoints: List<Waypoint>) {
         val map = googleMap ?: return
@@ -1598,7 +1573,7 @@ class MainActivity : AppCompatActivity(),
         val polyline = map.addPolyline(
             PolylineOptions()
                 .addAll(routePoints)
-                .color(resolveGutterPolylineColor(isCurve = false))
+                .color(resolveGutterPolylineColor())
                 .width(10f)
                 .geodesic(true)
                 .clickable(true)
@@ -1638,7 +1613,7 @@ class MainActivity : AppCompatActivity(),
      * 側溝線段顏色決策入口（弧線/非弧線）。
      * 目前先維持既有顏色；後續要改弧線配色只需改這裡。
      */
-    private fun resolveGutterPolylineColor(isCurve: Boolean): Int {
+    private fun resolveGutterPolylineColor(): Int {
         return Color.parseColor("#562ECB")
     }
 
