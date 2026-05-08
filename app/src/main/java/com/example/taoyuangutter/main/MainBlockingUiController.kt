@@ -54,6 +54,8 @@ class MainBlockingUiController(
         setFabEnabled(binding.btnLayers, enabled)
         setFabEnabled(binding.btnViewDrafts, enabled)
         setFabEnabled(binding.btnMyLocation, enabled)
+        setFabEnabled(binding.btnMeasureDistance, enabled)
+        setFabEnabled(binding.btnReportNoDitch, enabled)
         binding.btnLogout.isEnabled = enabled
         binding.btnLogout.isClickable = enabled
         binding.btnLogout.alpha = if (enabled) 1f else 0.35f

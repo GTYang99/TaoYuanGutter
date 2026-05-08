@@ -1334,6 +1334,7 @@ class MainActivity : AppCompatActivity(),
         // 避免測距模式與回報模式同時占用 map click listener
         if (measureManager?.isMeasuring == true) exitMeasureMode()
         if (supportFragmentManager.findFragmentByTag(NoDitchReportBottomSheet.TAG) != null) return
+        mainBlockingUiController.setMainButtonsEnabled(false)
         NoDitchReportBottomSheet().show(supportFragmentManager, NoDitchReportBottomSheet.TAG)
     }
 
@@ -1742,6 +1743,7 @@ class MainActivity : AppCompatActivity(),
     // ── 回報無側溝（BottomSheet）──────────────────────────────────────────
 
     override fun onNoDitchRequestEnterPickMode() {
+        mainBlockingUiController.setMainButtonsEnabled(false)
         isNoDitchPickMode = true
         val vm = ViewModelProvider(this)[NoDitchReportViewModel::class.java]
         val selected = vm.selectedLatLng.value
@@ -1771,6 +1773,9 @@ class MainActivity : AppCompatActivity(),
         setNoDitchMapClickListenerEnabled(false)
         noDitchPickedLatLng = null
         clearNoDitchMarker()
+        if (measureManager?.isMeasuring != true) {
+            mainBlockingUiController.setMainButtonsEnabled(true)
+        }
     }
 
     override fun onNoDitchRequestResetPick() {
@@ -1791,6 +1796,7 @@ class MainActivity : AppCompatActivity(),
             return
         }
 
+        mainBlockingUiController.setMainButtonsEnabled(false)
         sheet?.setSubmitting(true)
         lifecycleScope.launch {
             val result = gutterRepository.storeNoDitch(
