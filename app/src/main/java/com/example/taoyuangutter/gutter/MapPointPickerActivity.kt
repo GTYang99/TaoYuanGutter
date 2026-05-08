@@ -11,6 +11,9 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import com.example.taoyuangutter.databinding.ActivityMapPointPickerBinding
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -38,6 +41,8 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private lateinit var binding: ActivityMapPointPickerBinding
     private var googleMap: GoogleMap? = null
     private var currentTileOverlay: TileOverlay? = null
+    private var pickerBarBaseBottomMarginPx: Int? = null
+    private var myLocationFabBaseBottomMarginPx: Int? = null
 
     // ── 現在位置 ──────────────────────────────────────────────────────────
     private val fusedLocationClient by lazy { LocationServices.getFusedLocationProviderClient(this) }
@@ -88,6 +93,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         binding = ActivityMapPointPickerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applySystemBarInsets()
 
         val mapFragment = supportFragmentManager.findFragmentById(binding.mapPicker.id) as? SupportMapFragment
         mapFragment?.getMapAsync(this)
@@ -111,6 +117,34 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         binding.locationPickerOverlay.fabMyLocation.setOnClickListener {
             onMyLocationButtonClicked()
         }
+    }
+
+    private fun applySystemBarInsets() {
+        val pickerBar = binding.locationPickerOverlay.bottomPickerBar
+        val myLocationFab = binding.locationPickerOverlay.fabMyLocation
+        if (pickerBarBaseBottomMarginPx == null) {
+            val lp = pickerBar.layoutParams as? android.view.ViewGroup.MarginLayoutParams
+            pickerBarBaseBottomMarginPx = lp?.bottomMargin ?: 0
+        }
+        if (myLocationFabBaseBottomMarginPx == null) {
+            val lp = myLocationFab.layoutParams as? android.view.ViewGroup.MarginLayoutParams
+            myLocationFabBaseBottomMarginPx = lp?.bottomMargin ?: 0
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val bottomInset = maxOf(systemBottom, imeBottom)
+
+            pickerBar.updateLayoutParams<android.view.ViewGroup.MarginLayoutParams> {
+                bottomMargin = (pickerBarBaseBottomMarginPx ?: 0) + bottomInset
+            }
+            myLocationFab.updateLayoutParams<android.view.ViewGroup.MarginLayoutParams> {
+                bottomMargin = (myLocationFabBaseBottomMarginPx ?: 0) + bottomInset
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     private fun onMyLocationButtonClicked() {

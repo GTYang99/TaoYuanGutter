@@ -22,6 +22,9 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import android.net.Uri
@@ -114,6 +117,8 @@ class MainActivity : AppCompatActivity(),
     private var googleMap: GoogleMap? = null
     private var isOfflineMainMode: Boolean = false
     private var currentSheetBottomInsetPx: Int = 0
+    private var addGutterBaseBottomMarginPx: Int? = null
+    private var pickerBarBaseBottomMarginPx: Int? = null
 
     private val waypointLocationChangedReceiver = object : android.content.BroadcastReceiver() {
         override fun onReceive(context: android.content.Context?, intent: Intent?) {
@@ -287,6 +292,7 @@ class MainActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applySystemBarInsets()
         mainBlockingUiController = MainBlockingUiController(
             context = this,
             binding = binding,
@@ -555,6 +561,37 @@ class MainActivity : AppCompatActivity(),
     override fun onDestroy() {
         runCatching { unregisterReceiver(waypointLocationChangedReceiver) }
         super.onDestroy()
+    }
+
+    private fun applySystemBarInsets() {
+        val addFab = binding.btnAddGutter
+        if (addGutterBaseBottomMarginPx == null) {
+            val lp = addFab.layoutParams as? ViewGroup.MarginLayoutParams
+            addGutterBaseBottomMarginPx = lp?.bottomMargin ?: 0
+        }
+        val bottomPickerBar = binding.root.findViewById<View>(R.id.bottomPickerBar)
+        if (pickerBarBaseBottomMarginPx == null) {
+            val lp = bottomPickerBar?.layoutParams as? ViewGroup.MarginLayoutParams
+            pickerBarBaseBottomMarginPx = lp?.bottomMargin ?: 0
+        }
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val bottomInset = max(systemBottom, imeBottom)
+
+            val addBase = addGutterBaseBottomMarginPx ?: 0
+            addFab.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = addBase + bottomInset
+            }
+
+            val pickerBase = pickerBarBaseBottomMarginPx ?: 0
+            bottomPickerBar?.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = pickerBase + bottomInset
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     /**

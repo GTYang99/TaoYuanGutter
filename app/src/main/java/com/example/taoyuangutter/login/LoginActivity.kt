@@ -11,6 +11,8 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.example.taoyuangutter.MainActivity
@@ -23,6 +25,7 @@ class LoginActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityLoginBinding
     private val repository = GutterRepository()
+    private var loginRootBaseBottomPadding = 0
 
     companion object {
         private const val PREFS_NAME       = "taoyuan_prefs"
@@ -51,6 +54,7 @@ class LoginActivity : AppCompatActivity() {
 
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applySystemBarInsets()
 
         loadRememberedAccount()
         setupLoginButtonListener()
@@ -179,6 +183,22 @@ class LoginActivity : AppCompatActivity() {
         binding.loginButton.isEnabled = !loading
         // 若 layout 有 progressBar 可在此控制顯示；目前以按鈕 enabled 狀態作為視覺回饋
         binding.loginButton.text = if (loading) "登入中…" else "登入"
+    }
+
+    private fun applySystemBarInsets() {
+        loginRootBaseBottomPadding = binding.root.paddingBottom
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
+            val barsBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop,
+                view.paddingRight,
+                loginRootBaseBottomPadding + maxOf(barsBottom, imeBottom)
+            )
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     private fun toUserFriendlyLoginError(rawMessage: String?): String {

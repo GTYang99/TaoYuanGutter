@@ -9,6 +9,9 @@ import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.taoyuangutter.R
@@ -30,6 +33,8 @@ class ImportExistingWaypointActivity : AppCompatActivity() {
     private var selectedWaypoint: NodeDetails? = null
     private var searchJob: Job? = null
     private var searchSeq: Int = 0
+    private var importFabBaseBottomMarginPx: Int? = null
+    private var listBaseBottomPaddingPx: Int = 0
 
     companion object {
         const val EXTRA_NODE_DETAILS_JSON = "node_details_json"
@@ -43,9 +48,36 @@ class ImportExistingWaypointActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityImportExistingWaypointBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        applySystemBarInsets()
 
         setupUI()
         showHintState()
+    }
+
+    private fun applySystemBarInsets() {
+        if (importFabBaseBottomMarginPx == null) {
+            val lp = binding.fabImport.layoutParams as? android.view.ViewGroup.MarginLayoutParams
+            importFabBaseBottomMarginPx = lp?.bottomMargin ?: 0
+        }
+        listBaseBottomPaddingPx = binding.rvWaypoints.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(binding.root) { _, insets ->
+            val systemBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+            val bottomInset = maxOf(systemBottom, imeBottom)
+
+            binding.fabImport.updateLayoutParams<android.view.ViewGroup.MarginLayoutParams> {
+                bottomMargin = (importFabBaseBottomMarginPx ?: 0) + bottomInset
+            }
+            binding.rvWaypoints.setPadding(
+                binding.rvWaypoints.paddingLeft,
+                binding.rvWaypoints.paddingTop,
+                binding.rvWaypoints.paddingRight,
+                listBaseBottomPaddingPx + bottomInset
+            )
+            insets
+        }
+        ViewCompat.requestApplyInsets(binding.root)
     }
 
     private fun setupUI() {
