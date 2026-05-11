@@ -167,6 +167,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
+    <!-- 回報無側溝底部面板（非 Dialog；回報模式時顯示） -->
+    <include
+        android:id="@+id/noDitchPanel"
+        layout="@layout/panel_no_ditch_report"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <!-- 檢視側溝載入中 Overlay（點選側溝→等待資料/照片下載完成） -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/inspectLoadingOverlay"

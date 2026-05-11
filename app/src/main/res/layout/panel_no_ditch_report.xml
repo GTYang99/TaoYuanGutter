@@ -1,45 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- 內嵌式「回報無側溝」底部面板（非 Dialog），讓地圖可拖曳/縮放 -->
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@drawable/bg_form_sheet"
-    android:orientation="vertical">
+    android:layout_marginStart="12dp"
+    android:layout_marginEnd="12dp"
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="8dp"
+    app:cardBackgroundColor="@color/white">
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:fillViewport="true"
         android:overScrollMode="ifContentScrolls">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingStart="24dp"
-            android:paddingTop="18dp"
-            android:paddingEnd="24dp"
-            android:paddingBottom="18dp">
+            android:paddingStart="20dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="20dp"
+            android:paddingBottom="16dp">
 
             <TextView
-                android:id="@+id/tvTitle"
+                android:id="@+id/tvNoDitchTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/no_ditch_mode_title"
                 android:textColor="@color/black"
-                android:textSize="24sp"
+                android:textSize="20sp"
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tvSubtitle"
+                android:id="@+id/tvNoDitchSubtitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="6dp"
                 android:text="@string/no_ditch_pick_hint"
                 android:textColor="@color/textColorSecondary"
                 android:textSize="14sp" />
 
             <TextView
-                android:id="@+id/tvLatLng"
+                android:id="@+id/tvNoDitchLatLng"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="10dp"
@@ -54,11 +60,11 @@
                 android:visibility="gone" />
 
             <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/tilNote"
+                android:id="@+id/tilNoDitchNote"
                 style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="14dp"
+                android:layout_marginTop="12dp"
                 android:hint="@string/no_ditch_note_hint"
                 android:visibility="gone"
                 app:boxBackgroundColor="@color/white"
@@ -66,7 +72,7 @@
                 app:hintTextColor="@color/textColorSecondary">
 
                 <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/etNote"
+                    android:id="@+id/etNoDitchNote"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="top|start"
@@ -80,11 +86,11 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
+                android:layout_marginTop="14dp"
                 android:orientation="horizontal">
 
                 <TextView
-                    android:id="@+id/btnLeft"
+                    android:id="@+id/btnNoDitchLeft"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -100,7 +106,7 @@
                     android:textStyle="bold" />
 
                 <TextView
-                    android:id="@+id/btnRight"
+                    android:id="@+id/btnNoDitchRight"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -119,4 +125,5 @@
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-</LinearLayout>
+</androidx.cardview.widget.CardView>
+

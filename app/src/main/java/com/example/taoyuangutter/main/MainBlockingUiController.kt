@@ -54,11 +54,33 @@ class MainBlockingUiController(
         setFabEnabled(binding.btnLayers, enabled)
         setFabEnabled(binding.btnViewDrafts, enabled)
         setFabEnabled(binding.btnMyLocation, enabled)
-        setFabEnabled(binding.btnMeasureDistance, enabled)
-        setFabEnabled(binding.btnReportNoDitch, enabled)
         binding.btnLogout.isEnabled = enabled
         binding.btnLogout.isClickable = enabled
         binding.btnLogout.alpha = if (enabled) 1f else 0.35f
+    }
+
+    fun setMainButtonsEnabledDuringMeasureMode(enabled: Boolean) {
+        // 測距模式需要保留 btnMeasureDistance 作為「模式切換」入口，因此不在此控制該按鈕。
+        setMainButtonsEnabled(enabled)
+        // 其他模式入口（回報無側溝）在測距中應暫時不可操作。
+        binding.btnReportNoDitch.isEnabled = enabled
+        binding.btnReportNoDitch.isClickable = enabled
+        binding.btnReportNoDitch.alpha = if (enabled) 1f else 0.35f
+        binding.btnMeasureDistance.isEnabled = true
+        binding.btnMeasureDistance.isClickable = true
+        binding.btnMeasureDistance.alpha = 1f
+    }
+
+    fun setMainButtonsEnabledDuringNoDitchMode(enabled: Boolean) {
+        // 回報無側溝模式需要保留 btnReportNoDitch 作為「模式入口/指示」，因此不在此控制該按鈕。
+        setMainButtonsEnabled(enabled)
+        // 其他模式入口（例如測距）在回報模式中應暫時不可操作。
+        binding.btnMeasureDistance.isEnabled = enabled
+        binding.btnMeasureDistance.isClickable = enabled
+        binding.btnMeasureDistance.alpha = if (enabled) 1f else 0.35f
+        binding.btnReportNoDitch.isEnabled = true
+        binding.btnReportNoDitch.isClickable = true
+        binding.btnReportNoDitch.alpha = 1f
     }
 
     private fun setPhotoUploadBlocking(visible: Boolean) {
