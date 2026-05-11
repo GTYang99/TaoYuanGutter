@@ -13,6 +13,7 @@ import android.view.ScaleGestureDetector
 import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
@@ -85,6 +86,7 @@ class CameraOverlayFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        hideKeyboardIfShown()
 
         val path = arguments?.getString(ARG_OUTPUT_PATH)
         val slot = arguments?.getInt(ARG_SLOT, 0) ?: 0
@@ -108,6 +110,13 @@ class CameraOverlayFragment : Fragment() {
         setupOrientationListener()
         setupButtons(slot)
         startCamera()
+    }
+
+    private fun hideKeyboardIfShown() {
+        val hostView = activity?.currentFocus ?: view ?: return
+        activity?.currentFocus?.clearFocus()
+        val imm = context?.getSystemService(InputMethodManager::class.java) ?: return
+        imm.hideSoftInputFromWindow(hostView.windowToken, 0)
     }
 
     override fun onResume() {
