@@ -106,17 +106,6 @@
             app:tint="@color/colorPrimary"
             app:fabSize="mini" />
 
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/btnMyLocation"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:contentDescription="@string/my_location_title"
-            android:src="@drawable/ic_my_location"
-            app:backgroundTint="@color/white"
-            app:fabSize="mini"
-            app:tint="@color/colorPrimary" />
-
         <!-- 測距模式按鈕（toggle） -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnMeasureDistance"
@@ -136,10 +125,22 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
             android:contentDescription="@string/no_ditch_fab_desc"
-            android:src="@drawable/ic_exclamationmark_bubble"
+            android:src="@drawable/ic_noditch"
             app:backgroundTint="@color/white"
             app:tint="@color/colorPrimary"
             app:fabSize="mini" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnMyLocation"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:contentDescription="@string/my_location_title"
+            android:src="@drawable/ic_my_location"
+            app:backgroundTint="@color/white"
+            app:fabSize="mini"
+            app:tint="@color/colorPrimary" />
+
     </LinearLayout>
 
     <!-- 測距準星（畫面正中央，測距模式時才顯示） -->

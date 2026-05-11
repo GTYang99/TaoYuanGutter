@@ -242,6 +242,51 @@ interface GutterApiService {
         @Body                    request: StoreNoDitchRequest,
         @Header("Authorization") authorization: String
     ): Response<StoreNoDitchResponse>
+
+    /**
+     * 取得無側溝點位（WMS GetFeatureInfo；用於點擊/二次查證）。
+     *
+     * GET https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/ows?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&BBOX=...&CRS=EPSG:4326&WIDTH=...&HEIGHT=...&LAYERS=map_no_ditch_points&QUERY_LAYERS=map_no_ditch_points&INFO_FORMAT=application/json&I=...&J=...
+     *
+     * @param bbox 地圖可視範圍 [minLng,minLat,maxLng,maxLat]
+     * @param width 地圖寬度像素
+     * @param height 地圖高度像素
+     * @param i 點擊X座標
+     * @param j 點擊Y座標
+     * Response: [NoDitchPointsResponse]
+     */
+    @GET("geoserver/ows")
+    suspend fun getNoDitchPointsFeatureInfo(
+        @Query("SERVICE") service: String = "WMS",
+        @Query("VERSION") version: String = "1.3.0",
+        @Query("REQUEST") request: String = "GetFeatureInfo",
+        @Query("BBOX") bbox: String,
+        @Query("CRS") crs: String = "EPSG:4326",
+        @Query("WIDTH") width: Int,
+        @Query("HEIGHT") height: Int,
+        @Query("LAYERS") layers: String = "map_no_ditch_points",
+        @Query("QUERY_LAYERS") queryLayers: String = "map_no_ditch_points",
+        @Query("INFO_FORMAT") infoFormat: String = "application/json",
+        @Query("I") i: Int,
+        @Query("J") j: Int,
+        @Query("FEATURE_COUNT") featureCount: Int = 100
+    ): Response<NoDitchPointsResponse>
+
+    /**
+     * 取得無側溝點位清單（WFS GetFeature；用於畫可點 Marker）。
+     *
+     * GET https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/ows?service=WFS&version=1.1.0&request=GetFeature&typeName=map_no_ditch_points&outputFormat=application/json&srsName=EPSG:4326&bbox=minLng,minLat,maxLng,maxLat,EPSG:4326
+     */
+    @GET("geoserver/ows")
+    suspend fun getNoDitchPointsByBbox(
+        @Query("service") service: String = "WFS",
+        @Query("version") version: String = "1.1.0",
+        @Query("request") request: String = "GetFeature",
+        @Query("typeName") typeName: String = "map_no_ditch_points",
+        @Query("outputFormat") outputFormat: String = "application/json",
+        @Query("srsName") srsName: String = "EPSG:4326",
+        @Query("bbox") bbox: String
+    ): Response<NoDitchPointsResponse>
 }
 
 // ════════════════════════════════════════════════════════════════

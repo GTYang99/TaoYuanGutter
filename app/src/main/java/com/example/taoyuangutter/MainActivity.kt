@@ -28,7 +28,9 @@ import com.example.taoyuangutter.common.LocationPickEvents
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchNode
+import com.example.taoyuangutter.api.GutterApiClient
 import com.example.taoyuangutter.api.GutterRepository
+import com.example.taoyuangutter.api.NoDitchPoint
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
@@ -161,7 +163,6 @@ class MainActivity : AppCompatActivity(),
             repository = gutterRepository
         )
     }
-    private val mapOverlayController by lazy { MapOverlayController(mapProvider = { googleMap }) }
     private val gutterMapController by lazy {
         GutterMapController(
             mapProvider = { googleMap },
@@ -207,6 +208,18 @@ class MainActivity : AppCompatActivity(),
             viewportLoader = scopeViewportLoader,
             polylineController = scopeGutterPolylineController,
             savedGroupIdProvider = { LoginActivity.getSavedGroupId(this) }
+        )
+    }
+    private val mapOverlayController by lazy {
+        MapOverlayController(
+            mapProvider = { googleMap },
+            onNoDitchPointsLayerChanged = { enabled ->
+                if (enabled) {
+                    loadNoDitchPointsForVisibleArea()
+                } else {
+                    clearNoDitchPointsMarkers()
+                }
+            }
         )
     }
 
@@ -272,6 +285,10 @@ class MainActivity : AppCompatActivity(),
     private var noDitchMarker: com.google.android.gms.maps.model.Marker? = null
     private var noDitchPickedLatLng: LatLng? = null
     private var isNoDitchPickMode: Boolean = false
+
+    // ── 無側溝點位互動 ──────────────────────────────────────────────────────
+    private var noDitchPointsMarkers = mutableListOf<com.google.android.gms.maps.model.Marker>()
+    private var noDitchPoints = mutableListOf<NoDitchPoint>()
 
     // ── Lifecycle ─────────────────────────────────────────────────────────
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -662,6 +679,13 @@ class MainActivity : AppCompatActivity(),
                 measureManager?.setStartPoint(marker.position)
                 return@setOnMarkerClickListener true
             }
+
+            // 檢查是否為無側溝點位
+            if (marker.tag is NoDitchPoint) {
+                fetchAndShowNoDitchPointNote(marker)
+                return@setOnMarkerClickListener true
+            }
+
             val wpIndex = marker.tag as? Int ?: return@setOnMarkerClickListener false
             if (inspectSheet != null) {
                 val wp = inspectWaypoints.getOrNull(wpIndex) ?: return@setOnMarkerClickListener false
@@ -686,7 +710,12 @@ class MainActivity : AppCompatActivity(),
 
         // 地圖停止移動後，依目前可視範圍向後端查詢側溝線段（使用防抖避免高頻調用）
         if (!isOfflineMainMode) {
-            map.setOnCameraIdleListener { loadGuttersByViewportDebounced() }
+            map.setOnCameraIdleListener {
+                loadGuttersByViewportDebounced()
+                if (mapOverlayController.currentState().showNoDitchPoints) {
+                    loadNoDitchPointsForVisibleArea()
+                }
+            }
         }
 
         // ── 測距管理器初始化（需在地圖就緒後才能建立） ────────────────────────
@@ -1895,16 +1924,145 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun buildNoDitchMarkerIcon(): com.google.android.gms.maps.model.BitmapDescriptor {
-        val drawable = ContextCompat.getDrawable(this, R.drawable.ic_exclamationmark_bubble_marker)
+        val drawable = ContextCompat.getDrawable(this, R.drawable.ic_noditch_pin)
             ?: return com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker()
-        val bitmap = Bitmap.createBitmap(
-            drawable.intrinsicWidth,
-            drawable.intrinsicHeight,
-            Bitmap.Config.ARGB_8888
-        )
+        val sizePx = (60f * resources.displayMetrics.density).toInt().coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
-        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.setBounds(0, 0, sizePx, sizePx)
         drawable.draw(canvas)
         return com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap(bitmap)
+    }
+
+    // ── 無側溝點位載入與互動 ──────────────────────────────────────────────
+
+    private fun loadNoDitchPointsForVisibleArea() {
+        val map = googleMap ?: return
+        val bounds = map.projection.visibleRegion.latLngBounds
+        val bbox = buildNoDitchPointsWfsBbox(bounds)
+
+        lifecycleScope.launch {
+            try {
+                val response = GutterApiClient.instance.getNoDitchPointsByBbox(bbox = bbox)
+
+                if (response.isSuccessful) {
+                    val features = response.body()?.features ?: emptyList()
+                    updateNoDitchPointsMarkers(features.map { feature ->
+                        // 優先嘗試從 properties 取得座標，若無則從 geometry 取得
+                        val lat = if (feature.properties.latitude != 0.0) feature.properties.latitude else feature.geometry.coordinates.getOrNull(1) ?: 0.0
+                        val lng = if (feature.properties.longitude != 0.0) feature.properties.longitude else feature.geometry.coordinates.getOrNull(0) ?: 0.0
+                        
+                        NoDitchPoint(
+                            id = feature.id,
+                            latitude = lat,
+                            longitude = lng,
+                            note = feature.properties.note
+                        )
+                    })
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to load no ditch points", e)
+            }
+        }
+    }
+
+    private fun updateNoDitchPointsMarkers(points: List<NoDitchPoint>) {
+        val map = googleMap ?: return
+
+        // 清除舊的markers
+        noDitchPointsMarkers.forEach { it.remove() }
+        noDitchPointsMarkers.clear()
+
+        // 添加新的markers
+        points.forEach { point ->
+            val marker = map.addMarker(
+                com.google.android.gms.maps.model.MarkerOptions()
+                    .position(point.latLng)
+                    .icon(buildNoDitchPointIcon())
+                    .anchor(0.5f, 1.0f)
+                    .title(point.note ?: "無側溝點位")
+            )
+            marker?.tag = point
+            marker?.let { noDitchPointsMarkers.add(it) }
+        }
+
+        noDitchPoints = points.toMutableList()
+    }
+
+    private fun clearNoDitchPointsMarkers() {
+        noDitchPointsMarkers.forEach { it.remove() }
+        noDitchPointsMarkers.clear()
+        noDitchPoints.clear()
+    }
+
+    private fun buildNoDitchPointIcon(): com.google.android.gms.maps.model.BitmapDescriptor {
+        // 無側溝點位互動 Marker 圖示
+        val drawable = ContextCompat.getDrawable(this, R.drawable.ic_noditch_point)
+            ?: return com.google.android.gms.maps.model.BitmapDescriptorFactory.defaultMarker(
+                com.google.android.gms.maps.model.BitmapDescriptorFactory.HUE_ORANGE
+            )
+        val sizePx = (20f * resources.displayMetrics.density).toInt().coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, sizePx, sizePx)
+        drawable.draw(canvas)
+        return com.google.android.gms.maps.model.BitmapDescriptorFactory.fromBitmap(bitmap)
+    }
+
+    private fun buildNoDitchPointsWfsBbox(bounds: com.google.android.gms.maps.model.LatLngBounds): String {
+        val sw = bounds.southwest
+        val ne = bounds.northeast
+        return "${sw.longitude},${sw.latitude},${ne.longitude},${ne.latitude},EPSG:4326"
+    }
+
+    private fun buildNoDitchPointsWmsBbox(bounds: com.google.android.gms.maps.model.LatLngBounds): String {
+        val sw = bounds.southwest
+        val ne = bounds.northeast
+        // WMS 1.3.0 + EPSG:4326：常見軸序為 lat,lng
+        return "${sw.latitude},${sw.longitude},${ne.latitude},${ne.longitude}"
+    }
+
+    private fun fetchAndShowNoDitchPointNote(marker: com.google.android.gms.maps.model.Marker) {
+        val map = googleMap ?: return
+        val bounds = map.projection.visibleRegion.latLngBounds
+        val mapView = binding.map
+        val width = mapView.width
+        val height = mapView.height
+        if (width <= 0 || height <= 0) return
+
+        val bbox = buildNoDitchPointsWmsBbox(bounds)
+        val screenPoint = map.projection.toScreenLocation(marker.position)
+
+        lifecycleScope.launch {
+            try {
+                val response = GutterApiClient.instance.getNoDitchPointsFeatureInfo(
+                    bbox = bbox,
+                    width = width,
+                    height = height,
+                    i = screenPoint.x,
+                    j = screenPoint.y,
+                    featureCount = 10
+                )
+                if (!response.isSuccessful) return@launch
+
+                val note = response.body()
+                    ?.features
+                    ?.asSequence()
+                    ?.mapNotNull { it.properties.note }
+                    ?.firstOrNull()
+
+                if (note.isNullOrBlank()) {
+                    Toast.makeText(this@MainActivity, "此點位無備註", Toast.LENGTH_SHORT).show()
+                } else {
+                    AlertDialog.Builder(this@MainActivity)
+                        .setTitle("無側溝點位備註")
+                        .setMessage(note)
+                        .setPositiveButton("確定", null)
+                        .show()
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("MainActivity", "Failed to fetch no ditch point note", e)
+            }
+        }
     }
 }

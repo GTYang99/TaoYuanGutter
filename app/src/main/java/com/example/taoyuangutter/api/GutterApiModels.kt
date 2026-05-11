@@ -1,6 +1,7 @@
 package com.example.taoyuangutter.api
 
 import com.google.gson.JsonElement
+import com.google.android.gms.maps.model.LatLng
 import com.google.gson.annotations.SerializedName
 
 // ════════════════════════════════════════════════════════════════
@@ -576,6 +577,59 @@ data class StoreNoDitchResponse(
     @SerializedName("message") val message: String?,
     @SerializedName("data")    val data: StoreNoDitchData?,
     @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+// ════════════════════════════════════════════════════════════════
+//  無側溝點位相關模型
+// ════════════════════════════════════════════════════════════════
+
+/**
+ * 無側溝點位數據類
+ */
+data class NoDitchPoint(
+    val id: String,
+    val latitude: Double,
+    val longitude: Double,
+    val note: String?
+) {
+    val latLng: LatLng
+        get() = LatLng(latitude, longitude)
+}
+
+/**
+ * WMS GetFeatureInfo 響應格式
+ */
+data class NoDitchPointsResponse(
+    val type: String,
+    val features: List<NoDitchFeature>,
+    val totalFeatures: JsonElement?,
+    val numberMatched: Int?,
+    val numberReturned: Int?,
+    val timeStamp: String?,
+    val crs: Map<String, Any>?
+)
+
+data class NoDitchFeature(
+    val type: String,
+    val id: String,
+    val geometry: NoDitchGeometry,
+    val geometry_name: String?,
+    val properties: NoDitchProperties
+)
+
+data class NoDitchGeometry(
+    val type: String,
+    val coordinates: List<Double>
+)
+
+data class NoDitchProperties(
+    val latitude: Double,
+    val longitude: Double,
+    val note: String?,
+    val geom_97: Map<String, Any>?,
+    val deleted_at: String?,
+    val created_at: String?,
+    val updated_at: String?
 )
 
 // ════════════════════════════════════════════════════════════════

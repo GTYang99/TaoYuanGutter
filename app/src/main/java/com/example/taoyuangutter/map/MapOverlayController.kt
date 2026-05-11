@@ -8,7 +8,8 @@ import java.net.MalformedURLException
 import java.net.URL
 
 class MapOverlayController(
-    private val mapProvider: () -> GoogleMap?
+    private val mapProvider: () -> GoogleMap?,
+    private val onNoDitchPointsLayerChanged: ((Boolean) -> Unit)? = null
 ) {
     data class OverlayState(
         val selectedLayer: String,
@@ -24,6 +25,7 @@ class MapOverlayController(
     private var waterOldWmsOverlay: TileOverlay? = null
     private var regionWmsOverlay: TileOverlay? = null
     private var noDitchPointsWmsOverlay: TileOverlay? = null
+    private var noDitchPointsInteractionEnabled: Boolean = false
 
     private var currentLayer: String = LayersBottomSheet.LAYER_EMAP
     private var showPlanOverlay = true
@@ -129,20 +131,23 @@ class MapOverlayController(
         }
 
         if (showNoDitchPointsOverlay) {
-            if (noDitchPointsWmsOverlay == null) {
-                val provider = Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
-                    layers = "map_no_ditch_points",
-                    styles = "TY_RSGDBIP_無側溝點位_test",
-                    format = "image/png8"
-                )
-                noDitchPointsWmsOverlay = map.addTileOverlay(
-                    TileOverlayOptions().tileProvider(provider).zIndex(0.2f).transparency(0f)
-                )
+            // 無側溝點位改為由 App 畫可互動 Marker（避免 WMS 圖層不可點的問題）
+            // 這裡只在 toggle 開啟時觸發外部載入點位資料，不再掛 WMS TileOverlay。
+            if (noDitchPointsWmsOverlay != null) {
+                noDitchPointsWmsOverlay?.remove()
+                noDitchPointsWmsOverlay = null
+            }
+            if (!noDitchPointsInteractionEnabled) {
+                noDitchPointsInteractionEnabled = true
+                onNoDitchPointsLayerChanged?.invoke(true)
             }
         } else {
             noDitchPointsWmsOverlay?.remove()
             noDitchPointsWmsOverlay = null
+            if (noDitchPointsInteractionEnabled) {
+                noDitchPointsInteractionEnabled = false
+                onNoDitchPointsLayerChanged?.invoke(false)
+            }
         }
     }
 }

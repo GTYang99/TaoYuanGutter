@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="184dp"
+    android:height="184dp"
+    android:viewportWidth="512"
+    android:viewportHeight="512">
+
+    <!-- 外圈 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="@color/black"
+        android:strokeWidth="40"
+        android:pathData="M256,40
+                          A216,216 0 1,1 256,472
+                          A216,216 0 1,1 256,40Z" />
+
+    <!-- 交叉線 -->
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="@color/black"
+        android:strokeWidth="40"
+        android:strokeLineCap="round"
+        android:pathData="M128,128 L384,384" />
+
+    <path
+        android:fillColor="@android:color/transparent"
+        android:strokeColor="@color/black"
+        android:strokeWidth="40"
+        android:strokeLineCap="round"
+        android:pathData="M384,128 L128,384" />
+</vector>

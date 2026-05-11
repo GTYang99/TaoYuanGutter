@@ -17,8 +17,8 @@
     <!-- exclamation mark -->
     <path
         android:fillColor="@color/colorPrimary"
-        android:pathData="M11.25,7.0h1.5v6.2h-1.5z" />
+        android:pathData="M11.25,6.0h1.5v6.2h-1.5z" />
     <path
         android:fillColor="@color/colorPrimary"
-        android:pathData="M12,16.9m-1,0a1,1 0,1,0 2,0a1,1 0,1,0 -2,0" />
+        android:pathData="M12,15m-1,0a1,1 0,1,0 2,0a1,1 0,1,0 -2,0" />
 </vector>
