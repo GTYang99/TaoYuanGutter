@@ -58,7 +58,7 @@ class InspectFlowCoordinator(
                         node.nodeId to parseLooseBoolean(node.isPendingDeploy)
                     }
                     val nodeDetailsList = repository.getNodeDetailsForNodes(ditch.nodes, token)
-                    val downloaded = downloadEndpointPhotos(ditch.nodes)
+                    val downloaded = downloadAllNodePhotos(ditch.nodes)
                     if (downloaded == null) {
                         ApiResult.Error(
                             message = "圖片下載失敗，請重新點選側溝線段再試",
@@ -71,12 +71,8 @@ class InspectFlowCoordinator(
                             canEdit = start.canEdit,
                             latitudes = start.latitudes,
                             longitudes = start.longitudes,
-                            strPhoto1 = downloaded.getOrNull(0),
-                            strPhoto2 = downloaded.getOrNull(1),
-                            strPhoto3 = downloaded.getOrNull(2),
-                            endPhoto1 = downloaded.getOrNull(3),
-                            endPhoto2 = downloaded.getOrNull(4),
-                            endPhoto3 = downloaded.getOrNull(5)
+                            preloadedNodeDetailsJson = com.google.gson.Gson().toJson(nodeDetailsList),
+                            preloadedNodePhotosJson = downloaded
                         )
                         ApiResult.Success(
                             LoadedInspectData(
@@ -93,39 +89,42 @@ class InspectFlowCoordinator(
         }
     }
 
-    private suspend fun downloadEndpointPhotos(nodes: List<DitchNode>): List<String?>? = coroutineScope {
-        val startNode = nodes.firstOrNull { it.nodeAtt == "1" }
-        val endNode = nodes.firstOrNull { it.nodeAtt == "3" }
-
-        fun urlByCategory(node: DitchNode?, cat: String): String? =
-            node?.url?.firstOrNull { it.fileCategory == cat }?.url
-
-        suspend fun download(url: String?, prefix: String): String? {
-            if (url.isNullOrBlank()) return ""
-            return repository.downloadImageToLocalContentUri(context, url, prefix = prefix)?.toString()
-        }
-
-        val downloads = awaitAll(
-            async { download(urlByCategory(startNode, "1"), "INSPECT_STR_1_") },
-            async { download(urlByCategory(startNode, "2"), "INSPECT_STR_2_") },
-            async { download(urlByCategory(startNode, "3"), "INSPECT_STR_3_") },
-            async { download(urlByCategory(endNode, "1"), "INSPECT_END_1_") },
-            async { download(urlByCategory(endNode, "2"), "INSPECT_END_2_") },
-            async { download(urlByCategory(endNode, "3"), "INSPECT_END_3_") }
+    private suspend fun downloadAllNodePhotos(nodes: List<DitchNode>): String? = coroutineScope {
+        val orderedNodes = nodes.sortedWith(
+            compareBy(
+                { when (it.nodeAtt) { "1" -> 0; "3" -> 2; else -> 1 } },
+                { it.nodeNum?.toIntOrNull() ?: Int.MAX_VALUE }
+            )
         )
 
-        val expectedUrls = listOf(
-            urlByCategory(startNode, "1"),
-            urlByCategory(startNode, "2"),
-            urlByCategory(startNode, "3"),
-            urlByCategory(endNode, "1"),
-            urlByCategory(endNode, "2"),
-            urlByCategory(endNode, "3")
-        )
-        val hasFailure = downloads.zip(expectedUrls).any { (downloaded, url) ->
-            !url.isNullOrBlank() && downloaded.isNullOrBlank()
+        val payloads = mutableListOf<InspectPreloadedNodePhotos>()
+        for (node in orderedNodes) {
+            fun urlByCategory(cat: String): String? =
+                node.url.firstOrNull { it.fileCategory == cat }?.url
+
+            suspend fun download(url: String?, prefix: String): String {
+                if (url.isNullOrBlank()) return ""
+                return repository.downloadImageToLocalContentUri(context, url, prefix = prefix)?.toString()
+                    ?: return "__FAILED__"
+            }
+
+            val downloads = awaitAll(
+                async { download(urlByCategory("1"), "INSPECT_${node.nodeId}_1_") },
+                async { download(urlByCategory("2"), "INSPECT_${node.nodeId}_2_") },
+                async { download(urlByCategory("3"), "INSPECT_${node.nodeId}_3_") }
+            )
+            if (downloads.any { it == "__FAILED__" }) return@coroutineScope null
+
+            payloads.add(
+                InspectPreloadedNodePhotos(
+                    nodeId = node.nodeId,
+                    photo1 = downloads[0],
+                    photo2 = downloads[1],
+                    photo3 = downloads[2]
+                )
+            )
         }
-        if (hasFailure) null else downloads
+        com.google.gson.Gson().toJson(payloads)
     }
 
     private fun parseLooseBoolean(raw: String?): Boolean {

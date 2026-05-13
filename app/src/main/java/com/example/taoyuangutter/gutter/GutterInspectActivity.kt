@@ -14,7 +14,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import com.bumptech.glide.Glide
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.DitchNode
@@ -38,7 +37,7 @@ import kotlinx.coroutines.launch
  *
  * 包含兩個分頁：
  *   0 → 基本資料（[GutterInspectBasicFragment]）
- *   1 → 照片（[GutterInspectPhotosFragment]）
+ *   1 → 點位資料（[GutterInspectPhotosFragment]）
  *
  * 標題格式：「側溝編號 \n {SPI_NUM}」，後者字體較小。
  */
@@ -53,12 +52,8 @@ class GutterInspectActivity : AppCompatActivity() {
     private var ditch: DitchDetails? = null
     private var wgsLatitudes: DoubleArray = doubleArrayOf()
     private var wgsLongitudes: DoubleArray = doubleArrayOf()
-    private var strPhoto1: String? = null
-    private var strPhoto2: String? = null
-    private var strPhoto3: String? = null
-    private var endPhoto1: String? = null
-    private var endPhoto2: String? = null
-    private var endPhoto3: String? = null
+    private var preloadedNodeDetailsJson: String = "[]"
+    private var preloadedNodePhotosJson: String = "[]"
 
     private val repository = GutterRepository()
 
@@ -74,12 +69,8 @@ class GutterInspectActivity : AppCompatActivity() {
         private const val EXTRA_CAN_EDIT          = "can_edit"
         private const val EXTRA_LATITUDES         = "latitudes"
         private const val EXTRA_LONGITUDES        = "longitudes"
-        private const val EXTRA_STR_PHOTO_1       = "str_photo_1"
-        private const val EXTRA_STR_PHOTO_2       = "str_photo_2"
-        private const val EXTRA_STR_PHOTO_3       = "str_photo_3"
-        private const val EXTRA_END_PHOTO_1       = "end_photo_1"
-        private const val EXTRA_END_PHOTO_2       = "end_photo_2"
-        private const val EXTRA_END_PHOTO_3       = "end_photo_3"
+        private const val EXTRA_PRELOADED_NODE_DETAILS_JSON = "preloaded_node_details_json"
+        private const val EXTRA_PRELOADED_NODE_PHOTOS_JSON = "preloaded_node_photos_json"
 
         /** setResult code：使用者點擊編輯按鈕，要求 MainActivity 開啟 AddGutterBottomSheet */
         const val RESULT_EDIT_DITCH               = android.app.Activity.RESULT_FIRST_USER + 10
@@ -103,12 +94,8 @@ class GutterInspectActivity : AppCompatActivity() {
             canEdit: Boolean = false,
             latitudes: DoubleArray = doubleArrayOf(),
             longitudes: DoubleArray = doubleArrayOf(),
-            strPhoto1: String? = null,
-            strPhoto2: String? = null,
-            strPhoto3: String? = null,
-            endPhoto1: String? = null,
-            endPhoto2: String? = null,
-            endPhoto3: String? = null
+            preloadedNodeDetailsJson: String = "[]",
+            preloadedNodePhotosJson: String = "[]"
         ): Intent {
             val json = Gson().toJson(ditch)
             return Intent(context, GutterInspectActivity::class.java).apply {
@@ -116,12 +103,8 @@ class GutterInspectActivity : AppCompatActivity() {
                 putExtra(EXTRA_CAN_EDIT,   canEdit)
                 putExtra(EXTRA_LATITUDES,  latitudes)
                 putExtra(EXTRA_LONGITUDES, longitudes)
-                putExtra(EXTRA_STR_PHOTO_1, strPhoto1)
-                putExtra(EXTRA_STR_PHOTO_2, strPhoto2)
-                putExtra(EXTRA_STR_PHOTO_3, strPhoto3)
-                putExtra(EXTRA_END_PHOTO_1, endPhoto1)
-                putExtra(EXTRA_END_PHOTO_2, endPhoto2)
-                putExtra(EXTRA_END_PHOTO_3, endPhoto3)
+                putExtra(EXTRA_PRELOADED_NODE_DETAILS_JSON, preloadedNodeDetailsJson)
+                putExtra(EXTRA_PRELOADED_NODE_PHOTOS_JSON, preloadedNodePhotosJson)
             }
         }
     }
@@ -138,17 +121,12 @@ class GutterInspectActivity : AppCompatActivity() {
         ditch = parseDitch()
         wgsLatitudes  = intent.getDoubleArrayExtra(EXTRA_LATITUDES)  ?: doubleArrayOf()
         wgsLongitudes = intent.getDoubleArrayExtra(EXTRA_LONGITUDES) ?: doubleArrayOf()
-
-        strPhoto1 = intent.getStringExtra(EXTRA_STR_PHOTO_1)
-        strPhoto2 = intent.getStringExtra(EXTRA_STR_PHOTO_2)
-        strPhoto3 = intent.getStringExtra(EXTRA_STR_PHOTO_3)
-        endPhoto1 = intent.getStringExtra(EXTRA_END_PHOTO_1)
-        endPhoto2 = intent.getStringExtra(EXTRA_END_PHOTO_2)
-        endPhoto3 = intent.getStringExtra(EXTRA_END_PHOTO_3)
+        preloadedNodeDetailsJson = intent.getStringExtra(EXTRA_PRELOADED_NODE_DETAILS_JSON) ?: "[]"
+        preloadedNodePhotosJson = intent.getStringExtra(EXTRA_PRELOADED_NODE_PHOTOS_JSON) ?: "[]"
 
         setupTitleBar(ditch)
-        setupViewPager(ditch)
-        setupTabs()
+        setupViewPager(ditch, preloadedNodeDetailsJson, preloadedNodePhotosJson)
+        setupTabs(ditch?.nodes?.size ?: 0)
 
         // group_id 一致才顯示編輯按鈕並掛載點擊事件
         val canEdit = intent.getBooleanExtra(EXTRA_CAN_EDIT, false)
@@ -211,27 +189,27 @@ class GutterInspectActivity : AppCompatActivity() {
 
     // ── ViewPager + 分頁 ─────────────────────────────────────────────────
 
-    private fun setupViewPager(ditch: DitchDetails?) {
+    private fun setupViewPager(
+        ditch: DitchDetails?,
+        preloadedNodeDetailsJson: String,
+        preloadedPhotosJson: String
+    ) {
         val adapter = InspectPagerAdapter(
             activity = this,
             ditch = ditch,
-            strPhoto1 = strPhoto1,
-            strPhoto2 = strPhoto2,
-            strPhoto3 = strPhoto3,
-            endPhoto1 = endPhoto1,
-            endPhoto2 = endPhoto2,
-            endPhoto3 = endPhoto3
+            preloadedNodeDetailsJson = preloadedNodeDetailsJson,
+            preloadedPhotosJson = preloadedPhotosJson
         )
         binding.viewPager.adapter = adapter
         binding.viewPager.isUserInputEnabled = false
         binding.viewPager.offscreenPageLimit = 1
     }
 
-    private fun setupTabs() {
+    private fun setupTabs(pointCount: Int) {
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             tab.text = when (position) {
                 0 -> getString(com.example.taoyuangutter.R.string.tab_basic_info)
-                1 -> "照片"
+                1 -> "點位資料（$pointCount）"
                 else -> ""
             }
         }.attach()
@@ -473,12 +451,8 @@ class GutterInspectActivity : AppCompatActivity() {
     private class InspectPagerAdapter(
         activity: FragmentActivity,
         private val ditch: DitchDetails?,
-        private val strPhoto1: String?,
-        private val strPhoto2: String?,
-        private val strPhoto3: String?,
-        private val endPhoto1: String?,
-        private val endPhoto2: String?,
-        private val endPhoto3: String?
+        private val preloadedNodeDetailsJson: String,
+        private val preloadedPhotosJson: String
     ) : FragmentStateAdapter(activity) {
 
         override fun getItemCount(): Int = 2
@@ -487,12 +461,8 @@ class GutterInspectActivity : AppCompatActivity() {
             0    -> GutterInspectBasicFragment.newInstance(ditch)
             1    -> GutterInspectPhotosFragment.newInstance(
                 nodes = ditch?.nodes ?: emptyList(),
-                strPhoto1 = strPhoto1,
-                strPhoto2 = strPhoto2,
-                strPhoto3 = strPhoto3,
-                endPhoto1 = endPhoto1,
-                endPhoto2 = endPhoto2,
-                endPhoto3 = endPhoto3
+                preloadedNodeDetailsJson = preloadedNodeDetailsJson,
+                preloadedPhotosJson = preloadedPhotosJson
             )
             else -> throw IllegalArgumentException("Unknown page $position")
         }
