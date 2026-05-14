@@ -261,7 +261,7 @@
     <string name="measure_tap_hint">點擊地圖設定起點</string>
     <string name="measure_reset">重設起點</string>
     <string name="measure_close">關閉測距模式</string>
-    <string name="no_ditch_mode_title">回報無側溝</string>
+    <string name="no_ditch_mode_title">回報無側溝/無法進入</string>
     <string name="no_ditch_pick_hint">請點擊地圖設定無側溝座標 點擊地圖取得經緯度</string>
     <string name="no_ditch_input_title">輸入說明</string>
     <string name="no_ditch_note_subtitle">請輸入說明</string>
