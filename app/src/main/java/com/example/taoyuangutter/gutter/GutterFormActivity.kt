@@ -38,6 +38,10 @@ import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
@@ -1499,11 +1503,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     /**
      * 將尚未上傳的本機照片（content:// / file:// scheme）依照 fileCategory 上傳至 nodeImage API。
      * 已是 https:// 的照片（API 已存在）略過不重複上傳。
-     * 失敗時僅寫入 log，不中止流程。
-     *
-     * @param nodeId       點位 ID
-     * @param token        Bearer token
-     * @param photo1-3     照片 URI 字串（null 或空字串表示未拍攝）
+     * 使用 Coroutines 並行上傳，顯著加速多張照片時的處理時間。
      */
     private suspend fun uploadLocalPhotos(
         nodeId: Int,
@@ -1511,23 +1511,31 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         photo1: String?,
         photo2: String?,
         photo3: String?
-    ) {
-        listOf(photo1 to 1, photo2 to 2, photo3 to 3).forEach { (path, category) ->
-            if (path.isNullOrEmpty()) return@forEach
-            val scheme = Uri.parse(path).scheme?.lowercase() ?: return@forEach
-            if (scheme == "http" || scheme == "https") return@forEach   // 已在伺服器，略過
-            when (val result = gutterRepository.uploadNodeImage(
-                context      = this,
-                nodeId       = nodeId,
-                fileCategory = category,
-                imageUri     = Uri.parse(path),
-                token        = token
-            )) {
-                is ApiResult.Error ->
-                    android.util.Log.w("PhotoUpload", "photo$category 上傳失敗: ${result.message}")
-                is ApiResult.Success -> { /* 上傳成功，API 會覆蓋舊圖 */ }
+    ) = coroutineScope {
+        listOf(photo1 to 1, photo2 to 2, photo3 to 3)
+            .filter { (path, _) -> 
+                if (path.isNullOrEmpty()) return@filter false
+                val scheme = Uri.parse(path).scheme?.lowercase()
+                scheme != "http" && scheme != "https"
             }
-        }
+            .map { (path, category) ->
+                async {
+                    android.util.Log.d("PhotoUpload", "開始並行上傳 photo$category: $path")
+                    val result = gutterRepository.uploadNodeImage(
+                        context      = this@GutterFormActivity,
+                        nodeId       = nodeId,
+                        fileCategory = category,
+                        imageUri     = Uri.parse(path!!),
+                        token        = token
+                    )
+                    if (result is ApiResult.Error) {
+                        android.util.Log.w("PhotoUpload", "photo$category 上傳失敗: ${result.message}")
+                    } else {
+                        android.util.Log.d("PhotoUpload", "photo$category 上傳成功")
+                    }
+                }
+            }
+            .awaitAll()
     }
 
     // ── 離線模式（儲存至本機草稿）────────────────────────────────────────

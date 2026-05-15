@@ -541,14 +541,7 @@ class GutterRepository(
 
     /**
      * 上傳單張點位照片。同一 nodeId + fileCategory 只保留最新一張，舊圖會被覆蓋。
-     *
-     * @param context      用於從 Uri 取得實體檔案路徑
-     * @param nodeId       點位 ID
-     * @param fileCategory 照片類別（1 / 2 / 3）
-     * @param imageUri     已拍攝或選取的圖片 Uri
-     * @param token        已儲存的 Bearer token
-     * @return [ApiResult.Success] 含 [NodeImageUploadResponse]（data.url 為新圖片網址）；
-     *         [ApiResult.Error]   含錯誤訊息（401 尚未登入、422 欄位未填、500 伺服器錯誤）
+     * 已加入圖片壓縮處理以加速上傳。
      */
     suspend fun uploadNodeImage(
         context: Context,
@@ -558,18 +551,17 @@ class GutterRepository(
         token: String
     ): ApiResult<NodeImageUploadResponse> {
         return try {
-            // 支援 content:// 與 file:// URI，統一先複製到暫存檔再上傳
+            // 壓縮並縮放圖片後再上傳，顯著減少上傳時間
             val tempFile = withContext(Dispatchers.IO) {
-                copyUriToTempFile(context, imageUri)
-            }
-                ?: return ApiResult.Error("無法讀取圖片檔案")
+                compressImageToTempFile(context, imageUri)
+            } ?: return ApiResult.Error("無法處理圖片檔案")
+
             try {
-                // 使用 INFO 等級，避免部分裝置 / 篩選條件看不到 DEBUG log
                 android.util.Log.i(
                     "PhotoUpload",
-                    "request nodeId=$nodeId, category=$fileCategory, uri=$imageUri, temp=${tempFile.name} (${tempFile.length()} bytes)"
+                    "request nodeId=$nodeId, category=$fileCategory, size=${tempFile.length() / 1024} KB"
                 )
-                val requestFile  = tempFile.asRequestBody("image/*".toMediaTypeOrNull())
+                val requestFile  = tempFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
                 val filePart     = MultipartBody.Part.createFormData("file", tempFile.name, requestFile)
                 val nodeIdBody       = nodeId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
                 val fileCategoryBody = fileCategory.toString().toRequestBody("text/plain".toMediaTypeOrNull())
@@ -580,47 +572,98 @@ class GutterRepository(
                     file          = filePart,
                     authorization = "Bearer $token"
                 )
-                val rawReq = response.raw().request
-                android.util.Log.i("PhotoUpload", "http ${rawReq.method} ${rawReq.url}")
+                
                 val body = response.body()
-                val errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
-                val apiMsg = parseApiErrorMessage(errorBody)
-                android.util.Log.i(
-                    "PhotoUpload",
-                    "response nodeId=$nodeId, category=$fileCategory, code=${response.code()}, body=$body, errorBody=$errorBody"
-                )
-                when {
-                    response.isSuccessful && body?.success == true -> ApiResult.Success(body)
-                    response.code() == 401 -> ApiResult.Error(
-                        message = "尚未登入，請重新登入",
-                        code    = 401
-                    )
-                    body != null -> {
-                        val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
-                        ApiResult.Error(
-                            message = detail ?: body.message ?: "上傳失敗",
-                            code    = response.code()
-                        )
-                    }
-                    else -> ApiResult.Error(
-                        message = apiMsg ?: "上傳失敗（${response.code()}）",
-                        code    = response.code()
-                    )
+                if (response.isSuccessful && body?.success == true) {
+                    ApiResult.Success(body)
+                } else {
+                    val errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
+                    val apiMsg = parseApiErrorMessage(errorBody)
+                    ApiResult.Error(message = apiMsg ?: "上傳失敗（${response.code()}）", code = response.code())
                 }
             } finally {
-                withContext(Dispatchers.IO) {
-                    tempFile.delete()   // 上傳完畢（無論成敗）清除暫存檔
+                withContext(Dispatchers.IO) { tempFile.delete() }
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
+    /**
+     * 壓縮圖片並儲存至暫存檔。
+     * 1. 限制最大寬高為 1200px (加速上傳並節省流量)。
+     * 2. 使用 JPEG 70% 壓縮品質。
+     */
+    private fun compressImageToTempFile(context: Context, uri: Uri): File? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+            
+            // 1. 取得圖片尺寸資訊但不加載像素
+            val options = android.graphics.BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
+            inputStream.close()
+
+            // 2. 計算縮放比例 (目標寬高不超過 1200px)
+            val MAX_SIZE = 1200
+            var inSampleSize = 1
+            if (options.outHeight > MAX_SIZE || options.outWidth > MAX_SIZE) {
+                val halfHeight = options.outHeight / 2
+                val halfWidth = options.outWidth / 2
+                while (halfHeight / inSampleSize >= MAX_SIZE || halfWidth / inSampleSize >= MAX_SIZE) {
+                    inSampleSize *= 2
                 }
             }
-        } catch (e: CancellationException) {
-            throw e
+
+            // 3. 正式加載縮放後的圖片
+            val scaledInputStream = context.contentResolver.openInputStream(uri) ?: return null
+            options.inJustDecodeBounds = false
+            options.inSampleSize = inSampleSize
+            val bitmap = android.graphics.BitmapFactory.decodeStream(scaledInputStream, null, options)
+            scaledInputStream.close()
+
+            if (bitmap == null) return null
+
+            // 4. 處理圖片旋轉 (部分手機拍攝會帶有 EXIF 旋轉資訊)
+            val rotatedBitmap = handleImageRotation(context, uri, bitmap)
+
+            // 5. 壓縮並儲存為 JPG (品質設定為 70，體積下降非常有感)
+            val tempFile = File.createTempFile("upload_compressed_", ".jpg", context.cacheDir)
+            FileOutputStream(tempFile).use { out ->
+                rotatedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, out)
+            }
+            
+            if (rotatedBitmap != bitmap) bitmap.recycle()
+            rotatedBitmap.recycle()
+            
+            tempFile
         } catch (e: Exception) {
-            android.util.Log.e(
-                "PhotoUpload",
-                "exception nodeId=$nodeId, category=$fileCategory, uri=$imageUri: ${e.message}",
-                e
+            android.util.Log.e("GutterRepository", "compressImageToTempFile failed: ${e.message}")
+            null
+        }
+    }
+
+    private fun handleImageRotation(context: Context, uri: Uri, bitmap: android.graphics.Bitmap): android.graphics.Bitmap {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(uri) ?: return bitmap
+            val exif = androidx.exifinterface.media.ExifInterface(inputStream)
+            val orientation = exif.getAttributeInt(
+                androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+                androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL
             )
-            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+            inputStream.close()
+
+            val matrix = android.graphics.Matrix()
+            when (orientation) {
+                androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                else -> return bitmap
+            }
+            android.graphics.Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        } catch (e: Exception) {
+            bitmap
         }
     }
 

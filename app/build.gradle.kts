@@ -87,6 +87,7 @@ dependencies {
     implementation(libs.play.services.maps)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.viewpager2)
+    implementation(libs.androidx.exifinterface)
     // CameraX：自訂橫向相機
     implementation(libs.camerax.core)
     implementation(libs.camerax.camera2)
