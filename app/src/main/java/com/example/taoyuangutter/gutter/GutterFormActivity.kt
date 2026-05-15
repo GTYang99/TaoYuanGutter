@@ -293,7 +293,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var sessionDraftId = 0L
     /** 整條側溝目前的 waypoint 快照，供表單編輯中即時覆寫草稿。 */
     private val sessionWaypoints = mutableListOf<WaypointSnapshot>()
-    private var draftSyncJob: Job? = null
+    private var draftSyncJob: kotlinx.coroutines.Job? = null
     private var originalSessionWaypoint: WaypointSnapshot? = null
 
     /** 編輯模式：API 的 node_id（有值時儲存才會上傳照片） */

@@ -605,8 +605,8 @@ class GutterRepository(
             android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
             inputStream.close()
 
-            // 2. 計算縮放比例 (目標寬高不超過 1200px)
-            val MAX_SIZE = 1200
+            // 2. 計算縮放比例 (目標邊界 1440px)
+            val MAX_SIZE = 1440
             var inSampleSize = 1
             if (options.outHeight > MAX_SIZE || options.outWidth > MAX_SIZE) {
                 val halfHeight = options.outHeight / 2
@@ -616,17 +616,31 @@ class GutterRepository(
                 }
             }
 
-            // 3. 正式加載縮放後的圖片
+            // 3. 加載圖片
             val scaledInputStream = context.contentResolver.openInputStream(uri) ?: return null
             options.inJustDecodeBounds = false
             options.inSampleSize = inSampleSize
-            val bitmap = android.graphics.BitmapFactory.decodeStream(scaledInputStream, null, options)
+            val decodedBitmap = android.graphics.BitmapFactory.decodeStream(scaledInputStream, null, options)
             scaledInputStream.close()
 
-            if (bitmap == null) return null
+            if (decodedBitmap == null) return null
 
-            // 4. 處理圖片旋轉 (部分手機拍攝會帶有 EXIF 旋轉資訊)
-            val rotatedBitmap = handleImageRotation(context, uri, bitmap)
+            // 3.5 精確縮放到 1440 邊界
+            val ratio = decodedBitmap.width.toFloat() / decodedBitmap.height.toFloat()
+            val targetW: Int
+            val targetH: Int
+            if (ratio > 1) { // 橫向
+                targetW = MAX_SIZE
+                targetH = (MAX_SIZE / ratio).toInt()
+            } else { // 縱向
+                targetH = MAX_SIZE
+                targetW = (MAX_SIZE * ratio).toInt()
+            }
+            val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(decodedBitmap, targetW, targetH, true)
+            if (scaledBitmap != decodedBitmap) decodedBitmap.recycle()
+
+            // 4. 處理圖片旋轉
+            val rotatedBitmap = handleImageRotation(context, uri, scaledBitmap)
 
             // 5. 壓縮並儲存為 JPG (品質設定為 70，體積下降非常有感)
             val tempFile = File.createTempFile("upload_compressed_", ".jpg", context.cacheDir)
@@ -634,7 +648,10 @@ class GutterRepository(
                 rotatedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, out)
             }
             
-            if (rotatedBitmap != bitmap) bitmap.recycle()
+            val originalSize = context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: 0
+            android.util.Log.i("GutterRepository", "圖片壓縮完成: 原始=${originalSize / 1024}KB -> 壓縮後=${tempFile.length() / 1024}KB (約縮小 ${if(originalSize>0) 100 - (tempFile.length()*100/originalSize) else 0}%)")
+            
+            if (rotatedBitmap != scaledBitmap) scaledBitmap.recycle()
             rotatedBitmap.recycle()
             
             tempFile
