@@ -343,6 +343,10 @@ class GutterInspectActivity : AppCompatActivity() {
                 }
             }
 
+            val img1 = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }
+            val img2 = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }
+            val img3 = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }
+
             val photo1 = downloadRequiredPhoto("1", "EDIT_${node.nodeId}_1_")
             val photo2 = downloadRequiredPhoto("2", "EDIT_${node.nodeId}_2_")
             val photo3 = downloadRequiredPhoto("3", "EDIT_${node.nodeId}_3_")
@@ -367,7 +371,10 @@ class GutterInspectActivity : AppCompatActivity() {
                 "NODE_NOTE" to (nodeDetails.note ?: ""),
                 "photo1" to photo1,
                 "photo2" to photo2,
-                "photo3" to photo3
+                "photo3" to photo3,
+                "photo1_id" to (img1?.id?.toString() ?: ""),
+                "photo2_id" to (img2?.id?.toString() ?: ""),
+                "photo3_id" to (img3?.id?.toString() ?: "")
             )
 
             target.latLng = latLng
