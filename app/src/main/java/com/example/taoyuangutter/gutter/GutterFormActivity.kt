@@ -150,6 +150,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val EXTRA_DATA_PHOTO_1     = "ex_photo1"
         const val EXTRA_DATA_PHOTO_2     = "ex_photo2"
         const val EXTRA_DATA_PHOTO_3     = "ex_photo3"
+        const val EXTRA_DATA_PHOTO_1_ID  = "ex_photo1_id"
+        const val EXTRA_DATA_PHOTO_2_ID  = "ex_photo2_id"
+        const val EXTRA_DATA_PHOTO_3_ID  = "ex_photo3_id"
         const val EXTRA_DATA_XY_NUM      = "ex_xy_num_value"
         const val EXTRA_DATA_NODE_ID     = "ex_nodeId" // 新增：傳入 API 的 node_id（編輯模式）
 
@@ -181,6 +184,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val RESULT_DATA_PHOTO_1     = "r_photo1"
         const val RESULT_DATA_PHOTO_2     = "r_photo2"
         const val RESULT_DATA_PHOTO_3     = "r_photo3"
+        const val RESULT_DATA_PHOTO_1_ID  = "r_photo1_id"
+        const val RESULT_DATA_PHOTO_2_ID  = "r_photo2_id"
+        const val RESULT_DATA_PHOTO_3_ID  = "r_photo3_id"
 
         // ── Reference Route (Gray Curve) ─────────────────────────────────
         const val EXTRA_REF_LATITUDES  = "extra_ref_latitudes"
@@ -1128,12 +1134,15 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         val data = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
         val (photo1, photo2, photo3) =
             pagerAdapter.getPhotosFragment()?.getPhotoPaths() ?: Triple(null, null, null)
-        dispatchEditResult(data, photo1, photo2, photo3)
+        val (photo1Id, photo2Id, photo3Id) =
+            pagerAdapter.getPhotosFragment()?.getPhotoIds() ?: Triple("", "", "")
+        dispatchEditResult(data, photo1, photo2, photo3, photo1Id, photo2Id, photo3Id)
     }
 
     /** 組裝 inspect→edit 模式的 Result Intent 並 finish。 */
     private fun dispatchEditResult(
-        data: Map<String, String>, photo1: String?, photo2: String?, photo3: String?
+        data: Map<String, String>, photo1: String?, photo2: String?, photo3: String?,
+        photo1Id: String, photo2Id: String, photo3Id: String
     ) {
             val resultIntent = Intent().apply {
                 GutterFormContract.putResultData(
@@ -1143,6 +1152,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     photo1 = photo1,
                     photo2 = photo2,
                     photo3 = photo3,
+                    photo1Id = photo1Id,
+                    photo2Id = photo2Id,
+                    photo3Id = photo3Id,
                     includeSpiNum = !isEditMode
                 )
             }
@@ -1340,6 +1352,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
         val (photo1, photo2, photo3) =
             pagerAdapter.getPhotosFragment()?.getPhotoPaths() ?: Triple(null, null, null)
+        val (photo1Id, photo2Id, photo3Id) =
+            pagerAdapter.getPhotosFragment()?.getPhotoIds() ?: Triple("", "", "")
 
         val formLat = basicData["NODE_Y"]?.toDoubleOrNull()
         val formLng = basicData["NODE_X"]?.toDoubleOrNull()
@@ -1357,6 +1371,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     photo1 = photo1,
                     photo2 = photo2,
                     photo3 = photo3,
+                    photo1Id = photo1Id,
+                    photo2Id = photo2Id,
+                    photo3Id = photo3Id,
                     includeSpiNum = !isEditMode
                 )
             }
@@ -1418,6 +1435,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
 	        val (photo1, photo2, photo3) = pagerAdapter.getPhotosFragment()?.getPhotoPaths()
 	            ?: Triple(null, null, null)
+            val (photo1Id, photo2Id, photo3Id) = pagerAdapter.getPhotosFragment()?.getPhotoIds()
+                ?: Triple("", "", "")
 
 	        val p1 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(this, photo1, prefix = "GUTTER_EXT_")
 	        val p2 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(this, photo2, prefix = "GUTTER_EXT_")
@@ -1431,6 +1450,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            put("photo1", p1 ?: "")
 	            put("photo2", p2 ?: "")
 	            put("photo3", p3 ?: "")
+                put("photo1_id", photo1Id)
+                put("photo2_id", photo2Id)
+                put("photo3_id", photo3Id)
 	        }
 
         sessionWaypoints[currentIndex] = existing.copy(

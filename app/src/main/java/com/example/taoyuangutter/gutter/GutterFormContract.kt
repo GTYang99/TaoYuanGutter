@@ -37,6 +37,9 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1, data["photo1"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2, data["photo2"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3, data["photo3"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_ID, data["photo1_id"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_ID, data["photo2_id"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_ID, data["photo3_id"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_XY_NUM, data["XY_NUM"] ?: data["xyNum"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_NODE_ID, data["_nodeId"] ?: "")
     }
@@ -67,7 +70,10 @@ object GutterFormContract {
             "NODE_NOTE" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_REMARKS) ?: ""),
             "photo1" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1) ?: ""),
             "photo2" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2) ?: ""),
-            "photo3" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3) ?: "")
+            "photo3" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3) ?: ""),
+            "photo1_id" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_ID) ?: ""),
+            "photo2_id" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_ID) ?: ""),
+            "photo3_id" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_ID) ?: "")
         )
     }
 
@@ -80,6 +86,9 @@ object GutterFormContract {
         photo1: String?,
         photo2: String?,
         photo3: String?,
+        photo1Id: String? = null,
+        photo2Id: String? = null,
+        photo3Id: String? = null,
         includeSpiNum: Boolean
     ) {
         latitude?.let { intent.putExtra(GutterFormActivity.RESULT_LATITUDE, it) }
@@ -108,6 +117,9 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_1, photo1 ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_2, photo2 ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_3, photo3 ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_ID, photo1Id ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_ID, photo2Id ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_ID, photo3Id ?: "")
     }
 
     fun readResultData(intent: Intent?): HashMap<String, String> {
@@ -134,7 +146,10 @@ object GutterFormContract {
             "NODE_NOTE" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS) ?: ""),
             "photo1" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1) ?: ""),
             "photo2" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2) ?: ""),
-            "photo3" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3) ?: "")
+            "photo3" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3) ?: ""),
+            "photo1_id" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_ID) ?: ""),
+            "photo2_id" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_ID) ?: ""),
+            "photo3_id" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_ID) ?: "")
         )
     }
 }
