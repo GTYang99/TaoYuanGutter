@@ -1282,20 +1282,22 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        confirmDiscardAndClose()
 	    }
 
-	    private fun confirmDiscardAndClose() {
-	        // 線上模式：返回一律視為放棄，不回傳 RESULT_OK（避免 MainActivity 記錄未儲存修改）
-	        draftSyncJob?.cancel()
+    private fun confirmDiscardAndClose() {
+        // 線上模式：返回一律視為放棄，不回傳 RESULT_OK（避免 MainActivity 記錄未儲存修改）
+        draftSyncJob?.cancel()
+        val isDraftEditSession = sessionDraftId > 0L
 
-	        if (isEditMode) {
-	            AlertDialog.Builder(this)
-	                .setTitle("放棄修改")
-	                .setMessage("確定要放棄此次修改並返回嗎？")
-	                .setPositiveButton("確定放棄") { _, _ ->
-	                    setResult(Activity.RESULT_CANCELED)
-	                    finish()
-	                }
-	                .setNegativeButton("繼續填寫", null)
-	                .show()
+        if (isEditMode || isDraftEditSession) {
+            AlertDialog.Builder(this)
+                .setTitle("放棄修改")
+                .setMessage("確定要放棄此次修改並返回嗎？")
+                .setPositiveButton("確定放棄") { _, _ ->
+                    restoreCurrentWaypointState()
+                    setResult(Activity.RESULT_CANCELED)
+                    finish()
+                }
+                .setNegativeButton("繼續填寫", null)
+                .show()
 	        } else {
 	            AlertDialog.Builder(this)
 	                .setTitle("放棄填寫")
@@ -1319,8 +1321,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun confirmOrDiscardAndClose() {
         val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
         val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
+        val isDraftEditSession = sessionDraftId > 0L
         if (basicError != null || photoError != null) {
-            if (isEditMode) {
+            if (isEditMode || isDraftEditSession) {
                 // 編輯模式：放棄修改 → RESULT_CANCELED，MainActivity 不清除既有點位資料
                 AlertDialog.Builder(this)
                     .setTitle("放棄修改")
