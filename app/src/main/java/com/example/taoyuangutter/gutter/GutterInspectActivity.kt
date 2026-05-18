@@ -254,6 +254,24 @@ class GutterInspectActivity : AppCompatActivity() {
             return
         }
 
+        // 檢查伺服器端是否完全沒有照片資料
+        val noPhotosOnServer = d.nodes.all { it.url.isEmpty() }
+
+        if (noPhotosOnServer) {
+            android.app.AlertDialog.Builder(this)
+                .setTitle("進入編輯確認")
+                .setMessage("伺服器上目前無此側溝的照片資料。若您本機存有此側溝的草稿（含照片），進入編輯模式後將會被覆蓋。確定要進入編輯嗎？")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("確定編輯") { _, _ ->
+                    startPreload(d, token)
+                }
+                .show()
+        } else {
+            startPreload(d, token)
+        }
+    }
+
+    private fun startPreload(d: DitchDetails, token: String) {
         // 防止連點
         binding.btnEdit.isEnabled = false
         binding.btnEdit.alpha = 0.5f
