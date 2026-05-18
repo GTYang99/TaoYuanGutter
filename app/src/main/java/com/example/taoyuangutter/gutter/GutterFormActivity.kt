@@ -140,9 +140,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val EXTRA_DATA_COORD_Y     = "ex_node_y"
         const val EXTRA_DATA_COORD_Z     = "ex_node_le"
         const val EXTRA_DATA_MEASURE_ID  = "ex_xy_num"
-        // 主要：COVER_DEP；相容舊版：EXTRA_DATA_COVER_THICKNESS
+        // 主要：COVER_DEP
         const val EXTRA_DATA_COVER_DEP = "ex_cover_dep"
-        const val EXTRA_DATA_COVER_THICKNESS = "ex_cover_thickness"
         const val EXTRA_DATA_DEPTH       = "ex_node_dep"
         const val EXTRA_DATA_TOP_WIDTH   = "ex_node_wid"
         const val EXTRA_DATA_IS_BROKEN   = "ex_is_broken"
@@ -174,9 +173,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val RESULT_DATA_COORD_Y     = "r_node_y"
         const val RESULT_DATA_COORD_Z     = "r_node_le"
         const val RESULT_DATA_MEASURE_ID  = "r_xy_num"
-        // 主要：COVER_DEP；相容舊版：RESULT_DATA_COVER_THICKNESS
+        // 主要：COVER_DEP
         const val RESULT_DATA_COVER_DEP = "r_cover_dep"
-        const val RESULT_DATA_COVER_THICKNESS = "r_cover_thickness"
         const val RESULT_DATA_DEPTH       = "r_node_dep"
         const val RESULT_DATA_TOP_WIDTH   = "r_node_wid"
         const val RESULT_DATA_IS_BROKEN   = "r_is_broken"

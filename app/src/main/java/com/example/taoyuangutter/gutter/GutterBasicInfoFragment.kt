@@ -94,15 +94,7 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_DATA_NODE_Y,      basicData["NODE_Y"]      ?: basicData["coordY"] ?: "")
                 putString(ARG_DATA_NODE_LE,     basicData["NODE_LE"]     ?: basicData["coordZ"] ?: "")
                 putString(ARG_DATA_XY_NUM,      basicData["XY_NUM"]      ?: basicData["xyNum"] ?: "")
-                // 相容：舊草稿/舊版本可能存 COVER_THICKNESS
-                putString(
-                    ARG_DATA_COVER_DEP,
-                    basicData["COVER_DEP"]
-                        ?: basicData["COVER_THICKNESS"]
-                        ?: basicData["coverDep"]
-                        ?: basicData["coverThickness"]
-                        ?: ""
-                )
+                putString(ARG_DATA_COVER_DEP, basicData["COVER_DEP"] ?: "")
                 putString(ARG_DATA_NODE_DEP,    basicData["NODE_DEP"]    ?: basicData["depth"] ?: "")
                 putString(ARG_DATA_NODE_WID,    basicData["NODE_WID"]    ?: basicData["topWidth"] ?: "")
                 putString(ARG_DATA_IS_BROKEN,   basicData["IS_BROKEN"]   ?: basicData["isBroken"] ?: "")
@@ -557,9 +549,8 @@ class GutterBasicInfoFragment : Fragment() {
         "XY_NUM"      to (binding.etMeasureId.text?.toString()     ?: ""),
         // 待架站（點位層級）：以 "1"/"0" 形式存入 basicData
         "IS_PENDING_DEPLOY" to (if (binding.btnPendingDeploy.isChecked) "1" else "0"),
-        // 主要 key：COVER_DEP（API 欄位名）；另可保留舊 key 以避免舊草稿邏輯漏讀
+        // 主要 key：COVER_DEP（API 欄位名）
         "COVER_DEP" to (binding.etCoverThickness.text?.toString() ?: ""),
-        "COVER_THICKNESS" to (binding.etCoverThickness.text?.toString() ?: ""),
         "NODE_DEP"    to (binding.etDepth.text?.toString()         ?: ""),
         "NODE_WID"    to (binding.etTopWidth.text?.toString()      ?: ""),
         "IS_BROKEN"   to brokenTextToCode(binding.rgIsBroken.getCheckedText()),
