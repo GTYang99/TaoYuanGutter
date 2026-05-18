@@ -785,20 +785,11 @@ class MainActivity : AppCompatActivity(),
         nodes.forEachIndexed { i, node ->
             val wp = waypoints.getOrNull(i) ?: return@forEachIndexed
             listOf(
-                "photo1" to 1,
-                "photo2" to 2,
-                "photo3" to 3
-            ).forEach { (key, category) ->
-                val path = wp.basicData[key]
-                val serverId = wp.basicData["${key}_id"]
-
+                wp.basicData["photo1"] to 1,
+                wp.basicData["photo2"] to 2,
+                wp.basicData["photo3"] to 3
+            ).forEach { (path, category) ->
                 if (path.isNullOrEmpty()) return@forEach
-                // 優化：若該照片已有伺服器 ID，且未被更換成新路徑（即 ID 仍存在），則略過不重複上傳
-                if (!serverId.isNullOrBlank()) {
-                    android.util.Log.d("PhotoUpload", "node${node.nodeId} photo$category 已有 ID($serverId)，略過上傳")
-                    return@forEach
-                }
-
                 val scheme = Uri.parse(path).scheme?.lowercase()
                 if (scheme != null) pending.add(Triple(node, path, category))
             }

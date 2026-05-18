@@ -26,10 +26,7 @@ class GutterFormPagerAdapter(
                     viewMode,
                     photo1 = basicData["photo1"],
                     photo2 = basicData["photo2"],
-                    photo3 = basicData["photo3"],
-                    photo1Id = basicData["photo1_id"],
-                    photo2Id = basicData["photo2_id"],
-                    photo3Id = basicData["photo3_id"]
+                    photo3 = basicData["photo3"]
                  )
             else -> throw IllegalArgumentException("Unknown page $position")
         }

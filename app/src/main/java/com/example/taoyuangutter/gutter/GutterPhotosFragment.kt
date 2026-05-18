@@ -38,11 +38,6 @@ class GutterPhotosFragment : Fragment() {
     private var photoUriSlot2: Uri? = null
     private var photoUriSlot3: Uri? = null
 
-    // ── 伺服器照片 ID ────────────────────────────────────────────────────
-    private var photo1Id: String = ""
-    private var photo2Id: String = ""
-    private var photo3Id: String = ""
-
     /** 目前正在等候拍照結果的照片欄位（1/2/3） */
     private var pendingSlot: Int = 0
 
@@ -77,17 +72,10 @@ class GutterPhotosFragment : Fragment() {
         const val ARG_PHOTO_1      = "arg_photo_1"
         const val ARG_PHOTO_2      = "arg_photo_2"
         const val ARG_PHOTO_3      = "arg_photo_3"
-        const val ARG_PHOTO_1_ID   = "arg_photo_1_id"
-        const val ARG_PHOTO_2_ID   = "arg_photo_2_id"
-        const val ARG_PHOTO_3_ID   = "arg_photo_3_id"
-
         // savedInstanceState keys
         private const val KEY_PHOTO_1        = "photo_1"
         private const val KEY_PHOTO_2        = "photo_2"
         private const val KEY_PHOTO_3        = "photo_3"
-        private const val KEY_PHOTO_1_ID     = "photo_1_id"
-        private const val KEY_PHOTO_2_ID     = "photo_2_id"
-        private const val KEY_PHOTO_3_ID     = "photo_3_id"
         private const val KEY_PENDING_SLOT   = "pending_slot"
         private const val KEY_PENDING_PATH   = "pending_path"
 
@@ -95,19 +83,13 @@ class GutterPhotosFragment : Fragment() {
             viewMode: Boolean = false,
             photo1: String? = null,
             photo2: String? = null,
-            photo3: String? = null,
-            photo1Id: String? = null,
-            photo2Id: String? = null,
-            photo3Id: String? = null
+            photo3: String? = null
         ) = GutterPhotosFragment().apply {
             arguments = Bundle().apply {
                 putBoolean(ARG_VIEW_MODE, viewMode)
                 if (!photo1.isNullOrEmpty()) putString(ARG_PHOTO_1, photo1)
                 if (!photo2.isNullOrEmpty()) putString(ARG_PHOTO_2, photo2)
                 if (!photo3.isNullOrEmpty()) putString(ARG_PHOTO_3, photo3)
-                if (!photo1Id.isNullOrEmpty()) putString(ARG_PHOTO_1_ID, photo1Id)
-                if (!photo2Id.isNullOrEmpty()) putString(ARG_PHOTO_2_ID, photo2Id)
-                if (!photo3Id.isNullOrEmpty()) putString(ARG_PHOTO_3_ID, photo3Id)
             }
         }
     }
@@ -127,9 +109,6 @@ class GutterPhotosFragment : Fragment() {
             savedInstanceState.getString(KEY_PHOTO_1)?.let { photoUriSlot1 = Uri.parse(it) }
             savedInstanceState.getString(KEY_PHOTO_2)?.let { photoUriSlot2 = Uri.parse(it) }
             savedInstanceState.getString(KEY_PHOTO_3)?.let { photoUriSlot3 = Uri.parse(it) }
-            photo1Id = savedInstanceState.getString(KEY_PHOTO_1_ID) ?: ""
-            photo2Id = savedInstanceState.getString(KEY_PHOTO_2_ID) ?: ""
-            photo3Id = savedInstanceState.getString(KEY_PHOTO_3_ID) ?: ""
             pendingSlot       = savedInstanceState.getInt(KEY_PENDING_SLOT, 0)
             pendingOutputPath = savedInstanceState.getString(KEY_PENDING_PATH)
         } else {
@@ -139,9 +118,6 @@ class GutterPhotosFragment : Fragment() {
             photoUriSlot1 = tryLoad(arguments?.getString(ARG_PHOTO_1))
             photoUriSlot2 = tryLoad(arguments?.getString(ARG_PHOTO_2))
             photoUriSlot3 = tryLoad(arguments?.getString(ARG_PHOTO_3))
-            photo1Id = arguments?.getString(ARG_PHOTO_1_ID) ?: ""
-            photo2Id = arguments?.getString(ARG_PHOTO_2_ID) ?: ""
-            photo3Id = arguments?.getString(ARG_PHOTO_3_ID) ?: ""
         }
     }
 
@@ -169,9 +145,9 @@ class GutterPhotosFragment : Fragment() {
                     Uri.fromFile(file)
                 }
                 when (slot) {
-                    1 -> { photoUriSlot1 = uri; photo1Id = ""; showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, uri); binding.btnDeleteSlot1.visibility = View.VISIBLE }
-                    2 -> { photoUriSlot2 = uri; photo2Id = ""; showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, uri); binding.btnDeleteSlot2.visibility = View.VISIBLE }
-                    3 -> { photoUriSlot3 = uri; photo3Id = ""; showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, uri); binding.btnDeleteSlot3.visibility = View.VISIBLE }
+                    1 -> { photoUriSlot1 = uri; showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, uri); binding.btnDeleteSlot1.visibility = View.VISIBLE }
+                    2 -> { photoUriSlot2 = uri; showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, uri); binding.btnDeleteSlot2.visibility = View.VISIBLE }
+                    3 -> { photoUriSlot3 = uri; showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, uri); binding.btnDeleteSlot3.visibility = View.VISIBLE }
                 }
                 onDraftChanged?.invoke()
             }
@@ -193,9 +169,6 @@ class GutterPhotosFragment : Fragment() {
         photoUriSlot1?.let { outState.putString(KEY_PHOTO_1, it.toString()) }
         photoUriSlot2?.let { outState.putString(KEY_PHOTO_2, it.toString()) }
         photoUriSlot3?.let { outState.putString(KEY_PHOTO_3, it.toString()) }
-        outState.putString(KEY_PHOTO_1_ID, photo1Id)
-        outState.putString(KEY_PHOTO_2_ID, photo2Id)
-        outState.putString(KEY_PHOTO_3_ID, photo3Id)
         outState.putInt(KEY_PENDING_SLOT, pendingSlot)
         pendingOutputPath?.let { outState.putString(KEY_PENDING_PATH, it) }
     }
@@ -255,19 +228,16 @@ class GutterPhotosFragment : Fragment() {
                 when (slot) {
                     1 -> {
                         photoUriSlot1 = null
-                        photo1Id = ""
                         showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, null)
                         binding.btnDeleteSlot1.visibility = View.GONE
                     }
                     2 -> {
                         photoUriSlot2 = null
-                        photo2Id = ""
                         showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, null)
                         binding.btnDeleteSlot2.visibility = View.GONE
                     }
                     3 -> {
                         photoUriSlot3 = null
-                        photo3Id = ""
                         showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
                         binding.btnDeleteSlot3.visibility = View.GONE
                     }
@@ -433,9 +403,6 @@ class GutterPhotosFragment : Fragment() {
         photoUriSlot2?.toString(),
         photoUriSlot3?.toString()
     )
-
-    /** 傳回三個照片的伺服器 ID（若已被取代或刪除則為 ""）。 */
-    fun getPhotoIds(): Triple<String, String, String> = Triple(photo1Id, photo2Id, photo3Id)
 
     /**
      * 匯入既有點位資料後，將下載完成的照片 URI 預填入三個欄位。
