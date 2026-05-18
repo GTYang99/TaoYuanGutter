@@ -16,13 +16,10 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.EXTRA_DATA_COORD_Y, data["NODE_Y"] ?: data["coordY"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_COORD_Z, data["NODE_LE"] ?: data["coordZ"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_MEASURE_ID, data["XY_NUM"] ?: data["xyNum"] ?: "")
-        val coverDep = data["COVER_DEP"]
-            ?: data["COVER_THICKNESS"]
-            ?: data["coverDep"]
-            ?: data["coverThickness"]
-            ?: ""
+        
+        val coverDep = data["COVER_DEP"] ?: ""
         intent.putExtra(GutterFormActivity.EXTRA_DATA_COVER_DEP, coverDep)
-        intent.putExtra(GutterFormActivity.EXTRA_DATA_COVER_THICKNESS, coverDep)
+        
         intent.putExtra(GutterFormActivity.EXTRA_DATA_DEPTH, data["NODE_DEP"] ?: data["depth"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_TOP_WIDTH, data["NODE_WID"] ?: data["topWidth"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_IS_BROKEN, data["IS_BROKEN"] ?: data["isBroken"] ?: "")
@@ -34,9 +31,14 @@ object GutterFormContract {
             data["IS_PENDING_DEPLOY"] ?: data["is_pendingDeploy"] ?: data["isPendingDeploy"] ?: ""
         )
         intent.putExtra(GutterFormActivity.EXTRA_DATA_REMARKS, data["NODE_NOTE"] ?: data["remarks"] ?: "")
+        
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1, data["photo1"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2, data["photo2"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3, data["photo3"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_ID, data["photo1_id"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_ID, data["photo2_id"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_ID, data["photo3_id"] ?: "")
+        
         intent.putExtra(GutterFormActivity.EXTRA_DATA_XY_NUM, data["XY_NUM"] ?: data["xyNum"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_NODE_ID, data["_nodeId"] ?: "")
     }
@@ -52,11 +54,7 @@ object GutterFormContract {
             "XY_NUM" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_XY_NUM)
                 ?: intent.getStringExtra(GutterFormActivity.EXTRA_DATA_MEASURE_ID)
                 ?: ""),
-            "COVER_DEP" to (
-                intent.getStringExtra(GutterFormActivity.EXTRA_DATA_COVER_DEP)
-                    ?: intent.getStringExtra(GutterFormActivity.EXTRA_DATA_COVER_THICKNESS)
-                    ?: ""
-            ),
+            "COVER_DEP" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_COVER_DEP) ?: ""),
             "NODE_DEP" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_DEPTH) ?: ""),
             "NODE_WID" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_TOP_WIDTH) ?: ""),
             "IS_BROKEN" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_BROKEN) ?: ""),
@@ -67,7 +65,10 @@ object GutterFormContract {
             "NODE_NOTE" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_REMARKS) ?: ""),
             "photo1" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1) ?: ""),
             "photo2" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2) ?: ""),
-            "photo3" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3) ?: "")
+            "photo3" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3) ?: ""),
+            "photo1_id" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_ID) ?: ""),
+            "photo2_id" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_ID) ?: ""),
+            "photo3_id" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_ID) ?: "")
         )
     }
 
@@ -80,6 +81,9 @@ object GutterFormContract {
         photo1: String?,
         photo2: String?,
         photo3: String?,
+        photo1Id: String? = null,
+        photo2Id: String? = null,
+        photo3Id: String? = null,
         includeSpiNum: Boolean
     ) {
         latitude?.let { intent.putExtra(GutterFormActivity.RESULT_LATITUDE, it) }
@@ -94,9 +98,10 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.RESULT_DATA_COORD_Y, basicData["NODE_Y"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_COORD_Z, basicData["NODE_LE"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_MEASURE_ID, basicData["XY_NUM"] ?: "")
-        val coverDep = basicData["COVER_DEP"] ?: basicData["COVER_THICKNESS"] ?: ""
+        
+        val coverDep = basicData["COVER_DEP"] ?: ""
         intent.putExtra(GutterFormActivity.RESULT_DATA_COVER_DEP, coverDep)
-        intent.putExtra(GutterFormActivity.RESULT_DATA_COVER_THICKNESS, coverDep)
+        
         intent.putExtra(GutterFormActivity.RESULT_DATA_DEPTH, basicData["NODE_DEP"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_TOP_WIDTH, basicData["NODE_WID"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_BROKEN, basicData["IS_BROKEN"] ?: "")
@@ -105,9 +110,13 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_PENDING_DEPLOY, basicData["IS_PENDING_DEPLOY"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_REMARKS, basicData["NODE_NOTE"] ?: "")
+        
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_1, photo1 ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_2, photo2 ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_3, photo3 ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_ID, photo1Id ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_ID, photo2Id ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_ID, photo3Id ?: "")
     }
 
     fun readResultData(intent: Intent?): HashMap<String, String> {
@@ -119,11 +128,7 @@ object GutterFormContract {
             "NODE_Y" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Y) ?: ""),
             "NODE_LE" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_COORD_Z) ?: ""),
             "XY_NUM" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_MEASURE_ID) ?: ""),
-            "COVER_DEP" to (
-                intent?.getStringExtra(GutterFormActivity.RESULT_DATA_COVER_DEP)
-                    ?: intent?.getStringExtra(GutterFormActivity.RESULT_DATA_COVER_THICKNESS)
-                    ?: ""
-            ),
+            "COVER_DEP" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_COVER_DEP) ?: ""),
             "NODE_DEP" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_DEPTH) ?: ""),
             "NODE_WID" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_TOP_WIDTH) ?: ""),
             "IS_BROKEN" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_BROKEN) ?: ""),
@@ -134,7 +139,10 @@ object GutterFormContract {
             "NODE_NOTE" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS) ?: ""),
             "photo1" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1) ?: ""),
             "photo2" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2) ?: ""),
-            "photo3" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3) ?: "")
+            "photo3" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3) ?: ""),
+            "photo1_id" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_ID) ?: ""),
+            "photo2_id" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_ID) ?: ""),
+            "photo3_id" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_ID) ?: "")
         )
     }
 }

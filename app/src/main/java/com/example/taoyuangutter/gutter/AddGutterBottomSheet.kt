@@ -1251,8 +1251,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 	                val isCantOpenInt = if (isCantOpenBool) 1 else 0
                     val isPendingDeployInt =
                         if (parseLooseBoolean(wp.basicData["IS_PENDING_DEPLOY"])) 1 else 0
-	                val coverDep = wp.basicData["COVER_DEP"]
-	                    ?: wp.basicData["COVER_THICKNESS"]
+                    val coverDep = wp.basicData["COVER_DEP"]
 	                StoreDitchNodeRequest(
 	                    nodeId    = requestNodeId,
 	                    nodeAtt   = nodeAtt,
