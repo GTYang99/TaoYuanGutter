@@ -25,6 +25,7 @@ import com.example.taoyuangutter.api.StoreDitchRequest
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterBinding
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
+import com.example.taoyuangutter.pending.KIND_CURVE
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.gson.reflect.TypeToken
 import com.google.android.gms.maps.model.LatLng
@@ -239,6 +240,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         try {
             val draft = Gson().fromJson(json, GutterSessionDraft::class.java) ?: return
             if (draft.waypoints.isEmpty()) return
+
+            // 恢復弧線狀態：從草稿 kind 判斷
+            isCurve = draft.kind == KIND_CURVE
+
             waypoints.clear()
             draft.waypoints.forEach { snap ->
                 val type   = WaypointType.entries.firstOrNull { it.name == snap.type }
@@ -631,40 +636,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
             binding.btnSubmitGutter.setOnClickListener {
                 if (isOfflineMode) {
-                    // 離線新增：提交按鈕只作為「完成」關閉，不打 API
+                    // 離線編輯：提交按鈕只作為「完成」關閉，不打 API
                     onWaypointsChanged?.invoke(waypoints.toList())
                     Toast.makeText(requireContext(), getString(R.string.msg_draft_saved), Toast.LENGTH_SHORT).show()
                     dismiss()
                     return@setOnClickListener
                 }
-                if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) return@setOnClickListener
-                // 弧線上傳限制：僅允許起點/終點兩點
-                if (!validateCurvePointCountOrAlert()) return@setOnClickListener
-                // ① 起點與終點必須已設定座標
-                val start = waypoints.firstOrNull { it.type == WaypointType.START }
-                val end   = waypoints.firstOrNull { it.type == WaypointType.END }
-                if (start?.latLng == null) {
-                    Toast.makeText(requireContext(), getString(R.string.msg_start_point_required), Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                if (end?.latLng == null) {
-                    Toast.makeText(requireContext(), getString(R.string.msg_end_point_required), Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                val submittedWaypoints = waypoints.toList()
-
-                val token = LoginActivity.getSavedToken(requireContext()) ?: run {
-                    Toast.makeText(requireContext(), getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-
-                // 立即清除地圖暫存資料（新增模式不可回頭）
-                val host = requireActivity() as? LocationPickerHost
-                host?.onGutterSubmitted(submittedWaypoints)
-                val activity = requireActivity()
-
-                // 呼叫 storeDitch（不帶 SPI_NUM，由後端分配）
-                submitNewGutterRequest(activity, submittedWaypoints, token)
+                // 編輯模式：呼叫 performEditSubmit 處理更新流程 (帶 SPI_NUM)
+                performEditSubmit()
             }
         } else {
             if (isOfflineMode) {

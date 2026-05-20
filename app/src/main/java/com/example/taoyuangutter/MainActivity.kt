@@ -923,7 +923,8 @@ class MainActivity : AppCompatActivity(),
         val saveResult = draftCoordinator.autoSaveSessionDraft(
             waypoints = updatedWaypoints,
             currentSessionDraftId = currentSessionDraftId,
-            isOffline = currentSessionIsOffline
+            isOffline = currentSessionIsOffline,
+            isCurve = activeSheet?.isCurveMode() ?: false
         )
         val savedDraftId = saveResult?.draftId ?: currentSessionDraftId
         currentSessionDraftId = savedDraftId
@@ -1182,7 +1183,8 @@ class MainActivity : AppCompatActivity(),
         val result = draftCoordinator.autoSaveSessionDraft(
             waypoints = waypoints,
             currentSessionDraftId = currentSessionDraftId,
-            isOffline = currentSessionIsOffline
+            isOffline = currentSessionIsOffline,
+            isCurve = activeSheet?.isCurveMode() ?: false
         ) ?: return
         currentSessionDraftId = result.draftId
     }

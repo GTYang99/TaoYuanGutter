@@ -29,7 +29,8 @@ class GutterDraftCoordinator(
     fun autoSaveSessionDraft(
         waypoints: List<Waypoint>,
         currentSessionDraftId: Long?,
-        isOffline: Boolean
+        isOffline: Boolean,
+        isCurve: Boolean = false
     ): SaveResult? {
         if (waypoints.isEmpty()) return null
 
@@ -92,6 +93,7 @@ class GutterDraftCoordinator(
             GutterSessionDraft(
                 id = draftId,
                 savedAt = System.currentTimeMillis(),
+                kind = if (isCurve) KIND_CURVE else KIND_GUTTER,
                 isOffline = isOffline,
                 waypoints = snapshots
             )
