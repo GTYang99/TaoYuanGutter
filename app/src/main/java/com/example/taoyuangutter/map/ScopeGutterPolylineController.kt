@@ -119,18 +119,17 @@ class ScopeGutterPolylineController(
         rawCoordinates: List<List<Any?>?>,
         isCurve: Boolean
     ): List<LatLng>? {
-        if (!isCurve) {
-            val points = rawCoordinates.mapNotNull { parseLngLatOrNull(it) }.map { it.toLatLng() }
-            return points.takeIf { it.size >= 2 }
+        if (isCurve && rawCoordinates.size == 3) {
+            val start = parseLngLatOrNull(rawCoordinates[0]) ?: return null
+            val control = parseLngLatOrNull(rawCoordinates[1]) ?: return null
+            val end = parseLngLatOrNull(rawCoordinates[2]) ?: return null
+            val steps = resolveCurveSteps(start, control, end)
+            return generateCurvePointsWithControl(start, end, control, steps)
         }
 
-        if (rawCoordinates.size != 3) return null
-
-        val start = parseLngLatOrNull(rawCoordinates[0]) ?: return null
-        val control = parseLngLatOrNull(rawCoordinates[1]) ?: return null
-        val end = parseLngLatOrNull(rawCoordinates[2]) ?: return null
-        val steps = resolveCurveSteps(start, control, end)
-        return generateCurvePointsWithControl(start, end, control, steps)
+        // Fallback or Normal mode: return straight line points if size >= 2
+        val points = rawCoordinates.mapNotNull { parseLngLatOrNull(it) }.map { it.toLatLng() }
+        return points.takeIf { it.size >= 2 }
     }
 
     private fun parseLngLatOrNull(pair: List<Any?>?): LngLat? {
