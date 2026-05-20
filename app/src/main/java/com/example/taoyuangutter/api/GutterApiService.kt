@@ -296,6 +296,12 @@ interface GutterApiService {
 object GutterApiClient {
 
     /**
+     * 是否開啟長按登出按鈕切換 Group ID 的模擬功能（開發測試用）。
+     * 若要發布正式版，請將此改為 false。
+     */
+    const val ENABLE_GROUP_SIMULATION = false
+
+    /**
      * 後端 API 的 Base URL。
      * 正式環境請替換為真實域名，例如 "https://api.taoyuangutter.gov.tw/"
      * 本機開發（Android Emulator → Host）可改為 "http://10.0.2.2:8080/"

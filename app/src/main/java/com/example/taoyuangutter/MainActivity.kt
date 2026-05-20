@@ -1364,6 +1364,12 @@ class MainActivity : AppCompatActivity(),
                 }
             }
         }
+        if (GutterApiClient.ENABLE_GROUP_SIMULATION) {
+            binding.btnLogout.setOnLongClickListener {
+                showGroupSimulationDialog()
+                true
+            }
+        }
         binding.btnViewDrafts.setOnClickListener { showPendingDraftsSheet() }
         binding.btnLegend.setOnClickListener {
             LegendBottomSheet().show(supportFragmentManager, "LegendBottomSheet")
@@ -1891,6 +1897,27 @@ class MainActivity : AppCompatActivity(),
         // 選點後禁止再次點擊地圖，直到按下「重設點位」
         setNoDitchMapClickListenerEnabled(false)
         noDitchModeUiController.setPickedLatLng(latLng)
+    }
+
+    private fun showGroupSimulationDialog() {
+        val options = arrayOf("管理員 (Group 1)", "廠商 A (Group 2)", "廠商 B (Group 3)", "廠商 C (Group 4)")
+        val ids = intArrayOf(1, 2, 3, 4)
+        val currentId = LoginActivity.getSavedGroupId(this)
+
+        MaterialAlertDialogBuilder(this)
+            .setTitle("模擬廠商切換 (目前: $currentId)")
+            .setItems(options) { _, which ->
+                val targetId = ids[which]
+                getSharedPreferences("taoyuan_prefs", android.content.Context.MODE_PRIVATE)
+                    .edit()
+                    .putInt("group_id", targetId)
+                    .apply()
+                
+                Toast.makeText(this, "身分已切換為 Group $targetId", Toast.LENGTH_SHORT).show()
+                loadGuttersByViewport(showFeedback = true)
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun clearNoDitchMarker() {

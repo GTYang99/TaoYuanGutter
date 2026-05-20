@@ -75,7 +75,9 @@ class ScopeGutterPolylineController(
             val isSameGroup = savedGroupId != -1 &&
                 groupId.isNotBlank() &&
                 groupId.toIntOrNull() == savedGroupId
-            val color = if (!isSameGroup) {
+            val isAdmin = savedGroupId == 1
+
+            val color = if (!isAdmin && !isSameGroup) {
                 Color.parseColor("#B4B4B4")
             } else {
                 when (spiState) {
@@ -87,10 +89,10 @@ class ScopeGutterPolylineController(
                 }
             }
             val width = when {
-                !isSameGroup -> 12f
+                !isAdmin && !isSameGroup -> 12f
                 else -> 8f
             }
-            val outline = if (isPendingDeploy && isSameGroup) {
+            val outline = if (isPendingDeploy && (isAdmin || isSameGroup)) {
                 map.addPolyline(
                     PolylineOptions()
                         .addAll(points)

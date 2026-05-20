@@ -35,9 +35,9 @@ class InspectFlowCoordinator(
         val spiNum = tag.first as? String ?: return null
         val groupId = tag.second as? String ?: ""
         val savedGroupId = LoginActivity.getSavedGroupId(context)
-        val canEdit = savedGroupId != -1 &&
-            groupId.isNotEmpty() &&
-            groupId.toIntOrNull() == savedGroupId
+        val canEdit = savedGroupId != -1 && (
+            savedGroupId == 1 || (groupId.isNotEmpty() && groupId.toIntOrNull() == savedGroupId)
+        )
         return InspectStart(
             spiNum = spiNum,
             canEdit = canEdit,
