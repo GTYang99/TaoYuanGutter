@@ -21,7 +21,10 @@ class GutterFormNavigator(
         latLng: LatLng,
         wmtsLayer: String,
         hostLastLocation: Location?,
-        referencePoints: List<LatLng> = emptyList()
+        referencePoints: List<LatLng> = emptyList(),
+        showPlan: Boolean = true,
+        showWaterOld: Boolean = true,
+        showPossible: Boolean = true
     ): Intent {
         val refLats = referencePoints.map { it.latitude }.toDoubleArray()
         val refLngs = referencePoints.map { it.longitude }.toDoubleArray()
@@ -34,7 +37,10 @@ class GutterFormNavigator(
             waypoint.basicData,
             wmtsLayer,
             referenceLats = refLats,
-            referenceLngs = refLngs
+            referenceLngs = refLngs,
+            showPlan = showPlan,
+            showWaterOld = showWaterOld,
+            showPossible = showPossible
         ).also { attachHostLastLocation(it, hostLastLocation) }
     }
 
@@ -47,7 +53,10 @@ class GutterFormNavigator(
         wmtsLayer: String,
         sessionIsOffline: Boolean,
         hostLastLocation: Location?,
-        referencePoints: List<LatLng> = emptyList()
+        referencePoints: List<LatLng> = emptyList(),
+        showPlan: Boolean = true,
+        showWaterOld: Boolean = true,
+        showPossible: Boolean = true
     ): AddFormLaunch {
         val ensuredDraftId = currentSessionDraftId ?: System.currentTimeMillis()
         val labels = ArrayList(currentWaypoints.map { it.label })
@@ -77,7 +86,10 @@ class GutterFormNavigator(
             wmtsLayer = wmtsLayer,
             sessionIsOffline = sessionIsOffline,
             referenceLats = referencePoints.map { it.latitude }.toDoubleArray(),
-            referenceLngs = referencePoints.map { it.longitude }.toDoubleArray()
+            referenceLngs = referencePoints.map { it.longitude }.toDoubleArray(),
+            showPlan = showPlan,
+            showWaterOld = showWaterOld,
+            showPossible = showPossible
         ).also { attachHostLastLocation(it, hostLastLocation) }
         return AddFormLaunch(intent = intent, draftId = ensuredDraftId)
     }

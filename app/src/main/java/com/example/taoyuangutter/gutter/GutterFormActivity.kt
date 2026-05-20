@@ -122,6 +122,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        /** 表單內即時存草稿時，用來保留草稿的 isOffline 屬性（避免被覆蓋回 false）。 */
 	        const val EXTRA_SESSION_IS_OFFLINE = "session_is_offline"
 		        const val EXTRA_WMTS_LAYER = "wmts_layer"
+        const val EXTRA_SHOW_PLAN = "show_plan"
+        const val EXTRA_SHOW_WATER_OLD = "show_water_old"
+        const val EXTRA_SHOW_POSSIBLE = "show_possible"
 
 	        // 主地圖最近一次定位（由 MainActivity 帶入，供匯入既有點位快速查詢）
 	        const val EXTRA_HOST_LAST_LAT  = "host_last_lat"
@@ -203,7 +206,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		            wmtsLayer: String? = null,
 		            sessionIsOffline: Boolean = false,
                     referenceLats: DoubleArray = doubleArrayOf(),
-                    referenceLngs: DoubleArray = doubleArrayOf()
+                    referenceLngs: DoubleArray = doubleArrayOf(),
+                    showPlan: Boolean = true,
+                    showWaterOld: Boolean = true,
+                    showPossible: Boolean = true
 		        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
 		            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, labels)
 		            putExtra(EXTRA_LATITUDES, lats)
@@ -220,6 +226,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		            if (!wmtsLayer.isNullOrEmpty()) {
 	                putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
 	            }
+                putExtra(EXTRA_SHOW_PLAN, showPlan)
+                putExtra(EXTRA_SHOW_WATER_OLD, showWaterOld)
+                putExtra(EXTRA_SHOW_POSSIBLE, showPossible)
                 if (referenceLats.isNotEmpty() && referenceLngs.isNotEmpty()) {
                     putExtra(EXTRA_REF_LATITUDES, referenceLats)
                     putExtra(EXTRA_REF_LONGITUDES, referenceLngs)
@@ -236,7 +245,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            basicData: HashMap<String, String>,
 	            wmtsLayer: String? = null,
                 referenceLats: DoubleArray = doubleArrayOf(),
-                referenceLngs: DoubleArray = doubleArrayOf()
+                referenceLngs: DoubleArray = doubleArrayOf(),
+                showPlan: Boolean = true,
+                showWaterOld: Boolean = true,
+                showPossible: Boolean = true
 	        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
 	            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, arrayListOf(label))
 	            putExtra(EXTRA_LATITUDES, doubleArrayOf(lat))
@@ -248,6 +260,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            if (!wmtsLayer.isNullOrEmpty()) {
 	                putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
 	            }
+                putExtra(EXTRA_SHOW_PLAN, showPlan)
+                putExtra(EXTRA_SHOW_WATER_OLD, showWaterOld)
+                putExtra(EXTRA_SHOW_POSSIBLE, showPossible)
                 if (referenceLats.isNotEmpty() && referenceLngs.isNotEmpty()) {
                     putExtra(EXTRA_REF_LATITUDES, referenceLats)
                     putExtra(EXTRA_REF_LONGITUDES, referenceLngs)
@@ -297,12 +312,34 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     /** 編輯模式：API 的 node_id（有值時儲存才會上傳照片） */
     private var nodeId: Int? = null
 
+    // ── 背景地圖圖層開關 ──────────────────────────────────────────────────
+    private var showPlanOverlay = true
+    private var showWaterOldOverlay = true
+    private var showPossibleOverlay = true
+
     // ── 背景地圖 ──────────────────────────────────────────────────────────
     private var formMap: GoogleMap? = null
     private var formMapTileOverlay: TileOverlay? = null
+    private var planWmsOverlay: TileOverlay? = null
+    private var waterOldWmsOverlay: TileOverlay? = null
+    private var possibleWmsOverlay: TileOverlay? = null
+
     private val sessionMarkers = mutableListOf<Marker>()
     private var sessionPolyline: Polyline? = null
     private var referencePolyline: Polyline? = null
+
+    private val scopeGutterPolylineController by lazy {
+        com.example.taoyuangutter.map.ScopeGutterPolylineController(
+            mapProvider = { formMap }
+        )
+    }
+    private val scopeViewportLoader by lazy {
+        com.example.taoyuangutter.map.ScopeViewportLoader(
+            repository = gutterRepository,
+            mapProvider = { formMap }
+        )
+    }
+
     private var importMapPaddingEnabled = false
     private val gutterRepository = GutterRepository()
 
@@ -763,6 +800,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         launchedInViewMode = isViewMode
         isEditMode    = intent.getBooleanExtra(EXTRA_IS_EDIT_MODE, false) // 取得編輯模式旗標
         isOfflineMode = intent.getBooleanExtra(EXTRA_OFFLINE_MODE, false)
+        showPlanOverlay = intent.getBooleanExtra(EXTRA_SHOW_PLAN, true)
+        showWaterOldOverlay = intent.getBooleanExtra(EXTRA_SHOW_WATER_OLD, true)
+        showPossibleOverlay = intent.getBooleanExtra(EXTRA_SHOW_POSSIBLE, true)
+
         nodeId        = intent.getStringExtra(EXTRA_DATA_NODE_ID)?.toIntOrNull()
         sessionDraftId = intent.getLongExtra(EXTRA_SESSION_DRAFT_ID, 0L)
         restoreSessionWaypoints()
@@ -936,6 +977,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         map.mapType = GoogleMap.MAP_TYPE_NONE
         val wmtsLayer = intent.getStringExtra(EXTRA_WMTS_LAYER) ?: "EMAP"
         setWmtsTiles(wmtsLayer)
+
+        applyBackgroundWmsOverlays()
+
         renderSessionPreview(map)
         updateFormMapViewportPadding()
 
@@ -952,6 +996,65 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
         }
         updateImportMapClickListener()
+
+        map.setOnCameraIdleListener {
+            loadGuttersByViewport()
+        }
+    }
+
+    private fun applyBackgroundWmsOverlays() {
+        val map = formMap ?: return
+
+        // 本次計畫調查 (roadServey) - 這裡由 showPossibleOverlay 控制，與 MainActivity 邏輯一致
+        if (showPossibleOverlay) {
+            if (planWmsOverlay == null) {
+                val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/roadServey/wms",
+                    layers = "roadServey",
+                    styles = "TY_RSGDBIP_道路調查",
+                    format = "image/png"
+                )
+                planWmsOverlay = map.addTileOverlay(
+                    com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(0f)
+                )
+            }
+        }
+
+        // 水務局舊資料 (legacyDitch)
+        if (showWaterOldOverlay) {
+            if (waterOldWmsOverlay == null) {
+                val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    layers = "legacyDitch",
+                    styles = "TY_RSGDBIP_水務局既有資料",
+                    format = "image/png8"
+                )
+                waterOldWmsOverlay = map.addTileOverlay(
+                    com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(0.1f)
+                )
+            }
+        }
+    }
+
+    private fun loadGuttersByViewport() {
+        if (isOfflineMode) return
+        val token = com.example.taoyuangutter.login.LoginActivity.getSavedToken(this) ?: return
+        
+        lifecycleScope.launch {
+            when (val result = scopeViewportLoader.load(token)) {
+                is com.example.taoyuangutter.api.ApiResult.Success -> {
+                    // 繪製背景線段，且設為不可點擊 (clickable = false)
+                    scopeGutterPolylineController.drawFeatures(
+                        features = result.data.features,
+                        savedGroupId = com.example.taoyuangutter.login.LoginActivity.getSavedGroupId(this@GutterFormActivity),
+                        clickable = false
+                    )
+                }
+                is com.example.taoyuangutter.api.ApiResult.Error -> {
+                    android.util.Log.w("GutterFormActivity", "背景線段載入失敗: ${result.message}")
+                }
+            }
+        }
     }
 
     private fun updateFormMapViewportPadding() {

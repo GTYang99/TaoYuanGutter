@@ -1223,13 +1223,17 @@ class MainActivity : AppCompatActivity(),
             0.75,
             mapCameraController.zoomForGutterSize(wp.basicData)
         )
+        val state = mapOverlayController.currentState()
         val intent = gutterFormNavigator.buildInspectIntent(
             waypointIndex = waypointIndex,
             waypoint = wp,
             latLng = latLng,
             wmtsLayer = currentWmtsLayer(),
             hostLastLocation = lastKnownLocation,
-            referencePoints = if (isReferenceRouteActive) referenceRoutePoints else emptyList()
+            referencePoints = if (isReferenceRouteActive) referenceRoutePoints else emptyList(),
+            showPlan = state.showPlan,
+            showWaterOld = state.showWaterOld,
+            showPossible = state.showPossible
         )
         gutterFormLauncher.launch(intent)
     }
@@ -1245,6 +1249,7 @@ class MainActivity : AppCompatActivity(),
             0.75,
             mapCameraController.zoomForGutterSize(wp.basicData)
         )
+        val state = mapOverlayController.currentState()
         val launch = gutterFormNavigator.buildAddIntent(
             currentWaypoints = currentWaypoints,
             currentIndex = currentIndex,
@@ -1254,7 +1259,10 @@ class MainActivity : AppCompatActivity(),
             wmtsLayer = currentWmtsLayer(),
             sessionIsOffline = currentSessionIsOffline,
             hostLastLocation = lastKnownLocation,
-            referencePoints = if (isReferenceRouteActive) referenceRoutePoints else emptyList()
+            referencePoints = if (isReferenceRouteActive) referenceRoutePoints else emptyList(),
+            showPlan = state.showPlan,
+            showWaterOld = state.showWaterOld,
+            showPossible = state.showPossible
         )
         currentSessionDraftId = launch.draftId
         gutterFormLauncher.launch(launch.intent)

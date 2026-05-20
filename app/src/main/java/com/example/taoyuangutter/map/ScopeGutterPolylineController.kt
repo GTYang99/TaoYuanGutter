@@ -52,7 +52,8 @@ class ScopeGutterPolylineController(
 
     fun drawFeatures(
         features: List<GeoFeature>,
-        savedGroupId: Int
+        savedGroupId: Int,
+        clickable: Boolean = true
     ) {
         val map = mapProvider() ?: return
         features.forEach { feature ->
@@ -108,7 +109,7 @@ class ScopeGutterPolylineController(
                     .color(color)
                     .width(width)
                     .zIndex(1f)
-                    .clickable(true)
+                    .clickable(clickable)
             )
             inner.tag = Pair(spiNum, groupId)
             scopePolylines[spiNum] = ScopePolylineSet(inner = inner, outline = outline)
