@@ -108,6 +108,7 @@ dependencies {
     kapt(libs.androidx.room.compiler)
     // Glide（從 URL 載入照片）
     implementation(libs.glide)
+    implementation(libs.photoview)
     // Compose (for ui/theme files)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.compose.ui)

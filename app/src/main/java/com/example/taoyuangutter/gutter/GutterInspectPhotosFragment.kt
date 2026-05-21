@@ -141,6 +141,16 @@ class GutterInspectPhotosFragment : Fragment() {
         loadPhoto(point.photo1, binding.ivPhotoSlot1, binding.placeholderSlot1)
         loadPhoto(point.photo2, binding.ivPhotoSlot2, binding.placeholderSlot2)
         loadPhoto(point.photo3, binding.ivPhotoSlot3, binding.placeholderSlot3)
+
+        binding.ivPhotoSlot1.setOnClickListener { showImageDetail(point.photo1) }
+        binding.ivPhotoSlot2.setOnClickListener { showImageDetail(point.photo2) }
+        binding.ivPhotoSlot3.setOnClickListener { showImageDetail(point.photo3) }
+    }
+
+    private fun showImageDetail(url: String) {
+        if (url.isBlank()) return
+        ImageDetailDialogFragment.newInstance(url)
+            .show(childFragmentManager, "image_detail")
     }
 
     private fun renderFields(details: NodeDetails?) {
