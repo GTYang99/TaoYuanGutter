@@ -127,7 +127,14 @@ class GutterBasicInfoFragment : Fragment() {
         val isEditMode   = arguments?.getBoolean(ARG_IS_EDIT_MODE) ?: false
 
         prefillData()
-        setEditable(!isViewMode)
+
+        if (savedInstanceState != null) {
+            coordXValue = savedInstanceState.getString("saved_coord_x", "")
+            coordYValue = savedInstanceState.getString("saved_coord_y", "")
+            isFormEditable = savedInstanceState.getBoolean("saved_is_form_editable", true)
+        }
+
+        setEditable(!isViewMode && isFormEditable)
         setupCantOpen()
         setupPendingDeployButton(isViewMode)
         setupRangeWatchers()
@@ -717,5 +724,12 @@ class GutterBasicInfoFragment : Fragment() {
             "0", "false", "f", "n", "no", "", null -> false
             else -> false
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString("saved_coord_x", coordXValue)
+        outState.putString("saved_coord_y", coordYValue)
+        outState.putBoolean("saved_is_form_editable", isFormEditable)
     }
 }

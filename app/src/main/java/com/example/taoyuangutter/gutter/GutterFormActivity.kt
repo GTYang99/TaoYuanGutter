@@ -125,6 +125,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val EXTRA_SHOW_PLAN = "show_plan"
         const val EXTRA_SHOW_WATER_OLD = "show_water_old"
         const val EXTRA_SHOW_POSSIBLE = "show_possible"
+        const val EXTRA_SHOW_REGION = "show_region"
 
 	        // 主地圖最近一次定位（由 MainActivity 帶入，供匯入既有點位快速查詢）
 	        const val EXTRA_HOST_LAST_LAT  = "host_last_lat"
@@ -209,7 +210,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     referenceLngs: DoubleArray = doubleArrayOf(),
                     showPlan: Boolean = true,
                     showWaterOld: Boolean = true,
-                    showPossible: Boolean = true
+                    showPossible: Boolean = true,
+                    showRegion: Boolean = true
 		        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
 		            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, labels)
 		            putExtra(EXTRA_LATITUDES, lats)
@@ -229,6 +231,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 putExtra(EXTRA_SHOW_PLAN, showPlan)
                 putExtra(EXTRA_SHOW_WATER_OLD, showWaterOld)
                 putExtra(EXTRA_SHOW_POSSIBLE, showPossible)
+                putExtra(EXTRA_SHOW_REGION, showRegion)
                 if (referenceLats.isNotEmpty() && referenceLngs.isNotEmpty()) {
                     putExtra(EXTRA_REF_LATITUDES, referenceLats)
                     putExtra(EXTRA_REF_LONGITUDES, referenceLngs)
@@ -248,7 +251,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 referenceLngs: DoubleArray = doubleArrayOf(),
                 showPlan: Boolean = true,
                 showWaterOld: Boolean = true,
-                showPossible: Boolean = true
+                showPossible: Boolean = true,
+                showRegion: Boolean = true
 	        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
 	            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, arrayListOf(label))
 	            putExtra(EXTRA_LATITUDES, doubleArrayOf(lat))
@@ -263,6 +267,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 putExtra(EXTRA_SHOW_PLAN, showPlan)
                 putExtra(EXTRA_SHOW_WATER_OLD, showWaterOld)
                 putExtra(EXTRA_SHOW_POSSIBLE, showPossible)
+                putExtra(EXTRA_SHOW_REGION, showRegion)
                 if (referenceLats.isNotEmpty() && referenceLngs.isNotEmpty()) {
                     putExtra(EXTRA_REF_LATITUDES, referenceLats)
                     putExtra(EXTRA_REF_LONGITUDES, referenceLngs)
@@ -316,29 +321,18 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var showPlanOverlay = true
     private var showWaterOldOverlay = true
     private var showPossibleOverlay = true
+    private var showRegionOverlay = true
 
     // ── 背景地圖 ──────────────────────────────────────────────────────────
     private var formMap: GoogleMap? = null
     private var formMapTileOverlay: TileOverlay? = null
     private var planWmsOverlay: TileOverlay? = null
     private var waterOldWmsOverlay: TileOverlay? = null
-    private var possibleWmsOverlay: TileOverlay? = null
+    private var regionWmsOverlay: TileOverlay? = null
 
     private val sessionMarkers = mutableListOf<Marker>()
     private var sessionPolyline: Polyline? = null
     private var referencePolyline: Polyline? = null
-
-    private val scopeGutterPolylineController by lazy {
-        com.example.taoyuangutter.map.ScopeGutterPolylineController(
-            mapProvider = { formMap }
-        )
-    }
-    private val scopeViewportLoader by lazy {
-        com.example.taoyuangutter.map.ScopeViewportLoader(
-            repository = gutterRepository,
-            mapProvider = { formMap }
-        )
-    }
 
     private var importMapPaddingEnabled = false
     private val gutterRepository = GutterRepository()
@@ -796,17 +790,34 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         longitudes = intent.getDoubleArrayExtra(EXTRA_LONGITUDES) ?: doubleArrayOf()
         currentIndex  = intent.getIntExtra(EXTRA_CURRENT_INDEX, 0)
         waypointIndex = intent.getIntExtra(EXTRA_WAYPOINT_INDEX, 0)
-        isViewMode    = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
-        launchedInViewMode = isViewMode
-        isEditMode    = intent.getBooleanExtra(EXTRA_IS_EDIT_MODE, false) // 取得編輯模式旗標
+
+        if (savedInstanceState != null) {
+            isViewMode = savedInstanceState.getBoolean("saved_is_view_mode")
+            isEditMode = savedInstanceState.getBoolean("saved_is_edit_mode")
+            currentLat = savedInstanceState.getDouble("saved_current_lat")
+            currentLng = savedInstanceState.getDouble("saved_current_lng")
+            hasShownEditPolyline = savedInstanceState.getBoolean("saved_has_shown_edit_polyline")
+            sessionDraftId = savedInstanceState.getLong("saved_session_draft_id")
+        } else {
+            isViewMode    = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
+            isEditMode    = intent.getBooleanExtra(EXTRA_IS_EDIT_MODE, false) // 取得編輯模式旗標
+            sessionDraftId = intent.getLongExtra(EXTRA_SESSION_DRAFT_ID, 0L)
+
+            val lat   = latitudes.getOrElse(currentIndex)  { 0.0 }
+            val lng   = longitudes.getOrElse(currentIndex) { 0.0 }
+            currentLat = lat
+            currentLng = lng
+        }
+
+        launchedInViewMode = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
         isOfflineMode = intent.getBooleanExtra(EXTRA_OFFLINE_MODE, false)
         showPlanOverlay = intent.getBooleanExtra(EXTRA_SHOW_PLAN, true)
         showWaterOldOverlay = intent.getBooleanExtra(EXTRA_SHOW_WATER_OLD, true)
         showPossibleOverlay = intent.getBooleanExtra(EXTRA_SHOW_POSSIBLE, true)
+        showRegionOverlay = intent.getBooleanExtra(EXTRA_SHOW_REGION, true)
 
         nodeId        = intent.getStringExtra(EXTRA_DATA_NODE_ID)?.toIntOrNull()
-        sessionDraftId = intent.getLongExtra(EXTRA_SESSION_DRAFT_ID, 0L)
-        restoreSessionWaypoints()
+        restoreSessionWaypoints(savedInstanceState)
 
         // 灰色參考線（弧線展開點列）：由 MainActivity 傳入，供表單期間對照
         val refLats = intent.getDoubleArrayExtra(EXTRA_REF_LATITUDES) ?: doubleArrayOf()
@@ -826,24 +837,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             basicData = HashMap(sessionWaypoints.getOrNull(currentIndex)?.basicData ?: hashMapOf())
         )
 
-        // 紫色線段顯示 gating：只有當 waypoint 的 lat/lng 跟進入表單時不一致才顯示
         initialLatLngSnapshot = buildLatLngSnapshot(sessionWaypoints)
         hasShownEditPolyline = false
-
-        val label = waypointLabels.getOrElse(currentIndex) { "點位" }
-        val lat   = latitudes.getOrElse(currentIndex)  { 0.0 }
-        val lng   = longitudes.getOrElse(currentIndex) { 0.0 }
-
-        currentLat = lat
-        currentLng = lng
 
         // 離線模式：若有既有草稿 ID，從 GutterSessionRepository 讀取 waypoint 資料
         val existingData: HashMap<String, String> = if (isOfflineMode && sessionDraftId > 0L) {
             val draft = GutterSessionRepository(this).getById(sessionDraftId)
             val wp = draft?.waypoints?.firstOrNull()
-            if (wp != null) HashMap(wp.basicData) else buildEmptyData(lat, lng)
+            if (wp != null) HashMap(wp.basicData) else buildEmptyData(currentLat, currentLng)
         } else if (isOfflineMode) {
-            buildEmptyData(lat, lng)
+            buildEmptyData(currentLat, currentLng)
         } else {
             hashMapOf(
                 "SPI_NUM"    to (intent.getStringExtra(EXTRA_DATA_GUTTER_ID)   ?: ""),
@@ -867,10 +870,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             val gutterId = existingData["SPI_NUM"]?.takeIf { it.isNotEmpty() } ?: "---"
             "側溝編號 $gutterId"
         } else {
-            label
+            waypointLabels.getOrElse(currentIndex) { "點位" }
         }
         setupTitleBar(titleText)
-        setupViewPager(lat, lng, existingData)
+        setupViewPager(currentLat, currentLng, existingData)
         setupTabButtons()
         setupImportWaypointButton()
         setupFab()
@@ -996,10 +999,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
         }
         updateImportMapClickListener()
-
-        map.setOnCameraIdleListener {
-            loadGuttersByViewport()
-        }
     }
 
     private fun applyBackgroundWmsOverlays() {
@@ -1034,25 +1033,19 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 )
             }
         }
-    }
 
-    private fun loadGuttersByViewport() {
-        if (isOfflineMode) return
-        val token = com.example.taoyuangutter.login.LoginActivity.getSavedToken(this) ?: return
-        
-        lifecycleScope.launch {
-            when (val result = scopeViewportLoader.load(token)) {
-                is com.example.taoyuangutter.api.ApiResult.Success -> {
-                    // 繪製背景線段，且設為不可點擊 (clickable = false)
-                    scopeGutterPolylineController.drawFeatures(
-                        features = result.data.features,
-                        savedGroupId = com.example.taoyuangutter.login.LoginActivity.getSavedGroupId(this@GutterFormActivity),
-                        clickable = false
-                    )
-                }
-                is com.example.taoyuangutter.api.ApiResult.Error -> {
-                    android.util.Log.w("GutterFormActivity", "背景線段載入失敗: ${result.message}")
-                }
+        // 桃園行政區 (regions)
+        if (showRegionOverlay) {
+            if (regionWmsOverlay == null) {
+                val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    layers = "regions",
+                    styles = "TY_RSGDBIP_桃園行政區",
+                    format = "image/png8"
+                )
+                regionWmsOverlay = map.addTileOverlay(
+                    com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(-0.5f)
+                )
             }
         }
     }
@@ -1303,7 +1296,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             wmtsLayer = wmtsLayer,
             sessionWaypointsJson = waypointsJson,
             currentIndex = currentIndex,
-            isEditMode = isEditMode
+            isEditMode = isEditMode,
+            showPlan = showPlanOverlay,
+            showWaterOld = showWaterOldOverlay,
+            showPossible = showPossibleOverlay,
+            showRegion = showRegionOverlay
         )
         locationPickerLauncher.launch(intent)
     }
@@ -1475,8 +1472,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         dispatchResult()
     }
 
-    private fun restoreSessionWaypoints() {
-        val json = intent.getStringExtra(EXTRA_SESSION_WAYPOINTS_JSON)
+    private fun restoreSessionWaypoints(savedInstanceState: Bundle?) {
+        val json = savedInstanceState?.getString("saved_waypoints_json")
+            ?: intent.getStringExtra(EXTRA_SESSION_WAYPOINTS_JSON)
         if (!json.isNullOrEmpty()) {
             val parsed = runCatching {
                 val type = object : TypeToken<List<WaypointSnapshot>>() {}.type
@@ -1682,5 +1680,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             !isViewMode   -> handleNavigateBack()
             else          -> super.onBackPressed()
         }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString("saved_waypoints_json", Gson().toJson(sessionWaypoints))
+        outState.putBoolean("saved_is_view_mode", isViewMode)
+        outState.putBoolean("saved_is_edit_mode", isEditMode)
+        outState.putDouble("saved_current_lat", currentLat)
+        outState.putDouble("saved_current_lng", currentLng)
+        outState.putBoolean("saved_has_shown_edit_polyline", hasShownEditPolyline)
+        outState.putLong("saved_session_draft_id", sessionDraftId)
     }
 }

@@ -33,6 +33,8 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.example.taoyuangutter.map.MarkerIconFactory
 import com.example.taoyuangutter.gutter.WaypointType
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import java.net.MalformedURLException
 import java.net.URL
 
@@ -43,6 +45,16 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private var currentTileOverlay: TileOverlay? = null
     private var pickerBarBaseBottomMarginPx: Int? = null
     private var myLocationFabBaseBottomMarginPx: Int? = null
+
+    // ── 背景地圖圖層開關 ──────────────────────────────────────────────────
+    private var showPlanOverlay = true
+    private var showWaterOldOverlay = true
+    private var showPossibleOverlay = true
+    private var showRegionOverlay = true
+
+    private var planWmsOverlay: TileOverlay? = null
+    private var waterOldWmsOverlay: TileOverlay? = null
+    private var regionWmsOverlay: TileOverlay? = null
 
     // ── 現在位置 ──────────────────────────────────────────────────────────
     private val fusedLocationClient by lazy { LocationServices.getFusedLocationProviderClient(this) }
@@ -66,6 +78,10 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         private const val EXTRA_SESSION_WAYPOINTS_JSON = "extra_session_waypoints_json"
         private const val EXTRA_CURRENT_INDEX = "extra_current_index"
         private const val EXTRA_IS_EDIT_MODE = "extra_is_edit_mode"
+        private const val EXTRA_SHOW_PLAN = "extra_show_plan"
+        private const val EXTRA_SHOW_WATER_OLD = "extra_show_water_old"
+        private const val EXTRA_SHOW_POSSIBLE = "extra_show_possible"
+        private const val EXTRA_SHOW_REGION = "extra_show_region"
 
         const val RESULT_LATITUDE = "result_latitude"
         const val RESULT_LONGITUDE = "result_longitude"
@@ -77,7 +93,11 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             wmtsLayer: String? = null,
             sessionWaypointsJson: String? = null,
             currentIndex: Int = 0,
-            isEditMode: Boolean = false
+            isEditMode: Boolean = false,
+            showPlan: Boolean = true,
+            showWaterOld: Boolean = true,
+            showPossible: Boolean = true,
+            showRegion: Boolean = true
         ): Intent =
             Intent(context, MapPointPickerActivity::class.java).apply {
                 putExtra(EXTRA_INITIAL_LAT, initialLat)
@@ -86,6 +106,10 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
                 if (!sessionWaypointsJson.isNullOrEmpty()) putExtra(EXTRA_SESSION_WAYPOINTS_JSON, sessionWaypointsJson)
                 putExtra(EXTRA_CURRENT_INDEX, currentIndex)
                 putExtra(EXTRA_IS_EDIT_MODE, isEditMode)
+                putExtra(EXTRA_SHOW_PLAN, showPlan)
+                putExtra(EXTRA_SHOW_WATER_OLD, showWaterOld)
+                putExtra(EXTRA_SHOW_POSSIBLE, showPossible)
+                putExtra(EXTRA_SHOW_REGION, showRegion)
             }
     }
 
@@ -93,6 +117,12 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         binding = ActivityMapPointPickerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        showPlanOverlay = intent.getBooleanExtra(EXTRA_SHOW_PLAN, true)
+        showWaterOldOverlay = intent.getBooleanExtra(EXTRA_SHOW_WATER_OLD, true)
+        showPossibleOverlay = intent.getBooleanExtra(EXTRA_SHOW_POSSIBLE, true)
+        showRegionOverlay = intent.getBooleanExtra(EXTRA_SHOW_REGION, true)
+
         applySystemBarInsets()
 
         val mapFragment = supportFragmentManager.findFragmentById(binding.mapPicker.id) as? SupportMapFragment
@@ -189,6 +219,8 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
 
         drawExistingWaypoints(map)
 
+        applyBackgroundWmsOverlays()
+
         val lat = intent.getDoubleExtra(EXTRA_INITIAL_LAT, 0.0)
         val lng = intent.getDoubleExtra(EXTRA_INITIAL_LNG, 0.0)
 
@@ -199,6 +231,55 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             // 如果沒有初始座標：先以桃園作為初始鏡頭，再嘗試定位到使用者現在位置
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 16f))
             onMyLocationButtonClicked()
+        }
+    }
+
+    private fun applyBackgroundWmsOverlays() {
+        val map = googleMap ?: return
+
+        // 本次計畫調查 (roadServey) - 這裡由 showPossibleOverlay 控制
+        if (showPossibleOverlay) {
+            if (planWmsOverlay == null) {
+                val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/roadServey/wms",
+                    layers = "roadServey",
+                    styles = "TY_RSGDBIP_道路調查",
+                    format = "image/png"
+                )
+                planWmsOverlay = map.addTileOverlay(
+                    TileOverlayOptions().tileProvider(provider).zIndex(0f)
+                )
+            }
+        }
+
+        // 水務局舊資料 (legacyDitch)
+        if (showWaterOldOverlay) {
+            if (waterOldWmsOverlay == null) {
+                val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    layers = "legacyDitch",
+                    styles = "TY_RSGDBIP_水務局既有資料",
+                    format = "image/png8"
+                )
+                waterOldWmsOverlay = map.addTileOverlay(
+                    TileOverlayOptions().tileProvider(provider).zIndex(0.1f)
+                )
+            }
+        }
+
+        // 桃園行政區 (regions)
+        if (showRegionOverlay) {
+            if (regionWmsOverlay == null) {
+                val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    layers = "regions",
+                    styles = "TY_RSGDBIP_桃園行政區",
+                    format = "image/png8"
+                )
+                regionWmsOverlay = map.addTileOverlay(
+                    TileOverlayOptions().tileProvider(provider).zIndex(-0.5f)
+                )
+            }
         }
     }
 

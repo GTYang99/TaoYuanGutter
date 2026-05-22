@@ -662,6 +662,7 @@ class MainActivity : AppCompatActivity(),
         googleMap?.mapType = GoogleMap.MAP_TYPE_NONE
         mapOverlayController.setBaseLayer(LayersBottomSheet.LAYER_EMAP)
         mapOverlayController.applyWmsOverlays()
+        scopeGutterPolylineController.setVisible(mapOverlayController.currentState().showPlan)
 
         // 避免地圖初始化時短暫跳到 (0,0) 或不合理位置：先以桃園作為初始鏡頭
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 16f))
@@ -1235,7 +1236,8 @@ class MainActivity : AppCompatActivity(),
             referencePoints = if (isReferenceRouteActive) referenceRoutePoints else emptyList(),
             showPlan = state.showPlan,
             showWaterOld = state.showWaterOld,
-            showPossible = state.showPossible
+            showPossible = state.showPossible,
+            showRegion = state.showRegion
         )
         gutterFormLauncher.launch(intent)
     }
@@ -1264,7 +1266,8 @@ class MainActivity : AppCompatActivity(),
             referencePoints = if (isReferenceRouteActive) referenceRoutePoints else emptyList(),
             showPlan = state.showPlan,
             showWaterOld = state.showWaterOld,
-            showPossible = state.showPossible
+            showPossible = state.showPossible,
+            showRegion = state.showRegion
         )
         currentSessionDraftId = launch.draftId
         gutterFormLauncher.launch(launch.intent)
@@ -1771,6 +1774,7 @@ class MainActivity : AppCompatActivity(),
         showNoDitchPoints: Boolean
     ) {
         mapOverlayController.updateOverlayToggles(showPlan, showWaterOld, showPossible, showRegion, showNoDitchPoints)
+        scopeGutterPolylineController.setVisible(showPlan)
     }
 
     // ── 測距模式 ──────────────────────────────────────────────────────────────

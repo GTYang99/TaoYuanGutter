@@ -24,7 +24,8 @@ class GutterFormNavigator(
         referencePoints: List<LatLng> = emptyList(),
         showPlan: Boolean = true,
         showWaterOld: Boolean = true,
-        showPossible: Boolean = true
+        showPossible: Boolean = true,
+        showRegion: Boolean = true
     ): Intent {
         val refLats = referencePoints.map { it.latitude }.toDoubleArray()
         val refLngs = referencePoints.map { it.longitude }.toDoubleArray()
@@ -40,7 +41,8 @@ class GutterFormNavigator(
             referenceLngs = refLngs,
             showPlan = showPlan,
             showWaterOld = showWaterOld,
-            showPossible = showPossible
+            showPossible = showPossible,
+            showRegion = showRegion
         ).also { attachHostLastLocation(it, hostLastLocation) }
     }
 
@@ -56,7 +58,8 @@ class GutterFormNavigator(
         referencePoints: List<LatLng> = emptyList(),
         showPlan: Boolean = true,
         showWaterOld: Boolean = true,
-        showPossible: Boolean = true
+        showPossible: Boolean = true,
+        showRegion: Boolean = true
     ): AddFormLaunch {
         val ensuredDraftId = currentSessionDraftId ?: System.currentTimeMillis()
         val labels = ArrayList(currentWaypoints.map { it.label })
@@ -89,7 +92,8 @@ class GutterFormNavigator(
             referenceLngs = referencePoints.map { it.longitude }.toDoubleArray(),
             showPlan = showPlan,
             showWaterOld = showWaterOld,
-            showPossible = showPossible
+            showPossible = showPossible,
+            showRegion = showRegion
         ).also { attachHostLastLocation(it, hostLastLocation) }
         return AddFormLaunch(intent = intent, draftId = ensuredDraftId)
     }

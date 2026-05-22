@@ -34,6 +34,15 @@ class ScopeGutterPolylineController(
     }
 
     private val scopePolylines = mutableMapOf<String, ScopePolylineSet>()
+    private var isGlobalVisible = true
+
+    fun setVisible(visible: Boolean) {
+        isGlobalVisible = visible
+        scopePolylines.values.forEach {
+            it.inner.isVisible = visible
+            it.outline?.isVisible = visible
+        }
+    }
 
     fun clear() {
         scopePolylines.values.forEach { it.remove() }
@@ -112,6 +121,7 @@ class ScopeGutterPolylineController(
                     .width(width)
                     .zIndex(1f)
                     .clickable(clickable)
+                    .visible(isGlobalVisible)
             )
             inner.tag = Pair(spiNum, groupId)
             scopePolylines[spiNum] = ScopePolylineSet(inner = inner, outline = outline)
