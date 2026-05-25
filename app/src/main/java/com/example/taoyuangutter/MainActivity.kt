@@ -210,11 +210,7 @@ class MainActivity : AppCompatActivity(),
         MapOverlayController(
             mapProvider = { googleMap },
             onNoDitchPointsLayerChanged = { enabled ->
-                if (enabled) {
-                    loadNoDitchPointsForVisibleArea()
-                } else {
-                    clearNoDitchPointsMarkers()
-                }
+                if (!enabled) clearNoDitchPointsMarkers()
             }
         )
     }
@@ -282,6 +278,7 @@ class MainActivity : AppCompatActivity(),
     private var noDitchMarker: com.google.android.gms.maps.model.Marker? = null
     private var noDitchPickedLatLng: LatLng? = null
     private var isNoDitchPickMode: Boolean = false
+    private var isNoDitchPickClickEnabled: Boolean = false
 
     // ── 無側溝點位互動 ──────────────────────────────────────────────────────
     private var noDitchPointsMarkers = mutableListOf<com.google.android.gms.maps.model.Marker>()
@@ -297,7 +294,8 @@ class MainActivity : AppCompatActivity(),
         mainBlockingUiController = MainBlockingUiController(
             context = this,
             binding = binding,
-            isMeasuring = { measureManager?.isMeasuring == true }
+            isMeasuring = { measureManager?.isMeasuring == true },
+            isSheetActive = { activeSheet != null || inspectSheet != null || isInspecting }
         )
         measureModeUiController = MeasureModeUiController(
             context = this,
@@ -432,6 +430,7 @@ class MainActivity : AppCompatActivity(),
         ) { result ->
             isInspecting = false   // GutterInspectActivity 已返回，允許再次點擊側溝
             if (result.resultCode == GutterInspectActivity.RESULT_EDIT_DITCH) {
+                // 這裡會接著開啟 AddGutterBottomSheet，由其 binding 邏輯維持按鈕禁用狀態
                 val json   = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_WAYPOINTS_JSON) ?: return@registerForActivityResult
                 val spiNum = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_SPI_NUM) ?: ""
                 val isCurveRaw = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_IS_CURVE) ?: "0"
@@ -477,6 +476,7 @@ class MainActivity : AppCompatActivity(),
                 sheet.onWaypointsChanged = { updated ->
                     if (updated == null) {
                         mapCameraController.setPersistentBottomInset(0)
+                        mainBlockingUiController.setMainButtonsEnabled(true) // 關閉編輯表單，還原按鈕
                         activeSheet = null
                         val reopenInspectPreview =
                             shouldReturnToInspectPreview && inspectPreviewIntent != null
@@ -485,6 +485,7 @@ class MainActivity : AppCompatActivity(),
                             currentWaypoints = inspectWaypoints
                             // 返回檢視：維持灰色參考線，不顯示紫色工作線
                             refreshWorkingMarkers(inspectWaypoints)
+                            mainBlockingUiController.setMainButtonsEnabled(false) // 重新進入檢視，保持虛化
                             val reopened = inspectPreviewIntent?.let { launchInspectSafely(Intent(it)) } == true
                             if (!reopened) {
                                 isInEditingMode = false
@@ -541,6 +542,7 @@ class MainActivity : AppCompatActivity(),
             } else {
                 // ── 從檢視模式返回（不編輯）時，清除起終點標記並恢復其他線段顯示 ──
                 isInEditingMode = false  // 允許自動加載 polylines
+                mainBlockingUiController.setMainButtonsEnabled(true) // 從檢視返回，還原按鈕
                 clearReferenceRoute()
                 gutterMapController.clearPreviewLayer()
                 clearWorkingMarkers()   // 移除檢視模式新增的起點／節點／終點標記
@@ -716,14 +718,12 @@ class MainActivity : AppCompatActivity(),
                 openInspectBottomSheet(polyline)
             }
         }
+        map.setOnMapClickListener { latLng -> handleMainMapTap(latLng) }
 
         // 地圖停止移動後，依目前可視範圍向後端查詢側溝線段（使用防抖避免高頻調用）
         if (!isOfflineMainMode) {
             map.setOnCameraIdleListener {
                 loadGuttersByViewportDebounced()
-                if (mapOverlayController.currentState().showNoDitchPoints) {
-                    loadNoDitchPointsForVisibleArea()
-                }
             }
         }
 
@@ -894,6 +894,7 @@ class MainActivity : AppCompatActivity(),
         clearWorkingMarkers()
         binding.btnAddGutter.visibility = View.VISIBLE
         mapCameraController.setPersistentBottomInset(0)
+        mainBlockingUiController.setMainButtonsEnabled(true)
 
         // ── 退出編輯模式時：重新加載所有線段 ──
         isInEditingMode = false  // 允許自動加載 polylines
@@ -1098,6 +1099,7 @@ class MainActivity : AppCompatActivity(),
             clearWorkingMarkers()
             binding.btnAddGutter.visibility = View.VISIBLE
             isInEditingMode = false
+            mainBlockingUiController.setMainButtonsEnabled(true)
             drawSubmittedGutter(waypoints)
             mapCameraController.setPersistentBottomInset(0)
             // 新增成功後立即重載，以後端正式線段為準（同時會清掉暫時提交線）
@@ -1151,6 +1153,7 @@ class MainActivity : AppCompatActivity(),
                             isInEditingMode = false  // 刪除成功後退出編輯模式，允許重新加載 scope 線段
                             binding.btnAddGutter.visibility = View.VISIBLE
                             mapCameraController.setPersistentBottomInset(0)
+                            mainBlockingUiController.setMainButtonsEnabled(true)
                             Toast.makeText(this@MainActivity, String.format(getString(R.string.msg_delete_success), spiNum), Toast.LENGTH_SHORT).show()
                             // ── 重新加載地圖可視範圍內的側溝數據 ──
                             loadGuttersByViewport()
@@ -1284,12 +1287,14 @@ class MainActivity : AppCompatActivity(),
         if (isOfflineMainMode) return
         // 防止連點：若已在查詢或已有 inspect 畫面，直接忽略
         if (isInspecting) return
+        disableNoDitchPointsOverlayIfNeeded()
         val token    = LoginActivity.getSavedToken(this)  ?: return
         val start = inspectFlowCoordinator.prepareStart(polyline) ?: return
 
         isInspecting = true
-        // ── 進入檢視流程立即禁止自動加載（避免 fitCamera 觸發 cameraIdle 後又把線段重畫回來）──
+        // ── 進入檢視流程立即禁止自動加載，並虛化主畫面按鈕 ──
         isInEditingMode = true
+        mainBlockingUiController.setMainButtonsEnabled(false)
 
         mainBlockingUiController.setInspectLoading(true, "載入側溝資料中…")
         mapCameraController.fitCameraToWaypoints(start.routeWaypoints)
@@ -1418,6 +1423,7 @@ class MainActivity : AppCompatActivity(),
 
     /** 原本的「新增側溝」流程，從 FAB 移入獨立方法。 */
     private fun openAddGutterFlow() {
+        disableNoDitchPointsOverlayIfNeeded()
         gutterSessionUiCoordinator.startAddSession(
             isOfflineMainMode = isOfflineMainMode,
             hooks = buildSessionUiHooks()
@@ -1454,6 +1460,7 @@ class MainActivity : AppCompatActivity(),
                 clearWorkingMarkers()
                 fitCameraToAllGutters()
                 isInEditingMode = true
+                mainBlockingUiController.setMainButtonsEnabled(false) // 立即虛化背景按鈕
                 scopeGutterPolylineController.clear()
                 submittedPolylines.forEach { it.remove() }
                 submittedPolylines.clear()
@@ -1464,6 +1471,7 @@ class MainActivity : AppCompatActivity(),
                 gutterMapController.clearPreviewLayer()
                 clearWorkingMarkers()
                 isInEditingMode = true
+                mainBlockingUiController.setMainButtonsEnabled(false) // 立即虛化背景按鈕
                 scopeGutterPolylineController.clear()
                 submittedPolylines.forEach { it.remove() }
                 submittedPolylines.clear()
@@ -1516,9 +1524,12 @@ class MainActivity : AppCompatActivity(),
                 onWaypointsUpdated = { waypoints ->
                     currentWaypoints = waypoints
                     refreshWorkingLayer(waypoints)
+                    // 當 BottomSheet 有內容時，確保背景按鈕虛化
+                    mainBlockingUiController.setMainButtonsEnabled(false)
                 },
                 onWaypointsCleared = {
                     isInEditingMode = false
+                    mainBlockingUiController.setMainButtonsEnabled(true) // 關閉表單，還原按鈕
                     mapCameraController.setPersistentBottomInset(0)
                     gutterMapController.clearPreviewLayer()
                     activeSheet = null
@@ -1777,6 +1788,18 @@ class MainActivity : AppCompatActivity(),
         scopeGutterPolylineController.setVisible(showPlan)
     }
 
+    private fun disableNoDitchPointsOverlayIfNeeded() {
+        val state = mapOverlayController.currentState()
+        if (!state.showNoDitchPoints) return
+        onOverlayTogglesChanged(
+            showPlan = state.showPlan,
+            showWaterOld = state.showWaterOld,
+            showPossible = state.showPossible,
+            showRegion = state.showRegion,
+            showNoDitchPoints = false
+        )
+    }
+
     // ── 測距模式 ──────────────────────────────────────────────────────────────
 
     /**
@@ -1878,15 +1901,16 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun setNoDitchMapClickListenerEnabled(enabled: Boolean) {
-        val map = googleMap ?: return
-        if (!enabled) {
-            map.setOnMapClickListener(null)
+        isNoDitchPickClickEnabled = enabled
+    }
+
+    private fun handleMainMapTap(latLng: LatLng) {
+        if (isNoDitchPickClickEnabled && isNoDitchPickMode && noDitchPickedLatLng == null) {
+            onNoDitchLatLngPicked(latLng)
             return
         }
-        map.setOnMapClickListener { latLng ->
-            if (!isNoDitchPickMode) return@setOnMapClickListener
-            if (noDitchPickedLatLng != null) return@setOnMapClickListener
-            onNoDitchLatLngPicked(latLng)
+        if (!isNoDitchPickMode && mapOverlayController.currentState().showNoDitchPoints) {
+            fetchAndShowNoDitchPointNoteAt(latLng, showNoNoteToast = false)
         }
     }
 
@@ -2033,6 +2057,13 @@ class MainActivity : AppCompatActivity(),
     }
 
     private fun fetchAndShowNoDitchPointNote(marker: com.google.android.gms.maps.model.Marker) {
+        fetchAndShowNoDitchPointNoteAt(marker.position, showNoNoteToast = true)
+    }
+
+    private fun fetchAndShowNoDitchPointNoteAt(
+        targetLatLng: LatLng,
+        showNoNoteToast: Boolean
+    ) {
         val map = googleMap ?: return
         val bounds = map.projection.visibleRegion.latLngBounds
         val mapView = binding.map
@@ -2041,7 +2072,7 @@ class MainActivity : AppCompatActivity(),
         if (width <= 0 || height <= 0) return
 
         val bbox = buildNoDitchPointsWmsBbox(bounds)
-        val screenPoint = map.projection.toScreenLocation(marker.position)
+        val screenPoint = map.projection.toScreenLocation(targetLatLng)
 
         lifecycleScope.launch {
             try {
@@ -2062,6 +2093,7 @@ class MainActivity : AppCompatActivity(),
                     ?.firstOrNull()
 
                 if (note.isNullOrBlank()) {
+                    if (!showNoNoteToast) return@launch
                     Toast.makeText(this@MainActivity, "此點位無備註", Toast.LENGTH_SHORT).show()
                 } else {
                     AlertDialog.Builder(this@MainActivity)
@@ -2076,5 +2108,3 @@ class MainActivity : AppCompatActivity(),
         }
     }
 }
-
-

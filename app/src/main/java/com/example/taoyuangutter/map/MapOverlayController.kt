@@ -131,11 +131,16 @@ class MapOverlayController(
         }
 
         if (showNoDitchPointsOverlay) {
-            // 無側溝點位改為由 App 畫可互動 Marker（避免 WMS 圖層不可點的問題）
-            // 這裡只在 toggle 開啟時觸發外部載入點位資料，不再掛 WMS TileOverlay。
-            if (noDitchPointsWmsOverlay != null) {
-                noDitchPointsWmsOverlay?.remove()
-                noDitchPointsWmsOverlay = null
+            if (noDitchPointsWmsOverlay == null) {
+                val provider = Wms3857TileProvider(
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    layers = "map_no_ditch_points",
+                    styles = "",
+                    format = "image/png8"
+                )
+                noDitchPointsWmsOverlay = map.addTileOverlay(
+                    TileOverlayOptions().tileProvider(provider).zIndex(0.2f).transparency(0f)
+                )
             }
             if (!noDitchPointsInteractionEnabled) {
                 noDitchPointsInteractionEnabled = true

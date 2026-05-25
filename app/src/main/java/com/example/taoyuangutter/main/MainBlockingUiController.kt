@@ -8,7 +8,8 @@ import com.example.taoyuangutter.databinding.ActivityMainBinding
 class MainBlockingUiController(
     private val context: Context,
     private val binding: ActivityMainBinding,
-    private val isMeasuring: () -> Boolean
+    private val isMeasuring: () -> Boolean,
+    private val isSheetActive: () -> Boolean = { false }
 ) {
     private var inspectLoadingVisible = false
     private var inspectLoadingMessage: String? = null
@@ -20,6 +21,15 @@ class MainBlockingUiController(
     fun setInspectLoading(visible: Boolean, message: String? = null) {
         inspectLoadingVisible = visible
         if (!message.isNullOrBlank()) inspectLoadingMessage = message
+        // 進入 loading 時一律虛化背景
+        if (visible) {
+            setMainButtonsEnabled(false)
+        } else {
+            // loading 結束時，若目前沒有開啟表單且非測距模式，才還原按鈕
+            if (!isSheetActive() && !isMeasuring()) {
+                setMainButtonsEnabled(true)
+            }
+        }
         applyBlockingOverlay()
     }
 
@@ -54,6 +64,8 @@ class MainBlockingUiController(
         setFabEnabled(binding.btnLayers, enabled)
         setFabEnabled(binding.btnViewDrafts, enabled)
         setFabEnabled(binding.btnMyLocation, enabled)
+        setFabEnabled(binding.btnReportNoDitch, enabled)
+        setFabEnabled(binding.btnMeasureDistance, enabled)
         binding.btnLogout.isEnabled = enabled
         binding.btnLogout.isClickable = enabled
         binding.btnLogout.alpha = if (enabled) 1f else 0.35f
@@ -90,8 +102,14 @@ class MainBlockingUiController(
             photoUploadCompleted = 0
             photoUploadFailed = 0
         }
-        if (!isMeasuring()) {
-            setMainButtonsEnabled(!visible)
+        
+        if (visible) {
+            setMainButtonsEnabled(false)
+        } else {
+            // 上傳結束時，若目前沒有開啟表單且非測距模式，才還原按鈕
+            if (!isSheetActive() && !isMeasuring()) {
+                setMainButtonsEnabled(true)
+            }
         }
         applyBlockingOverlay()
     }
