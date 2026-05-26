@@ -724,6 +724,9 @@ class MainActivity : AppCompatActivity(),
         if (!isOfflineMainMode) {
             map.setOnCameraIdleListener {
                 loadGuttersByViewportDebounced()
+                if (mapOverlayController.currentState().showNoDitchPoints) {
+                    loadNoDitchPointsForVisibleArea()
+                }
             }
         }
 
@@ -1786,6 +1789,9 @@ class MainActivity : AppCompatActivity(),
     ) {
         mapOverlayController.updateOverlayToggles(showPlan, showWaterOld, showPossible, showRegion, showNoDitchPoints)
         scopeGutterPolylineController.setVisible(showPlan)
+        if (showNoDitchPoints) {
+            loadNoDitchPointsForVisibleArea()
+        }
     }
 
     private fun disableNoDitchPointsOverlayIfNeeded() {
