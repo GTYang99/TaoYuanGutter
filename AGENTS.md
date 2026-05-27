@@ -1,7 +1,7 @@
 # AGENTS.md - 側溝管理系統 (TaoYuanGutter) 開發指南
 
 **適用代理（AI Agents）**：適用於所有後續的代碼修改、維護和擴展任務。
-**最後更新**：2026-04-23 | **維護者**：Development Team
+**最後更新**：2026-05-27 | **維護者**：Development Team
 
 ---
 
@@ -46,12 +46,14 @@ data class Waypoint(
 ### 2. 主要組件職責
 | 組件 | 職責 | 關鍵文件 |
 |------|------|---------|
-| **MainActivity** | 地圖入口、位置追蹤、路線繪製、測距模式 | `MainActivity.kt` |
-| **GutterFormActivity** | 表單容器、數據驗證、API 提交 | `GutterFormActivity.kt` |
+| **MainActivity** | 地圖入口、位置追蹤、路線繪製、測距模式、scope 檢視 | `MainActivity.kt` |
+| **GutterFormActivity** | 新增/編輯表單容器、數據驗證、API 提交 | `GutterFormActivity.kt` |
+| **GutterInspectActivity** | 唯讀檢視既有側溝詳細資料 | `GutterInspectActivity.kt` |
 | **AddGutterBottomSheet** | 浮動表單面板、路點新增/編輯 | `ui/AddGutterBottomSheet.kt` |
+| **CameraOverlayFragment** | 智慧橫向相機 Overlay、自動方向校正 | `gutter/CameraOverlayFragment.kt` |
 | **DistanceMeasureManager** | 測距虛線、起點標記、距離計算 | `map/DistanceMeasureManager.kt` |
-| **GutterRepository** | 遠端 API 通訊（storeDitch, uploadPhotos） | `api/GutterRepository.kt` |
-| **OfflineDraftRepository** | Room 本地草稿持久化 | `offline/OfflineDraftRepository.kt` |
+| **GutterRepository** | 遠端 API 通訊（submitGutter, storeDitch, 查詢等） | `api/GutterRepository.kt` |
+| **GutterSessionRepository** | 待上傳側溝草稿持久化（Room + SharedPreferences 遷移） | `pending/GutterSessionRepository.kt` |
 
 ### 3. 測距模式的粗度配置
 `DistanceMeasureManager.kt` 支持動態粗度調整：
@@ -83,26 +85,52 @@ val config = MeasureConfig(lineWidth = 12f)  // 預設粗度
 3. **地圖點擊選點** → 生成 Waypoint(經緯度)
 4. **填寫表單** → 存儲 basicData (NODE_TYP, MAT_TYP 等)
 5. **拍攝照片** → 存儲 photoUris (最多 3 張)
-6. **提交** → GutterFormActivity 驗證 → GutterRepository.storeDitch() 上傳
+6. **提交** → GutterFormActivity 驗證 → GutterRepository.submitGutter() 上傳
 
-### 📊 數據上傳二段式
-**階段 1：結構化數據** (`storeDitch`)
-- 呼叫 `buildStoreDitchRequest()` 轉換 `List<Waypoint>` → JSON
+### 🔍 檢視既有側溝流程（Scope 檢視）
+1. **Scope 檢視激活** → 地圖請求 API `getScopeSearch()` 取得可視區域側溝
+2. **渲染線段** → `ScopeGutterPolylineController` 繪製多條側溝線段
+3. **點擊側溝** → 啟動 `GutterInspectActivity`，顯示詳細資料（分頁：基本資訊 + 點位照片）
+4. **編輯按鈕** → 返回 MainActivity，觸發 `AddGutterBottomSheet` 載入預設值進行編輯
+5. **拍攝補充照片** → 新建 `CameraOverlayFragment` 會話、上傳至 API
+
+### 📊 數據上傳流程（已更新）
+**階段 1：結構化數據** (`submitGutter` 或 `storeDitch`)
+- 新增側溝：呼叫 `GutterRepository.submitGutter()` → `POST /api/gutters`，返回 `nodeId` 清單
+- 編輯側溝：呼叫 `GutterRepository.storeDitch()` → `POST /api/v1/ditch/storeDitch`，帶 `SPI_NUM` 參數
 - 若 `IS_CANTOPEN=true`，自動清除深度/寬度欄位
-- API 返回 `spiNum`（側溝編號）& `nodeId` 清單
 
-**階段 2：照片上傳** (`uploadPhotos`)
-- `Uri` → `MultipartBody.Part` 轉換
-- 透過 `nodeId` 鏈結照片至側溝資料
+**階段 2：照片上傳** (`uploadNodeImage`)
+- 逐張上傳點位照片：`POST /api/v1/node/nodeImage`（multipart/form-data）
+- 傳入參數：`node_id`, `fileCategory`（1=概況、2=寬度、3=深度）、`file`
+
+**查詢既有側溝**：
+- Scope 檢視：`getScopeSearch(minLat, maxLat, minLng, maxLng)` → GeoJSON 線段清單
+- 詳細資料：`getDitchDetails(spiNum)` → 單條線段的所有點位摘要 + 照片 URL
+- 點位資料：`getNodeDetails(nodeId, xyNum 或座標)` → 單一點位的完整資訊
 
 ### 📝 離線草稿機制
-- **自動保存**：OfflineDraftRepository 定期存儲當前會話 Waypoint
-- **恢復編輯**：從 Room 讀取 draft，重新加載至地圖
-- **鏡像架構**：GutterSessionRepository (內存臨時) vs OfflineDraftRepository (持久化)
+- **自動保存**：`GutterSessionRepository` 透過 `GutterDraftDatabase` (Room ORM) 定期存儲當前會話 Waypoint
+- **恢復編輯**：從 Room 讀取 draft，重新加載至地圖；支援舊版 SharedPreferences 自動遷移
+- **架構**：`GutterSessionRepository`（業務邏輯層）vs `DraftDao`（持久化層）vs `GutterSessionRepository` 內存快取（待上傳臨時層）
 
 ---
 
-## 📸 相機拍攝系統詳解
+## 📸 相機拍攝系統架構
+
+### 兩種相機模式
+
+**模式 1：Overlay 模式（推薦用於表單流程）**
+- **組件**：`CameraOverlayFragment`（嵌入 GutterFormActivity）
+- **優點**：不中斷表單狀態、seamless 轉場
+- **限制**：Activity 保持直立，用戶必須橫放手機拍照
+- **位置**：`gutter/CameraOverlayFragment.kt`
+
+**模式 2：全屏獨立模式（備選方案）**
+- **組件**：`LandscapeCameraActivity`（獨立 Activity）
+- **優點**：全屏體驗、沈浸式拍照
+- **缺點**：需要 Activity 切換、狀態管理複雜
+- **位置**：`gutter/LandscapeCameraActivity.kt`
 
 ### 架構：拍攝視窗 vs 最終照片
 
@@ -144,7 +172,7 @@ CameraX 自動在保存的 JPEG 寫入 EXIF Orientation
 相冊/查看器根據 EXIF 自動旋轉顯示
 ```
 
-**代碼位置**：`CameraOverlayFragment.kt` 第 172-195 行
+**代碼位置**：`gutter/CameraOverlayFragment.kt` 第 190-226 行
 
 **具體實現**：
 ```kotlin
@@ -152,17 +180,21 @@ CameraX 自動在保存的 JPEG 寫入 EXIF Orientation
 setupOrientationListener() {
     orientationListener = object : OrientationEventListener(requireContext()) {
         override fun onOrientationChanged(orientation: Int) {
-            // orientation 範圍 0~359 度
-            // 人拿手機的物理角度，與屏幕顯示方向無關
+            if (orientation == ORIENTATION_UNKNOWN) return
+            // orientation 範圍 0~359 度，人拿手機的物理角度
             
-            // 2. 轉換為相機需要的 targetRotation
+            // 2. 檢查是否橫放（60~120 或 240~300 範圍）
+            val landscape = orientation in 60..120 || orientation in 240..300
+            updateOrientationUi(landscape)  // 控制快門啟用
+            
+            // 3. 轉換為相機需要的 targetRotation
             val rotation = when {
-                orientation in 60..120   -> Surface.ROTATION_90   // 右旋 90°
-                orientation in 240..300  -> Surface.ROTATION_270  // 右旋 270°
-                else                     -> Surface.ROTATION_0    // 直立
+                orientation in 60..120   -> Surface.ROTATION_270   // 左旋 (90° 代表左側朝上)
+                orientation in 240..300  -> Surface.ROTATION_90    // 右旋 (270° 代表右側朝上)
+                else                     -> Surface.ROTATION_0     // 直立（禁用拍照）
             }
             
-            // 3. 設置到相機使用案例
+            // 4. 設置到相機使用案例
             preview?.targetRotation = rotation
             imageCapture?.targetRotation = rotation  // ← 這決定了照片方向
         }
@@ -171,21 +203,23 @@ setupOrientationListener() {
 ```
 
 **上下方向確定規則**：
-- **ROTATION_0** (0°)：照片存儲時上下正常
-- **ROTATION_90** (右轉90°)：照片在文件中被「旋轉」標記為需右轉90°顯示
-- **ROTATION_270** (右轉270°/左轉90°)：照片標記為需左轉90°顯示
+- **landscape = false** (直立)：禁用快門；拍照時為 ROTATION_0，照片上下正常
+- **orientation in 60~120** (左傾)：快門啟用；標記為 ROTATION_270（需左轉90°顯示）
+- **orientation in 240~300** (右傾)：快門啟用；標記為 ROTATION_90（需右轉90°顯示）
 
 **關鍵點**：
 1. `targetRotation` **不改變照片像素**，只寫 EXIF 方向標簽
-2. CameraX 保證預覽顯示 ≈ 最終照片方向（已考慮 targetRotation）
-3. 上傳時只上傳 JPEG 文件，方向信息保留在 EXIF，後端/相冊軟件自動解析
+2. CameraX 保證預覽顯示方向 ≈ 最終照片方向（已考慮 targetRotation）
+3. 保存後自動呼叫 `normalizeCapturedPhotoOrientation(file)` 將 EXIF 旋轉應用至像素、重設方向標簽
+4. 上傳時只上傳 JPEG 文件，照片像素與 EXIF 均已正規化
 
 **調試技巧**：
 ```kotlin
 // 若照片方向錯誤，檢查這些位置：
 // 1. OrientationEventListener 是否正確啟用 (onResume/onPause)
-// 2. Surface.ROTATION_* 轉換邏輯是否正確（orientation 範圍）
-// 3. 文件手動檢查 EXIF：adb shell exiftool GUTTER_1_xxx.jpg
+// 2. landscape 檢查邏輯是否正確（orientation 範圍 60~120 或 240~300）
+// 3. updateOrientationUi() 是否正確啟用/禁用快門按鈕
+// 4. 文件手動檢查 EXIF：adb shell exiftool GUTTER_1_xxx.jpg
 ```
 
 ---
@@ -219,6 +253,14 @@ ContextCompat.registerReceiver(
 
 ## 🔧 開發者常用任務
 
+### 🔍 檢視側溝工作流（Scope 檢視）
+**路徑**：MainActivity → 地圖點擊側溝線段 → GutterInspectActivity（分頁檢視）→ 點擊編輯 → AddGutterBottomSheet + GutterFormActivity
+
+**關鍵組件**：
+- `ScopeMapCoordinator.kt` - 協調 scope 視圖中的多條線段渲染
+- `GutterInspectActivity.kt` - 唯讀檢視（基本資訊 + 點位照片分頁）
+- `InspectMarkerController.kt` - 點位大頭針管理
+
 ### ✏️ 修改測距虛線粗度
 **文件**: `app/src/main/java/com/example/taoyuangutter/map/DistanceMeasureManager.kt`
 **位置**: 第 129 行
@@ -245,10 +287,13 @@ private val dashPattern: List<PatternItem> = listOf(Dash(30f), Gap(15f))
 - `basicData.size >= MIN_FIELDS` 與 `photoUris.size == 3` 必須通過
 
 ### 🌐 API 端點修改
-**文件**: `api/GutterService.kt`
-- `POST /api/v1/ditch/storeDitch` → 修改 `@POST("ditch/storeDitch")`
-- `POST /api/v1/ditch/uploadPhotos` → 修改 `@Multipart @POST("...")`
-- 修改 Request/Response 模型位置：`api/model/` 目錄
+**文件**: `api/GutterApiService.kt`
+- `POST /api/gutters` (`submitGutter()`) - 上傳單條側溝資料
+- `POST /api/v1/ditch/storeDitch` → 修改 `@POST("api/v1/ditch/storeDitch")`
+- `GET /api/v1/ditch/ditchDetails` → 取得側溝詳細資料
+- `GET /api/v1/node/nodeDetails` → 取得點位資料（多個查詢方式：`node_id`, `XY_NUM`, 座標）
+- `POST /api/v1/node/nodeImage` → 上傳單張點位照片（fileCategory: 1=概況, 2=寬度, 3=深度）
+- 修改 Request/Response 模型位置：`api/` 目錄 (GutterApiModels.kt)
 
 ---
 
@@ -264,8 +309,9 @@ private val dashPattern: List<PatternItem> = listOf(Dash(30f), Gap(15f))
 ```
 
 ### 關鍵 Gradle 配置
-- **Min SDK**: 26 (Android 8.0)
-- **Target SDK**: 35+ (最新 Android 版本)
+- **Min SDK**: 24 (Android 7.0)
+- **Target SDK**: 36 (Android 15)
+- **Compile SDK**: 36
 - **ViewBinding**: 在 `build.gradle.kts` 啟用
 - **Google Maps API Key**: `local.properties` 或 `secrets.properties`
 
@@ -281,27 +327,37 @@ private val dashPattern: List<PatternItem> = listOf(Dash(30f), Gap(15f))
 ## 📂 重要文件速查
 
 ### UI 層
-- `MainActivity.kt` - 地圖主容器、測距管理、位置追蹤
-- `GutterFormActivity.kt` - 表單主容器、驗證與提交
+- `MainActivity.kt` - 地圖主容器、測距管理、位置追蹤、scope 檢視
+- `GutterFormActivity.kt` - 側溝表單容器、驗證與提交
+- `GutterInspectActivity.kt` - 唯讀檢視既有側溝（API 資料）
 - `ui/AddGutterBottomSheet.kt` - 浮動表單面板
+- `gutter/CameraOverlayFragment.kt` - 全螢幕相機 Overlay（嵌入 GutterFormActivity）
+- `gutter/LandscapeCameraActivity.kt` - 獨立全屏橫向相機 Activity
 
 ### 表單層
 - `gutter/GutterBasicInfoFragment.kt` - 側溝規格表單
 - `gutter/GutterPhotosFragment.kt` - 照片拍攝與驗證
+- `gutter/GutterInspectBasicFragment.kt` - 檢視側溝基本資料（唯讀）
+- `gutter/GutterInspectPhotosFragment.kt` - 檢視點位照片（唯讀）
 
 ### 倉儲層
 - `api/GutterRepository.kt` - 遠端 API 通訊
-- `offline/OfflineDraftRepository.kt` - Room 本地持久化
-- `pending/GutterSessionRepository.kt` - 內存會話管理
+- `pending/GutterSessionRepository.kt` - 待上傳側溝草稿管理（內存 + Room 持久化）
+- `pending/GutterDraftDatabase.kt` - Room 資料庫
+- `pending/DraftDao.kt` - 草稿 DAO（CRUD 操作）
 
 ### 地圖管理
-- `map/DistanceMeasureManager.kt` - 測距虛線、線寬配置
-- `map/DistanceMeasureManager.kt` 第 129 行 - **粗度調整點**
+- `map/GutterMapController.kt` - 管理「工作中」側溝標記與線段（新增/編輯）
+- `map/DistanceMeasureManager.kt` - 測距虛線、線寬配置（第 128-129 行可調粗度/顏色）
+- `map/InspectMarkerController.kt` - 檢視模式側溝標記
+- `map/ScopeMapCoordinator.kt` - 協調 scope 檢視中的多條側溝線段
+- `map/ScopeGutterPolylineController.kt` - 管理 scope 視圖中的側溝線段
 - `map/MarkerIconFactory.kt` - 大頭針圖示工廠
+- `map/MapCameraController.kt` - 地圖鏡頭動畫與定位
 
 ### 數據模型
-- `common/Waypoint.kt` - 地圖/表單橋接數據
-- `api/model/` - API 請求/響應 DTO
+- `gutter/Waypoint.kt` - 地圖/表單橋接數據
+- `api/GutterApiModels.kt` - API 請求/響應 DTO（多個數據類）
 
 ---
 
@@ -371,6 +427,22 @@ if (basicData["IS_CANTOPEN"] == "true") {
 3. 修改數值（如 `12f` 加粗、`4f` 細化）
 4. 構建並測試：`./gradlew installDebug`
 
+### 📋 試用者草稿管理
+**工作流程**：用戶編輯側溝後退出，數據自動存入 Room → 下次進入彈出「待上傳清單」
+
+**關鍵代碼路徑**：
+1. 自動保存：`GutterFormActivity.onPause()` 呼叫 `GutterSessionRepository.save()`
+2. 恢復編輯：`PendingDraftsBottomSheet` 讀取 `GutterSessionRepository.getAll()`
+3. 清理照片：`GutterDraftCoordinator` 在刪除草稿時清理孤立照片文件
+
+**查看/修改**：
+```kotlin
+// 在 GutterFormActivity 中
+val repo = GutterSessionRepository(context)
+val drafts = repo.getAll()  // 列出所有待上傳
+repo.delete(draftId)        // 刪除草稿
+```
+
 ---
 
-**最後更新**: 2026-04-15 | **維護者**: AI Agents
+**最後更新**: 2026-05-27 | **維護者**: AI Agents
