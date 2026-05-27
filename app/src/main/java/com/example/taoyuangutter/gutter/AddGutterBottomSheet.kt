@@ -607,7 +607,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     // ── 按鈕 ─────────────────────────────────────────────────────────────
     private fun setupButtons() {
         // Avoid keeping stale listeners when switching modes / recreating view
-        binding.cbCurve.setOnCheckedChangeListener(null)
+        binding.rgGutterKind.setOnCheckedChangeListener(null)
 
         if (isOfflineMode) {
             // 離線模式：顯示「取消」文字按鈕，隱藏返回箭頭
@@ -622,7 +622,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             // 檢視模式：隱藏新增節點、調轉、提交與刪除按鈕
             binding.btnAddNode.visibility       = View.GONE
             binding.btnReverse.visibility       = View.GONE
-            binding.cbCurve.visibility          = View.GONE
+            binding.layoutGutterType.visibility = View.GONE
             binding.btnSubmitGutter.visibility  = View.GONE
             binding.btnDeleteGutter.visibility  = View.GONE
         } else if (editSpiNum.isNotEmpty()) {
@@ -635,9 +635,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnReverse.setOnClickListener { reverseWaypoints() }
 
             // 編輯模式：弧線狀態以 ditchDetails 回填為準，且允許使用者切換
-            binding.cbCurve.isClickable = true
-            binding.cbCurve.isFocusable = true
-            binding.cbCurve.setOnCheckedChangeListener { _, checked ->
+            binding.rgGutterKind.setOnCheckedChangeListener { _, checkedId ->
+                val checked = (checkedId == R.id.rbKindCurve)
                 if (isCurve == checked) return@setOnCheckedChangeListener
                 isCurve = checked
                 updateCurveToggleUi()
@@ -679,9 +678,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnReverse.visibility = View.VISIBLE
             binding.btnReverse.setOnClickListener { reverseWaypoints() }
 
-            binding.cbCurve.isClickable = true
-            binding.cbCurve.isFocusable = true
-            binding.cbCurve.setOnCheckedChangeListener { _, checked ->
+            binding.rgGutterKind.setOnCheckedChangeListener { _, checkedId ->
+                val checked = (checkedId == R.id.rbKindCurve)
                 if (isCurve == checked) return@setOnCheckedChangeListener
                 isCurve = checked
                 updateCurveToggleUi()
@@ -1231,7 +1229,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         binding.btnAddNode.isEnabled = !show
         binding.btnReverse.isEnabled = !show
         binding.btnSubmitGutter.isEnabled = !show
-        binding.cbCurve.isEnabled = !show
+        binding.rgGutterKind.isEnabled = !show
         binding.btnDeleteGutter.isEnabled = !show
         binding.rvWaypoints.isEnabled = !show
     }
@@ -1242,7 +1240,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         binding.btnAddNode.isEnabled = !show
         binding.btnReverse.isEnabled = !show
         binding.btnSubmitGutter.isEnabled = !show
-        binding.cbCurve.isEnabled = !show
+        binding.rgGutterKind.isEnabled = !show
         binding.btnDeleteGutter.isEnabled = !show
         binding.rvWaypoints.isEnabled = !show
         binding.btnSubmitGutter.text = if (show) buttonLabel else getString(R.string.btn_add_gutter)
@@ -1314,24 +1312,20 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     private fun updateCurveToggleUi() {
         if (_binding == null) return
-        val ctx = requireContext()
-        binding.cbCurve.isChecked = isCurve
-        binding.cbCurve.buttonTintList =
-            android.content.res.ColorStateList.valueOf(
-                androidx.core.content.ContextCompat.getColor(
-                    ctx,
-                    if (isCurve) R.color.colorPrimary else R.color.border_grey
-                )
-            )
-        binding.cbCurve.setTextColor(
-            if (isCurve)
-                androidx.core.content.ContextCompat.getColor(ctx, R.color.colorPrimary)
-            else
-                android.graphics.Color.parseColor("#616161")
-        )
+        
+        if (isCurve) {
+            binding.rbKindCurve.isChecked = true
+        } else {
+            binding.rbKindNormal.isChecked = true
+        }
 
         binding.btnAddNode.visibility =
             if (isInspectMode || isCurve) View.GONE else View.VISIBLE
+        
+        // 檢視模式下禁用切換
+        binding.rbKindNormal.isEnabled = !isInspectMode
+        binding.rbKindCurve.isEnabled = !isInspectMode
+        binding.layoutGutterType.alpha = if (isInspectMode) 0.5f else 1.0f
     }
 
     private fun validateCurvePointCountOrAlert(): Boolean {
