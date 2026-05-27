@@ -96,6 +96,19 @@
                 android:text="@string/msg_no_data"
                 android:textSize="13sp" />
 
+            <TextView
+                android:id="@+id/tvVirtualBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:background="@color/colorPrimary"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
+                android:text="虛擬點"
+                android:textColor="@color/white"
+                android:textSize="11sp"
+                android:visibility="gone" />
+
         </LinearLayout>
 
         <!-- 拖曳把手（僅節點顯示） -->

@@ -10,4 +10,10 @@ data class Waypoint(
     var latLng: LatLng? = null,
     /** 已填寫並儲存的表單資料（供檢視/編輯模式預填用） */
     var basicData: HashMap<String, String> = hashMapOf()
-)
+) {
+    val isVirtual: Boolean
+        get() {
+            val v = basicData["is_virtual"]?.trim()?.lowercase()
+            return v == "1" || v == "true"
+        }
+}

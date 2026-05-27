@@ -23,6 +23,7 @@ class GutterBasicInfoFragment : Fragment() {
     var onDraftChanged: (() -> Unit)? = null
     var onRequestLocationPick: (() -> Unit)? = null
     private var isFormEditable: Boolean = true
+    private var isVirtualMode: Boolean = false // 新增：是否為虛擬點模式
     // Keep using request keys NODE_X/NODE_Y; just change UI presentation.
     private var coordXValue: String = ""
     private var coordYValue: String = ""
@@ -51,6 +52,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_DATA_IS_CANTOPEN = "d_is_cantopen"
         private const val ARG_DATA_NODE_NOTE   = "d_node_note"
         private const val ARG_DATA_IS_PENDING_DEPLOY = "d_is_pending_deploy"
+        private const val ARG_DATA_IS_VIRTUAL  = "d_is_virtual" // 新增：虛擬點欄位
 
         /** 側溝形式選項（NODE_TYP）*/
         val GUTTER_TYPES = listOf(
@@ -79,7 +81,8 @@ class GutterBasicInfoFragment : Fragment() {
             viewMode: Boolean = false,
             basicData: HashMap<String, String> = hashMapOf(),
             isOfflineMode: Boolean = false,
-            isEditMode: Boolean = false // 新增：是否為編輯模式
+            isEditMode: Boolean = false, // 新增：是否為編輯模式
+            isVirtual: String = "0" // 新增：是否為虛擬點
         ) = GutterBasicInfoFragment().apply {
             arguments = Bundle().apply {
                 putDouble(ARG_LAT, latitude)
@@ -87,6 +90,7 @@ class GutterBasicInfoFragment : Fragment() {
                 putBoolean(ARG_VIEW_MODE, viewMode)
                 putBoolean(ARG_OFFLINE_MODE, isOfflineMode)
                 putBoolean(ARG_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
+                putString(ARG_DATA_IS_VIRTUAL, isVirtual) // 傳入虛擬點旗標
                 putString(ARG_DATA_SPI_NUM,     basicData["SPI_NUM"]     ?: basicData["gutterId"] ?: "")
                 putString(ARG_DATA_NODE_TYP,    basicData["NODE_TYP"]    ?: basicData["gutterType"] ?: "")
                 putString(ARG_DATA_MAT_TYP,     basicData["MAT_TYP"]     ?: basicData["matTyp"] ?: "")
@@ -127,15 +131,13 @@ class GutterBasicInfoFragment : Fragment() {
         val isEditMode   = arguments?.getBoolean(ARG_IS_EDIT_MODE) ?: false
 
         prefillData()
-
-        if (savedInstanceState != null) {
-            coordXValue = savedInstanceState.getString("saved_coord_x", "")
-            coordYValue = savedInstanceState.getString("saved_coord_y", "")
-            isFormEditable = savedInstanceState.getBoolean("saved_is_form_editable", true)
-        }
-
-        setEditable(!isViewMode && isFormEditable)
+        setEditable(!isViewMode)
         setupCantOpen()
+        
+        // 確保在 View 建立後，立即根據目前的「無法開蓋」與「虛擬點」狀態更新 UI
+        applyCantOpenUi(binding.cbCantOpen.isChecked)
+        setVirtualMode(isVirtualMode)
+        
         setupPendingDeployButton(isViewMode)
         setupRangeWatchers()
         setupDraftWatchers()
@@ -214,14 +216,16 @@ class GutterBasicInfoFragment : Fragment() {
         val isCantOpen = args.getString(ARG_DATA_IS_CANTOPEN, "")
         val nodeNote   = args.getString(ARG_DATA_NODE_NOTE,   "")
         val isPendingDeploy = args.getString(ARG_DATA_IS_PENDING_DEPLOY, "")
+        val isVirtualArg = args.getString(ARG_DATA_IS_VIRTUAL, "0")
 
         val hasAnyData = listOf(
             spiNum, nodeTyp, matTyp, nodeX, nodeY, nodeLe,
             xyNum, coverDep, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote,
-            isPendingDeploy
-        ).any { it.isNotEmpty() }
+            isPendingDeploy, isVirtualArg
+        ).any { it.isNotEmpty() && it != "0" && it != "false" }
 
         if (hasAnyData) {
+            setVirtualMode(parseLooseBoolean(isVirtualArg))
             binding.etGutterId.setText(spiNum)
             binding.rgGutterType.setCheckedByText(nodeTypCodeToText(nodeTyp))
             binding.rgMatType.setCheckedByText(matTypCodeToText(matTyp))
@@ -236,7 +240,11 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsBroken.setCheckedByText(isBrokenCodeToText(isBroken))
             binding.rgIsHanging.setCheckedByText(isHangingCodeToText(isHanging))
             binding.rgIsSilt.setCheckedByText(isSiltCodeToText(isSilt))
-            binding.cbCantOpen.isChecked = parseLooseBoolean(isCantOpen)
+            
+            val cantOpenBool = parseLooseBoolean(isCantOpen)
+            binding.cbCantOpen.isChecked = cantOpenBool
+            applyCantOpenUi(cantOpenBool)
+
             binding.etRemarks.setText(nodeNote)
             if (nodeX.isEmpty() && nodeY.isEmpty()) prefillCoordinates()
         } else {
@@ -298,17 +306,20 @@ class GutterBasicInfoFragment : Fragment() {
 
     private fun setCantOpenFieldsEnabled(enabled: Boolean) {
         // 需要被 disable 的欄位：溝蓋板厚度、深度、頂寬、材質、受損、附掛、淤積
-        listOf(binding.etCoverThickness, binding.etDepth, binding.etTopWidth).forEach { et ->
-            et.isEnabled = enabled
-            et.isFocusable = enabled
-            et.isFocusableInTouchMode = enabled
+        val viewsToToggle = listOf(
+            binding.etCoverThickness, binding.etDepth, binding.etTopWidth,
+            binding.rgMatType, binding.rgIsBroken, binding.rgIsHanging, binding.rgIsSilt
+        )
+        
+        viewsToToggle.forEach { v ->
+            v.isEnabled = enabled
+            if (v is android.widget.EditText) {
+                v.isFocusable = enabled
+                v.isFocusableInTouchMode = enabled
+            } else if (v is android.widget.RadioGroup) {
+                v.setChildrenEnabled(enabled)
+            }
         }
-        listOf(
-            binding.rgMatType,
-            binding.rgIsBroken,
-            binding.rgIsHanging,
-            binding.rgIsSilt
-        ).forEach { rg -> rg.setChildrenEnabled(enabled) }
 
         val alpha = if (enabled) 1f else 0.5f
         listOf(
@@ -437,14 +448,18 @@ class GutterBasicInfoFragment : Fragment() {
      */
     fun validateRequiredFields(): String? {
         val d = collectData()
+        val isVirtual = parseLooseBoolean(d["is_virtual"])
         val isCantOpen = parseLooseBoolean(d["IS_CANTOPEN"])
-        val isPendingDeploy = parseLooseBoolean(d["IS_PENDING_DEPLOY"])
 
-        // 新增與編輯模式均不驗證側溝編號（欄位已隱藏）
-        if (d["NODE_TYP"].isNullOrEmpty())    return "側溝形式"
-        if (d["NODE_X"].isNullOrEmpty())      return "側溝位置"
-        if (d["NODE_Y"].isNullOrEmpty())      return "側溝位置"
-        if (d["XY_NUM"].isNullOrEmpty())      return "測量座標編號"
+        // 虛擬模式下，僅驗證位置與座標編號
+        if (isVirtual) {
+            if (d["NODE_X"].isNullOrEmpty())      return "側溝位置"
+            if (d["NODE_Y"].isNullOrEmpty())      return "側溝位置"
+            if (d["XY_NUM"].isNullOrEmpty())      return "測量座標編號"
+            return null
+        }
+
+        val isPendingDeploy = parseLooseBoolean(d["IS_PENDING_DEPLOY"])
 
         // 不可開蓋：下方欄位可不填，直接通過
         if (isCantOpen) return null
@@ -547,6 +562,7 @@ class GutterBasicInfoFragment : Fragment() {
 
     /** 收集表單資料（供 GutterFormActivity 提交用） */
     fun collectData(): Map<String, String> = mapOf(
+        "is_virtual"  to (if (isVirtualMode) "1" else "0"),
         "SPI_NUM"     to (binding.etGutterId.text?.toString()      ?: ""),
         "NODE_TYP"    to gutterTypeTextToCode(binding.rgGutterType.getCheckedText()),
         "MAT_TYP"     to matTypeTextToCode(binding.rgMatType.getCheckedText()),
@@ -571,6 +587,16 @@ class GutterBasicInfoFragment : Fragment() {
     fun updateCoordinates(longitude: Double, latitude: Double) {
         coordXValue = "%.6f".format(longitude)
         coordYValue = "%.6f".format(latitude)
+        onDraftChanged?.invoke()
+    }
+
+    /** 切換虛擬點模式 */
+    fun setVirtualMode(isVirtual: Boolean) {
+        isVirtualMode = isVirtual
+        val visibility = if (isVirtual) View.GONE else View.VISIBLE
+        binding.llVirtualHidden1.visibility = visibility
+        binding.llVirtualHidden2.visibility = visibility
+        binding.llVirtualHidden3.visibility = visibility
         onDraftChanged?.invoke()
     }
 
@@ -724,12 +750,5 @@ class GutterBasicInfoFragment : Fragment() {
             "0", "false", "f", "n", "no", "", null -> false
             else -> false
         }
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString("saved_coord_x", coordXValue)
-        outState.putString("saved_coord_y", coordYValue)
-        outState.putBoolean("saved_is_form_editable", isFormEditable)
     }
 }

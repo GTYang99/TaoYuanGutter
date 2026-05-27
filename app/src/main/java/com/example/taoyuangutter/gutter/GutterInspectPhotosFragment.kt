@@ -100,7 +100,7 @@ class GutterInspectPhotosFragment : Fragment() {
             val p = photosByNodeId[node.nodeId]
             PointViewData(
                 nodeId = node.nodeId,
-                label = pointLabel(node, index),
+                label = pointLabel(node, detail, index),
                 details = detail,
                 photo1 = p?.photo1.orEmpty(),
                 photo2 = p?.photo2.orEmpty(),
@@ -137,14 +137,24 @@ class GutterInspectPhotosFragment : Fragment() {
     }
 
     private fun renderPoint(point: PointViewData) {
+        val isVirtual = point.details?.isVirtual == "1" || point.details?.isVirtual?.lowercase() == "true"
+        
         renderFields(point.details)
-        loadPhoto(point.photo1, binding.ivPhotoSlot1, binding.placeholderSlot1)
-        loadPhoto(point.photo2, binding.ivPhotoSlot2, binding.placeholderSlot2)
-        loadPhoto(point.photo3, binding.ivPhotoSlot3, binding.placeholderSlot3)
+        
+        if (isVirtual) {
+            // 虛擬點不下載/不顯示照片，維持空白佔位
+            loadPhoto(null, binding.ivPhotoSlot1, binding.placeholderSlot1)
+            loadPhoto(null, binding.ivPhotoSlot2, binding.placeholderSlot2)
+            loadPhoto(null, binding.ivPhotoSlot3, binding.placeholderSlot3)
+        } else {
+            loadPhoto(point.photo1, binding.ivPhotoSlot1, binding.placeholderSlot1)
+            loadPhoto(point.photo2, binding.ivPhotoSlot2, binding.placeholderSlot2)
+            loadPhoto(point.photo3, binding.ivPhotoSlot3, binding.placeholderSlot3)
+        }
 
-        binding.ivPhotoSlot1.setOnClickListener { showImageDetail(point.photo1) }
-        binding.ivPhotoSlot2.setOnClickListener { showImageDetail(point.photo2) }
-        binding.ivPhotoSlot3.setOnClickListener { showImageDetail(point.photo3) }
+        binding.ivPhotoSlot1.setOnClickListener { if (!isVirtual) showImageDetail(point.photo1) }
+        binding.ivPhotoSlot2.setOnClickListener { if (!isVirtual) showImageDetail(point.photo2) }
+        binding.ivPhotoSlot3.setOnClickListener { if (!isVirtual) showImageDetail(point.photo3) }
     }
 
     private fun showImageDetail(url: String) {
@@ -156,22 +166,37 @@ class GutterInspectPhotosFragment : Fragment() {
     private fun renderFields(details: NodeDetails?) {
         binding.layoutFields.removeAllViews()
 
-        val rows = listOf(
-            "待架站" to mapBooleanCode(details?.isPendingDeploy),
-            "側溝型式" to mapNodeType(details?.nodeTyP),
-            "側溝X(E)座標" to details?.nodeX,
-            "側溝Y(N)座標" to details?.nodeY,
-            "側溝高程" to details?.nodeLe,
-            "測量座標編號" to details?.xyNum,
-            "溝蓋板厚度(cm)" to details?.coverDepAsString,
-            "側溝頂寬度(cm)" to details?.nodeWidAsString,
-            "側溝測量深度(cm)" to details?.nodeDepAsString,
-            "側溝材質" to mapMaterialType(details?.matTyp),
-            "淤積程度" to mapSilt(details?.isSilt),
-            "溝體結構受損" to mapBoolean01(details?.isBroken == "1"),
-            "附掛或過路管線" to mapBoolean01(details?.isHanging == "1"),
-            "補充說明" to details?.note
-        )
+        val rows = mutableListOf<Pair<String, String?>>()
+        
+        val isVirtual = details?.isVirtual == "1" || details?.isVirtual?.lowercase() == "true"
+        
+        rows.add("待架站" to mapBooleanCode(details?.isPendingDeploy))
+        rows.add("虛擬點" to if (isVirtual) "是" else "否")
+        
+        if (!isVirtual) {
+            rows.add("側溝型式" to mapNodeType(details?.nodeTyP))
+        }
+        
+        rows.add("側溝X(E)座標" to details?.nodeX)
+        rows.add("側溝Y(N)座標" to details?.nodeY)
+        
+        if (!isVirtual) {
+            rows.add("側溝高程" to details?.nodeLe)
+        }
+        
+        rows.add("測量座標編號" to details?.xyNum)
+        
+        if (!isVirtual) {
+            rows.add("溝蓋板厚度(cm)" to details?.coverDepAsString)
+            rows.add("側溝頂寬度(cm)" to details?.nodeWidAsString)
+            rows.add("側溝測量深度(cm)" to details?.nodeDepAsString)
+            rows.add("側溝材質" to mapMaterialType(details?.matTyp))
+            rows.add("淤積程度" to mapSilt(details?.isSilt))
+            rows.add("溝體結構受損" to mapBoolean01(details?.isBroken == "1"))
+            rows.add("附掛或過路管線" to mapBoolean01(details?.isHanging == "1"))
+        }
+        
+        rows.add("補充說明" to details?.note)
 
         rows.forEach { (label, rawValue) ->
             binding.layoutFields.addView(createFieldRow(label, normalizeDisplayValue(rawValue)))
@@ -278,13 +303,17 @@ class GutterInspectPhotosFragment : Fragment() {
         emptyList()
     }
 
-    private fun pointLabel(node: DitchNode, index: Int): String = when (node.nodeAtt) {
-        "1" -> "起點"
-        "3" -> "終點"
-        else -> {
-            val num = node.nodeNum?.trim().orEmpty().toIntOrNull() ?: (index + 1)
-            "節點$num"
+    private fun pointLabel(node: DitchNode, details: NodeDetails?, index: Int): String {
+        val baseLabel = when (node.nodeAtt) {
+            "1" -> "起點"
+            "3" -> "終點"
+            else -> {
+                val num = node.nodeNum?.trim().orEmpty().toIntOrNull() ?: (index + 1)
+                "節點$num"
+            }
         }
+        val xyNum = details?.xyNum?.trim().orEmpty().takeIf { it.isNotEmpty() } ?: "---"
+        return "$baseLabel ($xyNum)"
     }
 
     private fun mapNodeType(code: String?): String = when (code) {

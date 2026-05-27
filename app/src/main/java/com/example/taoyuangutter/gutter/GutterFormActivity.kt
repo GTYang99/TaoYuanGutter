@@ -153,6 +153,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val EXTRA_DATA_IS_SILT     = "ex_is_silt"
         const val EXTRA_DATA_IS_CANTOPEN = "ex_is_cantopen"
         const val EXTRA_DATA_IS_PENDING_DEPLOY = "ex_is_pending_deploy"
+        const val EXTRA_DATA_IS_VIRTUAL  = "ex_is_virtual" // 新增：是否為虛擬點
         const val EXTRA_DATA_REMARKS     = "ex_node_note"
         const val EXTRA_DATA_PHOTO_1     = "ex_photo1"
         const val EXTRA_DATA_PHOTO_2     = "ex_photo2"
@@ -183,6 +184,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val RESULT_DATA_IS_SILT     = "r_is_silt"
         const val RESULT_DATA_IS_CANTOPEN = "r_is_cantopen"
         const val RESULT_DATA_IS_PENDING_DEPLOY = "r_is_pending_deploy"
+        const val RESULT_DATA_IS_VIRTUAL  = "r_is_virtual" // 新增：是否為虛擬點
         const val RESULT_DATA_REMARKS     = "r_node_note"
         const val RESULT_DATA_PHOTO_1     = "r_photo1"
         const val RESULT_DATA_PHOTO_2     = "r_photo2"
@@ -875,6 +877,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         setupTitleBar(titleText)
         setupViewPager(currentLat, currentLng, existingData)
         setupTabButtons()
+        
+        // 取得初始虛擬狀態
+        val isVirtualInitial = when (existingData["is_virtual"]?.trim()?.lowercase()) {
+            "1", "true", "y", "yes" -> true
+            else -> false
+        }
+        setupVirtualPointToggle(isVirtualInitial)
+        
         setupImportWaypointButton()
         setupFab()
         binding.viewPager.post { attachDraftSyncCallbacks() }
@@ -907,8 +917,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         "IS_BROKEN" to "",
         "IS_HANGING" to "",
         "IS_SILT"   to "",
+        "IS_CANTOPEN" to "",
+        "IS_PENDING_DEPLOY" to "",
         "NODE_NOTE" to "",
-        "photo1"    to "", "photo2" to "", "photo3" to ""
+        "photo1"    to "", "photo2" to "", "photo3" to "",
+        "is_virtual" to "0"
     )
 
     /**
@@ -1209,6 +1222,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.btnDone.setOnClickListener { saveAndFinish() }
         pagerAdapter.getBasicInfoFragment()?.setEditable(true)
         pagerAdapter.getPhotosFragment()?.setEditable(true)
+        binding.cbIsVirtual.isEnabled = true
         attachDraftSyncCallbacks()
     }
 
@@ -1220,6 +1234,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.btnEdit.setOnClickListener { enterEditMode() }
         pagerAdapter.getBasicInfoFragment()?.setEditable(false)
         pagerAdapter.getPhotosFragment()?.setEditable(false)
+        binding.cbIsVirtual.isEnabled = false
     }
 
     private fun saveAndFinish() {
@@ -1322,6 +1337,12 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             binding.fabSubmit.text = getString(R.string.form_finish_button)
         }
         binding.fabSubmit.setOnClickListener {
+            if (binding.cbIsVirtual.isChecked) {
+                // 虛擬點模式：直接上傳/完成，跳過照片驗證
+                if (isOfflineMode) saveOfflineAndClose(silent = false) else buildAndFinishWithResult()
+                return@setOnClickListener
+            }
+
             when {
                 isOfflineMode -> saveOfflineAndClose(silent = false)
                 isEditMode && binding.viewPager.currentItem == 1 -> {
@@ -1342,6 +1363,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             Toast.makeText(this, String.format(getString(R.string.msg_fill_required), basicError), Toast.LENGTH_SHORT).show()
             return
         }
+
+        // 虛擬點不需驗證照片
+        if (binding.cbIsVirtual.isChecked) {
+            buildAndFinishWithResult()
+            return
+        }
+
         val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
         if (photoError != null) {
             binding.viewPager.currentItem = 1
@@ -1657,11 +1685,15 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	                Toast.makeText(this, String.format(getString(R.string.msg_fill_required), basicError), Toast.LENGTH_SHORT).show()
 	                return
 	            }
-            val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
-            if (photoError != null) {
-                binding.viewPager.currentItem = 1
-                Toast.makeText(this, String.format(getString(R.string.msg_take_photo_required), photoError), Toast.LENGTH_SHORT).show()
-                return
+
+            // 虛擬點不需驗證照片
+            if (!binding.cbIsVirtual.isChecked) {
+                val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
+                if (photoError != null) {
+                    binding.viewPager.currentItem = 1
+                    Toast.makeText(this, String.format(getString(R.string.msg_take_photo_required), photoError), Toast.LENGTH_SHORT).show()
+                    return
+                }
 	            }
 	        }
 	        lifecycleScope.launch {
@@ -1687,9 +1719,46 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         outState.putString("saved_waypoints_json", Gson().toJson(sessionWaypoints))
         outState.putBoolean("saved_is_view_mode", isViewMode)
         outState.putBoolean("saved_is_edit_mode", isEditMode)
+        outState.putBoolean("saved_is_virtual", binding.cbIsVirtual.isChecked)
         outState.putDouble("saved_current_lat", currentLat)
         outState.putDouble("saved_current_lng", currentLng)
         outState.putBoolean("saved_has_shown_edit_polyline", hasShownEditPolyline)
         outState.putLong("saved_session_draft_id", sessionDraftId)
+    }
+
+    private fun setupVirtualPointToggle(isVirtualInitial: Boolean) {
+        binding.cbIsVirtual.isChecked = isVirtualInitial
+        // 先對 Activity 自有的 UI 進行立即反應
+        applyVirtualModeUi(isVirtualInitial)
+
+        binding.cbIsVirtual.isEnabled = !isViewMode
+        binding.cbIsVirtual.setOnCheckedChangeListener { _, isChecked ->
+            // 通知 Fragment
+            pagerAdapter.getBasicInfoFragment()?.setVirtualMode(isChecked)
+            // 更新 Activity UI
+            applyVirtualModeUi(isChecked)
+            queueSessionDraftSync()
+        }
+    }
+
+    /** 僅更新 Activity 層級的 UI（Tab, ViewPager 等）*/
+    private fun applyVirtualModeUi(isVirtual: Boolean) {
+        binding.switchPageBar.visibility = if (isVirtual) View.GONE else View.VISIBLE
+        
+        if (isOfflineMode) {
+            binding.importWaypointBar.visibility = View.GONE
+        } else {
+            binding.importWaypointBar.visibility = if (isVirtual) View.GONE else View.VISIBLE
+        }
+
+        binding.viewPager.isUserInputEnabled = !isVirtual
+        if (isVirtual && binding.viewPager.currentItem != 0) {
+            binding.viewPager.setCurrentItem(0, false)
+        }
+    }
+
+    private fun applyVirtualMode(isVirtual: Boolean) {
+        pagerAdapter.getBasicInfoFragment()?.setVirtualMode(isVirtual)
+        applyVirtualModeUi(isVirtual)
     }
 }

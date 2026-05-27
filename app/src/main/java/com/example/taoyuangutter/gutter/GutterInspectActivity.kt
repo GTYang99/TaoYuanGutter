@@ -125,8 +125,10 @@ class GutterInspectActivity : AppCompatActivity() {
         preloadedNodePhotosJson = intent.getStringExtra(EXTRA_PRELOADED_NODE_PHOTOS_JSON) ?: "[]"
 
         setupTitleBar(ditch)
-        setupViewPager(ditch, preloadedNodeDetailsJson, preloadedNodePhotosJson)
-        setupTabs(ditch?.nodes?.size ?: 0)
+        
+        val isVirtual = parseLooseBoolean(ditch?.isVirtual)
+        setupViewPager(ditch, preloadedNodeDetailsJson, preloadedNodePhotosJson, isVirtual)
+        setupTabs(ditch?.nodes?.size ?: 0, isVirtual)
 
         // group_id 一致才顯示編輯按鈕並掛載點擊事件
         val canEdit = intent.getBooleanExtra(EXTRA_CAN_EDIT, false)
@@ -192,20 +194,22 @@ class GutterInspectActivity : AppCompatActivity() {
     private fun setupViewPager(
         ditch: DitchDetails?,
         preloadedNodeDetailsJson: String,
-        preloadedPhotosJson: String
+        preloadedPhotosJson: String,
+        isVirtual: Boolean
     ) {
         val adapter = InspectPagerAdapter(
             activity = this,
             ditch = ditch,
             preloadedNodeDetailsJson = preloadedNodeDetailsJson,
-            preloadedPhotosJson = preloadedPhotosJson
+            preloadedPhotosJson = preloadedPhotosJson,
+            isVirtual = isVirtual
         )
         binding.viewPager.adapter = adapter
-        binding.viewPager.isUserInputEnabled = false
+        binding.viewPager.isUserInputEnabled = !isVirtual
         binding.viewPager.offscreenPageLimit = 1
     }
 
-    private fun setupTabs(pointCount: Int) {
+    private fun setupTabs(pointCount: Int, isVirtual: Boolean) {
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             tab.text = when (position) {
                 0 -> getString(com.example.taoyuangutter.R.string.tab_basic_info)
@@ -213,6 +217,9 @@ class GutterInspectActivity : AppCompatActivity() {
                 else -> ""
             }
         }.attach()
+        
+        // 虛擬點不再隱藏 Tab，維持原本樣式
+        binding.tabLayout.visibility = View.VISIBLE
     }
 
     // ── 編輯 ─────────────────────────────────────────────────────────────
@@ -361,6 +368,7 @@ class GutterInspectActivity : AppCompatActivity() {
                 "NODE_WID" to nodeDetails.nodeWidAsString,
                 "IS_CANTOPEN" to (if (nodeDetails.isCantOpenAsBoolean) "1" else "0"),
                 "IS_PENDING_DEPLOY" to (if (parseLooseBoolean(node.isPendingDeploy)) "1" else "0"),
+                "is_virtual" to (ditch.isVirtual ?: "0"),
                 "IS_BROKEN" to (nodeDetails.isBroken ?: ""),
                 "IS_HANGING" to (nodeDetails.isHanging ?: ""),
                 "IS_SILT" to (nodeDetails.isSilt ?: ""),
@@ -436,6 +444,7 @@ class GutterInspectActivity : AppCompatActivity() {
                     hashMapOf(
                         "_nodeId"    to node.nodeId.toString(),
                         "SPI_NUM"    to d.spiNum,
+                        "is_virtual" to (d.isVirtual ?: "0"),
                         "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0")
                     )
                 ))
@@ -444,6 +453,7 @@ class GutterInspectActivity : AppCompatActivity() {
                     hashMapOf(
                         "_nodeId"    to node.nodeId.toString(),
                         "SPI_NUM"    to d.spiNum,
+                        "is_virtual" to (d.isVirtual ?: "0"),
                         "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0")
                     )
                 ))
@@ -452,6 +462,7 @@ class GutterInspectActivity : AppCompatActivity() {
                     hashMapOf(
                         "_nodeId"    to node.nodeId.toString(),
                         "SPI_NUM"    to d.spiNum,
+                        "is_virtual" to (d.isVirtual ?: "0"),
                         "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0")
                     )
                 ))
@@ -470,13 +481,14 @@ class GutterInspectActivity : AppCompatActivity() {
         activity: FragmentActivity,
         private val ditch: DitchDetails?,
         private val preloadedNodeDetailsJson: String,
-        private val preloadedPhotosJson: String
+        private val preloadedPhotosJson: String,
+        private val isVirtual: Boolean
     ) : FragmentStateAdapter(activity) {
 
         override fun getItemCount(): Int = 2
 
         override fun createFragment(position: Int): Fragment = when (position) {
-            0    -> GutterInspectBasicFragment.newInstance(ditch)
+            0    -> GutterInspectBasicFragment.newInstance(ditch, preloadedNodeDetailsJson)
             1    -> GutterInspectPhotosFragment.newInstance(
                 nodes = ditch?.nodes ?: emptyList(),
                 preloadedNodeDetailsJson = preloadedNodeDetailsJson,

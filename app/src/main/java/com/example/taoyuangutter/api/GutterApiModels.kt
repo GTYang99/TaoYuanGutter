@@ -219,6 +219,8 @@ data class DitchDetails(
     @SerializedName("is_curve") val isCurve: String? = null,
     /** 是否含待架站點位：0/1（後端可能回傳字串或數字字串） */
     @SerializedName("is_pendingDeploy") val isPendingDeploy: String? = null,
+    /** 是否為虛擬點：0/1 */
+    @SerializedName("is_virtual") val isVirtual: String? = null,
     @SerializedName("SPI_TYP")  val spiTyp: String?,
     /** 測量座標編號（依起點/節點/終點分段） */
     @SerializedName("XY_NUM")   val xyNum: DitchXyNum? = null,
@@ -351,6 +353,8 @@ data class NodeDetails(
     @SerializedName("longitude")  val longitude: String?,
     /** 待架站：0/1/null（後端可能回傳字串） */
     @SerializedName("is_pendingDeploy") val isPendingDeploy: String? = null,
+    /** 是否為虛擬點：0/1 */
+    @SerializedName("is_virtual") val isVirtual: String? = null,
     /** 已上傳的照片列表 */
     @SerializedName("node_img")   val nodeImg: List<NodeImg> = emptyList(),
     /** 與查詢點的距離（closestNodeDetails 會回傳，可能為字串數字） */
@@ -463,6 +467,8 @@ data class StoreDitchNodeRequest(
     @SerializedName("is_pendingDeploy") val isPendingDeploy: Int = 0,
     /** 無法開蓋：0=false、1=true */
     @SerializedName("IS_CANTOPEN") val isCantOpen: Int,
+    /** 是否為虛擬點：true/false */
+    @SerializedName("is_virtual") val isVirtual: Boolean = false,
     /** 深度（公分） */
     @SerializedName("NODE_DEP")   val nodeDep: Int?,
     /** 寬度（公分） */

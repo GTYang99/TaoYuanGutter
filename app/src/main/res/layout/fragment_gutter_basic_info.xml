@@ -4,7 +4,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorBackground"
+    android:background="@color/colorSurface"
     android:fillViewport="true">
 
     <LinearLayout
@@ -16,104 +16,113 @@
         android:paddingTop="16dp"
         android:paddingBottom="96dp">
 
-        <!-- ① 側溝編號 ─────────────────────────────────────────── -->
-        <TextView
-            android:id="@+id/tilGutterTitle"
+        <!-- 虛擬模式下隱藏的區段 1 -->
+        <LinearLayout
+            android:id="@+id/llVirtualHidden1"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/field_gutter_id"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="4dp" />
+            android:orientation="vertical">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilGutterId"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etGutterId"
+            <!-- ① 側溝編號 ─────────────────────────────────────────── -->
+            <TextView
+                android:id="@+id/tilGutterTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="text"
-                android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
+                android:text="@string/field_gutter_id"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="4dp" />
 
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- ② 側溝形式 ─────────────────────────────────────────── -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/field_gutter_type"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
-
-        <RadioGroup
-            android:id="@+id/rgGutterType"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:background="@color/white"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:paddingTop="4dp"
-            android:paddingBottom="4dp"
-            android:layout_marginBottom="16dp">
-
-            <RadioButton
-                android:id="@+id/rbGutterType0"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilGutterId"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/gutter_type_u_open"
-                android:buttonTint="@color/colorPrimary"
-                android:textColor="@color/textColorPrimary"
-                android:textSize="14sp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp" />
+                android:layout_marginBottom="16dp"
+                app:hintEnabled="false"
+                app:boxStrokeColor="@color/colorPrimary"
+                app:boxBackgroundColor="@color/white">
 
-            <RadioButton
-                android:id="@+id/rbGutterType1"
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etGutterId"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/textColorPrimary"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <!-- ② 側溝形式 ─────────────────────────────────────────── -->
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/gutter_type_u_covered"
-                android:buttonTint="@color/colorPrimary"
-                android:textColor="@color/textColorPrimary"
-                android:textSize="14sp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp" />
+                android:text="@string/field_gutter_type"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary"
+                android:layout_marginBottom="4dp" />
 
-            <RadioButton
-                android:id="@+id/rbGutterType2"
+            <RadioGroup
+                android:id="@+id/rgGutterType"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/gutter_type_l_mixed"
-                android:buttonTint="@color/colorPrimary"
-                android:textColor="@color/textColorPrimary"
-                android:textSize="14sp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp" />
+                android:orientation="vertical"
+                android:background="@color/white"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp"
+                android:layout_marginBottom="16dp">
 
-            <RadioButton
-                android:id="@+id/rbGutterType3"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/gutter_type_other"
-                android:buttonTint="@color/colorPrimary"
-                android:textColor="@color/textColorPrimary"
-                android:textSize="14sp"
-                android:paddingTop="10dp"
-                android:paddingBottom="10dp" />
+                <RadioButton
+                    android:id="@+id/rbGutterType0"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/gutter_type_u_open"
+                    android:buttonTint="@color/colorPrimary"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="14sp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp" />
 
-        </RadioGroup>
+                <RadioButton
+                    android:id="@+id/rbGutterType1"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/gutter_type_u_covered"
+                    android:buttonTint="@color/colorPrimary"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="14sp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp" />
+
+                <RadioButton
+                    android:id="@+id/rbGutterType2"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/gutter_type_l_mixed"
+                    android:buttonTint="@color/colorPrimary"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="14sp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp" />
+
+                <RadioButton
+                    android:id="@+id/rbGutterType3"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/gutter_type_other"
+                    android:buttonTint="@color/colorPrimary"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="14sp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp" />
+
+            </RadioGroup>
+
+        </LinearLayout>
 
         <!-- ④ 側溝位置 ─────────────────────────────────────────── -->
         <TextView
@@ -142,36 +151,45 @@
             app:strokeWidth="1dp"
             />
 
-        <!-- ⑤ 側溝Z座標 ─────────────────────────────────────────── -->
-        <TextView
-            android:id="@+id/tvCoordZTitle"
+        <!-- 虛擬模式下隱藏的區段 2 -->
+        <LinearLayout
+            android:id="@+id/llVirtualHidden2"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/field_coord_z"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
+            android:orientation="vertical">
 
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilCoordZ"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etCoordZ"
+            <!-- ⑤ 側溝Z座標 ─────────────────────────────────────────── -->
+            <TextView
+                android:id="@+id/tvCoordZTitle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="numberDecimal|numberSigned"
-                android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
+                android:text="@string/field_coord_z"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary"
+                android:layout_marginBottom="4dp" />
 
-        </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilCoordZ"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:hintEnabled="false"
+                app:boxStrokeColor="@color/colorPrimary"
+                app:boxBackgroundColor="@color/white">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etCoordZ"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="numberDecimal|numberSigned"
+                    android:textColor="@color/textColorPrimary"
+                    android:paddingTop="14dp"
+                    android:paddingBottom="14dp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+        </LinearLayout>
 
         <!-- ⑥ 測量座標編號 ──────────────────────────────────────── -->
         <LinearLayout
@@ -217,9 +235,14 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- 虛擬模式下隱藏的區段 3 -->
+        <LinearLayout
+            android:id="@+id/llVirtualHidden3"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-
-        <!-- ⑦ 溝蓋板厚度 ───────────────────────────────────────── -->
+            <!-- ⑦ 溝蓋板厚度 ───────────────────────────────────────── -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -571,6 +594,8 @@
                 android:paddingBottom="14dp" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        </LinearLayout>
 
     </LinearLayout>
 

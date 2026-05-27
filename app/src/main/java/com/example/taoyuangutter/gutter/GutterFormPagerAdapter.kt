@@ -21,7 +21,12 @@ class GutterFormPagerAdapter(
 
     override fun createFragment(position: Int): Fragment {
         val frag: Fragment = when (position) {
-            0 -> GutterBasicInfoFragment.newInstance(latitude, longitude, viewMode, basicData, isOfflineMode, isEditMode)
+            0 -> {
+                val isVirtual = basicData["is_virtual"] ?: basicData["IS_VIRTUAL"] ?: "0"
+                GutterBasicInfoFragment.newInstance(
+                    latitude, longitude, viewMode, basicData, isOfflineMode, isEditMode, isVirtual
+                )
+            }
             1 -> GutterPhotosFragment.newInstance(
                     viewMode,
                     photo1 = basicData["photo1"],

@@ -503,7 +503,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             ): Boolean {
                 val from = viewHolder.adapterPosition
                 val to   = target.adapterPosition
-                val moved = waypoints.removeAt(from)
+                val moved = waypoints[from]
+                
+                // 限制：虛擬點不可移動到第一筆或最後一筆
+                if (moved.isVirtual && (to == 0 || to == waypoints.size - 1)) {
+                    Toast.makeText(requireContext(), "虛擬點不可作為起點或終點", Toast.LENGTH_SHORT).show()
+                    return false
+                }
+                
+                // 限制：如果原本的第一筆或最後一筆被移走，而遞補上來的是虛擬點，也要擋住
+                // 但 RecyclerView 的 onMove 是逐格移動，通常上述 moved.isVirtual 判斷已足夠。
+
+                waypoints.removeAt(from)
                 waypoints.add(to, moved)
                 reclassifyWaypoints()
                 adapter.notifyItemMoved(from, to)
@@ -998,6 +1009,16 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun validateWaypointPhotosAndFieldsOrAlert(waypoints: List<Waypoint>): Boolean {
         val ctx = context ?: return false
 
+        // ① 檢查起訖點是否為虛擬點
+        if (waypoints.firstOrNull()?.isVirtual == true) {
+            Toast.makeText(ctx, "起點不可為虛擬點", Toast.LENGTH_SHORT).show()
+            return false
+        }
+        if (waypoints.lastOrNull()?.isVirtual == true) {
+            Toast.makeText(ctx, "終點不可為虛擬點", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
         fun isPhotoAvailable(uriString: String?): Boolean {
             if (uriString.isNullOrBlank()) return false
             val uri = runCatching { android.net.Uri.parse(uriString) }.getOrNull() ?: return false
@@ -1022,6 +1043,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             "IS_HANGING",
             "IS_SILT"
         )
+        val virtualRequiredKeys = listOf("NODE_X", "NODE_Y", "XY_NUM")
         val requiredPhotoKeys = listOf("photo1", "photo2", "photo3")
 
         val issues = mutableListOf<String>()
@@ -1035,18 +1057,25 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
 
             val isCantOpen = wp.basicData["IS_CANTOPEN"] == "1"
-            val requiredKeys =
-                if (isCantOpen) baseRequiredBasicKeys else baseRequiredBasicKeys + requiredWhenCanOpenKeys
+            
+            val requiredKeys = when {
+                wp.isVirtual -> virtualRequiredKeys
+                isCantOpen -> baseRequiredBasicKeys
+                else -> baseRequiredBasicKeys + requiredWhenCanOpenKeys
+            }
+            
             val missingFields = requiredKeys.filter { wp.basicData[it].isNullOrBlank() }
             if (missingFields.isNotEmpty()) {
                 issues.add("$pointLabel：缺少欄位 ${missingFields.joinToString("、")}")
             }
 
-            val missingPhotos = requiredPhotoKeys.filter { key -> !isPhotoAvailable(wp.basicData[key]) }
-            if (missingPhotos.isNotEmpty()) {
-                val pretty = missingPhotos.mapNotNull { it.removePrefix("photo").toIntOrNull() }.sorted()
-                val prettyText = if (pretty.isEmpty()) missingPhotos.joinToString(",") else pretty.joinToString(", ")
-                issues.add("$pointLabel：缺少照片（第 $prettyText 張）")
+            if (!wp.isVirtual) {
+                val missingPhotos = requiredPhotoKeys.filter { key -> !isPhotoAvailable(wp.basicData[key]) }
+                if (missingPhotos.isNotEmpty()) {
+                    val pretty = missingPhotos.mapNotNull { it.removePrefix("photo").toIntOrNull() }.sorted()
+                    val prettyText = if (pretty.isEmpty()) missingPhotos.joinToString(",") else pretty.joinToString(", ")
+                    issues.add("$pointLabel：缺少照片（第 $prettyText 張）")
+                }
             }
         }
 
@@ -1230,6 +1259,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 	                val isCantOpenInt = if (isCantOpenBool) 1 else 0
                     val isPendingDeployInt =
                         if (parseLooseBoolean(wp.basicData["IS_PENDING_DEPLOY"])) 1 else 0
+                    val isVirtualBool = wp.isVirtual
                     val coverDep = wp.basicData["COVER_DEP"]
 	                StoreDitchNodeRequest(
 	                    nodeId    = requestNodeId,
@@ -1242,13 +1272,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 	                    xyNum     = wp.basicData["XY_NUM"] ?: "",
                         isPendingDeploy = isPendingDeployInt,
 	                    isCantOpen = isCantOpenInt,
-	                    matTyp    = if (isCantOpenBool) null else (wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
-	                    nodeDep   = if (isCantOpenBool) null else (wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),
-	                    nodeWid   = if (isCantOpenBool) null else (wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0),
-	                    coverDep  = if (isCantOpenBool) null else coverDep?.toIntOrNull(),
-	                    isBroken  = if (isCantOpenBool) null else (wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0),
-	                    isHanging = if (isCantOpenBool) null else (wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
-	                    isSilt    = if (isCantOpenBool) null else (wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
+                        isVirtual = isVirtualBool,
+	                    matTyp    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
+	                    nodeDep   = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),
+	                    nodeWid   = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0),
+	                    coverDep  = if (isCantOpenBool || isVirtualBool) null else coverDep?.toIntOrNull(),
+	                    isBroken  = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0),
+	                    isHanging = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
+	                    isSilt    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
 	                    nodeNote  = wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() }
 	                )
             }

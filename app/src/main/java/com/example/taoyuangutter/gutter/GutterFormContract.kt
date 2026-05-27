@@ -30,6 +30,7 @@ object GutterFormContract {
             GutterFormActivity.EXTRA_DATA_IS_PENDING_DEPLOY,
             data["IS_PENDING_DEPLOY"] ?: data["is_pendingDeploy"] ?: data["isPendingDeploy"] ?: ""
         )
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_IS_VIRTUAL, data["is_virtual"] ?: data["IS_VIRTUAL"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_REMARKS, data["NODE_NOTE"] ?: data["remarks"] ?: "")
         
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1, data["photo1"] ?: "")
@@ -58,6 +59,7 @@ object GutterFormContract {
             "IS_SILT" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_SILT) ?: ""),
             "IS_CANTOPEN" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_CANTOPEN) ?: ""),
             "IS_PENDING_DEPLOY" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_PENDING_DEPLOY) ?: ""),
+            "is_virtual" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_VIRTUAL) ?: ""),
             "NODE_NOTE" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_REMARKS) ?: ""),
             "photo1" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1) ?: ""),
             "photo2" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2) ?: ""),
@@ -99,6 +101,7 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_SILT, basicData["IS_SILT"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_PENDING_DEPLOY, basicData["IS_PENDING_DEPLOY"] ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_IS_VIRTUAL, basicData["is_virtual"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_REMARKS, basicData["NODE_NOTE"] ?: "")
         
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_1, photo1 ?: "")
@@ -123,6 +126,7 @@ object GutterFormContract {
             "IS_SILT" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_SILT) ?: ""),
             "IS_CANTOPEN" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_CANTOPEN) ?: ""),
             "IS_PENDING_DEPLOY" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_PENDING_DEPLOY) ?: ""),
+            "is_virtual" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_VIRTUAL) ?: ""),
             "NODE_NOTE" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS) ?: ""),
             "photo1" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1) ?: ""),
             "photo2" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2) ?: ""),
