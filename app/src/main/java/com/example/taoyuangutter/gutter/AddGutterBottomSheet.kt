@@ -527,12 +527,26 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 val pos = viewHolder.adapterPosition
                 if (pos < 0 || pos >= waypoints.size) return
                 // 安全檢查：只允許節點左滑直接刪除
-                if (waypoints[pos].type != WaypointType.NODE) {
+                val wp = waypoints[pos]
+                if (wp.type != WaypointType.NODE) {
                     adapter.notifyItemChanged(pos)
                     return
                 }
-                waypoints.removeAt(pos)
-                renumberAll()
+
+                // 新增：刪除確認對話框
+                MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("確認刪除")
+                    .setMessage("確定要刪除「${wp.label}」嗎？已輸入的資料與照片將會遺失。")
+                    .setNegativeButton("取消") { _, _ ->
+                        // 使用者取消：將滑開的 item 彈回
+                        adapter.notifyItemChanged(pos)
+                    }
+                    .setPositiveButton("確定刪除") { _, _ ->
+                        waypoints.removeAt(pos)
+                        renumberAll()
+                    }
+                    .setCancelable(false)
+                    .show()
             }
 
             override fun onChildDraw(
@@ -1016,6 +1030,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         }
         if (waypoints.lastOrNull()?.isVirtual == true) {
             Toast.makeText(ctx, "終點不可為虛擬點", Toast.LENGTH_SHORT).show()
+            return false
+        }
+
+        // ② 檢查是否有重複的座標編號 (XY_NUM)
+        val xyNums = waypoints.mapNotNull { it.basicData["XY_NUM"]?.trim()?.takeIf { s -> s.isNotEmpty() } }
+        val duplicates = xyNums.groupBy { it }.filter { it.value.size > 1 }.keys
+        if (duplicates.isNotEmpty()) {
+            MaterialAlertDialogBuilder(ctx)
+                .setTitle("座標編號重複")
+                .setMessage("發現重複的編號：${duplicates.joinToString("、")}\n請修正後再試。")
+                .setPositiveButton("確定", null)
+                .show()
             return false
         }
 
