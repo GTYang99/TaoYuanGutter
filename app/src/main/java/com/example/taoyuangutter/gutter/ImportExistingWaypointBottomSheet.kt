@@ -457,11 +457,14 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                 when (result) {
                     is ApiResult.Success -> {
                         val list = result.data.data ?: emptyList()
-                        if (list.isEmpty())
+                        if (list.isEmpty()) {
                             setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("無資料")))
-                        else
+                            callbacks?.onCandidateWaypointsChanged(emptyList())
+                        } else {
                             setRowsFor(targetPage, list.map { ImportWaypointAdapter.Row.Waypoint(it) })
-                        // 初次不在地圖顯示任何候選點；選取後才縮放移動
+                            // 觸發地圖批次投放
+                            callbacks?.onCandidateWaypointsChanged(list)
+                        }
                     }
                     is ApiResult.Error -> {
                         Toast.makeText(ctx, "載入失敗：${result.message}", Toast.LENGTH_SHORT).show()

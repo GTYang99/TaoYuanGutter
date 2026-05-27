@@ -333,6 +333,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var regionWmsOverlay: TileOverlay? = null
 
     private val sessionMarkers = mutableListOf<Marker>()
+    private val importCandidateMarkers = mutableListOf<Marker>() // 候選點標記列表
     private var sessionPolyline: Polyline? = null
     private var referencePolyline: Polyline? = null
 
@@ -508,7 +509,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		                }
 
 	                override fun onCandidateWaypointsChanged(items: List<NodeDetails>) {
-	                    // 初次載入清單不在地圖顯示候選點；只有選取後才縮放到該點。
+	                    showImportCandidateWaypoints(items)
 	                }
 
 	                override fun onWaypointSelected(item: NodeDetails?) {
@@ -737,28 +738,180 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        importCenterMarker?.remove()
 	        importCenterMarker = null
 
-	        if (item == null) return
+	        if (item == null) {
+                // 若取消選取，恢復所有候選點的可見性
+                importCandidateMarkers.forEach { it.isVisible = true }
+                return
+            }
 	        val lat = item.latitude?.toDoubleOrNull()
 	        val lng = item.longitude?.toDoubleOrNull()
 	        if (lat == null || lng == null) return
 	        val target = LatLng(lat, lng)
+            val xyNum = item.xyNum ?: "---"
 
-	        // Use the same marker style as distance-measure start point.
+            // 附近模式：選取時「不隱藏」其他點，而是將選中的點位在高亮層級
+            // 我們可以透過隱藏「候選標記中與選中項相同 node_id 的那一個」來避免重疊
+            importCandidateMarkers.forEach { 
+                val markerItem = it.tag as? NodeDetails
+                it.isVisible = markerItem?.nodeId != item.nodeId
+            }
+
+	        // 建立選中樣式：醒目大圓點 + 單一標籤
 	        importCenterMarker = formMap?.addMarker(
 	            MarkerOptions()
 	                .position(target)
-	                .title(item.xyNum ?: "點位")
-	                .icon(BitmapDescriptorFactory.defaultMarker(256f))
+	                .title(xyNum)
+	                .icon(createSelectedLargeMarker(xyNum))
+                    .anchor(0.5f, 1.0f)
+                    .zIndex(1.0f) // 確保在最上層
 	        )
 	        // Move/zoom to the selected point (will be centered in the upper-half due to map padding).
 	        formMap?.animateCamera(CameraUpdateFactory.newLatLngZoom(target, 18f))
 	    }
+
+        private fun createSelectedLargeMarker(label: String): com.google.android.gms.maps.model.BitmapDescriptor {
+            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = 36f // 選中文字稍微大一點
+                textAlign = android.graphics.Paint.Align.CENTER
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            }
+
+            val textBounds = android.graphics.Rect()
+            paint.getTextBounds(label, 0, label.length, textBounds)
+
+            val padding = 14
+            val markerRadius = 22 // 放大圓點
+            val width = maxOf(textBounds.width() + padding * 2, markerRadius * 2)
+            val height = textBounds.height() + padding * 2 + markerRadius * 2 + 12
+
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+
+            // 1. 畫放大圓點 (Marker dot) - 藍底白邊
+            val dotPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.WHITE
+                style = android.graphics.Paint.Style.FILL
+            }
+            canvas.drawCircle(width / 2f, height - markerRadius.toFloat(), markerRadius.toFloat(), dotPaint)
+            
+            dotPaint.color = android.graphics.Color.parseColor("#4285F4") // Google Blue
+            canvas.drawCircle(width / 2f, height - markerRadius.toFloat(), markerRadius.toFloat() - 4, dotPaint)
+            
+            // 2. 畫文字背景 (Rounded Rect) - 選中時背景更實一點
+            val bgPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.WHITE
+                style = android.graphics.Paint.Style.FILL
+                setShadowLayer(8f, 0f, 4f, android.graphics.Color.parseColor("#40000000"))
+            }
+            val bgRect = android.graphics.RectF((width - textBounds.width() - padding * 2) / 2f, 0f, (width + textBounds.width() + padding * 2) / 2f, (textBounds.height() + padding * 2).toFloat())
+            canvas.drawRoundRect(bgRect, 12f, 12f, bgPaint)
+            
+            // 3. 畫文字
+            paint.color = android.graphics.Color.parseColor("#4285F4") // 文字也用藍色強調
+            canvas.drawText(label, width / 2f, padding + textBounds.height().toFloat(), paint)
+
+            return BitmapDescriptorFactory.fromBitmap(bitmap)
+        }
+
+        private fun showImportCandidateWaypoints(items: List<NodeDetails>) {
+            val map = formMap ?: return
+            clearImportCandidateMarkers()
+
+            if (items.isEmpty()) return
+
+            val builder = com.google.android.gms.maps.model.LatLngBounds.Builder()
+            var hasValidPoint = false
+
+            items.forEach { item ->
+                val lat = item.latitude?.toDoubleOrNull()
+                val lng = item.longitude?.toDoubleOrNull()
+                if (lat != null && lng != null) {
+                    val pos = LatLng(lat, lng)
+                    val xyNum = item.xyNum ?: "---"
+                    
+                    val marker = map.addMarker(
+                        MarkerOptions()
+                            .position(pos)
+                            .title(xyNum)
+                            .icon(createMarkerWithLabel(xyNum))
+                            .anchor(0.5f, 1.0f)
+                            .zIndex(0.5f)
+                    )
+                    marker?.let { 
+                        it.tag = item // 存入資料供未來點擊互動
+                        importCandidateMarkers.add(it) 
+                    }
+                    builder.include(pos)
+                    hasValidPoint = true
+                }
+            }
+
+            if (hasValidPoint) {
+                val bounds = builder.build()
+                // 縮放鏡頭以容納所有候選點，並考慮到 padding
+                map.animateCamera(CameraUpdateFactory.newLatLngBounds(bounds, 150))
+            }
+        }
+
+        private fun createMarkerWithLabel(label: String): com.google.android.gms.maps.model.BitmapDescriptor {
+            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = 32f
+                textAlign = android.graphics.Paint.Align.CENTER
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            }
+
+            val textBounds = android.graphics.Rect()
+            paint.getTextBounds(label, 0, label.length, textBounds)
+
+            val padding = 12
+            val markerRadius = 15
+            val width = textBounds.width() + padding * 2
+            val height = textBounds.height() + padding * 2 + markerRadius * 2 + 10
+
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+
+            // 1. 畫圓點 (Marker dot)
+            val dotPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#4285F4") // Google Blue
+                style = android.graphics.Paint.Style.FILL
+            }
+            canvas.drawCircle(width / 2f, height - markerRadius.toFloat(), markerRadius.toFloat(), dotPaint)
+            
+            // 2. 畫文字背景 (Rounded Rect)
+            val bgPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#CCFFFFFF") // 半透明白
+                style = android.graphics.Paint.Style.FILL
+            }
+            val bgRect = android.graphics.RectF(0f, 0f, width.toFloat(), (textBounds.height() + padding * 2).toFloat())
+            canvas.drawRoundRect(bgRect, 10f, 10f, bgPaint)
+            
+            // 3. 畫邊框
+            val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#B7B7C2")
+                style = android.graphics.Paint.Style.STROKE
+                strokeWidth = 2f
+            }
+            canvas.drawRoundRect(bgRect, 10f, 10f, strokePaint)
+
+            // 4. 畫文字
+            paint.color = android.graphics.Color.parseColor("#333333")
+            canvas.drawText(label, width / 2f, padding + textBounds.height().toFloat(), paint)
+
+            return BitmapDescriptorFactory.fromBitmap(bitmap)
+        }
+
+        private fun clearImportCandidateMarkers() {
+            importCandidateMarkers.forEach { it.remove() }
+            importCandidateMarkers.clear()
+        }
 
 		    private fun clearImportMarkers() {
 		        importCenterMarker?.remove()
 		        importCenterMarker = null
 		        importMyLocationMarker?.remove()
 		        importMyLocationMarker = null
+                clearImportCandidateMarkers() // 同步清除候選點
 		        importMapPickEnabled = false
 		        updateImportMapClickListener()
 		    }
