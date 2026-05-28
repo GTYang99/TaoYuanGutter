@@ -385,21 +385,30 @@ class MainActivity : AppCompatActivity(),
 		                                // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
 		                                currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
 		                                refreshWorkingForEditFlow(currentWaypoints)
+
+                                        // ── 資料更新後，才顯示 BottomSheet 並調整鏡頭 ──
+                                        resetHighlightedMarker()
+                                        pendingWaypointFormIndex = -1
+                                        liveSheet?.showSelf()
+                                        if (currentWaypoints.isNotEmpty()) {
+                                            mapCameraController.fitCameraToWaypoints(
+                                                currentWaypoints,
+                                                bottomOffsetRatio = 0.52,
+                                                resetPaddingAfter = false
+                                            )
+                                        }
 		                            }
 			                        }
                         GutterFormActivity.RESULT_DELETE -> if (pendingWaypointFormIndex >= 0) {
                             // 使用者放棄填寫 → 清除該點位的座標與資料（同時更新地圖大頭針）
                             liveSheet?.clearWaypointLocation(pendingWaypointFormIndex)
+                            resetHighlightedMarker()
+                            currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
+                            refreshWorkingForEditFlow(currentWaypoints)
+                            pendingWaypointFormIndex = -1
+                            liveSheet?.showSelf()
                         }
                     }
-		                    resetHighlightedMarker()
-                        currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
-                        refreshWorkingForEditFlow(currentWaypoints)
-		                    pendingWaypointFormIndex = -1
-		                    liveSheet?.showSelf()
-		                    if (currentWaypoints.isNotEmpty()) {
-	                            mapCameraController.fitCameraToWaypoints(currentWaypoints)
-                        }
 	                }
 	                inspectSheet != null -> {
 	                    if (result.resultCode == Activity.RESULT_OK) {

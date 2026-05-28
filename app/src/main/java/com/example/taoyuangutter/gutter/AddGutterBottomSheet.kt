@@ -455,8 +455,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     private fun setupRecyclerView() {
         adapter = WaypointAdapter(
-            items = waypoints,
-            alwaysShowXyNumIfPresent = isInspectMode || editSpiNum.isNotEmpty()
+            items = waypoints
         ) { position ->
             if (isInspectMode) {
                 // 檢視模式：開啟表單檢視（唯讀）

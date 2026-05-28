@@ -15,7 +15,6 @@ import com.google.android.material.color.MaterialColors
 
 class WaypointAdapter(
     private val items: MutableList<Waypoint>,
-    private val alwaysShowXyNumIfPresent: Boolean = false,
     private val onItemClick: (position: Int) -> Unit
 ) : RecyclerView.Adapter<WaypointAdapter.ViewHolder>() {
 
@@ -52,33 +51,15 @@ class WaypointAdapter(
         // 虛擬點 badge
         holder.binding.tvVirtualBadge.visibility = if (item.isVirtual) View.VISIBLE else View.GONE
 
-        // 狀態 badge：暫無資料 / 已填寫（顯示 XY_NUM）
-        val isCantOpen = item.basicData["IS_CANTOPEN"] == "1"
-        
-        val requiredBasicKeys = when {
-            item.isVirtual -> listOf("NODE_X", "NODE_Y", "XY_NUM")
-            isCantOpen -> listOf("NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM")
-            else -> listOf(
-                "NODE_TYP", "MAT_TYP", "NODE_X", "NODE_Y", "XY_NUM", "NODE_DEP", "NODE_WID",
-                "IS_BROKEN", "IS_HANGING", "IS_SILT"
-            )
-        }
-        
-        val requiredPhotoKeys = if (item.isVirtual) emptyList() else listOf("photo1", "photo2", "photo3")
-        
-        val hasFilledData = (item.latLng != null) &&
-                requiredBasicKeys.all { item.basicData[it]?.isNotEmpty() == true } &&
-                requiredPhotoKeys.all { item.basicData[it]?.isNotEmpty() == true }
-
         val statusView = holder.binding.tvWaypointStatus
-        val xyNum = item.basicData["XY_NUM"]?.trim()
-            ?.takeIf { it.isNotEmpty() }
+        val xyNum = item.basicData["XY_NUM"]?.trim()?.takeIf { it.isNotEmpty() }
             ?: item.basicData["xyNum"]?.trim()?.takeIf { it.isNotEmpty() }
 
-        val showXyBadge = (alwaysShowXyNumIfPresent && xyNum != null) || hasFilledData
-        if (showXyBadge) {
-            statusView.text = xyNum ?: ctx.getString(R.string.msg_data_filled)
-            // 淺紫底：用既有 theme 的 colorPrimary 做 alpha 淡化
+        // 修改顯示邏輯：只要有編號，就一定要顯示標籤
+        if (xyNum != null) {
+            statusView.text = xyNum
+            
+            // 統一顏色：只要有資料（通過上一頁檢查），就顯示紫色標籤
             val primary = MaterialColors.getColor(
                 holder.itemView,
                 com.google.android.material.R.attr.colorPrimary,
