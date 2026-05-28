@@ -77,7 +77,7 @@
                     android:textStyle="bold"
                     android:text="@string/waypoint_start" />
 
-                <!-- 右側按鈕槽：虛擬點勾選 + 編輯 icon/完成文字 -->
+                <!-- 右側按鈕槽：編輯/完成按鈕 + 虛擬點勾選 (最右側) -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="48dp"
@@ -85,21 +85,6 @@
                     android:gravity="center_vertical"
                     android:paddingEnd="8dp">
 
-                    <com.google.android.material.checkbox.MaterialCheckBox
-                        android:id="@+id/cbIsVirtual"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="虛擬點"
-                        android:textSize="14sp"
-                        android:textColor="@color/colorPrimary"
-                        app:buttonTint="@color/colorPrimary"
-                        android:minWidth="0dp"
-                        android:minHeight="0dp"
-                        android:padding="0dp" />
-
-                    <FrameLayout
-                        android:layout_width="56dp"
-                        android:layout_height="48dp">
 
                         <!-- 檢視模式：鉛筆編輯 icon -->
                         <ImageButton
@@ -127,7 +112,18 @@
                             android:focusable="true"
                             android:visibility="gone" />
 
-                    </FrameLayout>
+
+                    <com.google.android.material.checkbox.MaterialCheckBox
+                        android:id="@+id/cbIsVirtual"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="虛擬點"
+                        android:textSize="14sp"
+                        android:textColor="@color/colorPrimary"
+                        app:buttonTint="@color/colorPrimary"
+                        android:minWidth="0dp"
+                        android:minHeight="0dp"
+                        android:padding="0dp" />
 
                 </LinearLayout>
 
