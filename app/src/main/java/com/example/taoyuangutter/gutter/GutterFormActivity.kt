@@ -771,7 +771,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         private fun createSelectedLargeMarker(label: String): com.google.android.gms.maps.model.BitmapDescriptor {
             val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-                textSize = 36f // 選中文字稍微大一點
+                textSize = 60f // 選中文字稍微大一點
                 textAlign = android.graphics.Paint.Align.CENTER
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
             }
@@ -807,7 +807,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             canvas.drawRoundRect(bgRect, 12f, 12f, bgPaint)
             
             // 3. 畫文字
-            paint.color = android.graphics.Color.parseColor("#4285F4") // 文字也用藍色強調
+            //paint.color = android.graphics.Color.parseColor("#4285F4") // 文字也用藍色強調
+			paint.color = com.example.taoyuangutter.R.color.loginButtonBackground
             canvas.drawText(label, width / 2f, padding + textBounds.height().toFloat(), paint)
 
             return BitmapDescriptorFactory.fromBitmap(bitmap)
@@ -855,7 +856,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         private fun createMarkerWithLabel(label: String): com.google.android.gms.maps.model.BitmapDescriptor {
             val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
-                textSize = 32f
+                textSize = 48f
                 textAlign = android.graphics.Paint.Align.CENTER
                 typeface = android.graphics.Typeface.DEFAULT_BOLD
             }
@@ -895,7 +896,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             canvas.drawRoundRect(bgRect, 10f, 10f, strokePaint)
 
             // 4. 畫文字
-            paint.color = android.graphics.Color.parseColor("#333333")
+            //paint.color = android.graphics.Color.parseColor("#333333")
+            paint.color = com.example.taoyuangutter.R.color.formSubmitButton
             canvas.drawText(label, width / 2f, padding + textBounds.height().toFloat(), paint)
 
             return BitmapDescriptorFactory.fromBitmap(bitmap)
@@ -1795,6 +1797,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         photo2: String?,
         photo3: String?
     ) = coroutineScope {
+        if (binding.cbIsVirtual.isChecked) {
+            android.util.Log.d("PhotoUpload", "虛擬點不進行照片上傳，nodeId=$nodeId")
+            return@coroutineScope
+        }
         listOf(photo1 to 1, photo2 to 2, photo3 to 3)
             .filter { (path, _) -> 
                 if (path.isNullOrEmpty()) return@filter false

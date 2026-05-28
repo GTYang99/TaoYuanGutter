@@ -347,6 +347,12 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                 binding.btnMyLocation.visibility = View.VISIBLE
                 callbacks?.onMapPickModeChanged(false)
                 adapter.updateRows(nearbyRows)
+                
+                // 切換回來時，若已有搜尋結果，則自動重新投放到地圖上
+                val list = nearbyRows.mapNotNull { (it as? ImportWaypointAdapter.Row.Waypoint)?.item }
+                if (list.isNotEmpty()) {
+                    callbacks?.onCandidateWaypointsChanged(list)
+                }
                 // 不清列表；只清選取與地圖 marker
             }
             Page.SEARCH -> {

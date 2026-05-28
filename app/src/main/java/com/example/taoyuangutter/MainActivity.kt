@@ -355,8 +355,8 @@ class MainActivity : AppCompatActivity(),
                     val liveSheet = (supportFragmentManager.findFragmentByTag(AddGutterBottomSheet.TAG) as? AddGutterBottomSheet)
                         ?: activeSheet
                     activeSheet = liveSheet
-	                    when (result.resultCode) {
-	                        Activity.RESULT_OK -> if (pendingWaypointFormIndex >= 0) {
+                    when (result.resultCode) {
+                        Activity.RESULT_OK -> if (pendingWaypointFormIndex >= 0) {
 	                            val data = result.data
 
                             // ── 更新地圖定位座標 ────────────────────────────────
@@ -407,6 +407,14 @@ class MainActivity : AppCompatActivity(),
                             refreshWorkingForEditFlow(currentWaypoints)
                             pendingWaypointFormIndex = -1
                             liveSheet?.showSelf()
+                        }
+                        Activity.RESULT_CANCELED -> {
+                            // 使用者取消編輯點位：保留原資料，只恢復 AddGutterBottomSheet 可操作狀態
+                            resetHighlightedMarker()
+                            pendingWaypointFormIndex = -1
+                            liveSheet?.showSelf()
+                            currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
+                            refreshWorkingForEditFlow(currentWaypoints)
                         }
                     }
 	                }
@@ -797,6 +805,10 @@ class MainActivity : AppCompatActivity(),
         val pending = mutableListOf<Triple<DitchNode, String, Int>>()
         nodes.forEachIndexed { i, node ->
             val wp = waypoints.getOrNull(i) ?: return@forEachIndexed
+            if (parseLooseBoolean(wp.basicData["is_virtual"])) {
+                android.util.Log.d("PhotoUpload", "節點 ${node.nodeId} 為虛擬點，略過所有照片上傳")
+                return@forEachIndexed
+            }
             listOf(
                 wp.basicData["photo1"] to 1,
                 wp.basicData["photo2"] to 2,
