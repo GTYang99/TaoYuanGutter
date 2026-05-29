@@ -13,6 +13,7 @@ import android.view.inputmethod.InputMethodManager
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import androidx.fragment.app.Fragment
+import androidx.core.content.ContextCompat
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.databinding.FragmentGutterBasicInfoBinding
 
@@ -23,6 +24,7 @@ class GutterBasicInfoFragment : Fragment() {
     var onDraftChanged: (() -> Unit)? = null
     var onRequestLocationPick: (() -> Unit)? = null
     private var isFormEditable: Boolean = true
+    private var isImportLocked: Boolean = false
     private var isVirtualMode: Boolean = false // 新增：是否為虛擬點模式
     // Keep using request keys NODE_X/NODE_Y; just change UI presentation.
     private var coordXValue: String = ""
@@ -156,6 +158,7 @@ class GutterBasicInfoFragment : Fragment() {
         }
 
         binding.btnPickLocation.isEnabled = !isViewMode
+        applyImportLockUi()
 
         // 點擊空白處關閉鍵盤
         view.setOnTouchListener { _, event ->
@@ -365,6 +368,7 @@ class GutterBasicInfoFragment : Fragment() {
      */
     fun setEditable(enabled: Boolean) {
         isFormEditable = enabled
+        val actualEnabled = enabled && !isImportLocked
         val textFields = listOf(
             binding.etGutterId,
             binding.etMeasureId,
@@ -374,9 +378,9 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etRemarks
         )
         textFields.forEach { et ->
-            et.isEnabled = enabled
-            et.isFocusable = enabled
-            et.isFocusableInTouchMode = enabled
+            et.isEnabled = actualEnabled
+            et.isFocusable = actualEnabled
+            et.isFocusableInTouchMode = actualEnabled
         }
 
         listOf(
@@ -385,9 +389,9 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsBroken,
             binding.rgIsHanging,
             binding.rgIsSilt
-        ).forEach { rg -> rg.setChildrenEnabled(enabled) }
+        ).forEach { rg -> rg.setChildrenEnabled(actualEnabled) }
 
-        val alpha = if (enabled) 1f else 0.5f
+        val alpha = if (actualEnabled) 1f else 0.5f
         listOf(
             binding.tilGutterId,
             binding.rgGutterType,
@@ -402,8 +406,8 @@ class GutterBasicInfoFragment : Fragment() {
             binding.tilRemarks
         ).forEach { it.alpha = alpha }
 
-        binding.cbCantOpen.isEnabled = enabled
-        binding.btnPendingDeploy.isEnabled = enabled
+        binding.cbCantOpen.isEnabled = actualEnabled
+        binding.btnPendingDeploy.isEnabled = actualEnabled
         // Re-apply style (so view->edit mode transitions update colors correctly)
         setPendingDeploySelected(binding.btnPendingDeploy.isChecked)
 
@@ -415,6 +419,7 @@ class GutterBasicInfoFragment : Fragment() {
 
         // 重新套用「無法開蓋」狀態（例如從檢視進入編輯）
         applyCantOpenUi(binding.cbCantOpen.isChecked)
+        applyImportLockUi()
     }
 
     /** 隱藏虛擬鍵盤 */
@@ -598,6 +603,19 @@ class GutterBasicInfoFragment : Fragment() {
         binding.llVirtualHidden2.visibility = visibility
         binding.llVirtualHidden3.visibility = visibility
         onDraftChanged?.invoke()
+    }
+
+    fun setImportLocked(locked: Boolean) {
+        isImportLocked = locked
+        applyImportLockUi()
+        setEditable(isFormEditable)
+    }
+
+    private fun applyImportLockUi() {
+        if (_binding == null) return
+        binding.importLockOverlay.visibility = View.GONE
+        binding.root.foreground =
+            if (isImportLocked) ContextCompat.getDrawable(requireContext(), R.drawable.bg_import_lock_scrim) else null
     }
 
     fun prefillDataFromImport(nodeDetails: com.example.taoyuangutter.api.NodeDetails) {

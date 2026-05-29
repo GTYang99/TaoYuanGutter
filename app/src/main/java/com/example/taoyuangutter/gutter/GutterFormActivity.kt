@@ -309,6 +309,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     /** true → 離線模式，儲存至本機草稿，不向 MainActivity 回傳 result */
     private var isOfflineMode  = false
+    /** true → 由匯入既有點位帶入後的鎖定狀態。 */
+    private var importedWaypointLocked = false
     /** 地圖流程中的 session 草稿 ID；0 表示尚未建立。 */
     private var sessionDraftId = 0L
     /** 整條側溝目前的 waypoint 快照，供表單編輯中即時覆寫草稿。 */
@@ -417,6 +419,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		        }
 
 	    private fun handleImportedNodeDetails(nodeDetails: NodeDetails) {
+	        setImportedWaypointLocked(true)
 	        pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
 
 	        // 匯入時同步下載照片到本機（依序 1→2→3）
@@ -467,9 +470,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	                        Toast.LENGTH_LONG
 	                    ).show()
 	                }
-	                // 匯入完成後直接回到 MainActivity 的 AddGutterBottomSheet 繼續操作
-	                // （不做必填驗證；使用者之後仍可再進入表單補齊資料/照片）
-	                buildAndFinishWithResult()
 	            } catch (e: CancellationException) {
 	                showUploadLoading(false)
 	            } catch (e: Exception) {
@@ -479,8 +479,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	                    String.format(getString(R.string.msg_photo_download_failed), e.message),
 	                    Toast.LENGTH_SHORT
 	                ).show()
-	                // 即便照片下載失敗，也先帶著已匯入的基本資料回到地圖，讓使用者可繼續操作
-	                buildAndFinishWithResult()
 	            }
 	        }
 	    }
@@ -996,6 +994,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (savedInstanceState != null) {
             isViewMode = savedInstanceState.getBoolean("saved_is_view_mode")
             isEditMode = savedInstanceState.getBoolean("saved_is_edit_mode")
+            importedWaypointLocked = savedInstanceState.getBoolean("saved_imported_waypoint_locked")
             currentLat = savedInstanceState.getDouble("saved_current_lat")
             currentLng = savedInstanceState.getDouble("saved_current_lng")
             hasShownEditPolyline = savedInstanceState.getBoolean("saved_has_shown_edit_polyline")
@@ -1089,6 +1088,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         setupFab()
         binding.viewPager.post { attachDraftSyncCallbacks() }
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
+        binding.viewPager.post { applyImportedWaypointLock() }
     }
 
 		    override fun onPause() {
@@ -1425,6 +1425,19 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         pagerAdapter.getPhotosFragment()?.setEditable(true)
         binding.cbIsVirtual.isEnabled = true
         attachDraftSyncCallbacks()
+    }
+
+    private fun setImportedWaypointLocked(locked: Boolean) {
+        importedWaypointLocked = locked
+        applyImportedWaypointLock()
+    }
+
+    private fun applyImportedWaypointLock() {
+        if (!::pagerAdapter.isInitialized) return
+        binding.viewPager.post {
+            pagerAdapter.getBasicInfoFragment()?.setImportLocked(importedWaypointLocked)
+            pagerAdapter.getPhotosFragment()?.setImportLocked(importedWaypointLocked)
+        }
     }
 
     private fun returnToPreviewMode() {
@@ -1924,6 +1937,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         outState.putString("saved_waypoints_json", Gson().toJson(sessionWaypoints))
         outState.putBoolean("saved_is_view_mode", isViewMode)
         outState.putBoolean("saved_is_edit_mode", isEditMode)
+        outState.putBoolean("saved_imported_waypoint_locked", importedWaypointLocked)
         outState.putBoolean("saved_is_virtual", binding.cbIsVirtual.isChecked)
         outState.putDouble("saved_current_lat", currentLat)
         outState.putDouble("saved_current_lng", currentLng)

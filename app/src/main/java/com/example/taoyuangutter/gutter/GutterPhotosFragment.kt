@@ -37,6 +37,7 @@ class GutterPhotosFragment : Fragment() {
     private var photoUriSlot1: Uri? = null
     private var photoUriSlot2: Uri? = null
     private var photoUriSlot3: Uri? = null
+    private var isImportLocked: Boolean = false
 
     /** 目前正在等候拍照結果的照片欄位（1/2/3） */
     private var pendingSlot: Int = 0
@@ -161,6 +162,7 @@ class GutterPhotosFragment : Fragment() {
         photoUriSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, it) }
 
         val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
+        applyImportLockUi()
         setEditable(!isViewMode)
     }
 
@@ -185,7 +187,9 @@ class GutterPhotosFragment : Fragment() {
      * [enabled] = false → 檢視模式，只顯示既有照片，無法拍照，不顯示刪除按鈕
      */
     fun setEditable(enabled: Boolean) {
-        if (enabled) {
+        val actualEnabled = enabled && !isImportLocked
+        binding.importLockOverlay.visibility = View.GONE
+        if (actualEnabled) {
             binding.photoSlot1.setOnClickListener { requestCameraForSlot(1) }
             binding.photoSlot2.setOnClickListener { requestCameraForSlot(2) }
             binding.photoSlot3.setOnClickListener { requestCameraForSlot(3) }
@@ -215,6 +219,23 @@ class GutterPhotosFragment : Fragment() {
             binding.btnDeleteSlot1.visibility = View.GONE
             binding.btnDeleteSlot2.visibility = View.GONE
             binding.btnDeleteSlot3.visibility = View.GONE
+        }
+    }
+
+    fun setImportLocked(locked: Boolean) {
+        isImportLocked = locked
+        applyImportLockUi()
+        val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
+        setEditable(!isViewMode)
+    }
+
+    private fun applyImportLockUi() {
+        if (_binding == null) return
+        binding.importLockOverlay.visibility = View.GONE
+        binding.root.foreground = if (isImportLocked) {
+            ContextCompat.getDrawable(requireContext(), R.drawable.bg_import_lock_scrim)
+        } else {
+            null
         }
     }
 
