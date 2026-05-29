@@ -829,12 +829,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 if (lat != null && lng != null) {
                     val pos = LatLng(lat, lng)
                     val xyNum = item.xyNum ?: "---"
-                    
+                    val isVirtual = item.isVirtual == "1" || item.isVirtual?.lowercase() == "true"
+
                     val marker = map.addMarker(
                         MarkerOptions()
                             .position(pos)
                             .title(xyNum)
-                            .icon(createMarkerWithLabel(xyNum))
+                            .icon(if (isVirtual) createVirtualMarkerWithLabel(xyNum) else createMarkerWithLabel(xyNum))
                             .anchor(0.5f, 1.0f)
                             .zIndex(0.5f)
                     )
@@ -898,6 +899,50 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             // 4. 畫文字
             //paint.color = android.graphics.Color.parseColor("#333333")
             paint.color = com.example.taoyuangutter.R.color.formSubmitButton
+            canvas.drawText(label, width / 2f, padding + textBounds.height().toFloat(), paint)
+
+            return BitmapDescriptorFactory.fromBitmap(bitmap)
+        }
+
+        private fun createVirtualMarkerWithLabel(label: String): com.google.android.gms.maps.model.BitmapDescriptor {
+            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                textSize = 48f
+                textAlign = android.graphics.Paint.Align.CENTER
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+            }
+
+            val textBounds = android.graphics.Rect()
+            paint.getTextBounds(label, 0, label.length, textBounds)
+
+            val padding = 12
+            val markerRadius = 15
+            val width = textBounds.width() + padding * 2
+            val height = textBounds.height() + padding * 2 + markerRadius * 2 + 10
+
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+
+            val dotPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#73767A")
+                style = android.graphics.Paint.Style.FILL
+            }
+            canvas.drawCircle(width / 2f, height - markerRadius.toFloat(), markerRadius.toFloat(), dotPaint)
+
+            val bgPaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#CCFFFFFF")
+                style = android.graphics.Paint.Style.FILL
+            }
+            val bgRect = android.graphics.RectF(0f, 0f, width.toFloat(), (textBounds.height() + padding * 2).toFloat())
+            canvas.drawRoundRect(bgRect, 10f, 10f, bgPaint)
+
+            val strokePaint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+                color = android.graphics.Color.parseColor("#73767A")
+                style = android.graphics.Paint.Style.STROKE
+                strokeWidth = 2f
+            }
+            canvas.drawRoundRect(bgRect, 10f, 10f, strokePaint)
+
+            paint.color = android.graphics.Color.parseColor("#73767A")
             canvas.drawText(label, width / 2f, padding + textBounds.height().toFloat(), paint)
 
             return BitmapDescriptorFactory.fromBitmap(bitmap)
@@ -1247,10 +1292,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 "1", "true", "y", "yes" -> true
                 else -> false
             }
+            val isVirtual = wp.isVirtual
             val icon = if (idx == currentIndex) {
-                MarkerIconFactory.enlarged(this, type, isPendingDeploy)
+                MarkerIconFactory.enlarged(this, type, isPendingDeploy, isVirtual)
             } else {
-                MarkerIconFactory.normal(this, type, isPendingDeploy)
+                MarkerIconFactory.normal(this, type, isPendingDeploy, isVirtual)
             }
             val marker = map.addMarker(
                 MarkerOptions()

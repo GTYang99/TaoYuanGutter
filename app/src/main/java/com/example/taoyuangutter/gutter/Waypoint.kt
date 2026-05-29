@@ -13,7 +13,7 @@ data class Waypoint(
 ) {
     val isVirtual: Boolean
         get() {
-            val v = basicData["is_virtual"]?.trim()?.lowercase()
+            val v = (basicData["is_virtual"] ?: basicData["IS_VIRTUAL"])?.trim()?.lowercase()
             return v == "1" || v == "true"
         }
 }

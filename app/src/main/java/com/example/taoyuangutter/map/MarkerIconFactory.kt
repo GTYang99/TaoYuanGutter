@@ -13,17 +13,31 @@ class MarkerIconFactory(
     private val context: Context
 ) {
     companion object {
-        fun normal(context: Context, type: WaypointType, isPendingDeploy: Boolean = false): BitmapDescriptor {
-            return MarkerIconFactory(context).icon(type, isPendingDeploy)
+        fun normal(
+            context: Context,
+            type: WaypointType,
+            isPendingDeploy: Boolean = false,
+            isVirtual: Boolean = false
+        ): BitmapDescriptor {
+            return MarkerIconFactory(context).icon(type, isPendingDeploy, isVirtual)
         }
 
-        fun enlarged(context: Context, type: WaypointType, isPendingDeploy: Boolean = false): BitmapDescriptor {
-            return MarkerIconFactory(context).enlargedIcon(type, isPendingDeploy)
+        fun enlarged(
+            context: Context,
+            type: WaypointType,
+            isPendingDeploy: Boolean = false,
+            isVirtual: Boolean = false
+        ): BitmapDescriptor {
+            return MarkerIconFactory(context).enlargedIcon(type, isPendingDeploy, isVirtual)
         }
     }
 
-    fun icon(type: WaypointType, isPendingDeploy: Boolean = false): BitmapDescriptor {
-        val resId = markerResId(type, isPendingDeploy)
+    fun icon(
+        type: WaypointType,
+        isPendingDeploy: Boolean = false,
+        isVirtual: Boolean = false
+    ): BitmapDescriptor {
+        val resId = markerResId(type, isPendingDeploy, isVirtual)
         val drawable = ContextCompat.getDrawable(context, resId)
             ?: return BitmapDescriptorFactory.defaultMarker()
 
@@ -38,8 +52,12 @@ class MarkerIconFactory(
         return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
-    fun enlargedIcon(type: WaypointType, isPendingDeploy: Boolean = false): BitmapDescriptor {
-        val resId = markerResId(type, isPendingDeploy)
+    fun enlargedIcon(
+        type: WaypointType,
+        isPendingDeploy: Boolean = false,
+        isVirtual: Boolean = false
+    ): BitmapDescriptor {
+        val resId = markerResId(type, isPendingDeploy, isVirtual)
         val drawable = ContextCompat.getDrawable(context, resId)
             ?: return BitmapDescriptorFactory.defaultMarker()
 
@@ -53,9 +71,17 @@ class MarkerIconFactory(
         return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
-    private fun markerResId(type: WaypointType, isPendingDeploy: Boolean): Int = when (type) {
+    private fun markerResId(
+        type: WaypointType,
+        isPendingDeploy: Boolean,
+        isVirtual: Boolean
+    ): Int = when (type) {
         WaypointType.START -> if (isPendingDeploy) R.drawable.ic_legend_start_pending else R.drawable.ic_legend_start
-        WaypointType.NODE -> if (isPendingDeploy) R.drawable.ic_legend_node_pending else R.drawable.ic_legend_node
+        WaypointType.NODE -> when {
+            isVirtual -> R.drawable.ic_legend_node_virtual
+            isPendingDeploy -> R.drawable.ic_legend_node_pending
+            else -> R.drawable.ic_legend_node
+        }
         WaypointType.END -> if (isPendingDeploy) R.drawable.ic_legend_end_pending else R.drawable.ic_legend_end
     }
 }

@@ -59,6 +59,7 @@
             app:barrierDirection="end"
             app:constraint_referenced_ids="btnClose,tvCancel" />
 
+        <!-- 標題 -->
         <TextView
             android:id="@+id/tvSheetTitle"
             android:layout_width="wrap_content"
@@ -72,6 +73,20 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/btnReverse"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/btn_reverse_gutter"
+            android:padding="12dp"
+            android:src="@drawable/ic_swap_vert"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/btnAddNode"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/colorPrimary" />
 
         <!-- 新增節點按鈕（右） -->
         <ImageButton
@@ -165,26 +180,6 @@
         android:paddingBottom="16dp"
         android:gravity="center_vertical">
 
-        <!-- 調轉按鈕：正方形，主色底白色 icon -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnReverse"
-            android:layout_width="52dp"
-            android:layout_height="52dp"
-            android:layout_marginEnd="8dp"
-            android:padding="0dp"
-            android:insetLeft="0dp"
-            android:insetTop="0dp"
-            android:insetRight="0dp"
-            android:insetBottom="0dp"
-            app:icon="@drawable/ic_swap_vert"
-            app:iconGravity="textStart"
-            app:iconPadding="0dp"
-            app:iconSize="24dp"
-            app:iconTint="@color/white"
-            app:backgroundTint="@color/colorPrimary"
-            app:cornerRadius="12dp"
-            app:strokeWidth="0dp" />
-
         <!-- 刪除側溝按鈕（編輯模式顯示，預設 GONE） -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnDeleteGutter"
@@ -192,8 +187,6 @@
             android:layout_height="52dp"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
             android:text="@string/btn_delete_gutter"
             android:textColor="@color/white"
             android:textSize="15sp"
@@ -209,8 +202,6 @@
             android:layout_width="0dp"
             android:layout_height="52dp"
             android:layout_weight="1"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
             android:text="@string/btn_add_gutter"
             android:textColor="@color/white"
             android:textSize="15sp"

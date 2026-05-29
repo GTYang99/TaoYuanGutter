@@ -162,7 +162,9 @@ class MainActivity : AppCompatActivity(),
     private val gutterMapController by lazy {
         GutterMapController(
             mapProvider = { googleMap },
-            markerIconProvider = { type, isPending -> markerIconFactory.icon(type, isPending) },
+            markerIconProvider = { type, isPending, isVirtual ->
+                markerIconFactory.icon(type, isPending, isVirtual)
+            },
             polylineColorProvider = { isCurve -> resolveGutterPolylineColor() },
             pendingFlagParser = ::parseLooseBoolean
         )
@@ -183,9 +185,14 @@ class MainActivity : AppCompatActivity(),
     private val inspectMarkerController by lazy {
         InspectMarkerController(
             mapProvider = { googleMap },
-            markerIconProvider = { type, isPending -> markerIconFactory.icon(type, isPending) },
-            enlargedMarkerIconProvider = { type, isPending -> markerIconFactory.enlargedIcon(type, isPending) },
-            pendingFlagParser = ::parseLooseBoolean
+            markerIconProvider = { type, isPending, isVirtual ->
+                markerIconFactory.icon(type, isPending, isVirtual)
+            },
+            enlargedMarkerIconProvider = { type, isPending, isVirtual ->
+                markerIconFactory.enlargedIcon(type, isPending, isVirtual)
+            },
+            pendingFlagParser = ::parseLooseBoolean,
+            virtualFlagParser = ::parseLooseBoolean
         )
     }
     private val scopeGutterPolylineController by lazy {
@@ -805,7 +812,7 @@ class MainActivity : AppCompatActivity(),
         val pending = mutableListOf<Triple<DitchNode, String, Int>>()
         nodes.forEachIndexed { i, node ->
             val wp = waypoints.getOrNull(i) ?: return@forEachIndexed
-            if (parseLooseBoolean(wp.basicData["is_virtual"])) {
+            if (wp.isVirtual) {
                 android.util.Log.d("PhotoUpload", "節點 ${node.nodeId} 為虛擬點，略過所有照片上傳")
                 return@forEachIndexed
             }
@@ -1692,7 +1699,8 @@ class MainActivity : AppCompatActivity(),
                 label = label,
                 latLng = LatLng(lat, lng),
                 basicData = hashMapOf(
-                    "IS_PENDING_DEPLOY" to (if (parseLooseBoolean(node.isPendingDeploy)) "1" else "0")
+                    "IS_PENDING_DEPLOY" to (if (parseLooseBoolean(node.isPendingDeploy)) "1" else "0"),
+                    "is_virtual" to (if (parseLooseBoolean(node.isVirtual)) "1" else "0")
                 )
             )
         }

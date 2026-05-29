@@ -318,9 +318,10 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
 
             val pos = LatLng(lat, lng)
             val type = WaypointType.entries.firstOrNull { it.name == wp.type } ?: WaypointType.NODE
+            val isVirtual = wp.isVirtual
             // 當前點位一律放大 highlight，無論是否 edit mode
-            val icon = if (isCurrent) MarkerIconFactory.enlarged(this, type)
-                       else           MarkerIconFactory.normal(this, type)
+            val icon = if (isCurrent) MarkerIconFactory.enlarged(this, type, isVirtual = isVirtual)
+                       else           MarkerIconFactory.normal(this, type, isVirtual = isVirtual)
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(pos)

@@ -19,7 +19,7 @@ import kotlin.math.ceil
  */
 class GutterMapController(
     private val mapProvider: () -> GoogleMap?,
-    private val markerIconProvider: (type: WaypointType, isPendingDeploy: Boolean) -> BitmapDescriptor,
+    private val markerIconProvider: (type: WaypointType, isPendingDeploy: Boolean, isVirtual: Boolean) -> BitmapDescriptor,
     private val polylineColorProvider: (isCurve: Boolean) -> Int = { Color.parseColor("#562ECB") },
     private val pendingFlagParser: (String?) -> Boolean,
     private val baselinePolylineColor: Int = Color.parseColor("#B4B4B4")
@@ -116,10 +116,11 @@ class GutterMapController(
             val latLng = wp.latLng ?: continue
             routePoints.add(latLng)
             val isPending = pendingFlagParser(wp.basicData["IS_PENDING_DEPLOY"])
+            val isVirtual = wp.isVirtual
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(latLng)
-                    .icon(markerIconProvider(wp.type, isPending))
+                    .icon(markerIconProvider(wp.type, isPending, isVirtual))
                     .anchor(0.5f, 0.5f)
             )
             marker?.tag = idx
@@ -145,10 +146,11 @@ class GutterMapController(
         for ((idx, wp) in waypoints.withIndex()) {
             val latLng = wp.latLng ?: continue
             val isPending = pendingFlagParser(wp.basicData["IS_PENDING_DEPLOY"])
+            val isVirtual = wp.isVirtual
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(latLng)
-                    .icon(markerIconProvider(wp.type, isPending))
+                    .icon(markerIconProvider(wp.type, isPending, isVirtual))
                     .anchor(0.5f, 0.5f)
             )
             marker?.tag = idx

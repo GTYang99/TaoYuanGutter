@@ -15,9 +15,10 @@ import com.google.android.gms.maps.model.MarkerOptions
  */
 class InspectMarkerController(
     private val mapProvider: () -> GoogleMap?,
-    private val markerIconProvider: (type: WaypointType, isPendingDeploy: Boolean) -> BitmapDescriptor,
-    private val enlargedMarkerIconProvider: (type: WaypointType, isPendingDeploy: Boolean) -> BitmapDescriptor,
-    private val pendingFlagParser: (String?) -> Boolean
+    private val markerIconProvider: (type: WaypointType, isPendingDeploy: Boolean, isVirtual: Boolean) -> BitmapDescriptor,
+    private val enlargedMarkerIconProvider: (type: WaypointType, isPendingDeploy: Boolean, isVirtual: Boolean) -> BitmapDescriptor,
+    private val pendingFlagParser: (String?) -> Boolean,
+    private val virtualFlagParser: (String?) -> Boolean
 ) {
     private val markers = mutableListOf<Marker>()
     private var highlightedMarkerIndex: Int = -1
@@ -51,11 +52,12 @@ class InspectMarkerController(
                 nodeId != null && pendingByNodeId.containsKey(nodeId) -> pendingByNodeId[nodeId] == true
                 else -> pendingFlagParser(node.isPendingDeploy)
             }
+            val isVirtual = virtualFlagParser(node.isVirtual)
 
             val marker = map.addMarker(
                 MarkerOptions()
                     .position(latLng)
-                    .icon(markerIconProvider(wpType, isPending))
+                    .icon(markerIconProvider(wpType, isPending, isVirtual))
                     .anchor(0.5f, 0.5f)
             )
             marker?.tag = idx
@@ -70,7 +72,7 @@ class InspectMarkerController(
         highlightedMarkerIndex = waypointIndex
         markers.firstOrNull { it.tag == waypointIndex }?.let { marker ->
             val isPending = pendingFlagParser(wp.basicData["IS_PENDING_DEPLOY"])
-            marker.setIcon(enlargedMarkerIconProvider(wp.type, isPending))
+            marker.setIcon(enlargedMarkerIconProvider(wp.type, isPending, wp.isVirtual))
             marker.setAnchor(0.5f, 0.5f)
             marker.zIndex = 1f
         }
@@ -82,7 +84,7 @@ class InspectMarkerController(
         markers.firstOrNull { it.tag == highlightedMarkerIndex }?.let { marker ->
             val type = wp?.type ?: WaypointType.NODE
             val isPending = pendingFlagParser(wp?.basicData?.get("IS_PENDING_DEPLOY"))
-            marker.setIcon(markerIconProvider(type, isPending))
+            marker.setIcon(markerIconProvider(type, isPending, wp?.isVirtual == true))
             marker.setAnchor(0.5f, 0.5f)
             marker.zIndex = 0f
         }
