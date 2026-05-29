@@ -310,6 +310,36 @@
                     android:textSize="15sp" />
             </LinearLayout>
 
+            <!-- 虛擬節點 -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="28dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <!-- 使用固定寬度容器（與其他行的兩個圖示槽寬度相同）
+                     並將虛擬圖示置中，這樣圖示會出現在上方兩個圖示的中間位置 -->
+                <FrameLayout
+                    android:layout_width="72dp"
+                    android:layout_height="28dp">
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_legend_node_virtual"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="18dp"
+                    android:text="虛擬節點"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="15sp" />
+            </LinearLayout>
+
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
