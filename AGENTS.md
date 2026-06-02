@@ -1,7 +1,7 @@
 # AGENTS.md - 側溝管理系統 (TaoYuanGutter) 開發指南
 
 **適用代理（AI Agents）**：適用於所有後續的代碼修改、維護和擴展任務。
-**最後更新**：2026-05-27 | **維護者**：Development Team
+**最後更新**：2026-06-01 | **維護者**：Development Team
 
 ---
 
@@ -49,7 +49,8 @@ data class Waypoint(
 | **MainActivity** | 地圖入口、位置追蹤、路線繪製、測距模式、scope 檢視 | `MainActivity.kt` |
 | **GutterFormActivity** | 新增/編輯表單容器、數據驗證、API 提交 | `GutterFormActivity.kt` |
 | **GutterInspectActivity** | 唯讀檢視既有側溝詳細資料 | `GutterInspectActivity.kt` |
-| **AddGutterBottomSheet** | 浮動表單面板、路點新增/編輯 | `ui/AddGutterBottomSheet.kt` |
+| **AddGutterBottomSheet** | 浮動表單面板、路點新增/編輯 | `gutter/AddGutterBottomSheet.kt` |
+| **MeasureModeUiController** | 測距模式的 UI 控制器（分離量測介面邏輯） | `main/MeasureModeUiController.kt` |
 | **CameraOverlayFragment** | 智慧橫向相機 Overlay、自動方向校正 | `gutter/CameraOverlayFragment.kt` |
 | **DistanceMeasureManager** | 測距虛線、起點標記、距離計算 | `map/DistanceMeasureManager.kt` |
 | **GutterRepository** | 遠端 API 通訊（submitGutter, storeDitch, 查詢等） | `api/GutterRepository.kt` |
@@ -330,7 +331,8 @@ private val dashPattern: List<PatternItem> = listOf(Dash(30f), Gap(15f))
 - `MainActivity.kt` - 地圖主容器、測距管理、位置追蹤、scope 檢視
 - `GutterFormActivity.kt` - 側溝表單容器、驗證與提交
 - `GutterInspectActivity.kt` - 唯讀檢視既有側溝（API 資料）
-- `ui/AddGutterBottomSheet.kt` - 浮動表單面板
+ - `gutter/AddGutterBottomSheet.kt` - 浮動表單面板
+ - `pending/PendingDraftsBottomSheet.kt` - 待上傳草稿清單（UI）
 - `gutter/CameraOverlayFragment.kt` - 全螢幕相機 Overlay（嵌入 GutterFormActivity）
 - `gutter/LandscapeCameraActivity.kt` - 獨立全屏橫向相機 Activity
 
@@ -354,6 +356,7 @@ private val dashPattern: List<PatternItem> = listOf(Dash(30f), Gap(15f))
 - `map/ScopeGutterPolylineController.kt` - 管理 scope 視圖中的側溝線段
 - `map/MarkerIconFactory.kt` - 大頭針圖示工廠
 - `map/MapCameraController.kt` - 地圖鏡頭動畫與定位
+ - `map/MeasureConfig.kt` - 測距相關設定（`MeasureConfig`）
 
 ### 數據模型
 - `gutter/Waypoint.kt` - 地圖/表單橋接數據
@@ -445,4 +448,4 @@ repo.delete(draftId)        // 刪除草稿
 
 ---
 
-**最後更新**: 2026-05-27 | **維護者**: AI Agents
+**最後更新**: 2026-06-01 | **維護者**: AI Agents
