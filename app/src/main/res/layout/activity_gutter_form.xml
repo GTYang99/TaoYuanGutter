@@ -211,16 +211,19 @@
             app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
         <!-- 浮動新增側溝按鈕（固定在底部置中） -->
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/fabSubmit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="338dp"
+            android:layout_height="52dp"
             android:layout_gravity="bottom|center_horizontal"
             android:layout_marginBottom="24dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
             android:text="@string/form_finish_button"
             android:textColor="@color/white"
             android:gravity="center"
             app:backgroundTint="@color/colorPrimary"
+            app:cornerRadius="12dp"
             app:elevation="6dp" />
 
         <!-- 上傳照片等待遮罩 -->
