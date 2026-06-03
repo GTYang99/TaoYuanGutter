@@ -154,6 +154,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val EXTRA_DATA_IS_CANTOPEN = "ex_is_cantopen"
         const val EXTRA_DATA_IS_PENDING_DEPLOY = "ex_is_pending_deploy"
         const val EXTRA_DATA_IS_VIRTUAL  = "ex_is_virtual" // 新增：是否為虛擬點
+        const val EXTRA_DATA_IS_IMPORTED = "ex_is_imported" // 新增：是否為匯入點位
         const val EXTRA_DATA_REMARKS     = "ex_node_note"
         const val EXTRA_DATA_PHOTO_1     = "ex_photo1"
         const val EXTRA_DATA_PHOTO_2     = "ex_photo2"
@@ -185,6 +186,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val RESULT_DATA_IS_CANTOPEN = "r_is_cantopen"
         const val RESULT_DATA_IS_PENDING_DEPLOY = "r_is_pending_deploy"
         const val RESULT_DATA_IS_VIRTUAL  = "r_is_virtual" // 新增：是否為虛擬點
+        const val RESULT_DATA_IS_IMPORTED = "r_is_imported" // 新增：是否為匯入點位
         const val RESULT_DATA_REMARKS     = "r_node_note"
         const val RESULT_DATA_PHOTO_1     = "r_photo1"
         const val RESULT_DATA_PHOTO_2     = "r_photo2"
@@ -1060,6 +1062,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             ).apply {
                 putAll(GutterFormContract.readFormData(intent))
             }
+        }
+
+        if (savedInstanceState == null) {
+            importedWaypointLocked = parseLooseBoolean(existingData["_isImported"])
         }
 
         // 全螢幕地圖背景 + 表單面板（不論離線或一般模式皆使用新版佈局）
@@ -1979,5 +1985,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun applyVirtualMode(isVirtual: Boolean) {
         pagerAdapter.getBasicInfoFragment()?.setVirtualMode(isVirtual)
         applyVirtualModeUi(isVirtual)
+    }
+
+    private fun parseLooseBoolean(raw: String?): Boolean {
+        val v = raw?.trim()?.lowercase()
+        return when (v) {
+            "1", "true", "t", "y", "yes" -> true
+            "0", "false", "f", "n", "no", "", null -> false
+            else -> false
+        }
     }
 }

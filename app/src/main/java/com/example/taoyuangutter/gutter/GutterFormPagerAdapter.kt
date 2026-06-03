@@ -27,12 +27,16 @@ class GutterFormPagerAdapter(
                     latitude, longitude, viewMode, basicData, isOfflineMode, isEditMode, isVirtual
                 )
             }
-            1 -> GutterPhotosFragment.newInstance(
+            1 -> {
+                val isImported = (basicData["_isImported"] ?: "0") == "1"
+                GutterPhotosFragment.newInstance(
                     viewMode,
                     photo1 = basicData["photo1"],
                     photo2 = basicData["photo2"],
-                    photo3 = basicData["photo3"]
-                 )
+                    photo3 = basicData["photo3"],
+                    isImported = isImported
+                )
+            }
             else -> throw IllegalArgumentException("Unknown page $position")
         }
         fragments[position] = frag

@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <shape xmlns:android="http://schemas.android.com/apk/res/android">
-    <solid android:color="#229E9E9E" />
+    <!-- 降低遮罩顏色深度，從 #22 (13%) 降到 #08 (3%)，
+         幾乎透明但仍能阻擋點擊，確保下方文字 100% 清晰 -->
+    <solid android:color="#089E9E9E" />
 </shape>

@@ -55,6 +55,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_DATA_NODE_NOTE   = "d_node_note"
         private const val ARG_DATA_IS_PENDING_DEPLOY = "d_is_pending_deploy"
         private const val ARG_DATA_IS_VIRTUAL  = "d_is_virtual" // 新增：虛擬點欄位
+        private const val ARG_DATA_IS_IMPORTED = "d_is_imported" // 新增：匯入點位旗標
 
         /** 側溝形式選項（NODE_TYP）*/
         val GUTTER_TYPES = listOf(
@@ -93,6 +94,7 @@ class GutterBasicInfoFragment : Fragment() {
                 putBoolean(ARG_OFFLINE_MODE, isOfflineMode)
                 putBoolean(ARG_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
                 putString(ARG_DATA_IS_VIRTUAL, isVirtual) // 傳入虛擬點旗標
+                putString(ARG_DATA_IS_IMPORTED, basicData["_isImported"] ?: "") // 傳入匯入旗標
                 putString(ARG_DATA_SPI_NUM,     basicData["SPI_NUM"]     ?: basicData["gutterId"] ?: "")
                 putString(ARG_DATA_NODE_TYP,    basicData["NODE_TYP"]    ?: basicData["gutterType"] ?: "")
                 putString(ARG_DATA_MAT_TYP,     basicData["MAT_TYP"]     ?: basicData["matTyp"] ?: "")
@@ -220,15 +222,17 @@ class GutterBasicInfoFragment : Fragment() {
         val nodeNote   = args.getString(ARG_DATA_NODE_NOTE,   "")
         val isPendingDeploy = args.getString(ARG_DATA_IS_PENDING_DEPLOY, "")
         val isVirtualArg = args.getString(ARG_DATA_IS_VIRTUAL, "0")
+        val isImportedArg = args.getString(ARG_DATA_IS_IMPORTED, "")
 
         val hasAnyData = listOf(
             spiNum, nodeTyp, matTyp, nodeX, nodeY, nodeLe,
             xyNum, coverDep, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote,
-            isPendingDeploy, isVirtualArg
+            isPendingDeploy, isVirtualArg, isImportedArg
         ).any { it.isNotEmpty() && it != "0" && it != "false" }
 
         if (hasAnyData) {
             setVirtualMode(parseLooseBoolean(isVirtualArg))
+            setImportLocked(parseLooseBoolean(isImportedArg))
             binding.etGutterId.setText(spiNum)
             binding.rgGutterType.setCheckedByText(nodeTypCodeToText(nodeTyp))
             binding.rgMatType.setCheckedByText(matTypCodeToText(matTyp))
@@ -299,8 +303,8 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     private fun applyCantOpenUi(isCantOpen: Boolean) {
-        // 若整個表單不可編輯（檢視模式），就不要額外干預 enable 狀態
-        if (!isFormEditable) {
+        // 若整個表單不可編輯（檢視模式）或處於匯入鎖定狀態，一律禁用
+        if (!isFormEditable || isImportLocked) {
             setCantOpenFieldsEnabled(false)
             return
         }
@@ -391,7 +395,8 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsSilt
         ).forEach { rg -> rg.setChildrenEnabled(actualEnabled) }
 
-        val alpha = if (actualEnabled) 1f else 0.5f
+        // 匯入鎖定時保持 1.0 透明度，確保資料清晰可見；純檢視模式才使用 0.5 半透明
+        val alpha = if (actualEnabled || isImportLocked) 1f else 0.5f
         listOf(
             binding.tilGutterId,
             binding.rgGutterType,
@@ -568,6 +573,7 @@ class GutterBasicInfoFragment : Fragment() {
     /** 收集表單資料（供 GutterFormActivity 提交用） */
     fun collectData(): Map<String, String> = mapOf(
         "is_virtual"  to (if (isVirtualMode) "1" else "0"),
+        "_isImported" to (if (isImportLocked) "1" else "0"),
         "SPI_NUM"     to (binding.etGutterId.text?.toString()      ?: ""),
         "NODE_TYP"    to gutterTypeTextToCode(binding.rgGutterType.getCheckedText()),
         "MAT_TYP"     to matTypeTextToCode(binding.rgMatType.getCheckedText()),
@@ -619,6 +625,7 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     fun prefillDataFromImport(nodeDetails: com.example.taoyuangutter.api.NodeDetails) {
+        setImportLocked(true)
         binding.apply {
             // 基本資訊
             etMeasureId.setText(nodeDetails.xyNum ?: "")

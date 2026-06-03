@@ -69,6 +69,7 @@ class GutterPhotosFragment : Fragment() {
 
     companion object {
         private const val ARG_VIEW_MODE  = "view_mode"
+        private const val ARG_IS_IMPORTED = "is_imported" // 新增：匯入點位旗標
         // 既有照片路徑（重新開啟表單時帶入）
         const val ARG_PHOTO_1      = "arg_photo_1"
         const val ARG_PHOTO_2      = "arg_photo_2"
@@ -84,10 +85,12 @@ class GutterPhotosFragment : Fragment() {
             viewMode: Boolean = false,
             photo1: String? = null,
             photo2: String? = null,
-            photo3: String? = null
+            photo3: String? = null,
+            isImported: Boolean = false // 新增：傳入匯入旗標
         ) = GutterPhotosFragment().apply {
             arguments = Bundle().apply {
                 putBoolean(ARG_VIEW_MODE, viewMode)
+                putBoolean(ARG_IS_IMPORTED, isImported)
                 if (!photo1.isNullOrEmpty()) putString(ARG_PHOTO_1, photo1)
                 if (!photo2.isNullOrEmpty()) putString(ARG_PHOTO_2, photo2)
                 if (!photo3.isNullOrEmpty()) putString(ARG_PHOTO_3, photo3)
@@ -162,8 +165,14 @@ class GutterPhotosFragment : Fragment() {
         photoUriSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, it) }
 
         val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
-        applyImportLockUi()
-        setEditable(!isViewMode)
+        val isImported = arguments?.getBoolean(ARG_IS_IMPORTED) ?: false
+        
+        if (isImported) {
+            setImportLocked(true)
+        } else {
+            applyImportLockUi()
+            setEditable(!isViewMode)
+        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
