@@ -460,9 +460,10 @@ class MainActivity : AppCompatActivity(),
 
                 // ── 若 FM 內仍有同 TAG 的舊 sheet（例如先前新增流程的 activeSheet）
                 //    必須先 dismiss 並等待事務完成，否則 show() 會因 TAG 衝突而失敗 ──
-                (supportFragmentManager.findFragmentByTag(AddGutterBottomSheet.TAG)
+                val oldSheet = (supportFragmentManager.findFragmentByTag(AddGutterBottomSheet.TAG)
                         as? AddGutterBottomSheet)
-                    ?.dismissAllowingStateLoss()
+                oldSheet?.onWaypointsChanged = null
+                oldSheet?.dismissAllowingStateLoss()
                 supportFragmentManager.executePendingTransactions()
                 activeSheet = null
 
@@ -1108,7 +1109,8 @@ class MainActivity : AppCompatActivity(),
             return
         }
         if (spiNum != null) {
-            // 更新模式：移除舊線段，重載可視範圍
+            // 更新模式：斷開監聽以避免 dismiss 觸發 redundant reload，移除舊線段，重載可視範圍
+            activeSheet?.onWaypointsChanged = null
             scopeGutterPolylineController.remove(spiNum)
             loadGuttersByViewport()
         } else {
@@ -1485,6 +1487,7 @@ class MainActivity : AppCompatActivity(),
                 submittedPolylines.clear()
             },
             prepareForResumedMapSession = {
+                activeSheet?.onWaypointsChanged = null
                 activeSheet?.dismissAllowingStateLoss()
                 activeSheet = null
                 gutterMapController.clearPreviewLayer()
