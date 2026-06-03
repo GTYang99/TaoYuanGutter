@@ -617,10 +617,13 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnClose.setOnClickListener { dismiss() }
         }
 
+        // 調轉按鈕：所有模式皆顯示且可點擊
+        binding.btnReverse.visibility = View.VISIBLE
+        binding.btnReverse.setOnClickListener { reverseWaypoints() }
+
         if (isInspectMode) {
-            // 檢視模式：隱藏新增節點、調轉、提交與刪除按鈕
+            // 檢視模式：隱藏新增節點、提交與刪除按鈕
             binding.btnAddNode.visibility       = View.GONE
-            binding.btnReverse.visibility       = View.GONE
             binding.layoutGutterType.visibility = View.GONE
             binding.btnSubmitGutter.visibility  = View.GONE
             binding.btnDeleteGutter.visibility  = View.GONE
@@ -629,9 +632,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             binding.btnDeleteGutter.visibility = View.VISIBLE
             binding.btnSubmitGutter.text = getString(R.string.btn_update_gutter)
             updateSubmitButtonState()
-
-            binding.btnReverse.visibility = View.VISIBLE
-            binding.btnReverse.setOnClickListener { reverseWaypoints() }
 
             // 編輯模式：弧線狀態以 ditchDetails 回填為準，且允許使用者切換
             binding.rgGutterKind.setOnCheckedChangeListener { _, checkedId ->
@@ -674,8 +674,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 binding.btnDeleteGutter.visibility = View.GONE
                 binding.btnSubmitGutter.text = getString(R.string.form_finish_button)
             }
-            binding.btnReverse.visibility = View.VISIBLE
-            binding.btnReverse.setOnClickListener { reverseWaypoints() }
 
             binding.rgGutterKind.setOnCheckedChangeListener { _, checkedId ->
                 val checked = (checkedId == R.id.rbKindCurve)

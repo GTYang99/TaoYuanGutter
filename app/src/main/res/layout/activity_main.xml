@@ -106,18 +106,6 @@
             app:tint="@color/colorPrimary"
             app:fabSize="mini" />
 
-        <!-- 測距模式按鈕（toggle） -->
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:id="@+id/btnMeasureDistance"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:contentDescription="@string/measure_mode_title"
-            android:src="@drawable/ic_ruler"
-            app:backgroundTint="@color/white"
-            app:tint="@color/colorPrimary"
-            app:fabSize="mini" />
-
         <!-- 回報無側溝 -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnReportNoDitch"
@@ -126,6 +114,18 @@
             android:layout_marginBottom="12dp"
             android:contentDescription="@string/no_ditch_fab_desc"
             android:src="@drawable/ic_noditch"
+            app:backgroundTint="@color/white"
+            app:tint="@color/colorPrimary"
+            app:fabSize="mini" />
+
+        <!-- 測距模式按鈕（toggle） -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/btnMeasureDistance"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:contentDescription="@string/measure_mode_title"
+            android:src="@drawable/ic_ruler"
             app:backgroundTint="@color/white"
             app:tint="@color/colorPrimary"
             app:fabSize="mini" />
