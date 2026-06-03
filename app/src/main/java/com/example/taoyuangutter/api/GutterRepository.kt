@@ -882,4 +882,51 @@ class GutterRepository(
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
         }
     }
+
+    /**
+     * 變更側溝狀態（例如恢復狀態）。
+     *
+     * @param spiNum 側溝編號
+     * @param action "restore"
+     * @param token  Bearer token
+     */
+    suspend fun updateDitchState(
+        spiNum: String,
+        action: String = "restore",
+        token: String
+    ): ApiResult<UpdateDitchStateResponse> {
+        return try {
+            val response = api.updateDitchState(
+                request = UpdateDitchStateRequest(action = action, spiNum = spiNum),
+                authorization = "Bearer $token"
+            )
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.code() == 401 -> ApiResult.Error(
+                    message = "尚未登入，請重新登入",
+                    code = 401
+                )
+                body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "變更狀態失敗",
+                        code = response.code()
+                    )
+                }
+                else -> {
+                    val errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
+                    val apiMsg = parseApiErrorMessage(errorBody)
+                    ApiResult.Error(
+                        message = apiMsg ?: "變更狀態失敗（${response.code()}）",
+                        code = response.code()
+                    )
+                }
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
 }

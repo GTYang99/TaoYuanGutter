@@ -215,6 +215,8 @@ data class DitchDetailsResponse(
 data class DitchDetails(
     @SerializedName("ditch_id") val ditchId: Int,
     @SerializedName("SPI_NUM")  val spiNum: String,
+    /** 側溝狀態：1=已完成、2=待修正、3=待匯入座標紀錄 */
+    @SerializedName("SPI_STATE") val spiState: String? = null,
     /** 是否為弧線側溝：0/1（後端可能回傳字串或數字字串） */
     @SerializedName("is_curve") val isCurve: String? = null,
     /** 是否含待架站點位：0/1（後端可能回傳字串或數字字串） */
@@ -582,6 +584,24 @@ data class StoreNoDitchResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String?,
     @SerializedName("data")    val data: StoreNoDitchData?,
+    @SerializedName("errors")  val errors: Map<String, List<String>>?
+)
+
+// ════════════════════════════════════════════════════════════════
+//  POST /api/v1/ditch/updateState  ── 變更側溝狀態
+// ════════════════════════════════════════════════════════════════
+
+/** 變更側溝狀態 Request Body */
+data class UpdateDitchStateRequest(
+    @SerializedName("action")  val action: String = "restore",
+    @SerializedName("SPI_NUM") val spiNum: String
+)
+
+/** 變更側溝狀態回應 */
+data class UpdateDitchStateResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("message") val message: String?,
+    @SerializedName("data")    val data: DitchDetails?,
     @SerializedName("errors")  val errors: Map<String, List<String>>?
 )
 

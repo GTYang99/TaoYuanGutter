@@ -230,6 +230,8 @@ class MainActivity : AppCompatActivity(),
     private var currentSessionDraftId: Long? = null
     /** true = 此次 session 為離線草稿（只存本機，不打 API） */
     private var currentSessionIsOffline: Boolean = false
+    /** 編輯模式開始時，側溝的原始狀態（用於判斷是否觸發「恢復狀態」詢問）。 */
+    private var initialSpiState: String? = null
 
     // ── 目前存活的 BottomSheet 與正在選點的索引 ───────────────────────────
     private var activeSheet: AddGutterBottomSheet? = null
@@ -455,6 +457,8 @@ class MainActivity : AppCompatActivity(),
                 // 這裡會接著開啟 AddGutterBottomSheet，由其 binding 邏輯維持按鈕禁用狀態
                 val json   = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_WAYPOINTS_JSON) ?: return@registerForActivityResult
                 val spiNum = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_SPI_NUM) ?: ""
+                val spiState = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_SPI_STATE) ?: ""
+                initialSpiState = spiState
                 val isCurveRaw = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_IS_CURVE) ?: "0"
                 val isCurve = isCurveRaw.trim() == "1" || isCurveRaw.trim().equals("true", true)
 
@@ -979,7 +983,12 @@ class MainActivity : AppCompatActivity(),
                         )
                     }
                     currentSessionDraftId = null
-                    if (!isFinishing && !isDestroyed && !spiNum.isNullOrBlank()) {
+                    
+                    if (initialSpiState == "2" && !spiNum.isNullOrBlank()) {
+                        // 重設狀態，避免之後重複觸發
+                        initialSpiState = null
+                        showRestoreStateDialog(spiNum, persistedWaypoints, token)
+                    } else if (!isFinishing && !isDestroyed && !spiNum.isNullOrBlank()) {
                         reopenInspectPreviewAfterUpdate(
                             spiNum = spiNum,
                             persistedWaypoints = persistedWaypoints,
@@ -1035,6 +1044,54 @@ class MainActivity : AppCompatActivity(),
                             )
                         }
                         .setCancelable(false)
+                        .show()
+                }
+            }
+        }
+    }
+
+    private fun showRestoreStateDialog(
+        spiNum: String,
+        persistedWaypoints: List<Waypoint>,
+        token: String
+    ) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("確認是否變更狀態")
+            .setMessage("目前側溝為「待修正」狀態，確認後將變更至「待修正」之前的狀態。")
+            .setPositiveButton("是") { _, _ ->
+                performRestoreState(spiNum, persistedWaypoints, token)
+            }
+            .setNegativeButton("否") { _, _ ->
+                // 即使選「否」，仍要重新開啟預覽以反映資料更新
+                reopenInspectPreviewAfterUpdate(spiNum, persistedWaypoints, token)
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun performRestoreState(
+        spiNum: String,
+        persistedWaypoints: List<Waypoint>,
+        token: String
+    ) {
+        lifecycleScope.launch {
+            mainBlockingUiController.setInspectLoading(true, "正在變更側溝狀態…")
+            val result = gutterRepository.updateDitchState(spiNum = spiNum, token = token)
+            mainBlockingUiController.setInspectLoading(false)
+
+            when (result) {
+                is ApiResult.Success -> {
+                    // 成功後，重新開啟預覽
+                    reopenInspectPreviewAfterUpdate(spiNum, persistedWaypoints, token)
+                }
+                is ApiResult.Error -> {
+                    MaterialAlertDialogBuilder(this@MainActivity)
+                        .setTitle("狀態變更失敗")
+                        .setMessage(result.message)
+                        .setPositiveButton(android.R.string.ok) { _, _ ->
+                            // 失敗後仍應開啟預覽（資料已更新，只是狀態沒變回）
+                            reopenInspectPreviewAfterUpdate(spiNum, persistedWaypoints, token)
+                        }
                         .show()
                 }
             }

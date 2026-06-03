@@ -213,6 +213,18 @@ interface GutterApiService {
     ): Response<StoreCurveDitchResponse>
 
     /**
+     * 變更側溝狀態（例如恢復狀態）。
+     *
+     * POST /api/v1/ditch/updateState
+     * Authorization: Bearer {token}
+     */
+    @POST("api/v1/ditch/updateState")
+    suspend fun updateDitchState(
+        @Body                    request: UpdateDitchStateRequest,
+        @Header("Authorization") authorization: String
+    ): Response<UpdateDitchStateResponse>
+
+    /**
      * 刪除指定側溝（含其所有點位）。
      *
      * DELETE /api/v1/ditch/deleteDitch?SPI_NUM=...
