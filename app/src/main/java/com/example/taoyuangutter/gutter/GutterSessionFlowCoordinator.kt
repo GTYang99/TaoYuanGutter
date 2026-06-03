@@ -3,7 +3,6 @@ package com.example.taoyuangutter.gutter
 import android.content.Context
 import android.content.Intent
 import com.example.taoyuangutter.pending.GutterSessionDraft
-import com.example.taoyuangutter.pending.KIND_CURVE
 import com.google.android.gms.maps.model.LatLng
 
 /**
@@ -19,10 +18,6 @@ class GutterSessionFlowCoordinator {
     )
 
     sealed interface ResumeAction {
-        data class OpenCurve(
-            val intent: Intent
-        ) : ResumeAction
-
         data class OpenOfflineForm(
             val intent: Intent
         ) : ResumeAction
@@ -53,25 +48,6 @@ class GutterSessionFlowCoordinator {
         draft: GutterSessionDraft,
         isOfflineMainMode: Boolean
     ): ResumeAction {
-        if (draft.kind == KIND_CURVE) {
-            val startXy = draft.waypoints
-                .firstOrNull { it.type == "START" }
-                ?.basicData
-                ?.get("XY_NUM")
-                .orEmpty()
-            val endXy = draft.waypoints
-                .firstOrNull { it.type == "END" }
-                ?.basicData
-                ?.get("XY_NUM")
-                .orEmpty()
-            val intent = Intent(context, AddCurveActivity::class.java)
-                .putExtra(AddCurveActivity.EXTRA_FORCE_OFFLINE_MODE, isOfflineMainMode || draft.isOffline)
-                .putExtra(AddCurveActivity.EXTRA_DRAFT_ID, draft.id)
-                .putExtra(AddCurveActivity.EXTRA_PREFILL_START_XY_NUM, startXy)
-                .putExtra(AddCurveActivity.EXTRA_PREFILL_END_XY_NUM, endXy)
-            return ResumeAction.OpenCurve(intent)
-        }
-
         if (draft.isSinglePoint) {
             return ResumeAction.OpenOfflineForm(
                 GutterFormActivity.newOfflineIntent(context, draft.id)

@@ -20,7 +20,6 @@ class GutterSessionUiCoordinator(
         val onResumedWaypointsReady: (List<Waypoint>) -> Unit,
         val onRefitRequested: (List<Waypoint>) -> Unit,
         val onReloadRequested: () -> Unit,
-        val launchCurve: (Intent) -> Unit,
         val launchOfflineForm: (Intent) -> Unit
     )
 
@@ -59,9 +58,6 @@ class GutterSessionUiCoordinator(
             if (hooks.isHostFinishing()) return@postDelayed
 
             when (resumeAction) {
-                is GutterSessionFlowCoordinator.ResumeAction.OpenCurve -> {
-                    hooks.launchCurve(resumeAction.intent)
-                }
                 is GutterSessionFlowCoordinator.ResumeAction.OpenOfflineForm -> {
                     hooks.launchOfflineForm(resumeAction.intent)
                 }

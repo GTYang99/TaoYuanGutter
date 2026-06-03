@@ -32,7 +32,6 @@ import com.example.taoyuangutter.api.NoDitchPoint
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
-import com.example.taoyuangutter.gutter.AddCurveActivity
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.GutterFormContract
@@ -277,7 +276,6 @@ class MainActivity : AppCompatActivity(),
 
     private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
     private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
-    private lateinit var addCurveLauncher: ActivityResultLauncher<Intent>
     private lateinit var measureModeUiController: MeasureModeUiController
     private lateinit var noDitchModeUiController: NoDitchModeUiController
 
@@ -571,16 +569,6 @@ class MainActivity : AppCompatActivity(),
                 gutterMapController.clearPreviewLayer()
                 clearWorkingMarkers()   // 移除檢視模式新增的起點／節點／終點標記
                 loadGuttersByViewport(showFeedback = true)
-            }
-        }
-
-        // ── AddCurveActivity 的 launcher（新增曲線側溝）────────────────────
-        addCurveLauncher = registerForActivityResult(
-            ActivityResultContracts.StartActivityForResult()
-        ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
-                // 新增成功 → 重新加載地圖線段
-                loadGuttersByViewport()
             }
         }
 
@@ -1531,9 +1519,6 @@ class MainActivity : AppCompatActivity(),
             },
             onReloadRequested = {
                 loadGuttersByViewport()
-            },
-            launchCurve = { intent ->
-                addCurveLauncher.launch(intent)
             },
             launchOfflineForm = { intent ->
                 startActivity(intent)
