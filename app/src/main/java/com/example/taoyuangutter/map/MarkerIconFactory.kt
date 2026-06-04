@@ -78,8 +78,8 @@ class MarkerIconFactory(
     ): Int = when (type) {
         WaypointType.START -> if (isPendingDeploy) R.drawable.ic_legend_start_pending else R.drawable.ic_legend_start
         WaypointType.NODE -> when {
-            isVirtual -> R.drawable.ic_legend_node_virtual
             isPendingDeploy -> R.drawable.ic_legend_node_pending
+            isVirtual -> R.drawable.ic_legend_node_virtual
             else -> R.drawable.ic_legend_node
         }
         WaypointType.END -> if (isPendingDeploy) R.drawable.ic_legend_end_pending else R.drawable.ic_legend_end
