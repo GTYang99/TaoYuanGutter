@@ -229,6 +229,9 @@ class GutterPhotosFragment : Fragment() {
             binding.btnDeleteSlot2.visibility = View.GONE
             binding.btnDeleteSlot3.visibility = View.GONE
         }
+
+        // 匯入鎖定或檢視模式均套用半透明，確保視覺一致性
+        binding.root.alpha = if (actualEnabled) 1.0f else 0.6f
     }
 
     fun setImportLocked(locked: Boolean) {

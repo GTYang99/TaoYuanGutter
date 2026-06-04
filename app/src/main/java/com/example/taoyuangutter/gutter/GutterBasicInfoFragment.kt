@@ -395,8 +395,8 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsSilt
         ).forEach { rg -> rg.setChildrenEnabled(actualEnabled) }
 
-        // 匯入鎖定時保持 1.0 透明度，確保資料清晰可見；純檢視模式才使用 0.5 半透明
-        val alpha = if (actualEnabled || isImportLocked) 1f else 0.5f
+        // 匯入鎖定與檢視模式均使用 0.5 半透明，提供一致的「不可修改」視覺暗示
+        val alpha = if (actualEnabled) 1f else 0.5f
         listOf(
             binding.tilGutterId,
             binding.rgGutterType,
