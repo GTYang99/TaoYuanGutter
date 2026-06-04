@@ -997,6 +997,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (editSpiNum.isEmpty() || _binding == null) return
         val enabled = !isPreloadingEditDetails && hasEditChanges()
         binding.btnSubmitGutter.isEnabled = enabled
+        binding.btnSubmitGutter.text = getString(R.string.btn_update_gutter)
         val tint = if (enabled)
             androidx.core.content.ContextCompat.getColor(requireContext(), com.example.taoyuangutter.R.color.colorPrimary)
         else
