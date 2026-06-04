@@ -510,8 +510,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     return false
                 }
                 
-                // 限制：如果原本的第一筆或最後一筆被移走，而遞補上來的是虛擬點，也要擋住
-                // 但 RecyclerView 的 onMove 是逐格移動，通常上述 moved.isVirtual 判斷已足夠。
+                // 漏洞修正：如果被交換（遞補）上來的位置是第一筆或最後一筆，且該點是虛擬點，也要擋住
+                val displaced = waypoints[to]
+                if (displaced.isVirtual && (from == 0 || from == waypoints.size - 1)) {
+                    Toast.makeText(requireContext(), "虛擬點不可作為起點或終點", Toast.LENGTH_SHORT).show()
+                    return false
+                }
 
                 waypoints.removeAt(from)
                 waypoints.add(to, moved)
