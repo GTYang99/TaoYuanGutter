@@ -13,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -46,6 +47,7 @@ import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.AuthNavigator
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.main.MainBlockingUiController
+import com.example.taoyuangutter.main.MainViewModel
 import com.example.taoyuangutter.main.MeasureModeUiController
 import com.example.taoyuangutter.main.NoDitchModeUiController
 import com.example.taoyuangutter.map.DistanceMeasureManager
@@ -98,6 +100,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     private lateinit var binding: ActivityMainBinding
+    private val mainViewModel: MainViewModel by viewModels()
     private var googleMap: GoogleMap? = null
     private var isOfflineMainMode: Boolean = false
     private var currentSheetBottomInsetPx: Int = 0
@@ -679,9 +682,16 @@ class MainActivity : AppCompatActivity(),
         googleMap = map
         // 關閉 Google 預設底圖，改用 NLSC WMTS 圖層
         googleMap?.mapType = GoogleMap.MAP_TYPE_NONE
-        mapOverlayController.setBaseLayer(LayersBottomSheet.LAYER_EMAP)
-        mapOverlayController.applyWmsOverlays()
-        scopeGutterPolylineController.setVisible(mapOverlayController.currentState().showPlan)
+
+        // Restore overlay state if it exists in ViewModel
+        mainViewModel.overlayState?.let { savedState ->
+            mapOverlayController.applyState(savedState)
+            scopeGutterPolylineController.setVisible(savedState.showPlan)
+        } ?: run {
+            mapOverlayController.setBaseLayer(LayersBottomSheet.LAYER_EMAP)
+            mapOverlayController.applyWmsOverlays()
+            scopeGutterPolylineController.setVisible(mapOverlayController.currentState().showPlan)
+        }
 
         // 避免地圖初始化時短暫跳到 (0,0) 或不合理位置：先以桃園作為初始鏡頭
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 16f))
@@ -1365,7 +1375,6 @@ class MainActivity : AppCompatActivity(),
         if (isOfflineMainMode) return
         // 防止連點：若已在查詢或已有 inspect 畫面，直接忽略
         if (isInspecting) return
-        disableNoDitchPointsOverlayIfNeeded()
         val token    = LoginActivity.getSavedToken(this)  ?: return
         val start = inspectFlowCoordinator.prepareStart(polyline) ?: return
 
@@ -1501,7 +1510,6 @@ class MainActivity : AppCompatActivity(),
 
     /** 原本的「新增側溝」流程，從 FAB 移入獨立方法。 */
     private fun openAddGutterFlow() {
-        disableNoDitchPointsOverlayIfNeeded()
         gutterSessionUiCoordinator.startAddSession(
             isOfflineMainMode = isOfflineMainMode,
             hooks = buildSessionUiHooks()
@@ -1852,6 +1860,7 @@ class MainActivity : AppCompatActivity(),
 
     override fun onLayerSelected(layer: String) {
         mapOverlayController.setBaseLayer(layer)
+        mainViewModel.overlayState = mapOverlayController.currentState()
     }
 
     override fun onOverlayTogglesChanged(
@@ -1866,18 +1875,7 @@ class MainActivity : AppCompatActivity(),
         if (showNoDitchPoints) {
             loadNoDitchPointsForVisibleArea()
         }
-    }
-
-    private fun disableNoDitchPointsOverlayIfNeeded() {
-        val state = mapOverlayController.currentState()
-        if (!state.showNoDitchPoints) return
-        onOverlayTogglesChanged(
-            showPlan = state.showPlan,
-            showWaterOld = state.showWaterOld,
-            showPossible = state.showPossible,
-            showRegion = state.showRegion,
-            showNoDitchPoints = false
-        )
+        mainViewModel.overlayState = mapOverlayController.currentState()
     }
 
     // ── 測距模式 ──────────────────────────────────────────────────────────────

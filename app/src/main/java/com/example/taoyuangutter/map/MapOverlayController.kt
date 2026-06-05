@@ -45,6 +45,19 @@ class MapOverlayController(
         showNoDitchPoints = showNoDitchPointsOverlay
     )
 
+    fun applyState(state: OverlayState) {
+        currentLayer = state.selectedLayer
+        showPlanOverlay = state.showPlan
+        showWaterOldOverlay = state.showWaterOld
+        showPossibleOverlay = state.showPossible
+        showRegionOverlay = state.showRegion
+        showNoDitchPointsOverlay = state.showNoDitchPoints
+
+        // Re-apply base layer and overlays
+        setBaseLayer(currentLayer)
+        applyWmsOverlays()
+    }
+
     fun setBaseLayer(layer: String) {
         currentTileOverlay?.remove()
         currentLayer = layer
