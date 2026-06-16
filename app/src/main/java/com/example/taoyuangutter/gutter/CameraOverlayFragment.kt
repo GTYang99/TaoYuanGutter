@@ -3,9 +3,15 @@ package com.example.taoyuangutter.gutter
 import android.app.Activity
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.Matrix
+import android.graphics.Paint
+import android.hardware.camera2.CameraCharacteristics
 import android.media.ExifInterface
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.OrientationEventListener
@@ -14,9 +20,15 @@ import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.widget.SeekBar
 import android.widget.Toast
+import androidx.camera.camera2.interop.Camera2CameraControl
+import androidx.camera.camera2.interop.Camera2CameraInfo
+import androidx.camera.camera2.interop.CaptureRequestOptions
+import androidx.camera.camera2.interop.ExperimentalCamera2Interop
 import androidx.camera.core.AspectRatio
 import androidx.camera.core.Camera
+import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -26,12 +38,16 @@ import androidx.activity.OnBackPressedCallback
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.databinding.FragmentCameraOverlayBinding
 import java.io.File
 import java.io.FileOutputStream
+import java.util.Locale
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,6 +58,7 @@ import kotlinx.coroutines.withContext
  * - 仍維持「需橫放才能拍」：未橫放顯示遮罩並禁用快門
  * - 兩指縮放：CameraX zoomRatio
  */
+@ExperimentalCamera2Interop
 class CameraOverlayFragment : Fragment() {
 
     private var _binding: FragmentCameraOverlayBinding? = null
@@ -56,6 +73,17 @@ class CameraOverlayFragment : Fragment() {
     private var deviceIsLandscape = false
     private var lastSurfaceRotation: Int = Surface.ROTATION_0
     private lateinit var scaleGestureDetector: ScaleGestureDetector
+    private var minZoomRatio = 1f
+    private var maxZoomRatio = 1f
+    private var initialZoomSet = false
+    private var updatingZoomSlider = false
+    private var monochromeAmount = 0f
+    private var saturationAmount = 0.5f // 0.5 is normal
+    // 新增：保持 slider 值以便拍照後 post-process 使用
+    private var brightnessAmount = 0.5f
+    private var tempAmount = 0.5f
+    private var tintAmount = 0.5f
+    private var zoomDisplayScale = 1f
 
     companion object {
         private const val ARG_OUTPUT_PATH = "output_path"
@@ -106,6 +134,9 @@ class CameraOverlayFragment : Fragment() {
         )
 
         setupZoomGesture()
+        setupZoomSlider()
+        setupColorControls()
+        setupToggleButtons()
         applySystemBarInsets()
         setupOrientationListener()
         setupButtons(slot)
@@ -151,10 +182,9 @@ class CameraOverlayFragment : Fragment() {
                 override fun onScale(detector: ScaleGestureDetector): Boolean {
                     val cam = camera ?: return false
                     val zoomState = cam.cameraInfo.zoomState.value ?: return false
-                    val current = zoomState.zoomRatio
-                    val target = (current * detector.scaleFactor)
+                    val targetRatio = (zoomState.zoomRatio * detector.scaleFactor)
                         .coerceIn(zoomState.minZoomRatio, zoomState.maxZoomRatio)
-                    cam.cameraControl.setZoomRatio(target)
+                    cam.cameraControl.setZoomRatio(targetRatio)
                     return true
                 }
             }
@@ -169,6 +199,148 @@ class CameraOverlayFragment : Fragment() {
                 else -> false
             }
         }
+    }
+
+    private fun setupZoomSlider() {
+        binding.zoomSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser || updatingZoomSlider) return
+                camera?.cameraControl?.setZoomRatio(progressToZoomRatio(progress))
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+    }
+
+    private fun progressToZoomRatio(progress: Int): Float {
+        if (maxZoomRatio <= minZoomRatio) return minZoomRatio
+        val fraction = progress.coerceIn(0, 100) / 100f
+        return minZoomRatio + ((maxZoomRatio - minZoomRatio) * fraction)
+    }
+
+    private fun zoomRatioToProgress(zoomRatio: Float): Int {
+        if (maxZoomRatio <= minZoomRatio) return 0
+        return (((zoomRatio - minZoomRatio) / (maxZoomRatio - minZoomRatio)) * 100f)
+            .roundToInt()
+            .coerceIn(0, 100)
+    }
+
+    private fun setupToggleButtons() {
+        binding.btnToggleColor.setOnClickListener {
+            val visible = binding.colorSlidersScroll.isVisible
+            binding.colorSlidersScroll.isVisible = !visible
+            // 開啟色彩時，若變焦開啟則關閉變焦，保持畫面簡潔
+            if (!visible) {
+                binding.zoomSlider.isVisible = false
+                binding.tvZoomLevel.isVisible = false
+            }
+            updateResetButtonVisibility()
+        }
+        binding.btnToggleZoom.setOnClickListener {
+            val visible = binding.zoomSlider.isVisible
+            binding.zoomSlider.isVisible = !visible
+            binding.tvZoomLevel.isVisible = !visible
+            // 開啟變焦時，若色彩開啟則關閉色彩
+            if (!visible) binding.colorSlidersScroll.isVisible = false
+            updateResetButtonVisibility()
+        }
+        binding.btnReset.setOnClickListener {
+            resetAllToDefault()
+        }
+    }
+
+    private fun updateResetButtonVisibility() {
+        binding.btnReset.isVisible = binding.colorSlidersScroll.isVisible || binding.zoomSlider.isVisible
+    }
+
+    private fun resetAllToDefault() {
+        // 重設變焦
+        camera?.cameraControl?.setZoomRatio(1.0f)
+        binding.zoomSlider.progress = zoomRatioToProgress(1.0f)
+        binding.tvZoomLevel.text = formatDisplayedZoom(1.0f)
+
+        // 重設色彩
+        binding.brightnessSlider.progress = 50
+        binding.tempSlider.progress = 50
+        binding.tintSlider.progress = 50
+        binding.saturationSlider.progress = 50
+        binding.bwSlider.progress = 0
+        monochromeAmount = 0f
+        saturationAmount = 0.5f
+        applyColorCorrection()
+    }
+
+    private fun setupColorControls() {
+        val listener = object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) {
+                when (s?.id) {
+                    R.id.bwSlider -> {
+                        monochromeAmount = p.coerceIn(0, 100) / 100f
+                    }
+                    R.id.saturationSlider -> {
+                        saturationAmount = p.coerceIn(0, 100) / 100f
+                    }
+                    R.id.brightnessSlider -> {
+                        brightnessAmount = p.coerceIn(0, 100) / 100f
+                    }
+                    R.id.tempSlider -> {
+                        tempAmount = p.coerceIn(0, 100) / 100f
+                    }
+                    R.id.tintSlider -> {
+                        tintAmount = p.coerceIn(0, 100) / 100f
+                    }
+                }
+                if (fromUser) applyColorCorrection()
+            }
+            override fun onStartTrackingTouch(s: SeekBar?) {}
+            override fun onStopTrackingTouch(s: SeekBar?) {}
+        }
+        binding.brightnessSlider.setOnSeekBarChangeListener(listener)
+        binding.tempSlider.setOnSeekBarChangeListener(listener)
+        binding.tintSlider.setOnSeekBarChangeListener(listener)
+        binding.saturationSlider.setOnSeekBarChangeListener(listener)
+        binding.bwSlider.setOnSeekBarChangeListener(listener)
+    }
+
+    private fun applyColorCorrection() {
+        val cam = camera ?: return
+        val camControl = cam.cameraControl
+        val camInfo = cam.cameraInfo
+
+        // 1. 處理亮度 (Exposure Compensation) — 使用 member brightnessAmount
+        val brightness = brightnessAmount // 0..1
+        val exposureState = camInfo.exposureState
+        if (exposureState.isExposureCompensationSupported) {
+            val range = exposureState.exposureCompensationRange
+            // 讓 50% 對應到 0 (不補償)，0% 對應到 min，100% 對應到 max
+            val index = if (brightness >= 0.5f) {
+                val fraction = (brightness - 0.5f) * 2f
+                (range.upper * fraction).roundToInt()
+            } else {
+                val fraction = (0.5f - brightness) * 2f
+                (range.lower * fraction).roundToInt()
+            }
+            camControl.setExposureCompensationIndex(index)
+        }
+
+        // 2. 處理色溫與色調 (Gains) — 使用 member tempAmount/tintAmount
+        val temp = tempAmount // 0=Cool(Blue), 1=Warm(Yellow)
+        val tint = tintAmount // 0=Green, 1=Magenta
+
+        // 計算 RGGB 增益 (這是一個簡化的模擬公式)
+        val rGain = 1.0f + (temp * 1.5f)
+        val gGain = 1.0f + ((1f - abs(tint - 0.5f) * 2f) * 0.5f)
+        val bGain = 1.0f + ((1f - temp) * 1.5f)
+
+        val gains = android.hardware.camera2.params.RggbChannelVector(rGain, gGain, gGain, bGain)
+
+        val camera2CameraControl = Camera2CameraControl.from(camControl)
+        val options = CaptureRequestOptions.Builder()
+            .setCaptureRequestOption(android.hardware.camera2.CaptureRequest.CONTROL_AWB_MODE, android.hardware.camera2.CaptureRequest.CONTROL_AWB_MODE_OFF)
+            .setCaptureRequestOption(android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE, android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE_TRANSFORM_MATRIX)
+            .setCaptureRequestOption(android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_GAINS, gains)
+            .build()
+        camera2CameraControl.captureRequestOptions = options
     }
 
     private fun applySystemBarInsets() {
@@ -230,6 +402,28 @@ class CameraOverlayFragment : Fragment() {
         binding.orientationWarning.visibility = if (isLandscape) View.GONE else View.VISIBLE
         binding.btnCapture.isEnabled = isLandscape
         binding.btnCapture.alpha = if (isLandscape) 1f else 0.4f
+
+        // 同步處理 Slider 與 Toggle 按鈕狀態
+        val alpha = if (isLandscape) 1f else 0.2f
+        binding.zoomSlider.isEnabled = isLandscape
+        binding.brightnessSlider.isEnabled = isLandscape
+        binding.tempSlider.isEnabled = isLandscape
+        binding.tintSlider.isEnabled = isLandscape
+        binding.saturationSlider.isEnabled = isLandscape
+        binding.bwSlider.isEnabled = isLandscape
+        binding.btnToggleColor.isEnabled = isLandscape
+        binding.btnToggleZoom.isEnabled = isLandscape
+        
+        binding.colorControlsLayout.alpha = alpha
+        binding.zoomControlsLayout.alpha = alpha
+
+        // 未橫放時收合滑桿
+        if (!isLandscape) {
+            binding.colorSlidersScroll.isVisible = false
+            binding.zoomSlider.isVisible = false
+            binding.tvZoomLevel.isVisible = false
+            binding.btnReset.isVisible = false
+        }
     }
 
     /**
@@ -266,17 +460,106 @@ class CameraOverlayFragment : Fragment() {
 
         try {
             cameraProvider.unbindAll()
-            camera = cameraProvider.bindToLifecycle(
+            val cameraSelector = selectWidestBackCameraSelector(cameraProvider)
+            val cam = cameraProvider.bindToLifecycle(
                 viewLifecycleOwner,
-                CameraSelector.DEFAULT_BACK_CAMERA,
+                cameraSelector,
                 preview,
                 imageCapture
             )
+            camera = cam
+
+            // 強制初始焦距為 1.0x
+            if (!initialZoomSet) {
+                cam.cameraControl.setZoomRatio(1.0f)
+                initialZoomSet = true
+                binding.zoomSlider.progress = zoomRatioToProgress(1.0f)
+                binding.tvZoomLevel.text = formatDisplayedZoom(1.0f)
+            }
+
+            cam.cameraInfo.zoomState.observe(viewLifecycleOwner) { state ->
+                minZoomRatio = state.minZoomRatio
+                maxZoomRatio = state.maxZoomRatio
+                val progress = zoomRatioToProgress(state.zoomRatio)
+                if (binding.zoomSlider.progress != progress) {
+                    updatingZoomSlider = true
+                    binding.zoomSlider.progress = progress
+                    updatingZoomSlider = false
+                }
+                // 更新倍率文字 (例如: 1.0x, 2.5x)
+                val zoomRatio = state.zoomRatio
+                binding.tvZoomLevel.text = formatDisplayedZoom(zoomRatio)
+            }
             // 保持 setupOrientationListener 初始化狀態，等待實際方向事件更新
         } catch (e: Exception) {
             Toast.makeText(requireContext(), getString(R.string.msg_camera_init_failed), Toast.LENGTH_SHORT).show()
             sendResult(Activity.RESULT_CANCELED, arguments?.getInt(ARG_SLOT, 0) ?: 0, null)
         }
+    }
+
+    private fun selectWidestBackCameraSelector(cameraProvider: ProcessCameraProvider): CameraSelector {
+        val availableInfos = cameraProvider.availableCameraInfos
+        val backInfos = runCatching {
+            CameraSelector.DEFAULT_BACK_CAMERA.filter(availableInfos)
+        }.getOrElse {
+            Log.w("CameraOverlay", "filter back cameras failed: ${it.message}")
+            emptyList()
+        }
+
+        val defaultBackScore = backInfos.firstOrNull()?.wideAngleScore()
+        val widest = backInfos.maxByOrNull { it.wideAngleScore() ?: 0f }
+        val widestScore = widest?.wideAngleScore()
+        zoomDisplayScale = if (
+            defaultBackScore != null &&
+            widestScore != null &&
+            defaultBackScore > 0f &&
+            widestScore > defaultBackScore
+        ) {
+            (defaultBackScore / widestScore).coerceIn(0.1f, 1f)
+        } else {
+            1f
+        }
+
+        if (widest == null) {
+            zoomDisplayScale = 1f
+            return CameraSelector.DEFAULT_BACK_CAMERA
+        }
+
+        val selectedCameraId = runCatching { Camera2CameraInfo.from(widest).cameraId }.getOrNull()
+        Log.d(
+            "CameraOverlay",
+            "selected back camera=$selectedCameraId, wideScore=$widestScore, zoomDisplayScale=$zoomDisplayScale"
+        )
+
+        return CameraSelector.Builder()
+            .requireLensFacing(CameraSelector.LENS_FACING_BACK)
+            .addCameraFilter { cameraInfos ->
+                val selected = cameraInfos.firstOrNull { it == widest } ?: return@addCameraFilter cameraInfos
+                listOf(selected)
+            }
+            .build()
+    }
+
+    private fun CameraInfo.wideAngleScore(): Float? {
+        return runCatching {
+            val camera2Info = Camera2CameraInfo.from(this)
+            val lensFacing = camera2Info.getCameraCharacteristic(CameraCharacteristics.LENS_FACING)
+            if (lensFacing != CameraCharacteristics.LENS_FACING_BACK) return null
+            val focalLengths = camera2Info.getCameraCharacteristic(
+                CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
+            )
+            val sensorSize = camera2Info.getCameraCharacteristic(
+                CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE
+            )
+            val shortestFocalLength = focalLengths?.minOrNull() ?: return null
+            val sensorWidth = sensorSize?.width ?: return null
+            if (shortestFocalLength <= 0f || sensorWidth <= 0f) return null
+            sensorWidth / shortestFocalLength
+        }.getOrNull()
+    }
+
+    private fun formatDisplayedZoom(cameraZoomRatio: Float): String {
+        return String.format(Locale.US, "%.1fx", cameraZoomRatio * zoomDisplayScale)
     }
 
     private fun capturePhoto(slot: Int) {
@@ -327,6 +610,17 @@ class CameraOverlayFragment : Fragment() {
                 ExifInterface.TAG_ORIENTATION,
                 ExifInterface.ORIENTATION_NORMAL
             )
+            val shouldNormalizeOrientation = orientation != ExifInterface.ORIENTATION_NORMAL
+            // combine saturation & monochrome into single saturation factor
+            val saturation = (1f - monochromeAmount) * (saturationAmount * 2f)
+            val finalSaturation = saturation.coerceIn(0f, 2f)
+            // compute RGB gains based on temp/tint (reuse same formula)
+            val rGain = 1.0f + (tempAmount * 1.5f)
+            val gGain = 1.0f + ((1f - abs(tintAmount - 0.5f) * 2f) * 0.5f)
+            val bGain = 1.0f + ((1f - tempAmount) * 1.5f)
+            val shouldApplyColorMatrix = finalSaturation != 1f || rGain != 1f || gGain != 1f || bGain != 1f || brightnessAmount != 0.5f
+            if (!shouldNormalizeOrientation && !shouldApplyColorMatrix) return
+
             val matrix = Matrix()
             when (orientation) {
                 ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
@@ -342,25 +636,69 @@ class CameraOverlayFragment : Fragment() {
                     matrix.postRotate(270f)
                     matrix.postScale(-1f, 1f)
                 }
-                else -> return
             }
 
             val source = BitmapFactory.decodeFile(file.absolutePath) ?: return
-            val fixed = Bitmap.createBitmap(
-                source,
-                0,
-                0,
-                source.width,
-                source.height,
-                matrix,
-                true
-            )
-            if (fixed != source) source.recycle()
+            var output = if (shouldNormalizeOrientation) {
+                Bitmap.createBitmap(
+                    source,
+                    0,
+                    0,
+                    source.width,
+                    source.height,
+                    matrix,
+                    true
+                ).also {
+                    if (it != source) source.recycle()
+                }
+            } else {
+                source
+            }
+
+            if (shouldApplyColorMatrix) {
+                // Build combined ColorMatrix: saturation -> channel gains -> brightness translate
+                val satMatrix = ColorMatrix().apply { setSaturation(finalSaturation) }
+
+                // Channel gains matrix
+                val gainMatrix = ColorMatrix(
+                    floatArrayOf(
+                        rGain, 0f, 0f, 0f, 0f,
+                        0f, gGain, 0f, 0f, 0f,
+                        0f, 0f, bGain, 0f, 0f,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+
+                // Brightness translate: map brightnessAmount (0..1, 0.5 neutral) to +/- translate
+                val brightnessDelta = (brightnessAmount - 0.5f) * 128f
+                val translateMatrix = ColorMatrix(
+                    floatArrayOf(
+                        1f, 0f, 0f, 0f, brightnessDelta,
+                        0f, 1f, 0f, 0f, brightnessDelta,
+                        0f, 0f, 1f, 0f, brightnessDelta,
+                        0f, 0f, 0f, 1f, 0f
+                    )
+                )
+
+                // combine: first saturation, then gains, then brightness
+                val combined = ColorMatrix()
+                combined.set(satMatrix)
+                combined.postConcat(gainMatrix)
+                combined.postConcat(translateMatrix)
+
+                val adjusted = Bitmap.createBitmap(output.width, output.height, Bitmap.Config.ARGB_8888)
+                val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    colorFilter = ColorMatrixColorFilter(combined)
+                }
+                Canvas(adjusted).drawBitmap(output, 0f, 0f, paint)
+                output.recycle()
+                output = adjusted
+            }
 
             FileOutputStream(file).use { out ->
-                fixed.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                output.compress(Bitmap.CompressFormat.JPEG, 95, out)
             }
-            fixed.recycle()
+            output.recycle()
 
             val fixedExif = ExifInterface(file.absolutePath)
             fixedExif.setAttribute(
