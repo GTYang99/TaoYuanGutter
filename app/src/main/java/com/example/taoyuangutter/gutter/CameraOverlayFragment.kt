@@ -77,12 +77,9 @@ class CameraOverlayFragment : Fragment() {
     private var maxZoomRatio = 1f
     private var initialZoomSet = false
     private var updatingZoomSlider = false
-    private var monochromeAmount = 0f
-    private var saturationAmount = 0.5f // 0.5 is normal
     // 新增：保持 slider 值以便拍照後 post-process 使用
     private var brightnessAmount = 0.5f
     private var tempAmount = 0.5f
-    private var tintAmount = 0.5f
     private var zoomDisplayScale = 1f
     private var zoomStateInitialized = false
 
@@ -256,18 +253,16 @@ class CameraOverlayFragment : Fragment() {
 
     private fun resetAllToDefault() {
         // 重設變焦
-        camera?.cameraControl?.setZoomRatio(1.0f)
-        binding.zoomSlider.progress = zoomRatioToProgress(1.0f)
-        binding.tvZoomLevel.text = formatDisplayedZoom(1.0f)
+        val targetInitialRatio = (1.0f / zoomDisplayScale).coerceAtLeast(1.0f)
+        camera?.cameraControl?.setZoomRatio(targetInitialRatio)
+        binding.zoomSlider.progress = zoomRatioToProgress(targetInitialRatio)
+        binding.tvZoomLevel.text = formatDisplayedZoom(targetInitialRatio)
 
         // 重設色彩
         binding.brightnessSlider.progress = 50
         binding.tempSlider.progress = 50
-        binding.tintSlider.progress = 50
-        binding.saturationSlider.progress = 50
-        binding.bwSlider.progress = 0
-        monochromeAmount = 0f
-        saturationAmount = 0.5f
+        brightnessAmount = 0.5f
+        tempAmount = 0.5f
         applyColorCorrection()
     }
 
@@ -275,20 +270,11 @@ class CameraOverlayFragment : Fragment() {
         val listener = object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) {
                 when (s?.id) {
-                    R.id.bwSlider -> {
-                        monochromeAmount = p.coerceIn(0, 100) / 100f
-                    }
-                    R.id.saturationSlider -> {
-                        saturationAmount = p.coerceIn(0, 100) / 100f
-                    }
                     R.id.brightnessSlider -> {
                         brightnessAmount = p.coerceIn(0, 100) / 100f
                     }
                     R.id.tempSlider -> {
                         tempAmount = p.coerceIn(0, 100) / 100f
-                    }
-                    R.id.tintSlider -> {
-                        tintAmount = p.coerceIn(0, 100) / 100f
                     }
                 }
                 if (fromUser) applyColorCorrection()
@@ -298,9 +284,6 @@ class CameraOverlayFragment : Fragment() {
         }
         binding.brightnessSlider.setOnSeekBarChangeListener(listener)
         binding.tempSlider.setOnSeekBarChangeListener(listener)
-        binding.tintSlider.setOnSeekBarChangeListener(listener)
-        binding.saturationSlider.setOnSeekBarChangeListener(listener)
-        binding.bwSlider.setOnSeekBarChangeListener(listener)
     }
 
     private fun applyColorCorrection() {
@@ -324,13 +307,12 @@ class CameraOverlayFragment : Fragment() {
             camControl.setExposureCompensationIndex(index)
         }
 
-        // 2. 處理色溫與色調 (Gains) — 使用 member tempAmount/tintAmount
+        // 2. 處理色溫 (Gains) — 使用 member tempAmount
         val temp = tempAmount // 0=Cool(Blue), 1=Warm(Yellow)
-        val tint = tintAmount // 0=Green, 1=Magenta
 
         // 計算 RGGB 增益 (這是一個簡化的模擬公式)
         val rGain = 1.0f + (temp * 1.5f)
-        val gGain = 1.0f + ((1f - abs(tint - 0.5f) * 2f) * 0.5f)
+        val gGain = 1.0f
         val bGain = 1.0f + ((1f - temp) * 1.5f)
 
         val gains = android.hardware.camera2.params.RggbChannelVector(rGain, gGain, gGain, bGain)
@@ -409,9 +391,6 @@ class CameraOverlayFragment : Fragment() {
         binding.zoomSlider.isEnabled = isLandscape
         binding.brightnessSlider.isEnabled = isLandscape
         binding.tempSlider.isEnabled = isLandscape
-        binding.tintSlider.isEnabled = isLandscape
-        binding.saturationSlider.isEnabled = isLandscape
-        binding.bwSlider.isEnabled = isLandscape
         binding.btnToggleColor.isEnabled = isLandscape
         binding.btnToggleZoom.isEnabled = isLandscape
         
@@ -472,7 +451,8 @@ class CameraOverlayFragment : Fragment() {
 
             // 強制初始焦距為 1.0x
             if (!initialZoomSet) {
-                cam.cameraControl.setZoomRatio(1.0f)
+                val targetInitialRatio = (1.0f / zoomDisplayScale).coerceAtLeast(1.0f)
+                cam.cameraControl.setZoomRatio(targetInitialRatio)
                 initialZoomSet = true
                 // Try to initialize UI from immediate zoomState if available
                 val immediateState = cam.cameraInfo.zoomState.value
@@ -489,7 +469,7 @@ class CameraOverlayFragment : Fragment() {
                 } else {
                     // Disable slider until observer provides real values
                     binding.zoomSlider.isEnabled = false
-                    binding.tvZoomLevel.text = formatDisplayedZoom(1.0f)
+                    binding.tvZoomLevel.text = formatDisplayedZoom(targetInitialRatio)
                 }
             }
 
@@ -631,14 +611,11 @@ class CameraOverlayFragment : Fragment() {
                 ExifInterface.ORIENTATION_NORMAL
             )
             val shouldNormalizeOrientation = orientation != ExifInterface.ORIENTATION_NORMAL
-            // combine saturation & monochrome into single saturation factor
-            val saturation = (1f - monochromeAmount) * (saturationAmount * 2f)
-            val finalSaturation = saturation.coerceIn(0f, 2f)
-            // compute RGB gains based on temp/tint (reuse same formula)
+            
+            // compute RGB gains based on temp (reuse same formula)
             val rGain = 1.0f + (tempAmount * 1.5f)
-            val gGain = 1.0f + ((1f - abs(tintAmount - 0.5f) * 2f) * 0.5f)
             val bGain = 1.0f + ((1f - tempAmount) * 1.5f)
-            val shouldApplyColorMatrix = finalSaturation != 1f || rGain != 1f || gGain != 1f || bGain != 1f || brightnessAmount != 0.5f
+            val shouldApplyColorMatrix = rGain != 1f || bGain != 1f || brightnessAmount != 0.5f
             if (!shouldNormalizeOrientation && !shouldApplyColorMatrix) return
 
             val matrix = Matrix()
@@ -676,14 +653,13 @@ class CameraOverlayFragment : Fragment() {
             }
 
             if (shouldApplyColorMatrix) {
-                // Build combined ColorMatrix: saturation -> channel gains -> brightness translate
-                val satMatrix = ColorMatrix().apply { setSaturation(finalSaturation) }
-
+                // Build combined ColorMatrix: channel gains -> brightness translate
+                
                 // Channel gains matrix
                 val gainMatrix = ColorMatrix(
                     floatArrayOf(
                         rGain, 0f, 0f, 0f, 0f,
-                        0f, gGain, 0f, 0f, 0f,
+                        0f, 1f, 0f, 0f, 0f,
                         0f, 0f, bGain, 0f, 0f,
                         0f, 0f, 0f, 1f, 0f
                     )
@@ -700,10 +676,9 @@ class CameraOverlayFragment : Fragment() {
                     )
                 )
 
-                // combine: first saturation, then gains, then brightness
+                // combine: gains, then brightness
                 val combined = ColorMatrix()
-                combined.set(satMatrix)
-                combined.postConcat(gainMatrix)
+                combined.set(gainMatrix)
                 combined.postConcat(translateMatrix)
 
                 val adjusted = Bitmap.createBitmap(output.width, output.height, Bitmap.Config.ARGB_8888)
