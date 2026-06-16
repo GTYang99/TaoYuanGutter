@@ -39,9 +39,9 @@
     <!-- [上方] 色彩控制區域 (貼近照片邊緣) -->
     <LinearLayout
         android:id="@+id/colorControlsLayout"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:gravity="center_vertical"
         android:padding="8dp"
         android:layout_marginTop="8dp"
@@ -49,54 +49,164 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <ImageButton
-            android:id="@+id/btnToggleColor"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:src="@drawable/ic_tune"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#FFFFFF"
-            android:contentDescription="色彩調整" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <ImageButton
+                android:id="@+id/btnToggleColor"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_tune"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:tint="#FFFFFF"
+                android:contentDescription="色彩調整" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/colorSliders"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:visibility="gone">
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:paddingTop="6dp">
 
-            <!-- 色溫 (Blue to Yellow) -->
-            <SeekBar
-                android:id="@+id/tempSlider"
-                android:layout_width="120dp"
+            <!-- Brightness control -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="50"
-                android:splitTrack="false"
-                android:thumbTint="#FFFFFF"
-                android:progressTint="#FFD700" />
+                android:orientation="vertical"
+                android:gravity="center_vertical"
+                android:padding="4dp">
 
-            <!-- 色調 (Green to Magenta) -->
-            <SeekBar
-                android:id="@+id/tintSlider"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="50"
-                android:splitTrack="false"
-                android:thumbTint="#FFFFFF"
-                android:progressTint="#FF00FF" />
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_tune"
+                    android:tint="#FFFF00"
+                    android:contentDescription="亮度" />
 
-            <!-- 黑白強度 (Color to Monochrome) -->
-            <SeekBar
-                android:id="@+id/bwSlider"
-                android:layout_width="120dp"
+                <SeekBar
+                    android:id="@+id/brightnessSlider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="100"
+                    android:progress="50"
+                    android:splitTrack="false"
+                    android:thumbTint="#FFFFFF"
+                    android:progressTint="#FFFFFF" />
+            </LinearLayout>
+
+            <!-- Color temperature control -->
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="100"
-                android:progress="0"
-                android:splitTrack="false"
-                android:thumbTint="#FFFFFF"
-                android:progressTint="#FFFFFF" />
+                android:orientation="vertical"
+                android:gravity="center_vertical"
+                android:padding="4dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_tune"
+                    android:tint="#00BFFF"
+                    android:contentDescription="色溫" />
+
+                <SeekBar
+                    android:id="@+id/tempSlider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="100"
+                    android:progress="50"
+                    android:splitTrack="false"
+                    android:thumbTint="#FFFFFF"
+                    android:progressTint="#FFD700" />
+            </LinearLayout>
+
+            <!-- Tint control -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_vertical"
+                android:padding="4dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_tune"
+                    android:tint="#FF00FF"
+                    android:contentDescription="色調" />
+
+                <SeekBar
+                    android:id="@+id/tintSlider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="100"
+                    android:progress="50"
+                    android:splitTrack="false"
+                    android:thumbTint="#FFFFFF"
+                    android:progressTint="#FF00FF" />
+            </LinearLayout>
+
+            <!-- Saturation control -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_vertical"
+                android:padding="4dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_tune"
+                    android:tint="#00FFFF"
+                    android:contentDescription="飽和度" />
+
+                <SeekBar
+                    android:id="@+id/saturationSlider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="100"
+                    android:progress="50"
+                    android:splitTrack="false"
+                    android:thumbTint="#FFFFFF"
+                    android:progressTint="#00FFFF" />
+            </LinearLayout>
+
+            <!-- Black/White (monochrome) control -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center_vertical"
+                android:padding="4dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:src="@drawable/ic_tune"
+                    android:tint="#FFFFFF"
+                    android:contentDescription="黑白強度" />
+
+                <SeekBar
+                    android:id="@+id/bwSlider"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:max="100"
+                    android:progress="0"
+                    android:splitTrack="false"
+                    android:thumbTint="#FFFFFF"
+                    android:progressTint="#FFFFFF" />
+            </LinearLayout>
 
         </LinearLayout>
     </LinearLayout>

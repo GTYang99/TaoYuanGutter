@@ -227,8 +227,8 @@ class CameraOverlayFragment : Fragment() {
 
     private fun setupToggleButtons() {
         binding.btnToggleColor.setOnClickListener {
-            val visible = binding.colorSlidersScroll.isVisible
-            binding.colorSlidersScroll.isVisible = !visible
+            val visible = binding.colorSliders.isVisible
+            binding.colorSliders.isVisible = !visible
             // 開啟色彩時，若變焦開啟則關閉變焦，保持畫面簡潔
             if (!visible) {
                 binding.zoomSlider.isVisible = false
@@ -241,7 +241,7 @@ class CameraOverlayFragment : Fragment() {
             binding.zoomSlider.isVisible = !visible
             binding.tvZoomLevel.isVisible = !visible
             // 開啟變焦時，若色彩開啟則關閉色彩
-            if (!visible) binding.colorSlidersScroll.isVisible = false
+            if (!visible) binding.colorSliders.isVisible = false
             updateResetButtonVisibility()
         }
         binding.btnReset.setOnClickListener {
@@ -250,7 +250,7 @@ class CameraOverlayFragment : Fragment() {
     }
 
     private fun updateResetButtonVisibility() {
-        binding.btnReset.isVisible = binding.colorSlidersScroll.isVisible || binding.zoomSlider.isVisible
+        binding.btnReset.isVisible = binding.colorSliders.isVisible || binding.zoomSlider.isVisible
     }
 
     private fun resetAllToDefault() {
@@ -419,7 +419,7 @@ class CameraOverlayFragment : Fragment() {
 
         // 未橫放時收合滑桿
         if (!isLandscape) {
-            binding.colorSlidersScroll.isVisible = false
+            binding.colorSliders.isVisible = false
             binding.zoomSlider.isVisible = false
             binding.tvZoomLevel.isVisible = false
             binding.btnReset.isVisible = false
