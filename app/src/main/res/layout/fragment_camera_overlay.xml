@@ -64,6 +64,16 @@
                 android:tint="#FFFFFF"
                 android:contentDescription="色彩調整" />
 
+            <ImageButton
+                android:id="@+id/btnFlash"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginStart="8dp"
+                android:src="@drawable/ic_flash_off"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:tint="#FFFFFF"
+                android:contentDescription="閃光燈" />
+
             <View
                 android:layout_width="0dp"
                 android:layout_height="1dp"
@@ -113,41 +123,6 @@
                     android:tint="#FFFFFF"
                     android:contentDescription="較亮" />
             </LinearLayout>
-
-            <!-- Color temperature control -->
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical"
-                android:padding="4dp">
-
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:src="@drawable/ic_color_dot"
-                    android:tint="#00BFFF"
-                    android:contentDescription="冷色" />
-
-                <SeekBar
-                    android:id="@+id/tempSlider"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:max="100"
-                    android:progress="50"
-                    android:splitTrack="false"
-                    android:thumbTint="#FFFFFF"
-                    android:progressTint="#FFD700" />
-
-                <ImageView
-                    android:layout_width="16dp"
-                    android:layout_height="16dp"
-                    android:src="@drawable/ic_color_dot"
-                    android:tint="#FF4500"
-                    android:contentDescription="暖色" />
-            </LinearLayout>
-
         </LinearLayout>
     </LinearLayout>
 

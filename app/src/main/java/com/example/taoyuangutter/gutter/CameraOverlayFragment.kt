@@ -79,7 +79,7 @@ class CameraOverlayFragment : Fragment() {
     private var updatingZoomSlider = false
     // 新增：保持 slider 值以便拍照後 post-process 使用
     private var brightnessAmount = 0.5f
-    private var tempAmount = 0.5f
+    private var isFlashOn = false
     private var zoomDisplayScale = 1f
     private var zoomStateInitialized = false
 
@@ -242,8 +242,26 @@ class CameraOverlayFragment : Fragment() {
             if (!visible) binding.colorSliders.isVisible = false
             updateResetButtonVisibility()
         }
+        binding.btnFlash.setOnClickListener {
+            toggleFlash()
+        }
         binding.btnReset.setOnClickListener {
             resetAllToDefault()
+        }
+    }
+
+    private fun toggleFlash() {
+        val cam = camera ?: return
+        val capture = imageCapture
+
+        if (cam.cameraInfo.hasFlashUnit()) {
+            isFlashOn = !isFlashOn
+            // 僅切換拍照閃光模式，不開啟手電筒恆亮
+            capture?.flashMode = if (isFlashOn) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF
+            
+            binding.btnFlash.setImageResource(if (isFlashOn) R.drawable.ic_flash_on else R.drawable.ic_flash_off)
+        } else {
+            Toast.makeText(requireContext(), "此鏡頭不支援閃光燈", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -260,22 +278,15 @@ class CameraOverlayFragment : Fragment() {
 
         // 重設色彩
         binding.brightnessSlider.progress = 50
-        binding.tempSlider.progress = 50
         brightnessAmount = 0.5f
-        tempAmount = 0.5f
         applyColorCorrection()
     }
 
     private fun setupColorControls() {
         val listener = object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) {
-                when (s?.id) {
-                    R.id.brightnessSlider -> {
-                        brightnessAmount = p.coerceIn(0, 100) / 100f
-                    }
-                    R.id.tempSlider -> {
-                        tempAmount = p.coerceIn(0, 100) / 100f
-                    }
+                if (s?.id == R.id.brightnessSlider) {
+                    brightnessAmount = p.coerceIn(0, 100) / 100f
                 }
                 if (fromUser) applyColorCorrection()
             }
@@ -283,7 +294,6 @@ class CameraOverlayFragment : Fragment() {
             override fun onStopTrackingTouch(s: SeekBar?) {}
         }
         binding.brightnessSlider.setOnSeekBarChangeListener(listener)
-        binding.tempSlider.setOnSeekBarChangeListener(listener)
     }
 
     private fun applyColorCorrection() {
@@ -291,7 +301,7 @@ class CameraOverlayFragment : Fragment() {
         val camControl = cam.cameraControl
         val camInfo = cam.cameraInfo
 
-        // 1. 處理亮度 (Exposure Compensation) — 使用 member brightnessAmount
+        // 處理亮度 (Exposure Compensation) — 使用 member brightnessAmount
         val brightness = brightnessAmount // 0..1
         val exposureState = camInfo.exposureState
         if (exposureState.isExposureCompensationSupported) {
@@ -306,24 +316,6 @@ class CameraOverlayFragment : Fragment() {
             }
             camControl.setExposureCompensationIndex(index)
         }
-
-        // 2. 處理色溫 (Gains) — 使用 member tempAmount
-        val temp = tempAmount // 0=Cool(Blue), 1=Warm(Yellow)
-
-        // 計算 RGGB 增益 (這是一個簡化的模擬公式)
-        val rGain = 1.0f + (temp * 1.5f)
-        val gGain = 1.0f
-        val bGain = 1.0f + ((1f - temp) * 1.5f)
-
-        val gains = android.hardware.camera2.params.RggbChannelVector(rGain, gGain, gGain, bGain)
-
-        val camera2CameraControl = Camera2CameraControl.from(camControl)
-        val options = CaptureRequestOptions.Builder()
-            .setCaptureRequestOption(android.hardware.camera2.CaptureRequest.CONTROL_AWB_MODE, android.hardware.camera2.CaptureRequest.CONTROL_AWB_MODE_OFF)
-            .setCaptureRequestOption(android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE, android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_MODE_TRANSFORM_MATRIX)
-            .setCaptureRequestOption(android.hardware.camera2.CaptureRequest.COLOR_CORRECTION_GAINS, gains)
-            .build()
-        camera2CameraControl.captureRequestOptions = options
     }
 
     private fun applySystemBarInsets() {
@@ -390,9 +382,9 @@ class CameraOverlayFragment : Fragment() {
         val alpha = if (isLandscape) 1f else 0.2f
         binding.zoomSlider.isEnabled = isLandscape
         binding.brightnessSlider.isEnabled = isLandscape
-        binding.tempSlider.isEnabled = isLandscape
         binding.btnToggleColor.isEnabled = isLandscape
         binding.btnToggleZoom.isEnabled = isLandscape
+        binding.btnFlash.isEnabled = isLandscape
         
         binding.colorControlsLayout.alpha = alpha
         binding.zoomControlsLayout.alpha = alpha
@@ -436,6 +428,7 @@ class CameraOverlayFragment : Fragment() {
             .setTargetAspectRatio(AspectRatio.RATIO_4_3)
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
             .setTargetRotation(lastSurfaceRotation)
+            .setFlashMode(if (isFlashOn) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF)
             .build()
 
         try {
@@ -506,9 +499,16 @@ class CameraOverlayFragment : Fragment() {
             emptyList()
         }
 
+        // 優先過濾出「有閃光燈」的鏡頭
+        val backWithFlash = backInfos.filter { it.hasFlashUnit() }
+        
+        // 如果有帶閃光燈的鏡頭，從中選最廣角的；若都沒有（極少見），則從所有後鏡頭選最廣角的
+        val candidatePool = if (backWithFlash.isNotEmpty()) backWithFlash else backInfos
+
         val defaultBackScore = backInfos.firstOrNull()?.wideAngleScore()
-        val widest = backInfos.maxByOrNull { it.wideAngleScore() ?: 0f }
+        val widest = candidatePool.maxByOrNull { it.wideAngleScore() ?: 0f }
         val widestScore = widest?.wideAngleScore()
+        
         zoomDisplayScale = if (
             defaultBackScore != null &&
             widestScore != null &&
@@ -528,7 +528,7 @@ class CameraOverlayFragment : Fragment() {
         val selectedCameraId = runCatching { Camera2CameraInfo.from(widest).cameraId }.getOrNull()
         Log.d(
             "CameraOverlay",
-            "selected back camera=$selectedCameraId, wideScore=$widestScore, zoomDisplayScale=$zoomDisplayScale"
+            "selected back camera=$selectedCameraId (hasFlash=${widest.hasFlashUnit()}), wideScore=$widestScore, zoomDisplayScale=$zoomDisplayScale"
         )
 
         return CameraSelector.Builder()
@@ -612,10 +612,7 @@ class CameraOverlayFragment : Fragment() {
             )
             val shouldNormalizeOrientation = orientation != ExifInterface.ORIENTATION_NORMAL
             
-            // compute RGB gains based on temp (reuse same formula)
-            val rGain = 1.0f + (tempAmount * 1.5f)
-            val bGain = 1.0f + ((1f - tempAmount) * 1.5f)
-            val shouldApplyColorMatrix = rGain != 1f || bGain != 1f || brightnessAmount != 0.5f
+            val shouldApplyColorMatrix = brightnessAmount != 0.5f
             if (!shouldNormalizeOrientation && !shouldApplyColorMatrix) return
 
             val matrix = Matrix()
@@ -653,18 +650,8 @@ class CameraOverlayFragment : Fragment() {
             }
 
             if (shouldApplyColorMatrix) {
-                // Build combined ColorMatrix: channel gains -> brightness translate
+                // Build combined ColorMatrix: brightness translate
                 
-                // Channel gains matrix
-                val gainMatrix = ColorMatrix(
-                    floatArrayOf(
-                        rGain, 0f, 0f, 0f, 0f,
-                        0f, 1f, 0f, 0f, 0f,
-                        0f, 0f, bGain, 0f, 0f,
-                        0f, 0f, 0f, 1f, 0f
-                    )
-                )
-
                 // Brightness translate: map brightnessAmount (0..1, 0.5 neutral) to +/- translate
                 val brightnessDelta = (brightnessAmount - 0.5f) * 128f
                 val translateMatrix = ColorMatrix(
@@ -676,14 +663,9 @@ class CameraOverlayFragment : Fragment() {
                     )
                 )
 
-                // combine: gains, then brightness
-                val combined = ColorMatrix()
-                combined.set(gainMatrix)
-                combined.postConcat(translateMatrix)
-
                 val adjusted = Bitmap.createBitmap(output.width, output.height, Bitmap.Config.ARGB_8888)
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    colorFilter = ColorMatrixColorFilter(combined)
+                    colorFilter = ColorMatrixColorFilter(translateMatrix)
                 }
                 Canvas(adjusted).drawBitmap(output, 0f, 0f, paint)
                 output.recycle()
