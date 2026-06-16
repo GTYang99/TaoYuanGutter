@@ -84,6 +84,7 @@ class CameraOverlayFragment : Fragment() {
     private var tempAmount = 0.5f
     private var tintAmount = 0.5f
     private var zoomDisplayScale = 1f
+    private var zoomStateInitialized = false
 
     companion object {
         private const val ARG_OUTPUT_PATH = "output_path"
@@ -473,8 +474,23 @@ class CameraOverlayFragment : Fragment() {
             if (!initialZoomSet) {
                 cam.cameraControl.setZoomRatio(1.0f)
                 initialZoomSet = true
-                binding.zoomSlider.progress = zoomRatioToProgress(1.0f)
-                binding.tvZoomLevel.text = formatDisplayedZoom(1.0f)
+                // Try to initialize UI from immediate zoomState if available
+                val immediateState = cam.cameraInfo.zoomState.value
+                if (immediateState != null && immediateState.minZoomRatio < immediateState.maxZoomRatio) {
+                    minZoomRatio = immediateState.minZoomRatio
+                    maxZoomRatio = immediateState.maxZoomRatio
+                    val progress = zoomRatioToProgress(immediateState.zoomRatio)
+                    updatingZoomSlider = true
+                    binding.zoomSlider.progress = progress
+                    updatingZoomSlider = false
+                    binding.tvZoomLevel.text = formatDisplayedZoom(immediateState.zoomRatio)
+                    binding.zoomSlider.isEnabled = true
+                    zoomStateInitialized = true
+                } else {
+                    // Disable slider until observer provides real values
+                    binding.zoomSlider.isEnabled = false
+                    binding.tvZoomLevel.text = formatDisplayedZoom(1.0f)
+                }
             }
 
             cam.cameraInfo.zoomState.observe(viewLifecycleOwner) { state ->
@@ -489,6 +505,10 @@ class CameraOverlayFragment : Fragment() {
                 // 更新倍率文字 (例如: 1.0x, 2.5x)
                 val zoomRatio = state.zoomRatio
                 binding.tvZoomLevel.text = formatDisplayedZoom(zoomRatio)
+                if (!zoomStateInitialized) {
+                    binding.zoomSlider.isEnabled = true
+                    zoomStateInitialized = true
+                }
             }
             // 保持 setupOrientationListener 初始化狀態，等待實際方向事件更新
         } catch (e: Exception) {
