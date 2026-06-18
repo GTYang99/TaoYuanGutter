@@ -55,6 +55,7 @@ import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.NodeDetails
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
+import com.example.taoyuangutter.pending.DraftPhotoCleaner
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.WaypointSnapshot
@@ -1061,15 +1062,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
 		    override fun onPause() {
-		        // 只有離線模式才允許在未「完成」前自動寫入草稿；線上模式返回即視為放棄，不記錄修改
-		        if (isOfflineMode && !isFinishing) {
-		            draftSyncJob?.cancel()
-		            draftSyncJob = lifecycleScope.launch {
-		                syncSessionDraftNow()
-		            }
-		        }
-		        super.onPause()
-		    }
+			        // 編輯中只要不是已經準備結束，就先把最新狀態寫回草稿，
+			        // 讓背景切走、系統回收、短暫閃退時都能盡量保住內容。
+			        if (!isFinishing && !isViewMode) {
+			            draftSyncJob?.cancel()
+			            draftSyncJob = lifecycleScope.launch {
+			                syncSessionDraftNow()
+			            }
+			        }
+			        super.onPause()
+			    }
 
     private fun buildEmptyData(lat: Double, lng: Double) = hashMapOf(
         // 編輯模式下，側溝編號預設為空字串，以符合「不用顯示側溝編號欄位」的需求
@@ -1592,6 +1594,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 .setMessage("確定要放棄此次修改並返回嗎？")
                 .setPositiveButton("確定放棄") { _, _ ->
                     restoreCurrentWaypointState()
+                    deleteCurrentSessionDraftIfNeeded()
                     setResult(Activity.RESULT_CANCELED)
                     finish()
                 }
@@ -1627,11 +1630,12 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 AlertDialog.Builder(this)
                     .setTitle("放棄修改")
                     .setMessage("確定要放棄此次修改並返回嗎？")
-	                    .setPositiveButton("確定放棄") { _, _ ->
-	                        restoreCurrentWaypointState()
-	                        setResult(Activity.RESULT_CANCELED)
-	                        finish()
-	                    }
+                    .setPositiveButton("確定放棄") { _, _ ->
+                        restoreCurrentWaypointState()
+                        deleteCurrentSessionDraftIfNeeded()
+                        setResult(Activity.RESULT_CANCELED)
+                        finish()
+                    }
                     .setNegativeButton("繼續填寫", null)
                     .show()
             } else {
@@ -1640,6 +1644,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     .setTitle("資料尚未完成")
                     .setMessage("此點位的資料尚未填寫完整，確定返回嗎？\n已輸入的資料將不會儲存。")
                     .setPositiveButton("確定返回") { _, _ ->
+                        deleteCurrentSessionDraftIfNeeded()
                         val deleteIntent = Intent().putExtra(RESULT_WAYPOINT_INDEX, waypointIndex)
                         setResult(RESULT_DELETE, deleteIntent)
                         finish()
@@ -1684,12 +1689,19 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     photo3 = photo3,
                     includeSpiNum = !isEditMode
                 )
+                if (sessionDraftId > 0L) {
+                    putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
+                }
             }
             setResult(Activity.RESULT_OK, resultIntent)
             finish()
         }
 
-        dispatchResult()
+        draftSyncJob?.cancel()
+        lifecycleScope.launch {
+            syncSessionDraftNow()
+            dispatchResult()
+        }
     }
 
     private fun restoreSessionWaypoints(savedInstanceState: Bundle?) {
@@ -1726,23 +1738,22 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun queueSessionDraftSync() {
-        if (!isOfflineMode) return
         if (isViewMode) return
         if (currentIndex !in sessionWaypoints.indices) return
         draftSyncJob?.cancel()
         draftSyncJob = lifecycleScope.launch {
-            delay(400)
+            delay(150)
             syncSessionDraftNow()
         }
     }
 
-			    private suspend fun syncSessionDraftNow() {
-                    if (!isOfflineMode) return
-			        if (isViewMode) return
-			        if (currentIndex !in sessionWaypoints.indices) return
+	    private suspend fun syncSessionDraftNow() {
+	        if (isViewMode) return
+	        if (currentIndex !in sessionWaypoints.indices) return
 
 	        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
-	        val (photo1, photo2, photo3) = pagerAdapter.getPhotosFragment()?.getPhotoPaths()
+	        val photosFragment = pagerAdapter.getPhotosFragment()
+	        val (photo1, photo2, photo3) = photosFragment?.getPhotoPaths()
 	            ?: Triple(null, null, null)
 
 	        val p1 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(this, photo1, prefix = "GUTTER_EXT_")
@@ -1754,23 +1765,41 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        val existing = sessionWaypoints[currentIndex]
 	        val mergedBasicData = HashMap(existing.basicData).apply {
 	            putAll(basicData)
-	            put("photo1", p1 ?: "")
-	            put("photo2", p2 ?: "")
-	            put("photo3", p3 ?: "")
+	            // 只有真的拿得到照片 Fragment 時，才用最新照片狀態覆蓋草稿。
+	            // 若 Fragment 因生命週期暫時不可用，保留既有 photo1/2/3，避免把照片洗成空值。
+	            if (photosFragment != null) {
+	                put("photo1", p1 ?: "")
+	                put("photo2", p2 ?: "")
+	                put("photo3", p3 ?: "")
+	            }
 	        }
 
-        sessionWaypoints[currentIndex] = existing.copy(
-            latitude = if (formLat != null && formLat in -90.0..90.0) formLat else existing.latitude,
-            longitude = if (formLng != null && formLng in -180.0..180.0) formLng else existing.longitude,
-            basicData = mergedBasicData
-        )
+	        sessionWaypoints[currentIndex] = existing.copy(
+	            latitude = if (formLat != null && formLat in -90.0..90.0) formLat else existing.latitude,
+	            longitude = if (formLng != null && formLng in -180.0..180.0) formLng else existing.longitude,
+	            basicData = mergedBasicData
+	        )
 
-        // 空草稿判斷：沒有任何座標，且所有 basicData 都是空值 → 不存草稿
-        val hasAnyLatLng = sessionWaypoints.any { it.latitude != null && it.longitude != null }
-        val hasAnyBasicData = sessionWaypoints.any { wp ->
-            wp.basicData.any { (_, v) -> v.isNotBlank() }
-        }
-	        if (!hasAnyLatLng && !hasAnyBasicData) return
+	        // 空草稿判斷：沒有任何座標，且沒有任何「實際內容」時，不保留草稿。
+	        // 這裡會忽略預設欄位，例如 is_virtual=0 / _isImported=0 / IS_PENDING_DEPLOY=0，
+	        // 避免只有預設值卻讓草稿一直殘留。
+	        val hasAnyLatLng = sessionWaypoints.any { it.latitude != null && it.longitude != null }
+	        val hasAnyMeaningfulBasicData = sessionWaypoints.any { wp ->
+	            wp.basicData.any { (key, value) ->
+	                when (key) {
+	                    "is_virtual", "_isImported" -> false
+	                    "IS_PENDING_DEPLOY" -> value.equals("1", ignoreCase = true) ||
+	                        value.equals("true", ignoreCase = true) ||
+	                        value.equals("y", ignoreCase = true) ||
+	                        value.equals("yes", ignoreCase = true)
+	                    else -> value.isNotBlank()
+	                }
+	            }
+	        }
+	        if (!hasAnyLatLng && !hasAnyMeaningfulBasicData) {
+	            deleteCurrentSessionDraftIfNeeded()
+	            return
+	        }
 
 	        val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
 	        sessionDraftId = resolvedDraftId
@@ -1780,19 +1809,29 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        val preservedIsOffline = existingDraft?.isOffline
 	            ?: (isOfflineMode || intent.getBooleanExtra(EXTRA_SESSION_IS_OFFLINE, false))
 	        val preservedIsSinglePoint = existingDraft?.isSinglePoint ?: isOfflineMode
-	        repo.save(
-	            GutterSessionDraft(
-	                id = resolvedDraftId,
-	                savedAt = System.currentTimeMillis(),
-	                isOffline = isOfflineMode || preservedIsOffline,
-	                isSinglePoint = preservedIsSinglePoint,
-	                waypoints = sessionWaypoints.toList()
-	            )
-	        )
-	    }
+		        repo.save(
+		            GutterSessionDraft(
+		                id = resolvedDraftId,
+		                savedAt = System.currentTimeMillis(),
+		                isOffline = isOfflineMode || preservedIsOffline,
+		                isSinglePoint = preservedIsSinglePoint,
+		                waypoints = sessionWaypoints.toList()
+		            )
+		        )
+		    }
 
-		    private fun restoreCurrentWaypointState() {
-		        if (isOfflineMode) return
+    private fun deleteCurrentSessionDraftIfNeeded() {
+        draftSyncJob?.cancel()
+        val draftId = sessionDraftId.takeIf { it > 0L } ?: return
+        GutterSessionRepository(this).getById(draftId)?.let { draft ->
+            DraftPhotoCleaner.deleteDraftLocalPhotos(this, draft)
+        }
+        GutterSessionRepository(this).delete(draftId)
+        sessionDraftId = 0L
+    }
+
+			    private fun restoreCurrentWaypointState() {
+			        if (isOfflineMode) return
 		        val original = originalSessionWaypoint ?: return
 		        if (currentIndex !in sessionWaypoints.indices) return
 		        draftSyncJob?.cancel()

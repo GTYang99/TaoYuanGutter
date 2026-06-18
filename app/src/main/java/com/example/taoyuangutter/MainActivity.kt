@@ -386,15 +386,15 @@ class MainActivity : AppCompatActivity(),
 	                            // 先做照片 URI 正規化（避免多節點上傳照片卡住），再回寫 basicData，並立刻刷新工作層 marker
 	                            val rawData = GutterFormContract.readResultData(result.data)
 		                            lifecycleScope.launch {
-		                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
-		                                    context = this@MainActivity,
-		                                    basicData = rawData,
-		                                    prefix = "GUTTER_EXT_"
-		                                )
-		                                liveSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
-		                                // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
-		                                currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
-		                                refreshWorkingForEditFlow(currentWaypoints)
+                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
+                                    context = this@MainActivity,
+                                    basicData = rawData,
+                                    prefix = "GUTTER_EXT_"
+                                )
+                                liveSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
+                                // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
+                                currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
+                                refreshWorkingForEditFlow(currentWaypoints)
 
                                         // ── 資料更新後，才顯示 BottomSheet 並調整鏡頭 ──
                                         resetHighlightedMarker()
@@ -434,15 +434,15 @@ class MainActivity : AppCompatActivity(),
 	                        val idx  = data?.getIntExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, -1) ?: -1
 		                        if (idx >= 0) {
 		                            val rawData = GutterFormContract.readResultData(data)
-		                            lifecycleScope.launch {
-		                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
-		                                    context = this@MainActivity,
-		                                    basicData = rawData,
-		                                    prefix = "GUTTER_EXT_"
-		                                )
-		                                inspectWaypoints.getOrNull(idx)?.basicData = newData
-		                            }
-		                        }
+                            lifecycleScope.launch {
+                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
+                                    context = this@MainActivity,
+                                    basicData = rawData,
+                                    prefix = "GUTTER_EXT_"
+                                )
+                                inspectWaypoints.getOrNull(idx)?.basicData = newData
+                            }
+                        }
 		                    }
                     inspectSheet?.showSelf()
                     mapCameraController.fitCameraToWaypoints(inspectWaypoints)
