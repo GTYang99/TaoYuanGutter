@@ -128,6 +128,9 @@ class GutterPhotosFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // 修正：如果是由系統重建，UI 會由 showPhoto 更新（在 onCreate 已恢復 URI）
+        // 且 FragmentResultListener 會處理進行中的拍照結果
+
         // ── 註冊相機 Overlay 結果接收（避免 Activity 切換造成放大/旋轉卡頓） ──
         parentFragmentManager.setFragmentResultListener(
             CameraOverlayFragment.RESULT_KEY,

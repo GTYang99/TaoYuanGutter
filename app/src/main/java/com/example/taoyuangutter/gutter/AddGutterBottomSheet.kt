@@ -146,26 +146,46 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
         if (isInspectMode) return   // 檢視模式不需恢復 waypoints
 
-        // ── 優先順序（後者在 Bundle 存在時覆蓋前者）─────────────────────
-        // 1. 從 API DitchDetails 預填（編輯模式，每次開啟都應以 API 資料為主）
+        // ── 優先順序（修正：優先使用 savedInstanceState 以保留使用者修改） ──────────
+        // 1. 系統重建（Activity 被回收後恢復）
+        if (savedInstanceState != null) {
+            isCurve = savedInstanceState.getBoolean("saved_is_curve", isCurve)
+            editSpiNum = savedInstanceState.getString("saved_edit_spi_num", editSpiNum) ?: editSpiNum
+            originalIsCurve = savedInstanceState.getBoolean("saved_original_is_curve", originalIsCurve)
+            val origJson = savedInstanceState.getString("saved_original_waypoints_json")
+            if (!origJson.isNullOrEmpty()) {
+                originalWaypointsSnapshot = try {
+                    val type = object : TypeToken<List<WaypointSnapshot>>() {}.type
+                    Gson().fromJson(origJson, type)
+                } catch (e: Exception) { emptyList() }
+            }
+            restoreWaypointsState(savedInstanceState)
+            return
+        }
+
+        // 2. 從 API DitchDetails 預填（編輯模式，初次開啟）
         val editJson = arguments?.getString(ARG_EDIT_WAYPOINTS_JSON)
         if (editJson != null) {
             restoreWaypointsFromSnapshotJson(editJson)
             return
         }
-        // 2. 從草稿恢復
+
+        // 3. 從草稿恢復（新增模式恢復草稿，初次開啟）
         val draftJson = arguments?.getString(ARG_DRAFT_JSON)
         if (draftJson != null) {
             restoreWaypointsFromDraftJson(draftJson)
             return
         }
-        // 3. 系統重建（Activity 被回收後恢復，無 editJson / draftJson）
-        if (savedInstanceState != null) {
-            restoreWaypointsState(savedInstanceState)
-        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("saved_is_curve", isCurve)
+        outState.putString("saved_edit_spi_num", editSpiNum)
+        outState.putBoolean("saved_original_is_curve", originalIsCurve)
+        if (originalWaypointsSnapshot.isNotEmpty()) {
+            outState.putString("saved_original_waypoints_json", Gson().toJson(originalWaypointsSnapshot))
+        }
         super.onSaveInstanceState(outState)
         if (isInspectMode) return
         // 儲存所有 waypoints（包含已填寫的 latLng 與 basicData），

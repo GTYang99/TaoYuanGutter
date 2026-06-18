@@ -635,6 +635,47 @@ class MainActivity : AppCompatActivity(),
      */
     private fun restoreStateAfterRecreation(savedState: Bundle) {
         pendingWaypointFormIndex = savedState.getInt(KEY_PENDING_WP_INDEX, -1)
+        currentSessionDraftId = if (savedState.containsKey("saved_session_draft_id")) savedState.getLong("saved_session_draft_id") else null
+        currentSessionIsOffline = savedState.getBoolean("saved_session_is_offline", false)
+        isInspecting = savedState.getBoolean("saved_is_inspecting", false)
+        isInEditingMode = savedState.getBoolean("saved_is_in_editing_mode", false)
+        initialSpiState = savedState.getString("saved_initial_spi_state")
+
+        val currentWpsJson = savedState.getString("saved_current_waypoints_json")
+        if (!currentWpsJson.isNullOrEmpty()) {
+            val type = object : com.google.gson.reflect.TypeToken<List<WaypointSnapshot>>() {}.type
+            val snapshots: List<WaypointSnapshot> = try { Gson().fromJson(currentWpsJson, type) } catch (e: Exception) { emptyList() }
+            currentWaypoints = snapshots.map { snap ->
+                val wpType = WaypointType.entries.firstOrNull { it.name == snap.type } ?: WaypointType.NODE
+                val latLng = if (snap.latitude != null && snap.longitude != null) LatLng(snap.latitude, snap.longitude) else null
+                Waypoint(wpType, snap.label, latLng, snap.basicData)
+            }
+        }
+
+        val inspectWpsJson = savedState.getString("saved_inspect_waypoints_json")
+        if (!inspectWpsJson.isNullOrEmpty()) {
+            val type = object : com.google.gson.reflect.TypeToken<List<WaypointSnapshot>>() {}.type
+            val snapshots: List<WaypointSnapshot> = try { Gson().fromJson(inspectWpsJson, type) } catch (e: Exception) { emptyList() }
+            inspectWaypoints = snapshots.map { snap ->
+                val wpType = WaypointType.entries.firstOrNull { it.name == snap.type } ?: WaypointType.NODE
+                val latLng = if (snap.latitude != null && snap.longitude != null) LatLng(snap.latitude, snap.longitude) else null
+                Waypoint(wpType, snap.label, latLng, snap.basicData)
+            }
+        }
+
+        isReferenceRouteActive = savedState.getBoolean("saved_is_reference_route_active", false)
+        val refLats = savedState.getDoubleArray("saved_reference_route_lats")
+        val refLngs = savedState.getDoubleArray("saved_reference_route_lngs")
+        if (refLats != null && refLngs != null && refLats.size == refLngs.size) {
+            referenceRoutePoints = refLats.indices.map { LatLng(refLats[it], refLngs[it]) }
+        }
+
+        hasShownEditPolyline = savedState.getBoolean("saved_has_shown_edit_polyline", false)
+        val editSnapshotJson = savedState.getString("saved_edit_lat_lng_snapshot_json")
+        if (!editSnapshotJson.isNullOrEmpty()) {
+            val type = object : com.google.gson.reflect.TypeToken<List<Pair<Long, Long>>>() {}.type
+            editLatLngSnapshot = try { Gson().fromJson(editSnapshotJson, type) } catch (e: Exception) { null }
+        }
 
         val restoredSheet = supportFragmentManager
             .findFragmentByTag(AddGutterBottomSheet.TAG) as? AddGutterBottomSheet
@@ -642,12 +683,10 @@ class MainActivity : AppCompatActivity(),
 
         if (restoredSheet.isAddMode()) {
             // 新增模式：重新綁定 activeSheet 與 onWaypointsChanged
-            isInEditingMode = true  // 保持禁止自動加載 polylines
             activeSheet = restoredSheet
             bindAddGutterSheet(restoredSheet)
         } else {
             // 檢視模式：重新綁定 inspectSheet
-            isInEditingMode = true  // 保持禁止自動加載 polylines
             inspectSheet = restoredSheet
             restoredSheet.onWaypointsChanged = { if (it == null) {
                 // ── 檢視 Sheet 被 dismiss（關閉）時，清除工作層並恢復其他線段顯示 ──
@@ -664,6 +703,32 @@ class MainActivity : AppCompatActivity(),
         super.onSaveInstanceState(outState)
         // 儲存正在開啟表單的點位索引，確保 MainActivity 重建後仍能正確回寫
         outState.putInt(KEY_PENDING_WP_INDEX, pendingWaypointFormIndex)
+        currentSessionDraftId?.let { outState.putLong("saved_session_draft_id", it) }
+        outState.putBoolean("saved_session_is_offline", currentSessionIsOffline)
+        outState.putBoolean("saved_is_inspecting", isInspecting)
+        outState.putBoolean("saved_is_in_editing_mode", isInEditingMode)
+        outState.putString("saved_initial_spi_state", initialSpiState)
+
+        val currentWpsSnapshots = currentWaypoints.map { wp ->
+            WaypointSnapshot(type = wp.type.name, label = wp.label, latitude = wp.latLng?.latitude, longitude = wp.latLng?.longitude, basicData = wp.basicData)
+        }
+        outState.putString("saved_current_waypoints_json", Gson().toJson(currentWpsSnapshots))
+
+        val inspectWpsSnapshots = inspectWaypoints.map { wp ->
+            WaypointSnapshot(type = wp.type.name, label = wp.label, latitude = wp.latLng?.latitude, longitude = wp.latLng?.longitude, basicData = wp.basicData)
+        }
+        outState.putString("saved_inspect_waypoints_json", Gson().toJson(inspectWpsSnapshots))
+
+        outState.putBoolean("saved_is_reference_route_active", isReferenceRouteActive)
+        if (isReferenceRouteActive) {
+            outState.putDoubleArray("saved_reference_route_lats", referenceRoutePoints.map { it.latitude }.toDoubleArray())
+            outState.putDoubleArray("saved_reference_route_lngs", referenceRoutePoints.map { it.longitude }.toDoubleArray())
+        }
+
+        outState.putBoolean("saved_has_shown_edit_polyline", hasShownEditPolyline)
+        if (editLatLngSnapshot != null) {
+            outState.putString("saved_edit_lat_lng_snapshot_json", Gson().toJson(editLatLngSnapshot))
+        }
     }
 
     private fun launchInspectSafely(intent: Intent): Boolean {
@@ -766,8 +831,17 @@ class MainActivity : AppCompatActivity(),
             updateMeasureDistanceDisplay(meters)
         }
 
-        // 若在檢視/編輯流程中地圖被重建，確保灰色參考線能被重繪回來
+        // 若在檢視/編輯流程中地圖被重建，確保灰色參考線與工作層能被重繪回來
         renderReferenceRouteIfActive()
+        if (isInEditingMode) {
+            if (activeSheet != null) {
+                refreshWorkingLayer(currentWaypoints)
+                mainBlockingUiController.setMainButtonsEnabled(false)
+            } else if (inspectSheet != null) {
+                refreshWorkingMarkers(inspectWaypoints)
+                mainBlockingUiController.setMainButtonsEnabled(false)
+            }
+        }
     }
 
     // ── LocationPickerHost 實作 ───────────────────────────────────────────
@@ -1295,6 +1369,12 @@ class MainActivity : AppCompatActivity(),
         // 直接開表單：若點位尚未選座標，先用目前地圖視角中心作為初始座標，
         // 讓使用者在表單內點擊 X/Y 欄位再進入選點頁面。
         val initialLatLng = wp.latLng ?: googleMap?.cameraPosition?.target ?: LatLng(0.0, 0.0)
+        
+        // 修正：必須先更新 sheet 裡的 waypoint 座標，確保傳給表單的座標陣列是正確的
+        if (wp.latLng == null) {
+            sheet.updateWaypointLocation(waypointIndex, initialLatLng)
+        }
+
         pendingWaypointFormIndex = waypointIndex
         highlightMarker(waypointIndex)
         sheet.hideSelf()

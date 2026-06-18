@@ -956,6 +956,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             currentLng = savedInstanceState.getDouble("saved_current_lng")
             hasShownEditPolyline = savedInstanceState.getBoolean("saved_has_shown_edit_polyline")
             sessionDraftId = savedInstanceState.getLong("saved_session_draft_id")
+            val origJson = savedInstanceState.getString("saved_original_waypoint_json")
+            if (!origJson.isNullOrEmpty()) {
+                originalSessionWaypoint = try { Gson().fromJson(origJson, WaypointSnapshot::class.java) } catch (e: Exception) { null }
+            }
         } else {
             isViewMode    = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
             isEditMode    = intent.getBooleanExtra(EXTRA_IS_EDIT_MODE, false) // 取得編輯模式旗標
@@ -991,15 +995,19 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             }
         }
 
-        originalSessionWaypoint = sessionWaypoints.getOrNull(currentIndex)?.copy(
-            basicData = HashMap(sessionWaypoints.getOrNull(currentIndex)?.basicData ?: hashMapOf())
-        )
+        if (savedInstanceState == null) {
+            originalSessionWaypoint = sessionWaypoints.getOrNull(currentIndex)?.copy(
+                basicData = HashMap(sessionWaypoints.getOrNull(currentIndex)?.basicData ?: hashMapOf())
+            )
+        }
 
         initialLatLngSnapshot = buildLatLngSnapshot(sessionWaypoints)
         hasShownEditPolyline = false
 
-        // 離線模式：若有既有草稿 ID，從 GutterSessionRepository 讀取 waypoint 資料
-        val existingData: HashMap<String, String> = if (isOfflineMode && sessionDraftId > 0L) {
+        // 修正：如果是由系統重建，優先使用恢復後的 sessionWaypoints 作為目前點位的資料基底
+        val existingData: HashMap<String, String> = if (savedInstanceState != null && currentIndex in sessionWaypoints.indices) {
+            HashMap(sessionWaypoints[currentIndex].basicData)
+        } else if (isOfflineMode && sessionDraftId > 0L) {
             val draft = GutterSessionRepository(this).getById(sessionDraftId)
             val wp = draft?.waypoints?.firstOrNull()
             if (wp != null) HashMap(wp.basicData) else buildEmptyData(currentLat, currentLng)
@@ -1904,6 +1912,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         outState.putDouble("saved_current_lng", currentLng)
         outState.putBoolean("saved_has_shown_edit_polyline", hasShownEditPolyline)
         outState.putLong("saved_session_draft_id", sessionDraftId)
+        if (originalSessionWaypoint != null) {
+            outState.putString("saved_original_waypoint_json", Gson().toJson(originalSessionWaypoint))
+        }
     }
 
     private fun setupVirtualPointToggle(isVirtualInitial: Boolean) {

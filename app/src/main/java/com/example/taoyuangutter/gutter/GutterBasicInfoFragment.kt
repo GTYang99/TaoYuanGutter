@@ -134,7 +134,15 @@ class GutterBasicInfoFragment : Fragment() {
         val isViewMode   = arguments?.getBoolean(ARG_VIEW_MODE)   ?: false
         val isEditMode   = arguments?.getBoolean(ARG_IS_EDIT_MODE) ?: false
 
-        prefillData()
+        // 修正：僅在初次建立（無 savedInstanceState）時預填資料
+        // 系統重建時，EditText 與 CheckBox 會由系統自動還原其 state
+        if (savedInstanceState == null) {
+            prefillData()
+        } else {
+            // 重建時，仍需從 arguments 取得 X/Y 基底值（避免 collectData 時為空）
+            coordXValue = arguments?.getString(ARG_DATA_NODE_X) ?: ""
+            coordYValue = arguments?.getString(ARG_DATA_NODE_Y) ?: ""
+        }
         setEditable(!isViewMode)
         setupCantOpen()
         
