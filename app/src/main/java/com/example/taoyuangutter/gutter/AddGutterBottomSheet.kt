@@ -186,7 +186,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (originalWaypointsSnapshot.isNotEmpty()) {
             outState.putString("saved_original_waypoints_json", Gson().toJson(originalWaypointsSnapshot))
         }
-        super.onSaveInstanceState(outState)
         if (isInspectMode) return
         // 儲存所有 waypoints（包含已填寫的 latLng 與 basicData），
         // 避免 Activity 在 GutterFormActivity 期間被系統回收後資料遺失。
@@ -308,12 +307,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         setupTitle()
 
         if (editSpiNum.isNotEmpty()) {
-            if (hasEmbeddedEditDetails()) {
-                originalWaypointsSnapshot = takeWaypointSnapshot()
-                originalIsCurve = isCurve
-                updateSubmitButtonState()
+            // 修正：只有在還沒有原始快照時（初次開啟），才進行初始化。
+            // 若為系統重建，originalWaypointsSnapshot 已在 onCreate 恢復。
+            if (originalWaypointsSnapshot.isEmpty()) {
+                if (hasEmbeddedEditDetails()) {
+                    originalWaypointsSnapshot = takeWaypointSnapshot()
+                    originalIsCurve = isCurve
+                    updateSubmitButtonState()
+                } else {
+                    preloadEditWaypointDetails()
+                }
             } else {
-                preloadEditWaypointDetails()
+                updateSubmitButtonState()
             }
         }
     }

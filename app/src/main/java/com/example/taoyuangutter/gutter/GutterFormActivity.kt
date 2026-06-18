@@ -1659,8 +1659,17 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         val formLat = basicData["NODE_Y"]?.toDoubleOrNull()
         val formLng = basicData["NODE_X"]?.toDoubleOrNull()
-        val effectiveLat = if (formLat != null && formLat in -90.0..90.0)   formLat else currentLat
-        val effectiveLng = if (formLng != null && formLng in -180.0..180.0) formLng else currentLng
+        
+        // 修正邏輯：
+        // 1. 如果表單內有有效座標，優先使用。
+        // 2. 如果表單內無座標，但進入時帶有有效座標（currentLat != 0.0），則維持原座標。
+        // 3. 以上皆非，則回傳 null（MainActivity 接收後不會更新座標，維持 null）。
+        val effectiveLat = if (formLat != null && formLat in -90.0..90.0) formLat 
+                          else if (currentLat != 0.0) currentLat 
+                          else null
+        val effectiveLng = if (formLng != null && formLng in -180.0..180.0) formLng 
+                          else if (currentLng != 0.0) currentLng 
+                          else null
 
         fun dispatchResult() {
             val resultIntent = Intent().apply {

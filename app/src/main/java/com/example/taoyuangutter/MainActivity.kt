@@ -1370,11 +1370,6 @@ class MainActivity : AppCompatActivity(),
         // 讓使用者在表單內點擊 X/Y 欄位再進入選點頁面。
         val initialLatLng = wp.latLng ?: googleMap?.cameraPosition?.target ?: LatLng(0.0, 0.0)
         
-        // 修正：必須先更新 sheet 裡的 waypoint 座標，確保傳給表單的座標陣列是正確的
-        if (wp.latLng == null) {
-            sheet.updateWaypointLocation(waypointIndex, initialLatLng)
-        }
-
         pendingWaypointFormIndex = waypointIndex
         highlightMarker(waypointIndex)
         sheet.hideSelf()
