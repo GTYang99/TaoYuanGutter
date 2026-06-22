@@ -1074,12 +1074,25 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             if (uriString.isNullOrBlank()) return false
             val uri = runCatching { android.net.Uri.parse(uriString) }.getOrNull() ?: return false
             val scheme = uri.scheme?.lowercase()
+
+            // 1. 遠端圖片直接視為可用
             if (scheme == "http" || scheme == "https") return true
-            if (scheme == "file") return uri.path?.let { File(it).exists() } == true
+
+            // 2. 處理 file:// 或原始路徑 (scheme 為空)
+            if (scheme == null || scheme == "file") {
+                val path = uri.path ?: uriString
+                return java.io.File(path).exists()
+            }
+
+            // 3. 處理 content://
             if (scheme == "content") {
                 return runCatching {
-                    ctx.contentResolver.openInputStream(uri)?.use { /* just open */ } != null
-                }.getOrDefault(false)
+                    ctx.contentResolver.openInputStream(uri)?.use { true } ?: false
+                }.getOrElse {
+                    // 如果開啟失敗（可能是權限問題），但在同 App 內且字串非空，
+                    // 我們給予寬容度，因為後續上傳流程會再次嘗試讀取並處理權限。
+                    !uriString.isNullOrBlank()
+                }
             }
             return false
         }

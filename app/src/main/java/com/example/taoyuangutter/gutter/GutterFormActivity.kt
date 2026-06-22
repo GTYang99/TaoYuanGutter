@@ -1443,6 +1443,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     photo3 = photo3,
                     includeSpiNum = !isEditMode
                 )
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
         setResult(Activity.RESULT_OK, resultIntent)
         finish()
@@ -1692,6 +1693,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 if (sessionDraftId > 0L) {
                     putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
                 }
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             setResult(Activity.RESULT_OK, resultIntent)
             finish()
