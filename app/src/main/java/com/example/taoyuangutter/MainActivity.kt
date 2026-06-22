@@ -34,6 +34,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
+import com.example.taoyuangutter.gutter.PhotoUploadManager
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.GutterFormContract
 import com.example.taoyuangutter.gutter.GutterFormNavigator
@@ -66,7 +67,6 @@ import com.example.taoyuangutter.map.ScopeViewportLoader
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterDraftCoordinator
 import com.example.taoyuangutter.pending.GutterSessionRepository
-import com.example.taoyuangutter.pending.DraftPhotoCleaner
 import com.example.taoyuangutter.pending.PendingDraftSheetNavigator
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -80,12 +80,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 class MainActivity : AppCompatActivity(),
@@ -141,6 +137,7 @@ class MainActivity : AppCompatActivity(),
 
     // ── Repository ───────────────────────────────────────────────────────
     private val gutterRepository = GutterRepository()
+    private val photoUploadManager by lazy { PhotoUploadManager(this, gutterRepository) }
     private val sessionDraftRepository by lazy { GutterSessionRepository(this) }
     private val draftCoordinator by lazy { GutterDraftCoordinator(this, sessionDraftRepository) }
     private val pendingDraftSheetNavigator by lazy { PendingDraftSheetNavigator(supportFragmentManager) }
@@ -867,126 +864,35 @@ class MainActivity : AppCompatActivity(),
     }
 
     /**
-     * storeDitch 成功後，依照 API 回傳的 [nodes] 順序，
-     * 找出對應 waypoint 的本機照片（content:// / file:// scheme）並上傳。
-     * https:// 照片代表已在伺服器，略過。
-     */
-    /**
      * 上傳所有點位的本機照片，回傳失敗張數。
-     * - 已是 https:// 的舊照片與空路徑會直接略過。
-     * - 每張最多重試 3 次；仍失敗則即時 Toast 提示「第 x/total 張上傳失敗」。
-     * - 全程顯示進度條「x / total 張照片上傳中」；無需上傳時不顯示，直接回傳 0。
+     * 委派給 [PhotoUploadManager] 處理並行上傳、重試與暫存清理，
+     * 透過 [PhotoUploadManager.UploadListener] 橋接 [MainBlockingUiController] 的 UI 進度顯示。
      */
     private suspend fun uploadWaypointPhotos(
         waypoints: List<Waypoint>,
         nodes: List<DitchNode>,
         token: String
     ): Int {
-        // 欄位只要有值就上傳：
-        // - 本機 content:// / file:// 直接傳
-        // - 遠端 http(s):// 先下載成本機，再以上傳流程重送
-        // 使用 Triple<DitchNode, String, Int> 取代 local data class，避免 coroutine 編譯問題
-        val pending = mutableListOf<Triple<DitchNode, String, Int>>()
-        nodes.forEachIndexed { i, node ->
-            val wp = waypoints.getOrNull(i) ?: return@forEachIndexed
-            if (wp.isVirtual) {
-                android.util.Log.d("PhotoUpload", "節點 ${node.nodeId} 為虛擬點，略過所有照片上傳")
-                return@forEachIndexed
-            }
-            listOf(
-                wp.basicData["photo1"] to 1,
-                wp.basicData["photo2"] to 2,
-                wp.basicData["photo3"] to 3
-            ).forEach { (path, category) ->
-                if (path.isNullOrEmpty()) return@forEach
-                val scheme = Uri.parse(path).scheme?.lowercase()
-                if (scheme != null) pending.add(Triple(node, path, category))
-            }
-        }
+        // 先計算待上傳數量以決定是否需要顯示進度 UI
+        val pendingCount = photoUploadManager.countPendingPhotos(waypoints, nodes)
+        if (pendingCount == 0) return 0
 
-        val total = pending.size
-        if (total == 0) return 0   // 無需上傳，直接結束（不顯示進度條）
-
-        // 阻擋使用者操作（上傳期間不可操作 App；顯示等待動畫與進度說明）
-        var failedCount = 0
-        mainBlockingUiController.beginPhotoUpload(total)
-
+        mainBlockingUiController.beginPhotoUpload(pendingCount)
         try {
-            // 並行上傳（保守：最多同時 2 張）
-            val semaphore = Semaphore(3)
-
-            coroutineScope {
-                pending.map { entry ->
-                    launch {
-                        semaphore.withPermit {
-                            val node = entry.first
-                            val path = entry.second
-                            val category = entry.third
-
-                            suspend fun downloadIfRemoteUrl(url: String): String? {
-                                val scheme = Uri.parse(url).scheme?.lowercase()
-                                if (scheme != "http" && scheme != "https") return url
-                                val prefix = "REUPLOAD_${node.nodeId}_${category}_"
-                                return gutterRepository
-                                    .downloadImageToLocalContentUri(this@MainActivity, url, prefix = prefix)
-                                    ?.toString()
-                            }
-
-                            // 最多重試 3 次
-                            var success = false
-                            var tempDownloadedUri: String? = null
-                            for (attempt in 1..3) {
-                                val uploadPath = downloadIfRemoteUrl(path) ?: break
-                                if (uploadPath != path && Uri.parse(uploadPath).scheme?.lowercase() == "content") {
-                                    tempDownloadedUri = uploadPath
-                                }
-                                when (val r = gutterRepository.uploadNodeImage(
-                                    context = this@MainActivity,
-                                    nodeId = node.nodeId,
-                                    fileCategory = category,
-                                    imageUri = Uri.parse(uploadPath),
-                                    token = token
-                                )) {
-                                    is ApiResult.Success -> {
-                                        success = true
-                                    }
-                                    is ApiResult.Error -> {
-                                        android.util.Log.w(
-                                            "PhotoUpload",
-                                            "node${node.nodeId} photo$category attempt$attempt 失敗: ${r.message}"
-                                        )
-                                    }
-                                }
-                                if (success) break
-                            }
-
-                            // 立即清除「為了重傳而下載」的暫存照片檔，避免累積佔用空間。
-                            // 注意：相機拍攝的草稿照片由 onGutterSaved 的 finally 統一清理。
-                            tempDownloadedUri?.let { downloaded ->
-                                DraftPhotoCleaner.deleteWaypointsLocalPhotos(
-                                    context = this@MainActivity,
-                                    waypoints = listOf(mapOf("photo1" to downloaded))
-                                )
-                            }
-
-                            withContext(Dispatchers.Main) {
-                                mainBlockingUiController.recordPhotoUploadResult(success)
-                                if (!success) {
-                                    failedCount += 1
-                                    android.util.Log.w(
-                                        "PhotoUpload",
-                                        "node${node.nodeId} photo$category 上傳失敗（3次重試均失敗）"
-                                    )
-                                }
-                            }
-                        }
+            return photoUploadManager.uploadWaypointPhotos(
+                waypoints = waypoints,
+                nodes = nodes,
+                token = token,
+                listener = object : PhotoUploadManager.UploadListener {
+                    override fun onProgressUpdate(completedCount: Int, totalCount: Int) {
+                        // PhotoUploadManager 已在 Main thread 回呼
+                    }
+                    override fun onPhotoUploadResult(success: Boolean) {
+                        mainBlockingUiController.recordPhotoUploadResult(success)
                     }
                 }
-            }
-
-            return failedCount
+            )
         } finally {
-            // 解除阻擋
             mainBlockingUiController.endPhotoUpload()
         }
     }

@@ -172,12 +172,9 @@ interface GutterApiService {
      * @param authorization Bearer token
      * Response: [NodeImageUploadResponse]
      */
-    @Multipart
     @POST("api/v1/node/nodeImage")
     suspend fun uploadNodeImage(
-        @Part("node_id")         nodeId: RequestBody,
-        @Part("fileCategory")    fileCategory: RequestBody,
-        @Part                    file: MultipartBody.Part,
+        @Body body: RequestBody,
         @Header("Authorization") authorization: String
     ): Response<NodeImageUploadResponse>
 
@@ -348,7 +345,7 @@ object GutterApiClient {
 
     val instance: GutterApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(DEMO_URL)
+            .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

@@ -2,6 +2,7 @@ package com.example.taoyuangutter.api
 
 import android.net.Uri
 import android.content.Context
+import android.os.Build
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.google.android.gms.maps.model.LatLng
@@ -9,6 +10,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
@@ -23,6 +25,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import androidx.core.content.FileProvider
 import android.os.Environment
+import com.example.taoyuangutter.common.buildRequestBody
 
 /**
  * GutterRepository
@@ -561,15 +564,16 @@ class GutterRepository(
                     "PhotoUpload",
                     "request nodeId=$nodeId, category=$fileCategory, size=${tempFile.length() / 1024} KB"
                 )
-                val requestFile  = tempFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
-                val filePart     = MultipartBody.Part.createFormData("file", tempFile.name, requestFile)
-                val nodeIdBody       = nodeId.toString().toRequestBody("text/plain".toMediaTypeOrNull())
-                val fileCategoryBody = fileCategory.toString().toRequestBody("text/plain".toMediaTypeOrNull())
+
+                // 🌟 使用 RequestBodyBuilder DSL 構建封裝的 MultipartBody
+                val requestBody = buildRequestBody {
+                    addFile("file", tempFile, "image/jpeg")
+                    param("node_id", nodeId)
+                    param("fileCategory", fileCategory)
+                }
 
                 val response = api.uploadNodeImage(
-                    nodeId        = nodeIdBody,
-                    fileCategory  = fileCategoryBody,
-                    file          = filePart,
+                    body          = requestBody,
                     authorization = "Bearer $token"
                 )
                 
@@ -590,66 +594,106 @@ class GutterRepository(
     }
 
     /**
+     * 依據目前連線狀態 (如行動數據、頻寬慢速) 提供自適應圖片品質與尺寸。
+     * - Wi-Fi 或好網路：1080px / 品質 55%
+     * - 行動數據或慢速網路：960px / 品質 50%
+     */
+    private fun getAdaptiveQualityAndSize(context: Context): Pair<Int, Int> {
+        return try {
+            val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as? android.net.ConnectivityManager
+            if (connectivityManager != null) {
+                val activeNetwork = connectivityManager.activeNetwork
+                val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+                if (capabilities != null) {
+                    val hasCellular = capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR)
+                    val linkDownstream = capabilities.linkDownstreamBandwidthKbps
+                    val isSlow = linkDownstream in 1..1500 // < 1.5 Mbps
+                    if (hasCellular || isSlow) {
+                        return Pair(960, 50) // 極致壓縮
+                    }
+                }
+            }
+            Pair(1080, 55) // 預設優化值 (下修自原本的 1440px / 70%)
+        } catch (e: Exception) {
+            Pair(1080, 55)
+        }
+    }
+
+    private fun calculateInSampleSize(context: Context, uri: Uri, maxSize: Int): Int {
+        val options = android.graphics.BitmapFactory.Options().apply {
+            inJustDecodeBounds = true
+        }
+        try {
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
+            }
+        } catch (e: Exception) {
+            // Ignore
+        }
+        var inSampleSize = 1
+        if (options.outHeight > maxSize || options.outWidth > maxSize) {
+            val halfHeight = options.outHeight / 2
+            val halfWidth = options.outWidth / 2
+            while (halfHeight / inSampleSize >= maxSize || halfWidth / inSampleSize >= maxSize) {
+                inSampleSize *= 2
+            }
+        }
+        return inSampleSize
+    }
+
+    /**
      * 壓縮圖片並儲存至暫存檔。
-     * 1. 限制最大寬高為 1200px (加速上傳並節省流量)。
-     * 2. 使用 JPEG 70% 壓縮品質。
+     * 1. 使用 Android 9.0+ 現代化 ImageDecoder (ALLOCATOR_SOFTWARE) 以降低內存碎片。
+     * 2. 自適應尺寸與 JPEG 品質壓縮。
      */
     private fun compressImageToTempFile(context: Context, uri: Uri): File? {
         return try {
-            val inputStream = context.contentResolver.openInputStream(uri) ?: return null
-            
-            // 1. 取得圖片尺寸資訊但不加載像素
-            val options = android.graphics.BitmapFactory.Options().apply {
-                inJustDecodeBounds = true
-            }
-            android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
-            inputStream.close()
+            val (maxSize, quality) = getAdaptiveQualityAndSize(context)
 
-            // 2. 計算縮放比例 (目標邊界 1440px)
-            val MAX_SIZE = 1440
-            var inSampleSize = 1
-            if (options.outHeight > MAX_SIZE || options.outWidth > MAX_SIZE) {
-                val halfHeight = options.outHeight / 2
-                val halfWidth = options.outWidth / 2
-                while (halfHeight / inSampleSize >= MAX_SIZE || halfWidth / inSampleSize >= MAX_SIZE) {
-                    inSampleSize *= 2
+            // 1. 使用 ImageDecoder 或 BitmapFactory 載入 Bitmap
+            val decodedBitmap: android.graphics.Bitmap? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val source = android.graphics.ImageDecoder.createSource(context.contentResolver, uri)
+                android.graphics.ImageDecoder.decodeBitmap(source) { decoder, _, _ ->
+                    decoder.allocator = android.graphics.ImageDecoder.ALLOCATOR_SOFTWARE
+                    decoder.isMutableRequired = true
                 }
+            } else {
+                val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+                val options = android.graphics.BitmapFactory.Options().apply {
+                    inSampleSize = calculateInSampleSize(context, uri, maxSize)
+                }
+                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
+                inputStream.close()
+                bitmap
             }
-
-            // 3. 加載圖片
-            val scaledInputStream = context.contentResolver.openInputStream(uri) ?: return null
-            options.inJustDecodeBounds = false
-            options.inSampleSize = inSampleSize
-            val decodedBitmap = android.graphics.BitmapFactory.decodeStream(scaledInputStream, null, options)
-            scaledInputStream.close()
 
             if (decodedBitmap == null) return null
 
-            // 3.5 精確縮放到 1440 邊界
+            // 2. 比例縮放到目標 maxSize 邊界
             val ratio = decodedBitmap.width.toFloat() / decodedBitmap.height.toFloat()
             val targetW: Int
             val targetH: Int
             if (ratio > 1) { // 橫向
-                targetW = MAX_SIZE
-                targetH = (MAX_SIZE / ratio).toInt()
+                targetW = maxSize
+                targetH = (maxSize / ratio).toInt()
             } else { // 縱向
-                targetH = MAX_SIZE
-                targetW = (MAX_SIZE * ratio).toInt()
+                targetH = maxSize
+                targetW = (maxSize * ratio).toInt()
             }
             val scaledBitmap = android.graphics.Bitmap.createScaledBitmap(decodedBitmap, targetW, targetH, true)
             if (scaledBitmap != decodedBitmap) decodedBitmap.recycle()
 
-            // 4. 處理圖片旋轉
+            // 3. 處理圖片旋轉
             val rotatedBitmap = handleImageRotation(context, uri, scaledBitmap)
 
-            // 5. 壓縮並儲存為 JPG (品質設定為 70，體積下降非常有感)
+            // 4. 壓縮並儲存為 JPG (品質自適應，體積下降非常有感)
             val tempFile = File.createTempFile("upload_compressed_", ".jpg", context.cacheDir)
             FileOutputStream(tempFile).use { out ->
-                rotatedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 70, out)
+                rotatedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, out)
             }
             
             val originalSize = context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: 0
-            android.util.Log.i("GutterRepository", "圖片壓縮完成: 原始=${originalSize / 1024}KB -> 壓縮後=${tempFile.length() / 1024}KB (約縮小 ${if(originalSize>0) 100 - (tempFile.length()*100/originalSize) else 0}%)")
+            android.util.Log.i("GutterRepository", "圖片壓縮完成 (${maxSize}px, ${quality}%): 原始=${originalSize / 1024}KB -> 壓縮後=${tempFile.length() / 1024}KB (約縮小 ${if(originalSize>0) 100 - (tempFile.length()*100/originalSize) else 0}%)")
             
             if (rotatedBitmap != scaledBitmap) scaledBitmap.recycle()
             rotatedBitmap.recycle()
