@@ -1,7 +1,5 @@
 package com.example.taoyuangutter.gutter
 
-import android.content.Context
-import android.content.Intent
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.google.android.gms.maps.model.LatLng
 
@@ -18,10 +16,6 @@ class GutterSessionFlowCoordinator {
     )
 
     sealed interface ResumeAction {
-        data class OpenOfflineForm(
-            val intent: Intent
-        ) : ResumeAction
-
         data class ResumeMapSheet(
             val draftId: Long,
             val isOffline: Boolean,
@@ -33,7 +27,8 @@ class GutterSessionFlowCoordinator {
 
     fun createAddSessionStart(isOfflineMainMode: Boolean): AddSessionStart {
         return AddSessionStart(
-            draftId = if (isOfflineMainMode) System.currentTimeMillis() else null,
+            // 先在 session 開始時就分配固定 draftId，讓 sheet 與表單共用同一筆草稿。
+            draftId = System.currentTimeMillis(),
             isOffline = isOfflineMainMode,
             sheet = if (isOfflineMainMode) {
                 AddGutterBottomSheet.newOfflineInstance()
@@ -44,16 +39,9 @@ class GutterSessionFlowCoordinator {
     }
 
     fun createResumeAction(
-        context: Context,
         draft: GutterSessionDraft,
         isOfflineMainMode: Boolean
     ): ResumeAction {
-        if (draft.isSinglePoint) {
-            return ResumeAction.OpenOfflineForm(
-                GutterFormActivity.newOfflineIntent(context, draft.id)
-            )
-        }
-
         return ResumeAction.ResumeMapSheet(
             draftId = draft.id,
             isOffline = isOfflineMainMode,

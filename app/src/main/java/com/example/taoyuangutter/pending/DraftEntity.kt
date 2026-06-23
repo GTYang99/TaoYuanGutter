@@ -14,6 +14,7 @@ data class DraftEntity(
     @ColumnInfo(name = "is_offline")
     val isOffline: Boolean,
     @ColumnInfo(name = "is_single_point")
+    // Legacy compatibility column. New saves always persist false.
     val isSinglePoint: Boolean,
     @ColumnInfo(name = "waypoints_json")
     val waypointsJson: String

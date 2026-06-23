@@ -22,9 +22,8 @@ data class GutterSessionDraft(
     /** true = 離線草稿（不打 API，只在本機編輯與保存） */
     val isOffline: Boolean = false,
     /**
-     * true = 純單點離線填報（由 GutterFormActivity.newOfflineIntent 建立）。
-     * false = 地圖流程多點草稿（由 AddGutterBottomSheet 建立）。
-     * 舊版草稿預設 false，Gson 反序列化時不影響既有資料。
+     * 舊版單點草稿的兼容旗標。現行流程已統一為整條草稿，儲存時固定為 false。
+     * 舊版資料反序列化時保留此欄位，避免破壞既有草稿。
      */
     val isSinglePoint: Boolean = false,
     /** 所有 waypoints 的快照列表（START / NODE / END） */

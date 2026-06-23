@@ -285,7 +285,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         /**
          * 離線模式：不需地圖點位，座標固定 (0.0, 0.0)。
-         * 草稿直接儲存為 [GutterSessionDraft]（isOffline=true, isSinglePoint=true）。
+         * 草稿仍會以一般 [GutterSessionDraft] 形式儲存，供後續恢復與上傳。
          * @param draftId 傳入已存草稿 ID 以開啟既有資料；-1L 表示新增。
          */
         fun newOfflineIntent(context: Context, draftId: Long = -1L): Intent =
@@ -1075,17 +1075,17 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.viewPager.post { applyImportedWaypointLock() }
     }
 
-		    override fun onPause() {
-			        // 編輯中只要不是已經準備結束，就先把最新狀態寫回草稿，
-			        // 讓背景切走、系統回收、短暫閃退時都能盡量保住內容。
-			        if (!isFinishing && !isViewMode) {
-			            draftSyncJob?.cancel()
-			            draftSyncJob = lifecycleScope.launch {
-			                syncSessionDraftNow()
-			            }
-			        }
-			        super.onPause()
-			    }
+    override fun onPause() {
+        // 編輯中只要不是已經準備結束，就先把最新狀態寫回草稿，
+        // 讓背景切走、系統回收、短暫閃退時都能盡量保住內容。
+        if (!isFinishing && !isViewMode) {
+            draftSyncJob?.cancel()
+            draftSyncJob = lifecycleScope.launch {
+                syncSessionDraftNow()
+            }
+        }
+        super.onPause()
+    }
 
     private fun buildEmptyData(lat: Double, lng: Double) = hashMapOf(
         // 編輯模式下，側溝編號預設為空字串，以符合「不用顯示側溝編號欄位」的需求
@@ -1375,17 +1375,17 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         )
     }
 
-    private fun setupTitleBar(label: String) {
-        binding.tvFormTitle.text = label
+	    private fun setupTitleBar(label: String) {
+	        binding.tvFormTitle.text = label
 
-        if (isOfflineMode) {
-            // 離線模式：左上角改為 ×，離開表單一律存草稿（不打 API）
-            binding.btnBack.setImageResource(com.example.taoyuangutter.R.drawable.ic_close)
-            binding.btnBack.contentDescription = "取消"
-            binding.btnBack.setOnClickListener { saveOfflineAndClose(silent = true) }
-        } else {
-            binding.btnBack.setOnClickListener { handleNavigateBack() }
-        }
+	        if (isOfflineMode) {
+	            // 離線模式：左上角改為 ×，返回先同步草稿再關閉
+	            binding.btnBack.setImageResource(com.example.taoyuangutter.R.drawable.ic_close)
+	            binding.btnBack.contentDescription = "取消"
+	            binding.btnBack.setOnClickListener { handleNavigateBack() }
+	        } else {
+	            binding.btnBack.setOnClickListener { handleNavigateBack() }
+	        }
 
         if (isViewMode) {
             binding.btnEdit.visibility   = View.VISIBLE
@@ -1579,97 +1579,18 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         buildAndFinishWithResult()
     }
 
-    private fun saveDraftAndClose() {
-        if (isOfflineMode) saveOfflineAndClose(silent = true) else handleNavigateBack()
-    }
-
-	    private fun handleNavigateBack() {
-	        if (launchedInViewMode && isEditMode && !isViewMode) {
-	            // 檢視→編輯→返回：不儲存，直接還原進入編輯前的資料
-	            restoreCurrentWaypointState()
-	            formMap?.let { renderSessionPreview(it) }
-	            returnToPreviewMode()
-	            return
-	        }
-	        if (isViewMode) {
-	            finish()
-	            return
-	        }
-	        confirmDiscardAndClose()
-	    }
-
-    private fun confirmDiscardAndClose() {
-        // 線上模式：返回一律視為放棄，不回傳 RESULT_OK（避免 MainActivity 記錄未儲存修改）
-        draftSyncJob?.cancel()
-        val isDraftEditSession = sessionDraftId > 0L
-
-        if (isEditMode || isDraftEditSession) {
-            AlertDialog.Builder(this)
-                .setTitle("放棄修改")
-                .setMessage("確定要放棄此次修改並返回嗎？")
-                .setPositiveButton("確定放棄") { _, _ ->
-                    restoreCurrentWaypointState()
-                    deleteCurrentSessionDraftIfNeeded()
-                    setResult(Activity.RESULT_CANCELED)
-                    finish()
-                }
-                .setNegativeButton("繼續填寫", null)
-                .show()
-	        } else {
-	            AlertDialog.Builder(this)
-	                .setTitle("放棄填寫")
-	                .setMessage("確定要放棄此次填寫並返回嗎？")
-	                .setPositiveButton("確定返回") { _, _ ->
-	                    val deleteIntent = Intent().putExtra(RESULT_WAYPOINT_INDEX, waypointIndex)
-	                    setResult(RESULT_DELETE, deleteIntent)
-	                    finish()
-	                }
-	                .setNegativeButton("繼續填寫", null)
-	                .show()
-	        }
-	    }
-
-    /**
-     * 按下返回時：
-     * - 編輯模式（isEditMode）：資料不完整時詢問是否放棄修改，確認後回傳
-     *   RESULT_CANCELED（不清除原有 API 點位資料）；資料完整則直接儲存。
-     * - 新增模式：原邏輯不變，確認後回傳 RESULT_DELETE（清除該點位座標與資料）。
-     */
-    private fun confirmOrDiscardAndClose() {
-        val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
-        val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
-        val isDraftEditSession = sessionDraftId > 0L
-        if (basicError != null || photoError != null) {
-            if (isEditMode || isDraftEditSession) {
-                // 編輯模式：放棄修改 → RESULT_CANCELED，MainActivity 不清除既有點位資料
-                AlertDialog.Builder(this)
-                    .setTitle("放棄修改")
-                    .setMessage("確定要放棄此次修改並返回嗎？")
-                    .setPositiveButton("確定放棄") { _, _ ->
-                        restoreCurrentWaypointState()
-                        deleteCurrentSessionDraftIfNeeded()
-                        setResult(Activity.RESULT_CANCELED)
-                        finish()
-                    }
-                    .setNegativeButton("繼續填寫", null)
-                    .show()
-            } else {
-                // 新增模式：放棄填寫 → RESULT_DELETE，清除點位座標與資料
-                AlertDialog.Builder(this)
-                    .setTitle("資料尚未完成")
-                    .setMessage("此點位的資料尚未填寫完整，確定返回嗎？\n已輸入的資料將不會儲存。")
-                    .setPositiveButton("確定返回") { _, _ ->
-                        deleteCurrentSessionDraftIfNeeded()
-                        val deleteIntent = Intent().putExtra(RESULT_WAYPOINT_INDEX, waypointIndex)
-                        setResult(RESULT_DELETE, deleteIntent)
-                        finish()
-                    }
-                    .setNegativeButton("繼續填寫", null)
-                    .show()
+    private fun handleNavigateBack() {
+        if (launchedInViewMode && isEditMode && !isViewMode) {
+            // 檢視→編輯→返回：先把目前編輯結果寫回草稿，再回到預覽
+            draftSyncJob?.cancel()
+            lifecycleScope.launch {
+                syncSessionDraftNow()
+                formMap?.let { renderSessionPreview(it) }
+                returnToPreviewMode()
             }
-        } else {
-            buildAndFinishWithResult()
+            return
         }
+        buildAndFinishWithResult()
     }
 
     private fun buildAndFinishWithResult() {
@@ -1846,17 +1767,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        val existingDraft = repo.getById(resolvedDraftId)
 	        val preservedIsOffline = existingDraft?.isOffline
 	            ?: (isOfflineMode || intent.getBooleanExtra(EXTRA_SESSION_IS_OFFLINE, false))
-	        val preservedIsSinglePoint = existingDraft?.isSinglePoint ?: isOfflineMode
-		        repo.save(
+	        repo.save(
 		            GutterSessionDraft(
 		                id = resolvedDraftId,
 		                savedAt = System.currentTimeMillis(),
 		                isOffline = isOfflineMode || preservedIsOffline,
-		                isSinglePoint = preservedIsSinglePoint,
+		                isSinglePoint = false,
 		                waypoints = sessionWaypoints.toList()
 		            )
-		        )
-		    }
+	        )
+	    }
 
     private fun deleteCurrentSessionDraftIfNeeded() {
         draftSyncJob?.cancel()
@@ -1941,7 +1861,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     // ── 離線模式（儲存至本機草稿）────────────────────────────────────────
 
     /**
-     * 將目前填寫內容儲存為 GutterSessionDraft（isOffline=true, isSinglePoint=true）。
+     * 將目前填寫內容儲存為一般 GutterSessionDraft。
      * @param silent true → 不驗證、不顯示 Toast、直接 finish（返回鍵自動存草稿）
      *               false → 先驗證所有必填欄位與三張照片，通過才存檔並關閉
      */
@@ -1977,11 +1897,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        when {
-            isOfflineMode -> saveOfflineAndClose(silent = true) // 離線：離開表單一律存草稿
-            !isViewMode   -> handleNavigateBack()
-            else          -> super.onBackPressed()
-        }
+        handleNavigateBack()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

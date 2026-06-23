@@ -1513,7 +1513,6 @@ class MainActivity : AppCompatActivity(),
     private fun resumePendingDraft(draft: GutterSessionDraft) {
         gutterSessionUiCoordinator.resumeDraft(
             draft = draft,
-            context = this,
             isOfflineMainMode = isOfflineMainMode,
             hooks = buildSessionUiHooks()
         )
@@ -1568,9 +1567,6 @@ class MainActivity : AppCompatActivity(),
             },
             onReloadRequested = {
                 loadGuttersByViewport()
-            },
-            launchOfflineForm = { intent ->
-                startActivity(intent)
             }
         )
     }
