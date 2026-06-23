@@ -239,6 +239,77 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <!-- ⑦ 溝蓋板厚度 (保留欄位，僅受明溝或無法開蓋邏輯控制遮罩) ──────── -->
+        <LinearLayout
+            android:id="@+id/llCoverThicknessWrapper"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/field_cover_thickness_cm"
+                    android:textSize="13sp"
+                    android:textColor="@color/textColorSecondary" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cbCantOpen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:buttonTint="@color/colorPrimary"
+                    android:text="@string/field_cannot_open" />
+            </LinearLayout>
+
+            <FrameLayout
+                android:id="@+id/flCoverThicknessContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/tilCoverThickness"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="16dp"
+                    app:hintEnabled="false"
+                    app:boxStrokeColor="@color/colorPrimary"
+                    app:boxBackgroundColor="@color/white">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etCoverThickness"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="number"
+                        android:digits="0123456789"
+                        android:textColor="@color/textColorPrimary"
+                        android:paddingTop="14dp"
+                        android:paddingBottom="14dp" />
+
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <!-- 半透明白色遮罩層：樣式與「無法開蓋」勾選後的視覺效果保持一致 -->
+                <View
+                    android:id="@+id/vCoverThicknessOverlay"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_marginBottom="16dp"
+                    android:background="#80FFFFFF"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:visibility="gone" />
+            </FrameLayout>
+
+        </LinearLayout>
+
         <!-- 虛擬模式下隱藏的區段 3 -->
         <LinearLayout
             android:id="@+id/llVirtualHidden3"
@@ -246,53 +317,7 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <!-- ⑦ 溝蓋板厚度 ───────────────────────────────────────── -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="4dp">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/field_cover_thickness_cm"
-                android:textSize="13sp"
-                android:textColor="@color/textColorSecondary" />
-
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/cbCantOpen"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:buttonTint="@color/colorPrimary"
-                android:text="@string/field_cannot_open" />
-        </LinearLayout>
-
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilCoverThickness"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            app:hintEnabled="false"
-            app:boxStrokeColor="@color/colorPrimary"
-            app:boxBackgroundColor="@color/white">
-
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etCoverThickness"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:inputType="number"
-                android:digits="0123456789"
-                android:textColor="@color/textColorPrimary"
-                android:paddingTop="14dp"
-                android:paddingBottom="14dp" />
-
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- ⑨ 側溝頂寬度 ───────────────────────────────────────── -->
+        <!-- 側溝頂寬度 ───────────────────────────────────────── -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

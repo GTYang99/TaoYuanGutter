@@ -10,6 +10,7 @@ import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
+import android.util.Log
 import android.widget.RadioButton
 import android.widget.RadioGroup
 import androidx.fragment.app.Fragment
@@ -138,7 +139,8 @@ class GutterBasicInfoFragment : Fragment() {
         setEditable(!isViewMode)
         setupCantOpen()
         
-        // 確保在 View 建立後，立即根據目前的「無法開蓋」與「虛擬點」狀態更新 UI
+        // 確保在 View 建立後，立即根據目前的「側溝形式」、「無法開蓋」與「虛擬點」狀態更新 UI
+        applyGutterTypeUi()
         applyCantOpenUi(binding.cbCantOpen.isChecked)
         setVirtualMode(isVirtualMode)
         
@@ -302,16 +304,61 @@ class GutterBasicInfoFragment : Fragment() {
         }
     }
 
+    private fun isUOpenGutter(): Boolean {
+        return _binding != null && binding.rgGutterType.checkedRadioButtonId == R.id.rbGutterType0
+    }
+
     private fun applyCantOpenUi(isCantOpen: Boolean) {
         // 若整個表單不可編輯（檢視模式）或處於匯入鎖定狀態，一律禁用
         if (!isFormEditable || isImportLocked) {
             setCantOpenFieldsEnabled(false)
             return
         }
-        setCantOpenFieldsEnabled(!isCantOpen)
+
+        val isUOpen = isUOpenGutter()
+        // 「無法開蓋」只控制其自身的必填/編輯狀態；
+        // 「明溝」只影響溝蓋板厚度欄位，不應牽動待架站或 cbCantOpen。
+        val enableFields = !isCantOpen
+        setCantOpenFieldsEnabled(enableFields, forceCoverDisabled = isUOpen)
+
+        // 核心修正：當「明溝」或「無法開蓋」時，僅針對「厚度輸入框」顯示白色遮罩
+        // 確保 cbCantOpen 勾選框不在遮罩範圍內
+        binding.vCoverThicknessOverlay.visibility = if (isUOpen || isCantOpen) View.VISIBLE else View.GONE
+        if (isUOpen || isCantOpen) {
+            binding.vCoverThicknessOverlay.bringToFront()
+        }
+
+        // Log for debug
+        Log.d(
+            "GutterBasicInfo",
+            "applyCantOpenUi isCantOpen=$isCantOpen isUOpen=$isUOpen enableFields=$enableFields"
+        )
+
+        binding.cbCantOpen.isEnabled = true
     }
 
-    private fun setCantOpenFieldsEnabled(enabled: Boolean) {
+    private fun applyGutterTypeUi() {
+        val isUOpen = isUOpenGutter()
+
+        // 確保「溝蓋板厚度」區塊在畫面上保持顯示
+        binding.llCoverThicknessWrapper.visibility = View.VISIBLE
+
+        // Log for debug
+        Log.d("GutterBasicInfo", "applyGutterTypeUi isUOpen=$isUOpen")
+
+        if (isUOpen) {
+            binding.tilCoverThickness.error = null
+            binding.etCoverThickness.clearFocus()
+            hideKeyboard()
+            // 明溝時強制填入 0
+            binding.etCoverThickness.setText("0")
+        }
+
+        // 重新評估下方細節欄位與厚度遮罩
+        applyCantOpenUi(binding.cbCantOpen.isChecked)
+    }
+
+    private fun setCantOpenFieldsEnabled(enabled: Boolean, forceCoverDisabled: Boolean = false) {
         // 需要被 disable 的欄位：溝蓋板厚度、深度、頂寬、材質、受損、附掛、淤積
         val viewsToToggle = listOf(
             binding.etCoverThickness, binding.etDepth, binding.etTopWidth,
@@ -319,18 +366,27 @@ class GutterBasicInfoFragment : Fragment() {
         )
         
         viewsToToggle.forEach { v ->
-            v.isEnabled = enabled
+            val shouldEnable = when (v) {
+                binding.etCoverThickness -> enabled && !forceCoverDisabled
+                else -> enabled
+            }
+            v.isEnabled = shouldEnable
             if (v is android.widget.EditText) {
-                v.isFocusable = enabled
-                v.isFocusableInTouchMode = enabled
+                v.isFocusable = shouldEnable
+                v.isFocusableInTouchMode = shouldEnable
+                v.isCursorVisible = shouldEnable
             } else if (v is android.widget.RadioGroup) {
-                v.setChildrenEnabled(enabled)
+                v.setChildrenEnabled(shouldEnable)
             }
         }
 
+        val coverAlpha = if (enabled && !forceCoverDisabled) 1f else 0.5f
+        binding.tilCoverThickness.alpha = coverAlpha
+        binding.vCoverThicknessOverlay.isClickable = forceCoverDisabled
+        binding.vCoverThicknessOverlay.isFocusable = forceCoverDisabled
+
         val alpha = if (enabled) 1f else 0.5f
         listOf(
-            binding.tilCoverThickness,
             binding.tilDepth,
             binding.tilTopWidth,
             binding.rgMatType,
@@ -460,6 +516,7 @@ class GutterBasicInfoFragment : Fragment() {
         val d = collectData()
         val isVirtual = parseLooseBoolean(d["is_virtual"])
         val isCantOpen = parseLooseBoolean(d["IS_CANTOPEN"])
+        val isUOpen = isUOpenGutter()
 
         // 虛擬模式下，僅驗證位置與座標編號
         if (isVirtual) {
@@ -469,10 +526,8 @@ class GutterBasicInfoFragment : Fragment() {
             return null
         }
 
-        val isPendingDeploy = parseLooseBoolean(d["IS_PENDING_DEPLOY"])
-
-        // 不可開蓋：下方欄位可不填，直接通過
-        if (isCantOpen) return null
+        // 點選「明溝」或「無法開蓋」時，下方細節欄位不用填寫（跳過驗證）
+        if (isUOpen || isCantOpen) return null
 
         if (d["MAT_TYP"].isNullOrEmpty())     return "側溝材質"
 
@@ -559,10 +614,14 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etRemarks
         ).forEach { it.addTextChangedListener(watcher) }
 
-        // RadioGroup 選取變更時通知草稿更新
+        // RadioGroup 選取變更時通知草稿更新；
+        // 側溝形式另外要同步刷新明溝遮罩與可編輯狀態。
+        binding.rgGutterType.setOnCheckedChangeListener { _, _ ->
+            applyGutterTypeUi()
+            onDraftChanged?.invoke()
+        }
         val radioListener = RadioGroup.OnCheckedChangeListener { _, _ -> onDraftChanged?.invoke() }
         listOf(
-            binding.rgGutterType,
             binding.rgMatType,
             binding.rgIsBroken,
             binding.rgIsHanging,
@@ -571,29 +630,35 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     /** 收集表單資料（供 GutterFormActivity 提交用） */
-    fun collectData(): Map<String, String> = mapOf(
-        "is_virtual"  to (if (isVirtualMode) "1" else "0"),
-        "_isImported" to (if (isImportLocked) "1" else "0"),
-        "SPI_NUM"     to (binding.etGutterId.text?.toString()      ?: ""),
-        "NODE_TYP"    to gutterTypeTextToCode(binding.rgGutterType.getCheckedText()),
-        "MAT_TYP"     to matTypeTextToCode(binding.rgMatType.getCheckedText()),
-        "NODE_X"      to coordXValue,
-        "NODE_Y"      to coordYValue,
-        "NODE_LE"     to (binding.etCoordZ.text?.toString()        ?: ""),
-        "XY_NUM"      to (binding.etMeasureId.text?.toString()     ?: ""),
-        // 待架站（點位層級）：以 "1"/"0" 形式存入 basicData
-        "IS_PENDING_DEPLOY" to (if (binding.btnPendingDeploy.isChecked) "1" else "0"),
-        // 主要 key：COVER_DEP（API 欄位名）
-        "COVER_DEP" to (binding.etCoverThickness.text?.toString() ?: ""),
-        "NODE_DEP"    to (binding.etDepth.text?.toString()         ?: ""),
-        "NODE_WID"    to (binding.etTopWidth.text?.toString()      ?: ""),
-        "IS_BROKEN"   to brokenTextToCode(binding.rgIsBroken.getCheckedText()),
-        "IS_HANGING"  to hangingTextToCode(binding.rgIsHanging.getCheckedText()),
-        "IS_SILT"     to siltTextToCode(binding.rgIsSilt.getCheckedText()),
-        // 以 "1"/"" 形式存入 basicData（送出 API 時再轉為 JSON boolean）
-        "IS_CANTOPEN" to (if (binding.cbCantOpen.isChecked) "1" else ""),
-        "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: "")
-    )
+    fun collectData(): Map<String, String> {
+        val gutterTypeText = binding.rgGutterType.getCheckedText()
+        // 使用 ID 判斷是否為「U形溝（明溝）」
+        val isUOpen = binding.rgGutterType.checkedRadioButtonId == R.id.rbGutterType0
+        
+        return mapOf(
+            "is_virtual"  to (if (isVirtualMode) "1" else "0"),
+            "_isImported" to (if (isImportLocked) "1" else "0"),
+            "SPI_NUM"     to (binding.etGutterId.text?.toString()      ?: ""),
+            "NODE_TYP"    to gutterTypeTextToCode(gutterTypeText),
+            "MAT_TYP"     to matTypeTextToCode(binding.rgMatType.getCheckedText()),
+            "NODE_X"      to coordXValue,
+            "NODE_Y"      to coordYValue,
+            "NODE_LE"     to (binding.etCoordZ.text?.toString()        ?: ""),
+            "XY_NUM"      to (binding.etMeasureId.text?.toString()     ?: ""),
+            // 待架站（點位層級）：以 "1"/"0" 形式存入 basicData
+            "IS_PENDING_DEPLOY" to (if (binding.btnPendingDeploy.isChecked) "1" else "0"),
+            // 主要 key：COVER_DEP（API 欄位名）。若是「明溝」，固定回傳 "0"
+            "COVER_DEP" to if (isUOpen) "0" else (binding.etCoverThickness.text?.toString() ?: ""),
+            "NODE_DEP"    to (binding.etDepth.text?.toString()         ?: ""),
+            "NODE_WID"    to (binding.etTopWidth.text?.toString()      ?: ""),
+            "IS_BROKEN"   to brokenTextToCode(binding.rgIsBroken.getCheckedText()),
+            "IS_HANGING"  to hangingTextToCode(binding.rgIsHanging.getCheckedText()),
+            "IS_SILT"     to siltTextToCode(binding.rgIsSilt.getCheckedText()),
+            // 以 "1"/"" 形式存入 basicData（送出 API 時再轉為 JSON boolean）
+            "IS_CANTOPEN" to (if (binding.cbCantOpen.isChecked) "1" else ""),
+            "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: "")
+        )
+    }
 
     fun updateCoordinates(longitude: Double, latitude: Double) {
         coordXValue = "%.6f".format(longitude)
@@ -607,6 +672,7 @@ class GutterBasicInfoFragment : Fragment() {
         val visibility = if (isVirtual) View.GONE else View.VISIBLE
         binding.llVirtualHidden1.visibility = visibility
         binding.llVirtualHidden2.visibility = visibility
+        // 根據需求保留「溝蓋板厚度」欄位，不隨虛擬模式隱藏
         binding.llVirtualHidden3.visibility = visibility
         onDraftChanged?.invoke()
     }
@@ -696,6 +762,7 @@ class GutterBasicInfoFragment : Fragment() {
                 etCoordZ.setText(nodeDetails.nodeLe)
             }
         }
+        applyGutterTypeUi()
         onDraftChanged?.invoke()
     }
 
