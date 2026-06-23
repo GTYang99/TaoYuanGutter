@@ -247,6 +247,8 @@ class MainActivity : AppCompatActivity(),
     private var shouldReturnToInspectPreview = false
     /** 防止連點側溝 Polyline 重複觸發 openInspectBottomSheet */
     private var isInspecting = false
+    /** 檢視流程鎖：從開啟檢視到真正關閉前，主畫面按鈕都保持不可用。 */
+    private var isInspectUiLocked = false
 
     // ── 編輯/檢視/新增模式標誌（防止自動加載polylines） ────────────────────
     /** true = 正在編輯/檢視/新增模式，禁止 loadGuttersByViewport 自動加載 */
@@ -302,7 +304,7 @@ class MainActivity : AppCompatActivity(),
             context = this,
             binding = binding,
             isMeasuring = { measureManager?.isMeasuring == true },
-            isSheetActive = { activeSheet != null || inspectSheet != null || isInspecting }
+            isSheetActive = { activeSheet != null || inspectSheet != null || isInspecting || isInspectUiLocked }
         )
         measureModeUiController = MeasureModeUiController(
             context = this,
@@ -503,7 +505,6 @@ class MainActivity : AppCompatActivity(),
                 sheet.onWaypointsChanged = { updated ->
                     if (updated == null) {
                         mapCameraController.setPersistentBottomInset(0)
-                        mainBlockingUiController.setMainButtonsEnabled(true) // 關閉編輯表單，還原按鈕
                         activeSheet = null
                         val reopenInspectPreview =
                             shouldReturnToInspectPreview && inspectPreviewIntent != null
@@ -512,12 +513,15 @@ class MainActivity : AppCompatActivity(),
                             currentWaypoints = inspectWaypoints
                             // 返回檢視：維持灰色參考線，不顯示紫色工作線
                             refreshWorkingMarkers(inspectWaypoints)
-                            mainBlockingUiController.setMainButtonsEnabled(false) // 重新進入檢視，保持虛化
+                            lockInspectUi()
                             val reopened = inspectPreviewIntent?.let { launchInspectSafely(Intent(it)) } == true
                             if (!reopened) {
                                 isInEditingMode = false
+                                inspectPreviewIntent = null
+                                shouldReturnToInspectPreview = false
                                 clearReferenceRoute()
                                 gutterMapController.clearPreviewLayer()
+                                unlockInspectUiIfIdle()
                                 loadGuttersByViewport(showFeedback = true)
                             }
                         } else {
@@ -526,6 +530,7 @@ class MainActivity : AppCompatActivity(),
                             clearReferenceRoute()
                             gutterMapController.clearPreviewLayer()
                             // 重新加載所有正式線段與暫時提交線
+                            unlockInspectUiIfIdle()
                             loadGuttersByViewport(showFeedback = true)
                         }
                     } else {
@@ -569,7 +574,9 @@ class MainActivity : AppCompatActivity(),
             } else {
                 // ── 從檢視模式返回（不編輯）時，清除起終點標記並恢復其他線段顯示 ──
                 isInEditingMode = false  // 允許自動加載 polylines
-                mainBlockingUiController.setMainButtonsEnabled(true) // 從檢視返回，還原按鈕
+                inspectPreviewIntent = null
+                shouldReturnToInspectPreview = false
+                unlockInspectUiIfIdle()
                 clearReferenceRoute()
                 gutterMapController.clearPreviewLayer()
                 clearWorkingMarkers()   // 移除檢視模式新增的起點／節點／終點標記
@@ -908,7 +915,7 @@ class MainActivity : AppCompatActivity(),
         clearWorkingMarkers()
         binding.btnAddGutter.visibility = View.VISIBLE
         mapCameraController.setPersistentBottomInset(0)
-        mainBlockingUiController.setMainButtonsEnabled(true)
+        setMainButtonsEnabledRespectingInspectLock(true)
 
         // ── 退出編輯模式時：重新加載所有線段 ──
         isInEditingMode = false  // 允許自動加載 polylines
@@ -1122,12 +1129,24 @@ class MainActivity : AppCompatActivity(),
                         val referencePoints = start.routeWaypoints.mapNotNull { it.latLng }
                         setReferenceRoute(referencePoints)
                         refreshWorkingMarkers(inspectWaypoints)
-                        launchInspectSafely(result.data.intent)
+                        lockInspectUi()
+                        val launched = launchInspectSafely(result.data.intent)
+                        if (!launched) {
+                            isInEditingMode = false
+                            clearReferenceRoute()
+                            gutterMapController.clearPreviewLayer()
+                            clearWorkingMarkers()
+                            unlockInspectUiIfIdle()
+                            loadGuttersByViewport(showFeedback = true)
+                        }
                     }
                     is ApiResult.Error -> {
                         isInEditingMode = false
+                        inspectPreviewIntent = null
+                        shouldReturnToInspectPreview = false
                         gutterMapController.clearPreviewLayer()
                         clearWorkingMarkers()
+                        unlockInspectUiIfIdle()
                         loadGuttersByViewport(showFeedback = true)
                         MaterialAlertDialogBuilder(this@MainActivity)
                             .setTitle("更新成功")
@@ -1167,7 +1186,7 @@ class MainActivity : AppCompatActivity(),
             clearWorkingMarkers()
             binding.btnAddGutter.visibility = View.VISIBLE
             isInEditingMode = false
-            mainBlockingUiController.setMainButtonsEnabled(true)
+            setMainButtonsEnabledRespectingInspectLock(true)
             drawSubmittedGutter(waypoints)
             mapCameraController.setPersistentBottomInset(0)
             // 新增成功後立即重載，以後端正式線段為準（同時會清掉暫時提交線）
@@ -1221,7 +1240,7 @@ class MainActivity : AppCompatActivity(),
                             isInEditingMode = false  // 刪除成功後退出編輯模式，允許重新加載 scope 線段
                             binding.btnAddGutter.visibility = View.VISIBLE
                             mapCameraController.setPersistentBottomInset(0)
-                            mainBlockingUiController.setMainButtonsEnabled(true)
+                            setMainButtonsEnabledRespectingInspectLock(true)
                             Toast.makeText(this@MainActivity, String.format(getString(R.string.msg_delete_success), spiNum), Toast.LENGTH_SHORT).show()
                             // ── 重新加載地圖可視範圍內的側溝數據 ──
                             loadGuttersByViewport()
@@ -1368,7 +1387,7 @@ class MainActivity : AppCompatActivity(),
         isInspecting = true
         // ── 進入檢視流程立即禁止自動加載，並虛化主畫面按鈕 ──
         isInEditingMode = true
-        mainBlockingUiController.setMainButtonsEnabled(false)
+        lockInspectUi()
 
         mainBlockingUiController.setInspectLoading(true, "載入側溝資料中…")
         mapCameraController.fitCameraToWaypoints(start.routeWaypoints)
@@ -1397,12 +1416,26 @@ class MainActivity : AppCompatActivity(),
                         // 讓使用者按返回時仍可繼續；若最終進入編輯模式則由 inspectLauncher 清除）
                         activeSheet?.hideSelf()
                         mainBlockingUiController.setInspectLoading(false)
-                        launchInspectSafely(result.data.intent)
+                        val launched = launchInspectSafely(result.data.intent)
+                        if (!launched) {
+                            isInspecting = false
+                            isInEditingMode = false
+                            inspectPreviewIntent = null
+                            shouldReturnToInspectPreview = false
+                            clearReferenceRoute()
+                            gutterMapController.clearPreviewLayer()
+                            clearWorkingMarkers()
+                            unlockInspectUiIfIdle()
+                            loadGuttersByViewport(showFeedback = true)
+                        }
                         // isInspecting 在 inspectLauncher 結果回呼中重置
                     }
                     is ApiResult.Error -> {
                         isInspecting = false
                         isInEditingMode = false  // 允許自動加載 polylines
+                        inspectPreviewIntent = null
+                        shouldReturnToInspectPreview = false
+                        unlockInspectUiIfIdle()
                         android.widget.Toast.makeText(
                             this@MainActivity,
                             if (result.message == "查無側溝資料") getString(R.string.msg_no_line_data)
@@ -1503,9 +1536,32 @@ class MainActivity : AppCompatActivity(),
         )
     }
 
+    private fun lockInspectUi() {
+        isInspectUiLocked = true
+        mainBlockingUiController.setMainButtonsEnabled(false)
+    }
+
+    private fun unlockInspectUiIfIdle() {
+        if (activeSheet != null || inspectSheet != null || isInspecting || measureManager?.isMeasuring == true) {
+            mainBlockingUiController.setMainButtonsEnabled(false)
+            return
+        }
+        isInspectUiLocked = false
+        mainBlockingUiController.setMainButtonsEnabled(true)
+    }
+
+    private fun setMainButtonsEnabledRespectingInspectLock(enabled: Boolean) {
+        if (enabled && isInspectUiLocked) {
+            mainBlockingUiController.setMainButtonsEnabled(false)
+        } else {
+            mainBlockingUiController.setMainButtonsEnabled(enabled)
+        }
+    }
+
 
     /** 顯示「待上傳草稿」BottomSheet，並處理「繼續編輯」回呼。 */
     private fun showPendingDraftsSheet() {
+        if (isInspectUiLocked || isInspecting || shouldReturnToInspectPreview) return
         gutterSessionUiCoordinator.showPendingDrafts { draft -> resumePendingDraft(draft) }
     }
 
@@ -1596,7 +1652,7 @@ class MainActivity : AppCompatActivity(),
                 },
                 onWaypointsCleared = {
                     isInEditingMode = false
-                    mainBlockingUiController.setMainButtonsEnabled(true) // 關閉表單，還原按鈕
+                    setMainButtonsEnabledRespectingInspectLock(true) // 關閉表單，還原按鈕
                     mapCameraController.setPersistentBottomInset(0)
                     gutterMapController.clearPreviewLayer()
                     activeSheet = null
