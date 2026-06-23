@@ -1760,7 +1760,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            return
 	        }
 
-	        val resolvedDraftId = if (sessionDraftId > 0L) sessionDraftId else System.currentTimeMillis()
+	        val resolvedDraftId = sessionDraftId.takeIf { it > 0L } ?: run {
+	            android.util.Log.w(
+	                "GutterFormActivity",
+	                "skip draft sync because sessionDraftId is missing"
+	            )
+	            return
+	        }
 	        sessionDraftId = resolvedDraftId
 
 	        val repo = GutterSessionRepository(this)

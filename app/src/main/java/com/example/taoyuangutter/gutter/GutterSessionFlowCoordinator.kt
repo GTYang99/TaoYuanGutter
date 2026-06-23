@@ -10,7 +10,7 @@ import com.google.android.gms.maps.model.LatLng
 class GutterSessionFlowCoordinator {
 
     data class AddSessionStart(
-        val draftId: Long?,
+        val draftId: Long,
         val isOffline: Boolean,
         val sheet: AddGutterBottomSheet
     )

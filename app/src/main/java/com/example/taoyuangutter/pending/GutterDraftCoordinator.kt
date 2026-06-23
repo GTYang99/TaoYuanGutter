@@ -81,7 +81,13 @@ class GutterDraftCoordinator(
             }
         }
 
-        val draftId = existingId ?: currentSessionDraftId ?: System.currentTimeMillis()
+        val draftId = existingId ?: currentSessionDraftId ?: run {
+            android.util.Log.w(
+                "GutterDraftCoordinator",
+                "skip auto-save because currentSessionDraftId is missing"
+            )
+            return null
+        }
 
         if (!spiNum.isNullOrEmpty()) {
             repository.getAll()

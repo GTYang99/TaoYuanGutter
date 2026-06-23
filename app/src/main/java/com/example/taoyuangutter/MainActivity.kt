@@ -1326,12 +1326,13 @@ class MainActivity : AppCompatActivity(),
             mapCameraController.zoomForGutterSize(wp.basicData)
         )
         val state = mapOverlayController.currentState()
+        val sessionDraftId = ensureCurrentSessionDraftId()
         val launch = gutterFormNavigator.buildAddIntent(
             currentWaypoints = currentWaypoints,
             currentIndex = currentIndex,
             waypoint = wp,
             isEditMode = isEditMode,
-            currentSessionDraftId = currentSessionDraftId,
+            currentSessionDraftId = sessionDraftId,
             wmtsLayer = currentWmtsLayer(),
             sessionIsOffline = currentSessionIsOffline,
             hostLastLocation = lastKnownLocation,
@@ -1343,6 +1344,11 @@ class MainActivity : AppCompatActivity(),
         )
         currentSessionDraftId = launch.draftId
         gutterFormLauncher.launch(launch.intent)
+    }
+
+    private fun ensureCurrentSessionDraftId(): Long {
+        currentSessionDraftId?.let { return it }
+        return System.currentTimeMillis().also { currentSessionDraftId = it }
     }
 
     private fun currentWmtsLayer(): String = mapOverlayController.currentLayer()

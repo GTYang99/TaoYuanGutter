@@ -15,7 +15,7 @@ class GutterSessionUiCoordinator(
         val prepareForResumedMapSession: () -> Unit,
         val bindSheet: (sheet: AddGutterBottomSheet, initialWaypointCount: Int) -> Unit,
         val showSheet: (AddGutterBottomSheet) -> Unit,
-        val onMapSessionReady: (draftId: Long?, isOffline: Boolean, sheet: AddGutterBottomSheet) -> Unit,
+        val onMapSessionReady: (draftId: Long, isOffline: Boolean, sheet: AddGutterBottomSheet) -> Unit,
         val onResumedWaypointsReady: (List<Waypoint>) -> Unit,
         val onRefitRequested: (List<Waypoint>) -> Unit,
         val onReloadRequested: () -> Unit
