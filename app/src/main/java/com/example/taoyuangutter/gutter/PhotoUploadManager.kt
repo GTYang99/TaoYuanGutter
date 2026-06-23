@@ -5,6 +5,7 @@ import android.net.Uri
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
+import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.pending.DraftPhotoCleaner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
@@ -36,7 +37,8 @@ class PhotoUploadManager(
     }
 
     /**
-     * 計算待上傳的本機照片數量（不含遠端已上傳的 https:// 與空路徑）。
+     * 計算待上傳的可用照片數量。
+     * 會把可讀的本機 URI 與可重新下載的遠端 URL 都算進來。
      * 可供呼叫端在啟動上傳 UI 前先判斷是否有需要上傳的項目。
      */
     fun countPendingPhotos(
@@ -52,17 +54,14 @@ class PhotoUploadManager(
                 wp.basicData["photo2"],
                 wp.basicData["photo3"]
             ).forEach { path ->
-                if (!path.isNullOrEmpty()) {
-                    val scheme = Uri.parse(path).scheme?.lowercase()
-                    if (scheme != null) count++
-                }
+                if (PhotoUploadValidator.isUsableForUpload(context, path)) count++
             }
         }
         return count
     }
 
     /**
-     * 上傳所有點位的本機照片，回傳失敗張數。
+     * 上傳所有點位的可用照片，回傳失敗張數。
      */
     suspend fun uploadWaypointPhotos(
         waypoints: List<Waypoint>,
@@ -82,9 +81,10 @@ class PhotoUploadManager(
                 wp.basicData["photo2"] to 2,
                 wp.basicData["photo3"] to 3
             ).forEach { (path, category) ->
-                if (path.isNullOrEmpty()) return@forEach
-                val scheme = Uri.parse(path).scheme?.lowercase()
-                if (scheme != null) pending.add(Triple(node, path, category))
+                if (PhotoUploadValidator.isUsableForUpload(context, path)) {
+                    val usablePath = path ?: return@forEach
+                    pending.add(Triple(node, usablePath, category))
+                }
             }
         }
 

@@ -41,7 +41,9 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
@@ -54,6 +56,7 @@ import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.NodeDetails
 import com.example.taoyuangutter.common.PhotoUriStore
+import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
 import com.example.taoyuangutter.pending.DraftPhotoCleaner
 import com.example.taoyuangutter.pending.GutterSessionDraft
@@ -992,7 +995,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (isOfflineMode && sessionDraftId > 0L && sessionWaypoints.isNotEmpty()) {
             val savedWp = GutterSessionRepository(this).getById(sessionDraftId)?.waypoints?.firstOrNull()
             if (savedWp != null) {
-                sessionWaypoints[0] = sessionWaypoints[0].copy(basicData = HashMap(savedWp.basicData))
+                val normalizedBasicData = runBlocking(Dispatchers.IO) {
+                    PhotoUriStore.normalizeBasicDataPhotoUris(
+                        context = this@GutterFormActivity,
+                        basicData = HashMap(savedWp.basicData),
+                        prefix = "GUTTER_EXT_"
+                    )
+                }
+                sessionWaypoints[0] = sessionWaypoints[0].copy(basicData = normalizedBasicData)
             }
         }
 
@@ -1056,7 +1066,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         
         setupImportWaypointButton()
         setupFab()
-        binding.viewPager.post { attachDraftSyncCallbacks() }
+        binding.viewPager.post {
+            attachDraftSyncCallbacks()
+            // 開啟表單時先做一次草稿回寫，將舊草稿中的照片 URI 懶遷移成 app 可穩定讀取的副本。
+            queueSessionDraftSync()
+        }
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
         binding.viewPager.post { applyImportedWaypointLock() }
     }
@@ -1757,22 +1771,37 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        val photosFragment = pagerAdapter.getPhotosFragment()
 	        val (photo1, photo2, photo3) = photosFragment?.getPhotoPaths()
 	            ?: Triple(null, null, null)
+	        val existing = sessionWaypoints[currentIndex]
+	        val existingPhoto1 = existing.basicData["photo1"]
+	        val existingPhoto2 = existing.basicData["photo2"]
+	        val existingPhoto3 = existing.basicData["photo3"]
 
-	        val p1 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(this, photo1, prefix = "GUTTER_EXT_")
-	        val p2 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(this, photo2, prefix = "GUTTER_EXT_")
-	        val p3 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(this, photo3, prefix = "GUTTER_EXT_")
+	        val p1 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(
+	            this,
+	            photo1 ?: existingPhoto1,
+	            prefix = "GUTTER_EXT_"
+	        )
+	        val p2 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(
+	            this,
+	            photo2 ?: existingPhoto2,
+	            prefix = "GUTTER_EXT_"
+	        )
+	        val p3 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(
+	            this,
+	            photo3 ?: existingPhoto3,
+	            prefix = "GUTTER_EXT_"
+	        )
 
 	        val formLat = basicData["NODE_Y"]?.toDoubleOrNull()
 	        val formLng = basicData["NODE_X"]?.toDoubleOrNull()
-	        val existing = sessionWaypoints[currentIndex]
 	        val mergedBasicData = HashMap(existing.basicData).apply {
 	            putAll(basicData)
-	            // 只有真的拿得到照片 Fragment 時，才用最新照片狀態覆蓋草稿。
-	            // 若 Fragment 因生命週期暫時不可用，保留既有 photo1/2/3，避免把照片洗成空值。
-	            if (photosFragment != null) {
-	                put("photo1", p1 ?: "")
-	                put("photo2", p2 ?: "")
-	                put("photo3", p3 ?: "")
+	            // 優先用照片 Fragment 目前的狀態；若 Fragment 暫時不可用，則沿用草稿內既有照片，
+	            // 並仍嘗試把能讀到的舊路徑補成 app 可穩定存取的副本。
+	            if (photosFragment != null || existingPhoto1 != null || existingPhoto2 != null || existingPhoto3 != null) {
+	                put("photo1", p1 ?: existingPhoto1 ?: "")
+	                put("photo2", p2 ?: existingPhoto2 ?: "")
+	                put("photo3", p3 ?: existingPhoto3 ?: "")
 	            }
 	        }
 
@@ -1781,6 +1810,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            longitude = if (formLng != null && formLng in -180.0..180.0) formLng else existing.longitude,
 	            basicData = mergedBasicData
 	        )
+	        val normalizedWaypoints = PhotoUriStore.normalizeSnapshotPhotoUris(
+	            context = this,
+	            waypoints = sessionWaypoints.toList(),
+	            prefix = "GUTTER_EXT_"
+	        )
+	        sessionWaypoints.clear()
+	        sessionWaypoints.addAll(normalizedWaypoints)
 
 	        // 空草稿判斷：沒有任何座標，且沒有任何「實際內容」時，不保留草稿。
 	        // 這裡會忽略預設欄位，例如 is_virtual=0 / _isImported=0 / IS_PENDING_DEPLOY=0，
@@ -1864,8 +1900,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     // ── 照片上傳 ────────────────────────────────────────────────────────
 
     /**
-     * 將尚未上傳的本機照片（content:// / file:// scheme）依照 fileCategory 上傳至 nodeImage API。
-     * 已是 https:// 的照片（API 已存在）略過不重複上傳。
+     * 將可用的照片來源依 fileCategory 上傳至 nodeImage API。
+     * 會先透過共用判定確認來源是否可讀，遠端 URL 會先下載成本機檔再上傳。
      * 使用 Coroutines 並行上傳，顯著加速多張照片時的處理時間。
      */
     private suspend fun uploadLocalPhotos(
@@ -1880,19 +1916,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             return@coroutineScope
         }
         listOf(photo1 to 1, photo2 to 2, photo3 to 3)
-            .filter { (path, _) -> 
-                if (path.isNullOrEmpty()) return@filter false
-                val scheme = Uri.parse(path).scheme?.lowercase()
-                scheme != "http" && scheme != "https"
-            }
+            .filter { (path, _) -> PhotoUploadValidator.isUsableForUpload(this@GutterFormActivity, path) }
             .map { (path, category) ->
                 async {
-                    android.util.Log.d("PhotoUpload", "開始並行上傳 photo$category: $path")
+                    val usablePath = path ?: return@async
+                    android.util.Log.d("PhotoUpload", "開始並行上傳 photo$category: $usablePath")
                     val result = gutterRepository.uploadNodeImage(
                         context      = this@GutterFormActivity,
                         nodeId       = nodeId,
                         fileCategory = category,
-                        imageUri     = Uri.parse(path!!),
+                        imageUri     = Uri.parse(usablePath),
                         token        = token
                     )
                     if (result is ApiResult.Error) {
