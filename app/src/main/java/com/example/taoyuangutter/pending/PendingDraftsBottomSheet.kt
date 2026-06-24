@@ -18,9 +18,8 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 /**
  * 顯示待上傳側溝草稿的 BottomSheet。
  *
- * 點選 cell → 三選一對話框（繼續編輯 / 刪除 / 取消）。
- * 點選「刪除」→ 二次確認對話框。
- * 點選「繼續編輯」→ 呼叫 [onResumeDraft] 回呼，由 MainActivity 負責建立並展示 AddGutterBottomSheet。
+ * - 點選項目：恢復草稿（呼叫 [onResumeDraft]）。
+ * - 長按項目：顯示刪除確認對話框。
  */
 class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
 
@@ -55,6 +54,13 @@ class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
         refreshList()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (_binding != null) {
+            refreshList()
+        }
+    }
+
     override fun onStart() {
         super.onStart()
         val bsDialog  = dialog as? BottomSheetDialog ?: return
@@ -62,16 +68,16 @@ class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
             com.google.android.material.R.id.design_bottom_sheet
         ) ?: return
 
-        // 固定半螢幕高度：頂端剛好在畫面正中央
-        val halfScreen = resources.displayMetrics.heightPixels / 2
+        // 固定 80% 螢幕高度：確保其顯示在鏡頭下方
+        val maxHeight = (resources.displayMetrics.heightPixels * 0.8).toInt()
 
-        sheetView.layoutParams?.height = halfScreen
+        sheetView.layoutParams?.height = maxHeight
         sheetView.requestLayout()
         // 清除 design_bottom_sheet 容器的預設背景，讓 bg_form_sheet 圓角正常顯示
         sheetView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
 
         bsDialog.behavior.apply {
-            peekHeight    = halfScreen
+            peekHeight    = maxHeight
             state         = BottomSheetBehavior.STATE_EXPANDED
             isHideable    = true
             skipCollapsed = true
@@ -105,7 +111,7 @@ class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
         adapter = PendingDraftAdapter(
             items           = mutableListOf(),
             onItemClick     = { draft -> resumeDraft(draft) },
-            onItemLongClick = { draft -> showDraftActionDialog(draft) }
+            onItemLongClick = { draft -> showDeleteConfirmDialog(draft) }
         )
         binding.rvPendingDrafts.apply {
             layoutManager = LinearLayoutManager(requireContext())
@@ -126,29 +132,6 @@ class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
     }
 
     // ── 對話框 ────────────────────────────────────────────────────────────
-
-    /**
-     * 長按 cell 後的對話框：刪除 / 取消。
-     */
-    private fun showDraftActionDialog(draft: GutterSessionDraft) {
-        val dialog = AlertDialog.Builder(requireContext())
-            .setItems(arrayOf("刪除草稿", "取消")) { _, which ->
-                when (which) {
-                    0 -> showDeleteConfirmDialog(draft)
-                    // 1 → 取消，不做任何事
-                }
-            }
-            .create()
-
-        dialog.show()
-
-        // 將「刪除草稿」設為紅色
-        dialog.listView?.getChildAt(0)?.let { itemView ->
-            if (itemView is android.widget.TextView) {
-                itemView.setTextColor(Color.parseColor("#D32F2F"))
-            }
-        }
-    }
 
     /**
      * 刪除確認對話框。

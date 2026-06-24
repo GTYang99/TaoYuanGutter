@@ -34,6 +34,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
+import com.example.taoyuangutter.gutter.PhotoUploadManager
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.GutterFormContract
 import com.example.taoyuangutter.gutter.GutterFormNavigator
@@ -66,7 +67,6 @@ import com.example.taoyuangutter.map.ScopeViewportLoader
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterDraftCoordinator
 import com.example.taoyuangutter.pending.GutterSessionRepository
-import com.example.taoyuangutter.pending.DraftPhotoCleaner
 import com.example.taoyuangutter.pending.PendingDraftSheetNavigator
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.android.gms.location.FusedLocationProviderClient
@@ -80,12 +80,8 @@ import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Polyline
 import com.google.android.gms.maps.model.PolylineOptions
 import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Semaphore
-import kotlinx.coroutines.sync.withPermit
-import kotlinx.coroutines.withContext
 import kotlin.math.max
 
 class MainActivity : AppCompatActivity(),
@@ -141,6 +137,7 @@ class MainActivity : AppCompatActivity(),
 
     // ── Repository ───────────────────────────────────────────────────────
     private val gutterRepository = GutterRepository()
+    private val photoUploadManager by lazy { PhotoUploadManager(this, gutterRepository) }
     private val sessionDraftRepository by lazy { GutterSessionRepository(this) }
     private val draftCoordinator by lazy { GutterDraftCoordinator(this, sessionDraftRepository) }
     private val pendingDraftSheetNavigator by lazy { PendingDraftSheetNavigator(supportFragmentManager) }
@@ -250,6 +247,8 @@ class MainActivity : AppCompatActivity(),
     private var shouldReturnToInspectPreview = false
     /** 防止連點側溝 Polyline 重複觸發 openInspectBottomSheet */
     private var isInspecting = false
+    /** 檢視流程鎖：從開啟檢視到真正關閉前，主畫面按鈕都保持不可用。 */
+    private var isInspectUiLocked = false
 
     // ── 編輯/檢視/新增模式標誌（防止自動加載polylines） ────────────────────
     /** true = 正在編輯/檢視/新增模式，禁止 loadGuttersByViewport 自動加載 */
@@ -305,7 +304,7 @@ class MainActivity : AppCompatActivity(),
             context = this,
             binding = binding,
             isMeasuring = { measureManager?.isMeasuring == true },
-            isSheetActive = { activeSheet != null || inspectSheet != null || isInspecting }
+            isSheetActive = { activeSheet != null || inspectSheet != null || isInspecting || isInspectUiLocked }
         )
         measureModeUiController = MeasureModeUiController(
             context = this,
@@ -386,15 +385,15 @@ class MainActivity : AppCompatActivity(),
 	                            // 先做照片 URI 正規化（避免多節點上傳照片卡住），再回寫 basicData，並立刻刷新工作層 marker
 	                            val rawData = GutterFormContract.readResultData(result.data)
 		                            lifecycleScope.launch {
-		                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
-		                                    context = this@MainActivity,
-		                                    basicData = rawData,
-		                                    prefix = "GUTTER_EXT_"
-		                                )
-		                                liveSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
-		                                // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
-		                                currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
-		                                refreshWorkingForEditFlow(currentWaypoints)
+                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
+                                    context = this@MainActivity,
+                                    basicData = rawData,
+                                    prefix = "GUTTER_EXT_"
+                                )
+                                liveSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
+                                // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
+                                currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
+                                refreshWorkingForEditFlow(currentWaypoints)
 
                                         // ── 資料更新後，才顯示 BottomSheet 並調整鏡頭 ──
                                         resetHighlightedMarker()
@@ -434,15 +433,15 @@ class MainActivity : AppCompatActivity(),
 	                        val idx  = data?.getIntExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, -1) ?: -1
 		                        if (idx >= 0) {
 		                            val rawData = GutterFormContract.readResultData(data)
-		                            lifecycleScope.launch {
-		                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
-		                                    context = this@MainActivity,
-		                                    basicData = rawData,
-		                                    prefix = "GUTTER_EXT_"
-		                                )
-		                                inspectWaypoints.getOrNull(idx)?.basicData = newData
-		                            }
-		                        }
+                            lifecycleScope.launch {
+                                val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
+                                    context = this@MainActivity,
+                                    basicData = rawData,
+                                    prefix = "GUTTER_EXT_"
+                                )
+                                inspectWaypoints.getOrNull(idx)?.basicData = newData
+                            }
+                        }
 		                    }
                     inspectSheet?.showSelf()
                     mapCameraController.fitCameraToWaypoints(inspectWaypoints)
@@ -506,7 +505,6 @@ class MainActivity : AppCompatActivity(),
                 sheet.onWaypointsChanged = { updated ->
                     if (updated == null) {
                         mapCameraController.setPersistentBottomInset(0)
-                        mainBlockingUiController.setMainButtonsEnabled(true) // 關閉編輯表單，還原按鈕
                         activeSheet = null
                         val reopenInspectPreview =
                             shouldReturnToInspectPreview && inspectPreviewIntent != null
@@ -515,12 +513,15 @@ class MainActivity : AppCompatActivity(),
                             currentWaypoints = inspectWaypoints
                             // 返回檢視：維持灰色參考線，不顯示紫色工作線
                             refreshWorkingMarkers(inspectWaypoints)
-                            mainBlockingUiController.setMainButtonsEnabled(false) // 重新進入檢視，保持虛化
+                            lockInspectUi()
                             val reopened = inspectPreviewIntent?.let { launchInspectSafely(Intent(it)) } == true
                             if (!reopened) {
                                 isInEditingMode = false
+                                inspectPreviewIntent = null
+                                shouldReturnToInspectPreview = false
                                 clearReferenceRoute()
                                 gutterMapController.clearPreviewLayer()
+                                unlockInspectUiIfIdle()
                                 loadGuttersByViewport(showFeedback = true)
                             }
                         } else {
@@ -529,6 +530,7 @@ class MainActivity : AppCompatActivity(),
                             clearReferenceRoute()
                             gutterMapController.clearPreviewLayer()
                             // 重新加載所有正式線段與暫時提交線
+                            unlockInspectUiIfIdle()
                             loadGuttersByViewport(showFeedback = true)
                         }
                     } else {
@@ -572,7 +574,9 @@ class MainActivity : AppCompatActivity(),
             } else {
                 // ── 從檢視模式返回（不編輯）時，清除起終點標記並恢復其他線段顯示 ──
                 isInEditingMode = false  // 允許自動加載 polylines
-                mainBlockingUiController.setMainButtonsEnabled(true) // 從檢視返回，還原按鈕
+                inspectPreviewIntent = null
+                shouldReturnToInspectPreview = false
+                unlockInspectUiIfIdle()
                 clearReferenceRoute()
                 gutterMapController.clearPreviewLayer()
                 clearWorkingMarkers()   // 移除檢視模式新增的起點／節點／終點標記
@@ -635,6 +639,47 @@ class MainActivity : AppCompatActivity(),
      */
     private fun restoreStateAfterRecreation(savedState: Bundle) {
         pendingWaypointFormIndex = savedState.getInt(KEY_PENDING_WP_INDEX, -1)
+        currentSessionDraftId = if (savedState.containsKey("saved_session_draft_id")) savedState.getLong("saved_session_draft_id") else null
+        currentSessionIsOffline = savedState.getBoolean("saved_session_is_offline", false)
+        isInspecting = savedState.getBoolean("saved_is_inspecting", false)
+        isInEditingMode = savedState.getBoolean("saved_is_in_editing_mode", false)
+        initialSpiState = savedState.getString("saved_initial_spi_state")
+
+        val currentWpsJson = savedState.getString("saved_current_waypoints_json")
+        if (!currentWpsJson.isNullOrEmpty()) {
+            val type = object : com.google.gson.reflect.TypeToken<List<WaypointSnapshot>>() {}.type
+            val snapshots: List<WaypointSnapshot> = try { Gson().fromJson(currentWpsJson, type) } catch (e: Exception) { emptyList() }
+            currentWaypoints = snapshots.map { snap ->
+                val wpType = WaypointType.entries.firstOrNull { it.name == snap.type } ?: WaypointType.NODE
+                val latLng = if (snap.latitude != null && snap.longitude != null) LatLng(snap.latitude, snap.longitude) else null
+                Waypoint(wpType, snap.label, latLng, snap.basicData)
+            }
+        }
+
+        val inspectWpsJson = savedState.getString("saved_inspect_waypoints_json")
+        if (!inspectWpsJson.isNullOrEmpty()) {
+            val type = object : com.google.gson.reflect.TypeToken<List<WaypointSnapshot>>() {}.type
+            val snapshots: List<WaypointSnapshot> = try { Gson().fromJson(inspectWpsJson, type) } catch (e: Exception) { emptyList() }
+            inspectWaypoints = snapshots.map { snap ->
+                val wpType = WaypointType.entries.firstOrNull { it.name == snap.type } ?: WaypointType.NODE
+                val latLng = if (snap.latitude != null && snap.longitude != null) LatLng(snap.latitude, snap.longitude) else null
+                Waypoint(wpType, snap.label, latLng, snap.basicData)
+            }
+        }
+
+        isReferenceRouteActive = savedState.getBoolean("saved_is_reference_route_active", false)
+        val refLats = savedState.getDoubleArray("saved_reference_route_lats")
+        val refLngs = savedState.getDoubleArray("saved_reference_route_lngs")
+        if (refLats != null && refLngs != null && refLats.size == refLngs.size) {
+            referenceRoutePoints = refLats.indices.map { LatLng(refLats[it], refLngs[it]) }
+        }
+
+        hasShownEditPolyline = savedState.getBoolean("saved_has_shown_edit_polyline", false)
+        val editSnapshotJson = savedState.getString("saved_edit_lat_lng_snapshot_json")
+        if (!editSnapshotJson.isNullOrEmpty()) {
+            val type = object : com.google.gson.reflect.TypeToken<List<Pair<Long, Long>>>() {}.type
+            editLatLngSnapshot = try { Gson().fromJson(editSnapshotJson, type) } catch (e: Exception) { null }
+        }
 
         val restoredSheet = supportFragmentManager
             .findFragmentByTag(AddGutterBottomSheet.TAG) as? AddGutterBottomSheet
@@ -642,12 +687,10 @@ class MainActivity : AppCompatActivity(),
 
         if (restoredSheet.isAddMode()) {
             // 新增模式：重新綁定 activeSheet 與 onWaypointsChanged
-            isInEditingMode = true  // 保持禁止自動加載 polylines
             activeSheet = restoredSheet
             bindAddGutterSheet(restoredSheet)
         } else {
             // 檢視模式：重新綁定 inspectSheet
-            isInEditingMode = true  // 保持禁止自動加載 polylines
             inspectSheet = restoredSheet
             restoredSheet.onWaypointsChanged = { if (it == null) {
                 // ── 檢視 Sheet 被 dismiss（關閉）時，清除工作層並恢復其他線段顯示 ──
@@ -664,6 +707,32 @@ class MainActivity : AppCompatActivity(),
         super.onSaveInstanceState(outState)
         // 儲存正在開啟表單的點位索引，確保 MainActivity 重建後仍能正確回寫
         outState.putInt(KEY_PENDING_WP_INDEX, pendingWaypointFormIndex)
+        currentSessionDraftId?.let { outState.putLong("saved_session_draft_id", it) }
+        outState.putBoolean("saved_session_is_offline", currentSessionIsOffline)
+        outState.putBoolean("saved_is_inspecting", isInspecting)
+        outState.putBoolean("saved_is_in_editing_mode", isInEditingMode)
+        outState.putString("saved_initial_spi_state", initialSpiState)
+
+        val currentWpsSnapshots = currentWaypoints.map { wp ->
+            WaypointSnapshot(type = wp.type.name, label = wp.label, latitude = wp.latLng?.latitude, longitude = wp.latLng?.longitude, basicData = wp.basicData)
+        }
+        outState.putString("saved_current_waypoints_json", Gson().toJson(currentWpsSnapshots))
+
+        val inspectWpsSnapshots = inspectWaypoints.map { wp ->
+            WaypointSnapshot(type = wp.type.name, label = wp.label, latitude = wp.latLng?.latitude, longitude = wp.latLng?.longitude, basicData = wp.basicData)
+        }
+        outState.putString("saved_inspect_waypoints_json", Gson().toJson(inspectWpsSnapshots))
+
+        outState.putBoolean("saved_is_reference_route_active", isReferenceRouteActive)
+        if (isReferenceRouteActive) {
+            outState.putDoubleArray("saved_reference_route_lats", referenceRoutePoints.map { it.latitude }.toDoubleArray())
+            outState.putDoubleArray("saved_reference_route_lngs", referenceRoutePoints.map { it.longitude }.toDoubleArray())
+        }
+
+        outState.putBoolean("saved_has_shown_edit_polyline", hasShownEditPolyline)
+        if (editLatLngSnapshot != null) {
+            outState.putString("saved_edit_lat_lng_snapshot_json", Gson().toJson(editLatLngSnapshot))
+        }
     }
 
     private fun launchInspectSafely(intent: Intent): Boolean {
@@ -766,8 +835,17 @@ class MainActivity : AppCompatActivity(),
             updateMeasureDistanceDisplay(meters)
         }
 
-        // 若在檢視/編輯流程中地圖被重建，確保灰色參考線能被重繪回來
+        // 若在檢視/編輯流程中地圖被重建，確保灰色參考線與工作層能被重繪回來
         renderReferenceRouteIfActive()
+        if (isInEditingMode) {
+            if (activeSheet != null) {
+                refreshWorkingLayer(currentWaypoints)
+                mainBlockingUiController.setMainButtonsEnabled(false)
+            } else if (inspectSheet != null) {
+                refreshWorkingMarkers(inspectWaypoints)
+                mainBlockingUiController.setMainButtonsEnabled(false)
+            }
+        }
     }
 
     // ── LocationPickerHost 實作 ───────────────────────────────────────────
@@ -793,126 +871,35 @@ class MainActivity : AppCompatActivity(),
     }
 
     /**
-     * storeDitch 成功後，依照 API 回傳的 [nodes] 順序，
-     * 找出對應 waypoint 的本機照片（content:// / file:// scheme）並上傳。
-     * https:// 照片代表已在伺服器，略過。
-     */
-    /**
      * 上傳所有點位的本機照片，回傳失敗張數。
-     * - 已是 https:// 的舊照片與空路徑會直接略過。
-     * - 每張最多重試 3 次；仍失敗則即時 Toast 提示「第 x/total 張上傳失敗」。
-     * - 全程顯示進度條「x / total 張照片上傳中」；無需上傳時不顯示，直接回傳 0。
+     * 委派給 [PhotoUploadManager] 處理並行上傳、重試與暫存清理，
+     * 透過 [PhotoUploadManager.UploadListener] 橋接 [MainBlockingUiController] 的 UI 進度顯示。
      */
     private suspend fun uploadWaypointPhotos(
         waypoints: List<Waypoint>,
         nodes: List<DitchNode>,
         token: String
     ): Int {
-        // 欄位只要有值就上傳：
-        // - 本機 content:// / file:// 直接傳
-        // - 遠端 http(s):// 先下載成本機，再以上傳流程重送
-        // 使用 Triple<DitchNode, String, Int> 取代 local data class，避免 coroutine 編譯問題
-        val pending = mutableListOf<Triple<DitchNode, String, Int>>()
-        nodes.forEachIndexed { i, node ->
-            val wp = waypoints.getOrNull(i) ?: return@forEachIndexed
-            if (wp.isVirtual) {
-                android.util.Log.d("PhotoUpload", "節點 ${node.nodeId} 為虛擬點，略過所有照片上傳")
-                return@forEachIndexed
-            }
-            listOf(
-                wp.basicData["photo1"] to 1,
-                wp.basicData["photo2"] to 2,
-                wp.basicData["photo3"] to 3
-            ).forEach { (path, category) ->
-                if (path.isNullOrEmpty()) return@forEach
-                val scheme = Uri.parse(path).scheme?.lowercase()
-                if (scheme != null) pending.add(Triple(node, path, category))
-            }
-        }
+        // 先計算待上傳數量以決定是否需要顯示進度 UI
+        val pendingCount = photoUploadManager.countPendingPhotos(waypoints, nodes)
+        if (pendingCount == 0) return 0
 
-        val total = pending.size
-        if (total == 0) return 0   // 無需上傳，直接結束（不顯示進度條）
-
-        // 阻擋使用者操作（上傳期間不可操作 App；顯示等待動畫與進度說明）
-        var failedCount = 0
-        mainBlockingUiController.beginPhotoUpload(total)
-
+        mainBlockingUiController.beginPhotoUpload(pendingCount)
         try {
-            // 並行上傳（保守：最多同時 2 張）
-            val semaphore = Semaphore(3)
-
-            coroutineScope {
-                pending.map { entry ->
-                    launch {
-                        semaphore.withPermit {
-                            val node = entry.first
-                            val path = entry.second
-                            val category = entry.third
-
-                            suspend fun downloadIfRemoteUrl(url: String): String? {
-                                val scheme = Uri.parse(url).scheme?.lowercase()
-                                if (scheme != "http" && scheme != "https") return url
-                                val prefix = "REUPLOAD_${node.nodeId}_${category}_"
-                                return gutterRepository
-                                    .downloadImageToLocalContentUri(this@MainActivity, url, prefix = prefix)
-                                    ?.toString()
-                            }
-
-                            // 最多重試 3 次
-                            var success = false
-                            var tempDownloadedUri: String? = null
-                            for (attempt in 1..3) {
-                                val uploadPath = downloadIfRemoteUrl(path) ?: break
-                                if (uploadPath != path && Uri.parse(uploadPath).scheme?.lowercase() == "content") {
-                                    tempDownloadedUri = uploadPath
-                                }
-                                when (val r = gutterRepository.uploadNodeImage(
-                                    context = this@MainActivity,
-                                    nodeId = node.nodeId,
-                                    fileCategory = category,
-                                    imageUri = Uri.parse(uploadPath),
-                                    token = token
-                                )) {
-                                    is ApiResult.Success -> {
-                                        success = true
-                                    }
-                                    is ApiResult.Error -> {
-                                        android.util.Log.w(
-                                            "PhotoUpload",
-                                            "node${node.nodeId} photo$category attempt$attempt 失敗: ${r.message}"
-                                        )
-                                    }
-                                }
-                                if (success) break
-                            }
-
-                            // 立即清除「為了重傳而下載」的暫存照片檔，避免累積佔用空間。
-                            // 注意：相機拍攝的草稿照片由 onGutterSaved 的 finally 統一清理。
-                            tempDownloadedUri?.let { downloaded ->
-                                DraftPhotoCleaner.deleteWaypointsLocalPhotos(
-                                    context = this@MainActivity,
-                                    waypoints = listOf(mapOf("photo1" to downloaded))
-                                )
-                            }
-
-                            withContext(Dispatchers.Main) {
-                                mainBlockingUiController.recordPhotoUploadResult(success)
-                                if (!success) {
-                                    failedCount += 1
-                                    android.util.Log.w(
-                                        "PhotoUpload",
-                                        "node${node.nodeId} photo$category 上傳失敗（3次重試均失敗）"
-                                    )
-                                }
-                            }
-                        }
+            return photoUploadManager.uploadWaypointPhotos(
+                waypoints = waypoints,
+                nodes = nodes,
+                token = token,
+                listener = object : PhotoUploadManager.UploadListener {
+                    override fun onProgressUpdate(completedCount: Int, totalCount: Int) {
+                        // PhotoUploadManager 已在 Main thread 回呼
+                    }
+                    override fun onPhotoUploadResult(success: Boolean) {
+                        mainBlockingUiController.recordPhotoUploadResult(success)
                     }
                 }
-            }
-
-            return failedCount
+            )
         } finally {
-            // 解除阻擋
             mainBlockingUiController.endPhotoUpload()
         }
     }
@@ -928,7 +915,7 @@ class MainActivity : AppCompatActivity(),
         clearWorkingMarkers()
         binding.btnAddGutter.visibility = View.VISIBLE
         mapCameraController.setPersistentBottomInset(0)
-        mainBlockingUiController.setMainButtonsEnabled(true)
+        setMainButtonsEnabledRespectingInspectLock(true)
 
         // ── 退出編輯模式時：重新加載所有線段 ──
         isInEditingMode = false  // 允許自動加載 polylines
@@ -1142,12 +1129,24 @@ class MainActivity : AppCompatActivity(),
                         val referencePoints = start.routeWaypoints.mapNotNull { it.latLng }
                         setReferenceRoute(referencePoints)
                         refreshWorkingMarkers(inspectWaypoints)
-                        launchInspectSafely(result.data.intent)
+                        lockInspectUi()
+                        val launched = launchInspectSafely(result.data.intent)
+                        if (!launched) {
+                            isInEditingMode = false
+                            clearReferenceRoute()
+                            gutterMapController.clearPreviewLayer()
+                            clearWorkingMarkers()
+                            unlockInspectUiIfIdle()
+                            loadGuttersByViewport(showFeedback = true)
+                        }
                     }
                     is ApiResult.Error -> {
                         isInEditingMode = false
+                        inspectPreviewIntent = null
+                        shouldReturnToInspectPreview = false
                         gutterMapController.clearPreviewLayer()
                         clearWorkingMarkers()
+                        unlockInspectUiIfIdle()
                         loadGuttersByViewport(showFeedback = true)
                         MaterialAlertDialogBuilder(this@MainActivity)
                             .setTitle("更新成功")
@@ -1187,7 +1186,7 @@ class MainActivity : AppCompatActivity(),
             clearWorkingMarkers()
             binding.btnAddGutter.visibility = View.VISIBLE
             isInEditingMode = false
-            mainBlockingUiController.setMainButtonsEnabled(true)
+            setMainButtonsEnabledRespectingInspectLock(true)
             drawSubmittedGutter(waypoints)
             mapCameraController.setPersistentBottomInset(0)
             // 新增成功後立即重載，以後端正式線段為準（同時會清掉暫時提交線）
@@ -1241,7 +1240,7 @@ class MainActivity : AppCompatActivity(),
                             isInEditingMode = false  // 刪除成功後退出編輯模式，允許重新加載 scope 線段
                             binding.btnAddGutter.visibility = View.VISIBLE
                             mapCameraController.setPersistentBottomInset(0)
-                            mainBlockingUiController.setMainButtonsEnabled(true)
+                            setMainButtonsEnabledRespectingInspectLock(true)
                             Toast.makeText(this@MainActivity, String.format(getString(R.string.msg_delete_success), spiNum), Toast.LENGTH_SHORT).show()
                             // ── 重新加載地圖可視範圍內的側溝數據 ──
                             loadGuttersByViewport()
@@ -1295,6 +1294,7 @@ class MainActivity : AppCompatActivity(),
         // 直接開表單：若點位尚未選座標，先用目前地圖視角中心作為初始座標，
         // 讓使用者在表單內點擊 X/Y 欄位再進入選點頁面。
         val initialLatLng = wp.latLng ?: googleMap?.cameraPosition?.target ?: LatLng(0.0, 0.0)
+        
         pendingWaypointFormIndex = waypointIndex
         highlightMarker(waypointIndex)
         sheet.hideSelf()
@@ -1345,12 +1345,13 @@ class MainActivity : AppCompatActivity(),
             mapCameraController.zoomForGutterSize(wp.basicData)
         )
         val state = mapOverlayController.currentState()
+        val sessionDraftId = ensureCurrentSessionDraftId()
         val launch = gutterFormNavigator.buildAddIntent(
             currentWaypoints = currentWaypoints,
             currentIndex = currentIndex,
             waypoint = wp,
             isEditMode = isEditMode,
-            currentSessionDraftId = currentSessionDraftId,
+            currentSessionDraftId = sessionDraftId,
             wmtsLayer = currentWmtsLayer(),
             sessionIsOffline = currentSessionIsOffline,
             hostLastLocation = lastKnownLocation,
@@ -1362,6 +1363,11 @@ class MainActivity : AppCompatActivity(),
         )
         currentSessionDraftId = launch.draftId
         gutterFormLauncher.launch(launch.intent)
+    }
+
+    private fun ensureCurrentSessionDraftId(): Long {
+        currentSessionDraftId?.let { return it }
+        return System.currentTimeMillis().also { currentSessionDraftId = it }
     }
 
     private fun currentWmtsLayer(): String = mapOverlayController.currentLayer()
@@ -1381,7 +1387,7 @@ class MainActivity : AppCompatActivity(),
         isInspecting = true
         // ── 進入檢視流程立即禁止自動加載，並虛化主畫面按鈕 ──
         isInEditingMode = true
-        mainBlockingUiController.setMainButtonsEnabled(false)
+        lockInspectUi()
 
         mainBlockingUiController.setInspectLoading(true, "載入側溝資料中…")
         mapCameraController.fitCameraToWaypoints(start.routeWaypoints)
@@ -1410,12 +1416,26 @@ class MainActivity : AppCompatActivity(),
                         // 讓使用者按返回時仍可繼續；若最終進入編輯模式則由 inspectLauncher 清除）
                         activeSheet?.hideSelf()
                         mainBlockingUiController.setInspectLoading(false)
-                        launchInspectSafely(result.data.intent)
+                        val launched = launchInspectSafely(result.data.intent)
+                        if (!launched) {
+                            isInspecting = false
+                            isInEditingMode = false
+                            inspectPreviewIntent = null
+                            shouldReturnToInspectPreview = false
+                            clearReferenceRoute()
+                            gutterMapController.clearPreviewLayer()
+                            clearWorkingMarkers()
+                            unlockInspectUiIfIdle()
+                            loadGuttersByViewport(showFeedback = true)
+                        }
                         // isInspecting 在 inspectLauncher 結果回呼中重置
                     }
                     is ApiResult.Error -> {
                         isInspecting = false
                         isInEditingMode = false  // 允許自動加載 polylines
+                        inspectPreviewIntent = null
+                        shouldReturnToInspectPreview = false
+                        unlockInspectUiIfIdle()
                         android.widget.Toast.makeText(
                             this@MainActivity,
                             if (result.message == "查無側溝資料") getString(R.string.msg_no_line_data)
@@ -1516,9 +1536,32 @@ class MainActivity : AppCompatActivity(),
         )
     }
 
+    private fun lockInspectUi() {
+        isInspectUiLocked = true
+        mainBlockingUiController.setMainButtonsEnabled(false)
+    }
+
+    private fun unlockInspectUiIfIdle() {
+        if (activeSheet != null || inspectSheet != null || isInspecting || measureManager?.isMeasuring == true) {
+            mainBlockingUiController.setMainButtonsEnabled(false)
+            return
+        }
+        isInspectUiLocked = false
+        mainBlockingUiController.setMainButtonsEnabled(true)
+    }
+
+    private fun setMainButtonsEnabledRespectingInspectLock(enabled: Boolean) {
+        if (enabled && isInspectUiLocked) {
+            mainBlockingUiController.setMainButtonsEnabled(false)
+        } else {
+            mainBlockingUiController.setMainButtonsEnabled(enabled)
+        }
+    }
+
 
     /** 顯示「待上傳草稿」BottomSheet，並處理「繼續編輯」回呼。 */
     private fun showPendingDraftsSheet() {
+        if (isInspectUiLocked || isInspecting || shouldReturnToInspectPreview) return
         gutterSessionUiCoordinator.showPendingDrafts { draft -> resumePendingDraft(draft) }
     }
 
@@ -1532,7 +1575,6 @@ class MainActivity : AppCompatActivity(),
     private fun resumePendingDraft(draft: GutterSessionDraft) {
         gutterSessionUiCoordinator.resumeDraft(
             draft = draft,
-            context = this,
             isOfflineMainMode = isOfflineMainMode,
             hooks = buildSessionUiHooks()
         )
@@ -1587,9 +1629,6 @@ class MainActivity : AppCompatActivity(),
             },
             onReloadRequested = {
                 loadGuttersByViewport()
-            },
-            launchOfflineForm = { intent ->
-                startActivity(intent)
             }
         )
     }
@@ -1613,7 +1652,7 @@ class MainActivity : AppCompatActivity(),
                 },
                 onWaypointsCleared = {
                     isInEditingMode = false
-                    mainBlockingUiController.setMainButtonsEnabled(true) // 關閉表單，還原按鈕
+                    setMainButtonsEnabledRespectingInspectLock(true) // 關閉表單，還原按鈕
                     mapCameraController.setPersistentBottomInset(0)
                     gutterMapController.clearPreviewLayer()
                     activeSheet = null

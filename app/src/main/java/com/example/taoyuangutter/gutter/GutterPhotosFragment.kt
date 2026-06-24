@@ -22,6 +22,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.taoyuangutter.databinding.FragmentGutterPhotosBinding
+import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.text.SimpleDateFormat
@@ -128,6 +129,9 @@ class GutterPhotosFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // 修正：如果是由系統重建，UI 會由 showPhoto 更新（在 onCreate 已恢復 URI）
+        // 且 FragmentResultListener 會處理進行中的拍照結果
+
         // ── 註冊相機 Overlay 結果接收（避免 Activity 切換造成放大/旋轉卡頓） ──
         parentFragmentManager.setFragmentResultListener(
             CameraOverlayFragment.RESULT_KEY,
@@ -148,21 +152,14 @@ class GutterPhotosFragment : Fragment() {
                 } catch (_: Exception) {
                     Uri.fromFile(file)
                 }
-                when (slot) {
-                    1 -> { photoUriSlot1 = uri; showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, uri); binding.btnDeleteSlot1.visibility = View.VISIBLE }
-                    2 -> { photoUriSlot2 = uri; showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, uri); binding.btnDeleteSlot2.visibility = View.VISIBLE }
-                    3 -> { photoUriSlot3 = uri; showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, uri); binding.btnDeleteSlot3.visibility = View.VISIBLE }
-                }
-                onDraftChanged?.invoke()
+                applyPhotoToSlot(slot, uri, notifyDraftChanged = true)
             }
             pendingSlot = 0
             pendingOutputPath = null
         }
 
         // 根據恢復的 URI 更新 UI
-        photoUriSlot1?.let { showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, it) }
-        photoUriSlot2?.let { showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, it) }
-        photoUriSlot3?.let { showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, it) }
+        renderStoredPhotoSlots()
 
         val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
         val isImported = arguments?.getBoolean(ARG_IS_IMPORTED) ?: false
@@ -258,24 +255,7 @@ class GutterPhotosFragment : Fragment() {
             .setMessage("確定要刪除這張照片嗎？")
             .setNegativeButton("取消", null)
             .setPositiveButton("刪除") { _, _ ->
-                when (slot) {
-                    1 -> {
-                        photoUriSlot1 = null
-                        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, null)
-                        binding.btnDeleteSlot1.visibility = View.GONE
-                    }
-                    2 -> {
-                        photoUriSlot2 = null
-                        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, null)
-                        binding.btnDeleteSlot2.visibility = View.GONE
-                    }
-                    3 -> {
-                        photoUriSlot3 = null
-                        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
-                        binding.btnDeleteSlot3.visibility = View.GONE
-                    }
-                }
-                onDraftChanged?.invoke()
+                clearPhotoSlot(slot, notifyDraftChanged = true)
             }
             .show()
         dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
@@ -335,6 +315,7 @@ class GutterPhotosFragment : Fragment() {
     // ── UI 更新 ──────────────────────────────────────────────────────────
 
     private fun showPhoto(
+        slot: Int,
         photoView: android.widget.ImageView,
         placeholder: View,
         loading: View,
@@ -371,14 +352,19 @@ class GutterPhotosFragment : Fragment() {
                     val elapsed = SystemClock.uptimeMillis() - startMs
                     val delayMs = (250L - elapsed).coerceAtLeast(0L)
                     loading.postDelayed({ if (_binding != null) loading.visibility = View.GONE }, delayMs)
-                    photoView.visibility = View.GONE
-                    placeholder.visibility = View.VISIBLE
                 }
                 (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
-                if (isRemote) showPhotoLoadErrorAlert()
-                // remote: 自己處理（顯示 placeholder），避免 Glide 再設錯誤圖
-                // local : 讓 Glide 預設行為繼續（return false）
-                return isRemote
+                if (isRemote) {
+                    photoView.visibility = View.GONE
+                    placeholder.visibility = View.VISIBLE
+                    showPhotoLoadErrorAlert()
+                    // remote: 自己處理（顯示 placeholder），避免 Glide 再設錯誤圖
+                    return true
+                }
+
+                clearPhotoSlot(slot, notifyDraftChanged = true)
+                // local: 讓欄位回到空狀態，避免顯示與可用性不同步
+                return true
             }
 
             override fun onResourceReady(
@@ -398,6 +384,66 @@ class GutterPhotosFragment : Fragment() {
             }
         })
         builder.into(photoView)
+    }
+
+    private fun renderStoredPhotoSlots() {
+        applyPhotoToSlot(1, photoUriSlot1, notifyDraftChanged = false)
+        applyPhotoToSlot(2, photoUriSlot2, notifyDraftChanged = false)
+        applyPhotoToSlot(3, photoUriSlot3, notifyDraftChanged = false)
+    }
+
+    private fun applyPhotoToSlot(slot: Int, uri: Uri?, notifyDraftChanged: Boolean) {
+        if (uri == null) {
+            clearPhotoSlot(slot, notifyDraftChanged)
+            return
+        }
+
+        val context = context
+        if (context != null && !PhotoUploadValidator.isUsableForUpload(context, uri.toString())) {
+            clearPhotoSlot(slot, notifyDraftChanged)
+            return
+        }
+
+        when (slot) {
+            1 -> {
+                photoUriSlot1 = uri
+                showPhoto(1, binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, uri)
+                binding.btnDeleteSlot1.visibility = View.VISIBLE
+            }
+            2 -> {
+                photoUriSlot2 = uri
+                showPhoto(2, binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, uri)
+                binding.btnDeleteSlot2.visibility = View.VISIBLE
+            }
+            3 -> {
+                photoUriSlot3 = uri
+                showPhoto(3, binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, uri)
+                binding.btnDeleteSlot3.visibility = View.VISIBLE
+            }
+        }
+        if (notifyDraftChanged) onDraftChanged?.invoke()
+    }
+
+    private fun clearPhotoSlot(slot: Int, notifyDraftChanged: Boolean) {
+        when (slot) {
+            1 -> {
+                photoUriSlot1 = null
+                showPhoto(1, binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, null)
+                binding.btnDeleteSlot1.visibility = View.GONE
+            }
+            2 -> {
+                photoUriSlot2 = null
+                showPhoto(2, binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, null)
+                binding.btnDeleteSlot2.visibility = View.GONE
+            }
+            3 -> {
+                photoUriSlot3 = null
+                showPhoto(3, binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
+                binding.btnDeleteSlot3.visibility = View.GONE
+            }
+        }
+        (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
+        if (notifyDraftChanged) onDraftChanged?.invoke()
     }
 
     /**
@@ -424,9 +470,16 @@ class GutterPhotosFragment : Fragment() {
      * @return 第一個尚未拍攝的照片格說明；全部完成則回傳 null。
      */
     fun validateAllPhotos(): String? {
-        if (photoUriSlot1 == null) return "測量位置及側溝概況（第1張）"
-        if (photoUriSlot2 == null) return "側溝內徑寬度尺寸（第2張）"
-        if (photoUriSlot3 == null) return "側溝深度尺寸（第3張）"
+        val context = context ?: return "照片頁尚未準備完成"
+        if (!PhotoUploadValidator.isUsableForUpload(context, photoUriSlot1?.toString())) {
+            return "測量位置及側溝概況（第1張）"
+        }
+        if (!PhotoUploadValidator.isUsableForUpload(context, photoUriSlot2?.toString())) {
+            return "側溝內徑寬度尺寸（第2張）"
+        }
+        if (!PhotoUploadValidator.isUsableForUpload(context, photoUriSlot3?.toString())) {
+            return "側溝深度尺寸（第3張）"
+        }
         return null
     }
 
@@ -447,13 +500,9 @@ class GutterPhotosFragment : Fragment() {
         fun parse(s: String?): Uri? =
             s?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
 
-        photoUriSlot1 = parse(photo1)
-        photoUriSlot2 = parse(photo2)
-        photoUriSlot3 = parse(photo3)
-
-        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, photoUriSlot1)
-        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, photoUriSlot2)
-        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, photoUriSlot3)
+        applyPhotoToSlot(1, parse(photo1), notifyDraftChanged = false)
+        applyPhotoToSlot(2, parse(photo2), notifyDraftChanged = false)
+        applyPhotoToSlot(3, parse(photo3), notifyDraftChanged = false)
 
         // 依目前模式更新刪除按鈕狀態
         val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false

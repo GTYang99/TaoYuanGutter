@@ -51,7 +51,7 @@ class GutterFormNavigator(
         currentIndex: Int,
         waypoint: Waypoint,
         isEditMode: Boolean,
-        currentSessionDraftId: Long?,
+        currentSessionDraftId: Long,
         wmtsLayer: String,
         sessionIsOffline: Boolean,
         hostLastLocation: Location?,
@@ -61,7 +61,6 @@ class GutterFormNavigator(
         showPossible: Boolean = true,
         showRegion: Boolean = true
     ): AddFormLaunch {
-        val ensuredDraftId = currentSessionDraftId ?: System.currentTimeMillis()
         val labels = ArrayList(currentWaypoints.map { it.label })
         val lats = currentWaypoints.map { it.latLng?.latitude ?: 0.0 }.toDoubleArray()
         val lngs = currentWaypoints.map { it.latLng?.longitude ?: 0.0 }.toDoubleArray()
@@ -84,7 +83,7 @@ class GutterFormNavigator(
             index = currentIndex,
             basicData = waypoint.basicData,
             isEditMode = isEditMode,
-            sessionDraftId = ensuredDraftId,
+            sessionDraftId = currentSessionDraftId,
             sessionWaypointsJson = sessionWaypointsJson,
             wmtsLayer = wmtsLayer,
             sessionIsOffline = sessionIsOffline,
@@ -95,7 +94,7 @@ class GutterFormNavigator(
             showPossible = showPossible,
             showRegion = showRegion
         ).also { attachHostLastLocation(it, hostLastLocation) }
-        return AddFormLaunch(intent = intent, draftId = ensuredDraftId)
+        return AddFormLaunch(intent = intent, draftId = currentSessionDraftId)
     }
 
     private fun attachHostLastLocation(intent: Intent, hostLastLocation: Location?) {

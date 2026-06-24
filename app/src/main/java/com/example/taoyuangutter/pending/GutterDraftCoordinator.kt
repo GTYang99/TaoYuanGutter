@@ -12,6 +12,7 @@ class GutterDraftCoordinator(
     context: Context,
     private val repository: GutterSessionRepository = GutterSessionRepository(context)
 ) {
+    private val appContext = context.applicationContext
 
     data class SaveResult(
         val draftId: Long,
@@ -35,10 +36,13 @@ class GutterDraftCoordinator(
         if (waypoints.isEmpty()) return null
 
         val hasAnyLatLng = waypoints.any { it.latLng != null }
-        val hasAnyBasicData = waypoints.any { wp ->
-            wp.basicData.any { (_, v) -> v.isNotBlank() }
+        val hasAnyBasicData = waypoints.any { wp -> hasMeaningfulBasicData(wp.basicData) }
+        if (!hasAnyLatLng && !hasAnyBasicData) {
+            currentSessionDraftId?.let {
+                deleteDraftAndLocalPhotos(appContext, it, waypoints)
+            }
+            return null
         }
-        if (!hasAnyLatLng && !hasAnyBasicData) return null
 
         val snapshots = waypoints.map { wp ->
             WaypointSnapshot(
@@ -77,7 +81,13 @@ class GutterDraftCoordinator(
             }
         }
 
-        val draftId = existingId ?: currentSessionDraftId ?: System.currentTimeMillis()
+        val draftId = existingId ?: currentSessionDraftId ?: run {
+            android.util.Log.w(
+                "GutterDraftCoordinator",
+                "skip auto-save because currentSessionDraftId is missing"
+            )
+            return null
+        }
 
         if (!spiNum.isNullOrEmpty()) {
             repository.getAll()
@@ -103,6 +113,19 @@ class GutterDraftCoordinator(
             draftId = draftId,
             snapshots = snapshots
         )
+    }
+
+    private fun hasMeaningfulBasicData(basicData: Map<String, String>): Boolean {
+        return basicData.any { (key, value) ->
+            when (key) {
+                "is_virtual", "_isImported" -> false
+                "IS_PENDING_DEPLOY" -> value.equals("1", ignoreCase = true) ||
+                    value.equals("true", ignoreCase = true) ||
+                    value.equals("y", ignoreCase = true) ||
+                    value.equals("yes", ignoreCase = true)
+                else -> value.isNotBlank()
+            }
+        }
     }
 
     fun deleteDraftAndLocalPhotos(context: Context, draftId: Long, fallbackWaypoints: List<Waypoint>) {

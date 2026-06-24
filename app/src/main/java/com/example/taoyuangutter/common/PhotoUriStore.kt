@@ -6,6 +6,9 @@ import android.net.Uri
 import android.os.Environment
 import android.provider.OpenableColumns
 import androidx.core.content.FileProvider
+import com.example.taoyuangutter.gutter.Waypoint
+import com.example.taoyuangutter.pending.GutterSessionDraft
+import com.example.taoyuangutter.pending.WaypointSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -128,5 +131,35 @@ object PhotoUriStore {
         out["photo3"] = ensureCopiedToAppPicturesIfNeeded(context, out["photo3"], prefix) ?: ""
         return out
     }
-}
 
+    suspend fun normalizeWaypointPhotoUris(
+        context: Context,
+        waypoints: List<Waypoint>,
+        prefix: String = "GUTTER_EXT_"
+    ): List<Waypoint> {
+        return waypoints.map { waypoint ->
+            val normalized = normalizeBasicDataPhotoUris(context, HashMap(waypoint.basicData), prefix)
+            if (normalized == waypoint.basicData) waypoint else waypoint.copy(basicData = normalized)
+        }
+    }
+
+    suspend fun normalizeSnapshotPhotoUris(
+        context: Context,
+        waypoints: List<WaypointSnapshot>,
+        prefix: String = "GUTTER_EXT_"
+    ): List<WaypointSnapshot> {
+        return waypoints.map { waypoint ->
+            val normalized = normalizeBasicDataPhotoUris(context, HashMap(waypoint.basicData), prefix)
+            if (normalized == waypoint.basicData) waypoint else waypoint.copy(basicData = normalized)
+        }
+    }
+
+    suspend fun normalizeDraftPhotoUris(
+        context: Context,
+        draft: GutterSessionDraft,
+        prefix: String = "GUTTER_EXT_"
+    ): GutterSessionDraft {
+        val normalizedWaypoints = normalizeSnapshotPhotoUris(context, draft.waypoints, prefix)
+        return if (normalizedWaypoints == draft.waypoints) draft else draft.copy(waypoints = normalizedWaypoints)
+    }
+}

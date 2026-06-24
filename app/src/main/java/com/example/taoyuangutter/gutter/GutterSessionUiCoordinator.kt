@@ -1,6 +1,5 @@
 package com.example.taoyuangutter.gutter
 
-import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import com.example.taoyuangutter.pending.GutterSessionDraft
@@ -16,11 +15,10 @@ class GutterSessionUiCoordinator(
         val prepareForResumedMapSession: () -> Unit,
         val bindSheet: (sheet: AddGutterBottomSheet, initialWaypointCount: Int) -> Unit,
         val showSheet: (AddGutterBottomSheet) -> Unit,
-        val onMapSessionReady: (draftId: Long?, isOffline: Boolean, sheet: AddGutterBottomSheet) -> Unit,
+        val onMapSessionReady: (draftId: Long, isOffline: Boolean, sheet: AddGutterBottomSheet) -> Unit,
         val onResumedWaypointsReady: (List<Waypoint>) -> Unit,
         val onRefitRequested: (List<Waypoint>) -> Unit,
-        val onReloadRequested: () -> Unit,
-        val launchOfflineForm: (Intent) -> Unit
+        val onReloadRequested: () -> Unit
     )
 
     fun showPendingDrafts(onResumeDraft: (GutterSessionDraft) -> Unit) {
@@ -41,7 +39,6 @@ class GutterSessionUiCoordinator(
 
     fun resumeDraft(
         draft: GutterSessionDraft,
-        context: android.content.Context,
         isOfflineMainMode: Boolean,
         hooks: Hooks
     ) {
@@ -49,7 +46,6 @@ class GutterSessionUiCoordinator(
         hooks.prepareForResumedMapSession()
 
         val resumeAction = flowCoordinator.createResumeAction(
-            context = context,
             draft = draft,
             isOfflineMainMode = isOfflineMainMode
         )
@@ -58,9 +54,6 @@ class GutterSessionUiCoordinator(
             if (hooks.isHostFinishing()) return@postDelayed
 
             when (resumeAction) {
-                is GutterSessionFlowCoordinator.ResumeAction.OpenOfflineForm -> {
-                    hooks.launchOfflineForm(resumeAction.intent)
-                }
                 is GutterSessionFlowCoordinator.ResumeAction.ResumeMapSheet -> {
                     val sheet = resumeAction.sheet
                     hooks.onMapSessionReady(resumeAction.draftId, resumeAction.isOffline, sheet)

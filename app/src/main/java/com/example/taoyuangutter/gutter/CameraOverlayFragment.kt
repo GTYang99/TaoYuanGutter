@@ -61,12 +61,22 @@ import kotlinx.coroutines.withContext
 @ExperimentalCamera2Interop
 class CameraOverlayFragment : Fragment() {
 
+    private data class LensCandidate(
+        val cameraInfo: CameraInfo,
+        val score: Float,
+        val cameraId: String?,
+        val hasFlash: Boolean,
+        val focalLengthMm: Float?,
+        val relativeScale: Float
+    )
+
     private var _binding: FragmentCameraOverlayBinding? = null
     private val binding get() = _binding!!
 
     private var imageCapture: ImageCapture? = null
     private var preview: Preview? = null
     private var camera: Camera? = null
+    private var cameraProvider: ProcessCameraProvider? = null
     private var outputFile: File? = null
 
     private lateinit var orientationListener: OrientationEventListener
@@ -79,9 +89,14 @@ class CameraOverlayFragment : Fragment() {
     private var updatingZoomSlider = false
     // 新增：保持 slider 值以便拍照後 post-process 使用
     private var brightnessAmount = 0.5f
+    private var desiredFlashOn = false
     private var isFlashOn = false
-    private var zoomDisplayScale = 1f
     private var zoomStateInitialized = false
+    private var selectedLensId: String? = null
+    private var lensCandidates: List<LensCandidate> = emptyList()
+    private var selectedLensIndex: Int = 0
+    private var selectedLensRelativeScale: Float = 1f
+    private var currentLensSupportsFlash: Boolean = false
 
     companion object {
         private const val ARG_OUTPUT_PATH = "output_path"
@@ -245,6 +260,9 @@ class CameraOverlayFragment : Fragment() {
         binding.btnFlash.setOnClickListener {
             toggleFlash()
         }
+        binding.btnToggleLens.setOnClickListener {
+            switchLens()
+        }
         binding.btnReset.setOnClickListener {
             resetAllToDefault()
         }
@@ -255,23 +273,30 @@ class CameraOverlayFragment : Fragment() {
         val capture = imageCapture
 
         if (cam.cameraInfo.hasFlashUnit()) {
-            isFlashOn = !isFlashOn
-            // 僅切換拍照閃光模式，不開啟手電筒恆亮
-            capture?.flashMode = if (isFlashOn) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF
-            
-            binding.btnFlash.setImageResource(if (isFlashOn) R.drawable.ic_flash_on else R.drawable.ic_flash_off)
+            desiredFlashOn = !desiredFlashOn
+            applyFlashState(capture)
         } else {
             Toast.makeText(requireContext(), "此鏡頭不支援閃光燈", Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun updateResetButtonVisibility() {
-        binding.btnReset.isVisible = binding.colorSliders.isVisible || binding.zoomSlider.isVisible
+        binding.btnReset.isVisible =
+            binding.colorSliders.isVisible || binding.zoomSlider.isVisible
     }
 
     private fun resetAllToDefault() {
+        if (lensCandidates.isNotEmpty() && selectedLensIndex != 0) {
+            selectedLensIndex = 0
+            selectedLensId = lensCandidates.firstOrNull()?.cameraId
+            binding.brightnessSlider.progress = 50
+            brightnessAmount = 0.5f
+            rebindCamera()
+            return
+        }
+
         // 重設變焦
-        val targetInitialRatio = (1.0f / zoomDisplayScale).coerceAtLeast(1.0f)
+        val targetInitialRatio = defaultZoomRatio()
         camera?.cameraControl?.setZoomRatio(targetInitialRatio)
         binding.zoomSlider.progress = zoomRatioToProgress(targetInitialRatio)
         binding.tvZoomLevel.text = formatDisplayedZoom(targetInitialRatio)
@@ -385,6 +410,7 @@ class CameraOverlayFragment : Fragment() {
         binding.btnToggleColor.isEnabled = isLandscape
         binding.btnToggleZoom.isEnabled = isLandscape
         binding.btnFlash.isEnabled = isLandscape
+        binding.btnToggleLens.isEnabled = isLandscape && lensCandidates.size > 1
         
         binding.colorControlsLayout.alpha = alpha
         binding.zoomControlsLayout.alpha = alpha
@@ -398,6 +424,22 @@ class CameraOverlayFragment : Fragment() {
         }
     }
 
+    private fun updateLensToggleUi() {
+        if (_binding == null) return
+        if (lensCandidates.size <= 1) {
+            binding.btnToggleLens.isVisible = false
+            return
+        }
+        binding.btnToggleLens.isVisible = true
+        binding.btnToggleLens.text = lensLabel(
+            selectedLensIndex,
+            lensCandidates.size,
+            selectedLensRelativeScale
+        )
+        binding.btnToggleLens.isEnabled = deviceIsLandscape
+        binding.btnToggleLens.alpha = if (deviceIsLandscape) 1f else 0.2f
+    }
+
     /**
      * 快門固定底部，保留方法作為日後擴充點。
      */
@@ -408,12 +450,22 @@ class CameraOverlayFragment : Fragment() {
     private fun startCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
-            val cameraProvider = cameraProviderFuture.get()
-            bindUseCases(cameraProvider)
+            val provider = cameraProviderFuture.get()
+            cameraProvider = provider
+            bindUseCases(provider)
         }, ContextCompat.getMainExecutor(requireContext()))
     }
 
     private fun bindUseCases(cameraProvider: ProcessCameraProvider) {
+        val candidates = buildLensCandidates(cameraProvider)
+        val selected = candidates.getOrNull(selectedLensIndex) ?: candidates.firstOrNull()
+        if (selected != null) {
+            selectedLensId = selected.cameraId
+            selectedLensIndex = candidates.indexOfFirst { it.cameraId == selected.cameraId }.takeIf { it >= 0 }
+                ?: selectedLensIndex
+            selectedLensRelativeScale = selected.relativeScale
+        }
+
         val preview = Preview.Builder()
             .setTargetAspectRatio(AspectRatio.RATIO_4_3)
             .build().also {
@@ -432,8 +484,10 @@ class CameraOverlayFragment : Fragment() {
             .build()
 
         try {
+            camera?.cameraInfo?.zoomState?.removeObservers(viewLifecycleOwner)
             cameraProvider.unbindAll()
-            val cameraSelector = selectWidestBackCameraSelector(cameraProvider)
+            val cameraSelector = selected?.let { cameraSelectorFor(it.cameraInfo) }
+                ?: CameraSelector.DEFAULT_BACK_CAMERA
             val cam = cameraProvider.bindToLifecycle(
                 viewLifecycleOwner,
                 cameraSelector,
@@ -441,10 +495,15 @@ class CameraOverlayFragment : Fragment() {
                 imageCapture
             )
             camera = cam
+            currentLensSupportsFlash = cam.cameraInfo.hasFlashUnit()
+            selectedLensRelativeScale = selected?.relativeScale ?: 1f
 
-            // 強制初始焦距為 1.0x
+            updateLensToggleUi()
+            applyFlashState(imageCapture)
+
+            // 強制初始焦距為目前鏡頭的基準倍率
             if (!initialZoomSet) {
-                val targetInitialRatio = (1.0f / zoomDisplayScale).coerceAtLeast(1.0f)
+                val targetInitialRatio = defaultZoomRatio()
                 cam.cameraControl.setZoomRatio(targetInitialRatio)
                 initialZoomSet = true
                 // Try to initialize UI from immediate zoomState if available
@@ -483,6 +542,7 @@ class CameraOverlayFragment : Fragment() {
                     zoomStateInitialized = true
                 }
             }
+            applyColorCorrection()
             // 保持 setupOrientationListener 初始化狀態，等待實際方向事件更新
         } catch (e: Exception) {
             Toast.makeText(requireContext(), getString(R.string.msg_camera_init_failed), Toast.LENGTH_SHORT).show()
@@ -490,7 +550,21 @@ class CameraOverlayFragment : Fragment() {
         }
     }
 
-    private fun selectWidestBackCameraSelector(cameraProvider: ProcessCameraProvider): CameraSelector {
+    private fun rebindCamera() {
+        val provider = cameraProvider ?: return
+        initialZoomSet = false
+        zoomStateInitialized = false
+        bindUseCases(provider)
+    }
+
+    private fun switchLens() {
+        if (lensCandidates.size <= 1) return
+        selectedLensIndex = (selectedLensIndex + 1) % lensCandidates.size
+        selectedLensId = lensCandidates.getOrNull(selectedLensIndex)?.cameraId
+        rebindCamera()
+    }
+
+    private fun buildLensCandidates(cameraProvider: ProcessCameraProvider): List<LensCandidate> {
         val availableInfos = cameraProvider.availableCameraInfos
         val backInfos = runCatching {
             CameraSelector.DEFAULT_BACK_CAMERA.filter(availableInfos)
@@ -499,42 +573,73 @@ class CameraOverlayFragment : Fragment() {
             emptyList()
         }
 
-        // 優先過濾出「有閃光燈」的鏡頭
-        val backWithFlash = backInfos.filter { it.hasFlashUnit() }
-        
-        // 如果有帶閃光燈的鏡頭，從中選最廣角的；若都沒有（極少見），則從所有後鏡頭選最廣角的
-        val candidatePool = if (backWithFlash.isNotEmpty()) backWithFlash else backInfos
-
-        val defaultBackScore = backInfos.firstOrNull()?.wideAngleScore()
-        val widest = candidatePool.maxByOrNull { it.wideAngleScore() ?: 0f }
-        val widestScore = widest?.wideAngleScore()
-        
-        zoomDisplayScale = if (
-            defaultBackScore != null &&
-            widestScore != null &&
-            defaultBackScore > 0f &&
-            widestScore > defaultBackScore
-        ) {
-            (defaultBackScore / widestScore).coerceIn(0.1f, 1f)
-        } else {
-            1f
-        }
-
-        if (widest == null) {
-            zoomDisplayScale = 1f
-            return CameraSelector.DEFAULT_BACK_CAMERA
-        }
-
-        val selectedCameraId = runCatching { Camera2CameraInfo.from(widest).cameraId }.getOrNull()
-        Log.d(
-            "CameraOverlay",
-            "selected back camera=$selectedCameraId (hasFlash=${widest.hasFlashUnit()}), wideScore=$widestScore, zoomDisplayScale=$zoomDisplayScale"
+        val rawCandidates = backInfos.mapNotNull { info ->
+            val score = info.wideAngleScore() ?: 0f
+            val cameraId = runCatching { Camera2CameraInfo.from(info).cameraId }.getOrNull()
+            val focalLengthMm = info.primaryFocalLengthMm()
+            LensCandidate(
+                cameraInfo = info,
+                score = score,
+                cameraId = cameraId,
+                hasFlash = info.hasFlashUnit(),
+                focalLengthMm = focalLengthMm,
+                relativeScale = 1f
+            )
+        }.sortedWith(
+            compareByDescending<LensCandidate> { it.score }
+                .thenByDescending { it.hasFlash }
+                .thenBy { it.cameraId.orEmpty() }
         )
 
+        val referenceFocalLengthMm = rawCandidates
+            .mapNotNull { it.focalLengthMm }
+            .sorted()
+            .let { focalLengths -> referenceFocalLength(focalLengths) }
+
+        val candidates = rawCandidates.map { candidate ->
+            val relativeScale = candidate.focalLengthMm?.let { focalLength ->
+                val reference = referenceFocalLengthMm
+                if (reference != null && reference > 0f) {
+                    focalLength / reference
+                } else {
+                    1f
+                }
+            } ?: 1f
+            candidate.copy(relativeScale = relativeScale)
+        }
+
+        lensCandidates = candidates
+        if (candidates.isEmpty()) {
+            selectedLensIndex = 0
+            selectedLensRelativeScale = 1f
+        } else {
+            val savedIndex: Int = selectedLensId?.let { id -> candidates.indexOfFirst { it.cameraId == id } } ?: -1
+            selectedLensIndex = when {
+                savedIndex >= 0 -> savedIndex
+                selectedLensIndex in candidates.indices -> selectedLensIndex
+                else -> 0
+            }
+            selectedLensRelativeScale = candidates.getOrNull(selectedLensIndex)?.relativeScale ?: 1f
+        }
+        updateLensToggleUi()
+        return candidates
+    }
+
+    private fun referenceFocalLength(focalLengths: List<Float>): Float? {
+        if (focalLengths.isEmpty()) return null
+        val middle = focalLengths.size / 2
+        return if (focalLengths.size % 2 == 0) {
+            (focalLengths[middle - 1] + focalLengths[middle]) / 2f
+        } else {
+            focalLengths[middle]
+        }
+    }
+
+    private fun cameraSelectorFor(cameraInfo: CameraInfo): CameraSelector {
         return CameraSelector.Builder()
             .requireLensFacing(CameraSelector.LENS_FACING_BACK)
             .addCameraFilter { cameraInfos ->
-                val selected = cameraInfos.firstOrNull { it == widest } ?: return@addCameraFilter cameraInfos
+                val selected = cameraInfos.firstOrNull { it == cameraInfo } ?: return@addCameraFilter cameraInfos
                 listOf(selected)
             }
             .build()
@@ -558,8 +663,48 @@ class CameraOverlayFragment : Fragment() {
         }.getOrNull()
     }
 
+    private fun CameraInfo.primaryFocalLengthMm(): Float? {
+        return runCatching {
+            val camera2Info = Camera2CameraInfo.from(this)
+            val focalLengths = camera2Info.getCameraCharacteristic(
+                CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS
+            )
+            focalLengths?.minOrNull()
+        }.getOrNull()
+    }
+
+    private fun defaultZoomRatio(): Float {
+        return camera?.cameraInfo?.zoomState?.value?.minZoomRatio?.coerceAtLeast(1f) ?: 1f
+    }
+
+    private fun applyFlashState(capture: ImageCapture? = imageCapture) {
+        val cam = camera ?: return
+        currentLensSupportsFlash = cam.cameraInfo.hasFlashUnit()
+        val actualFlashOn = desiredFlashOn && currentLensSupportsFlash
+        isFlashOn = actualFlashOn
+        capture?.flashMode = if (actualFlashOn) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF
+        binding.btnFlash.setImageResource(if (actualFlashOn) R.drawable.ic_flash_on else R.drawable.ic_flash_off)
+        binding.btnFlash.isEnabled = currentLensSupportsFlash
+        binding.btnFlash.alpha = if (currentLensSupportsFlash) 1f else 0.4f
+    }
+
+    private fun lensLabel(index: Int, size: Int, relativeScale: Float): String {
+        val lensName = when {
+            size <= 1 -> "單鏡頭"
+            index <= 0 -> "廣角"
+            index >= size - 1 -> "望遠"
+            else -> "一般"
+        }
+        return if (size <= 1) {
+            lensName
+        } else {
+            "$lensName ${String.format(Locale.US, "%.1fx", relativeScale)}"
+        }
+    }
+
     private fun formatDisplayedZoom(cameraZoomRatio: Float): String {
-        return String.format(Locale.US, "%.1fx", cameraZoomRatio * zoomDisplayScale)
+        val relativeZoom = cameraZoomRatio * selectedLensRelativeScale
+        return String.format(Locale.US, "%.1fx", relativeZoom)
     }
 
     private fun capturePhoto(slot: Int) {

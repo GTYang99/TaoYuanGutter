@@ -22,6 +22,8 @@ import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.StoreDitchNodeRequest
 import com.example.taoyuangutter.api.StoreDitchRequest
+import com.example.taoyuangutter.common.PhotoUriStore
+import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterBinding
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
@@ -102,6 +104,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     /** 編輯模式：初始弧線狀態（用於判斷是否有修改）。 */
     private var originalIsCurve: Boolean = false
 
+    /** 草稿/快照恢復後，是否需要把照片路徑補成 app 可穩定讀取的副本。 */
+    private var pendingPhotoUriNormalization: Boolean = false
+
     /** Window.Callback touch routing：ACTION_DOWN 落在 sheet 外時設為 true，後續事件轉發給 Activity */
     private var routeToActivity = false
 
@@ -146,27 +151,46 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
         if (isInspectMode) return   // 檢視模式不需恢復 waypoints
 
-        // ── 優先順序（後者在 Bundle 存在時覆蓋前者）─────────────────────
-        // 1. 從 API DitchDetails 預填（編輯模式，每次開啟都應以 API 資料為主）
+        // ── 優先順序（修正：優先使用 savedInstanceState 以保留使用者修改） ──────────
+        // 1. 系統重建（Activity 被回收後恢復）
+        if (savedInstanceState != null) {
+            isCurve = savedInstanceState.getBoolean("saved_is_curve", isCurve)
+            editSpiNum = savedInstanceState.getString("saved_edit_spi_num", editSpiNum) ?: editSpiNum
+            originalIsCurve = savedInstanceState.getBoolean("saved_original_is_curve", originalIsCurve)
+            val origJson = savedInstanceState.getString("saved_original_waypoints_json")
+            if (!origJson.isNullOrEmpty()) {
+                originalWaypointsSnapshot = try {
+                    val type = object : TypeToken<List<WaypointSnapshot>>() {}.type
+                    Gson().fromJson(origJson, type)
+                } catch (e: Exception) { emptyList() }
+            }
+            restoreWaypointsState(savedInstanceState)
+            return
+        }
+
+        // 2. 從 API DitchDetails 預填（編輯模式，初次開啟）
         val editJson = arguments?.getString(ARG_EDIT_WAYPOINTS_JSON)
         if (editJson != null) {
             restoreWaypointsFromSnapshotJson(editJson)
             return
         }
-        // 2. 從草稿恢復
+
+        // 3. 從草稿恢復（新增模式恢復草稿，初次開啟）
         val draftJson = arguments?.getString(ARG_DRAFT_JSON)
         if (draftJson != null) {
             restoreWaypointsFromDraftJson(draftJson)
             return
         }
-        // 3. 系統重建（Activity 被回收後恢復，無 editJson / draftJson）
-        if (savedInstanceState != null) {
-            restoreWaypointsState(savedInstanceState)
-        }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        outState.putBoolean("saved_is_curve", isCurve)
+        outState.putString("saved_edit_spi_num", editSpiNum)
+        outState.putBoolean("saved_original_is_curve", originalIsCurve)
+        if (originalWaypointsSnapshot.isNotEmpty()) {
+            outState.putString("saved_original_waypoints_json", Gson().toJson(originalWaypointsSnapshot))
+        }
         if (isInspectMode) return
         // 儲存所有 waypoints（包含已填寫的 latLng 與 basicData），
         // 避免 Activity 在 GutterFormActivity 期間被系統回收後資料遺失。
@@ -227,6 +251,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     LatLng(snap.latitude, snap.longitude) else null
                 waypoints.add(Waypoint(wpType, snap.label, latLng, snap.basicData))
             }
+            pendingPhotoUriNormalization = true
             android.util.Log.d("AddGutterSheet", "restoreFromSnapshot: loaded ${waypoints.size} waypoints")
         } catch (e: Exception) {
             android.util.Log.e("AddGutterSheet", "restoreFromSnapshot failed: ${e.message}", e)
@@ -252,6 +277,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     LatLng(snap.latitude, snap.longitude) else null
                 waypoints.add(Waypoint(type, snap.label, latLng, snap.basicData))
             }
+            pendingPhotoUriNormalization = true
             if (editSpiNum.isBlank()) {
                 editSpiNum = waypoints.firstOrNull { it.type == WaypointType.START }
                     ?.basicData
@@ -286,14 +312,25 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         setupRecyclerView()
         setupButtons()
         setupTitle()
+        normalizeRestoredPhotoUrisIfNeeded()
 
         if (editSpiNum.isNotEmpty()) {
-            if (hasEmbeddedEditDetails()) {
-                originalWaypointsSnapshot = takeWaypointSnapshot()
-                originalIsCurve = isCurve
-                updateSubmitButtonState()
+            // 修正：只有在還沒有原始快照時（初次開啟），才進行初始化。
+            // 若為系統重建，originalWaypointsSnapshot 已在 onCreate 恢復。
+            if (originalWaypointsSnapshot.isEmpty()) {
+                if (isOfflineMode || draftId > 0L) {
+                    originalWaypointsSnapshot = takeWaypointSnapshot()
+                    originalIsCurve = isCurve
+                    updateSubmitButtonState()
+                } else if (hasEmbeddedEditDetails()) {
+                    originalWaypointsSnapshot = takeWaypointSnapshot()
+                    originalIsCurve = isCurve
+                    updateSubmitButtonState()
+                } else {
+                    preloadEditWaypointDetails()
+                }
             } else {
-                preloadEditWaypointDetails()
+                updateSubmitButtonState()
             }
         }
     }
@@ -663,10 +700,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
             binding.btnSubmitGutter.setOnClickListener {
                 if (isOfflineMode) {
-                    // 離線編輯：提交按鈕只作為「完成」關閉，不打 API
-                    onWaypointsChanged?.invoke(waypoints.toList())
-                    Toast.makeText(requireContext(), getString(R.string.msg_draft_saved), Toast.LENGTH_SHORT).show()
-                    dismiss()
+                    showOfflineModeAlert()
                     return@setOnClickListener
                 }
                 // 編輯模式：呼叫 performEditSubmit 處理更新流程 (帶 SPI_NUM)
@@ -961,6 +995,38 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         )
     }
 
+    private fun normalizeRestoredPhotoUrisIfNeeded() {
+        if (!pendingPhotoUriNormalization || _binding == null) return
+        binding.btnSubmitGutter.isEnabled = isOfflineMode || draftId > 0L
+        lifecycleScope.launch {
+            try {
+                val normalized = PhotoUriStore.normalizeWaypointPhotoUris(
+                    context = requireContext(),
+                    waypoints = waypoints,
+                    prefix = "GUTTER_EXT_"
+                )
+                var changed = false
+                normalized.forEachIndexed { index, waypoint ->
+                    if (waypoints[index].basicData != waypoint.basicData) {
+                        changed = true
+                    }
+                    waypoints[index].basicData = waypoint.basicData
+                }
+                if (changed) {
+                    adapter.notifyDataSetChanged()
+                    onWaypointsChanged?.invoke(waypoints.toList())
+                }
+                if (editSpiNum.isNotEmpty()) {
+                    originalWaypointsSnapshot = takeWaypointSnapshot()
+                    originalIsCurve = isCurve
+                }
+            } finally {
+                pendingPhotoUriNormalization = false
+                updateSubmitButtonState()
+            }
+        }
+    }
+
     /**
      * 比較目前 waypoints 與初始快照，判斷是否有任何變更：
      * - 點位數量增減
@@ -999,6 +1065,25 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      */
     private fun updateSubmitButtonState() {
         if (editSpiNum.isEmpty() || _binding == null) return
+        if (isOfflineMode || draftId > 0L) {
+            binding.btnSubmitGutter.isEnabled = true
+            binding.btnSubmitGutter.text = getString(R.string.btn_update_gutter)
+            val tint = androidx.core.content.ContextCompat.getColor(
+                requireContext(),
+                com.example.taoyuangutter.R.color.colorPrimary
+            )
+            binding.btnSubmitGutter.backgroundTintList =
+                android.content.res.ColorStateList.valueOf(tint)
+            return
+        }
+        if (pendingPhotoUriNormalization) {
+            binding.btnSubmitGutter.isEnabled = false
+            binding.btnSubmitGutter.text = getString(R.string.btn_update_gutter)
+            val tint = android.graphics.Color.parseColor("#9E9E9E")
+            binding.btnSubmitGutter.backgroundTintList =
+                android.content.res.ColorStateList.valueOf(tint)
+            return
+        }
         val enabled = !isPreloadingEditDetails && hasEditChanges()
         binding.btnSubmitGutter.isEnabled = enabled
         binding.btnSubmitGutter.text = getString(R.string.btn_update_gutter)
@@ -1045,20 +1130,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             return false
         }
 
-        fun isPhotoAvailable(uriString: String?): Boolean {
-            if (uriString.isNullOrBlank()) return false
-            val uri = runCatching { android.net.Uri.parse(uriString) }.getOrNull() ?: return false
-            val scheme = uri.scheme?.lowercase()
-            if (scheme == "http" || scheme == "https") return true
-            if (scheme == "file") return uri.path?.let { File(it).exists() } == true
-            if (scheme == "content") {
-                return runCatching {
-                    ctx.contentResolver.openInputStream(uri)?.use { /* just open */ } != null
-                }.getOrDefault(false)
-            }
-            return false
-        }
-
         val baseRequiredBasicKeys = listOf("NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM")
         val requiredWhenCanOpenKeys = listOf(
             "MAT_TYP",
@@ -1096,7 +1167,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
 
             if (!wp.isVirtual) {
-                val missingPhotos = requiredPhotoKeys.filter { key -> !isPhotoAvailable(wp.basicData[key]) }
+                val missingPhotos = requiredPhotoKeys.filter { key ->
+                    !PhotoUploadValidator.isUsableForUpload(ctx, wp.basicData[key])
+                }
                 if (missingPhotos.isNotEmpty()) {
                     val pretty = missingPhotos.mapNotNull { it.removePrefix("photo").toIntOrNull() }.sorted()
                     val prettyText = if (pretty.isEmpty()) missingPhotos.joinToString(",") else pretty.joinToString(", ")
@@ -1129,6 +1202,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             onWaypointsChanged?.invoke(waypoints.toList())
             updateSubmitButtonState()
         }
+    }
+
+    private fun showOfflineModeAlert() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("離線模式")
+            .setMessage(getString(R.string.msg_offline_mode_unavailable))
+            .setPositiveButton(getString(R.string.confirm), null)
+            .show()
     }
 
     /** 將表單填寫的基本資料存回對應的 waypoint（供新增流程返回後呼叫） */
