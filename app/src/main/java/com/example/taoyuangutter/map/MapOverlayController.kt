@@ -25,6 +25,7 @@ class MapOverlayController(
     private var waterOldWmsOverlay: TileOverlay? = null
     private var regionWmsOverlay: TileOverlay? = null
     private var noDitchPointsWmsOverlay: TileOverlay? = null
+    private var measureLabelsWmsOverlay: TileOverlay? = null
     private var noDitchPointsInteractionEnabled: Boolean = false
 
     private var currentLayer: String = LayersBottomSheet.LAYER_EMAP
@@ -87,6 +88,20 @@ class MapOverlayController(
         showRegionOverlay = showRegion
         showNoDitchPointsOverlay = showNoDitchPoints
         applyWmsOverlays()
+    }
+
+    fun ensureMeasureLabelsOverlay() {
+        val map = mapProvider() ?: return
+        if (measureLabelsWmsOverlay != null) return
+        val provider = Wms3857TileProvider(
+            baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+            layers = "map_ditch_nodes_labels",
+            styles = "TY_RSGDBIP_測量座標編號",
+            format = "image/png8"
+        )
+        measureLabelsWmsOverlay = map.addTileOverlay(
+            TileOverlayOptions().tileProvider(provider).zIndex(0.3f).transparency(0f)
+        )
     }
 
     fun applyWmsOverlays() {
@@ -167,5 +182,6 @@ class MapOverlayController(
                 onNoDitchPointsLayerChanged?.invoke(false)
             }
         }
+
     }
 }
