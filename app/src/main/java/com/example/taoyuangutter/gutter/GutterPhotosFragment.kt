@@ -2,6 +2,7 @@ package com.example.taoyuangutter.gutter
 
 import com.example.taoyuangutter.R
 import android.app.Activity
+import android.os.Build
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
@@ -59,10 +60,27 @@ class GutterPhotosFragment : Fragment() {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (granted && pendingSlot > 0) {
-            launchCameraOverlay(pendingSlot)
+            maybeRequestLegacyWritePermissionThenLaunch()
         } else if (!granted) {
             pendingSlot = 0
             Toast.makeText(requireContext(), getString(R.string.msg_camera_permission_required), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val legacyWritePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            Toast.makeText(
+                requireContext(),
+                "需要儲存權限才能同時寫入系統相簿",
+                Toast.LENGTH_SHORT
+            ).show()
+            pendingSlot = 0
+            return@registerForActivityResult
+        }
+        if (pendingSlot > 0) {
+            launchCameraOverlay(pendingSlot)
         }
     }
 
@@ -275,10 +293,27 @@ class GutterPhotosFragment : Fragment() {
                 requireContext(), android.Manifest.permission.CAMERA
             ) == PackageManager.PERMISSION_GRANTED
         ) {
-            launchCameraOverlay(slot)
+            maybeRequestLegacyWritePermissionThenLaunch()
         } else {
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
+    }
+
+    private fun maybeRequestLegacyWritePermissionThenLaunch() {
+        val slot = pendingSlot
+        if (slot <= 0) return
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            legacyWritePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            return
+        }
+
+        launchCameraOverlay(slot)
     }
 
     /**

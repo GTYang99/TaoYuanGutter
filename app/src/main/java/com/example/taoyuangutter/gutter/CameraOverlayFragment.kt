@@ -42,6 +42,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.example.taoyuangutter.R
+import com.example.taoyuangutter.common.PhotoAlbumStore
 import com.example.taoyuangutter.databinding.FragmentCameraOverlayBinding
 import java.io.File
 import java.io.FileOutputStream
@@ -720,8 +721,16 @@ class CameraOverlayFragment : Fragment() {
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     viewLifecycleOwner.lifecycleScope.launch {
-                        withContext(Dispatchers.IO) {
+                        val galleryCopy = withContext(Dispatchers.IO) {
                             normalizeCapturedPhotoOrientation(file)
+                            PhotoAlbumStore.copyToSystemAlbum(requireContext(), file)
+                        }
+                        if (galleryCopy == null) {
+                            Toast.makeText(
+                                requireContext(),
+                                "照片已存入表單，但無法寫入系統相簿",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
                         sendResult(Activity.RESULT_OK, slot, file.absolutePath)
                     }
