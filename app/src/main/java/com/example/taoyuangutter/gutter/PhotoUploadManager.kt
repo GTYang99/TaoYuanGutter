@@ -9,6 +9,7 @@ import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.pending.DraftPhotoCleaner
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
@@ -23,6 +24,15 @@ class PhotoUploadManager(
     private val context: Context,
     private val gutterRepository: GutterRepository = GutterRepository()
 ) {
+
+    sealed class UploadBatchResult {
+        data class Completed(val failCount: Int) : UploadBatchResult()
+        data class TimedOut(val failCount: Int, val completedCount: Int) : UploadBatchResult()
+    }
+
+    private class LastPhotoUploadTimeoutException(
+        val result: UploadBatchResult.TimedOut
+    ) : Exception()
 
     interface UploadListener {
         /**
@@ -68,7 +78,7 @@ class PhotoUploadManager(
         nodes: List<DitchNode>,
         token: String,
         listener: UploadListener? = null
-    ): Int {
+    ): UploadBatchResult {
         val pending = mutableListOf<Triple<DitchNode, String, Int>>()
         nodes.forEachIndexed { i, node ->
             val wp = waypoints.getOrNull(i) ?: return@forEachIndexed
@@ -89,17 +99,18 @@ class PhotoUploadManager(
         }
 
         val total = pending.size
-        if (total == 0) return 0 // 無需上傳
+        if (total == 0) return UploadBatchResult.Completed(0) // 無需上傳
 
         var failedCount = 0
         var completedCount = 0
+        val lastPendingIndex = pending.lastIndex
 
         try {
             // 控制併發數 (最多同時上傳 3 張照片)
             val semaphore = Semaphore(3)
 
             coroutineScope {
-                pending.map { entry ->
+                pending.mapIndexed { index, entry ->
                     launch {
                         semaphore.withPermit {
                             val node = entry.first
@@ -117,37 +128,63 @@ class PhotoUploadManager(
 
                             var success = false
                             var tempDownloadedUri: String? = null
-                            for (attempt in 1..3) {
-                                val uploadPath = downloadIfRemoteUrl(path) ?: break
-                                if (uploadPath != path && Uri.parse(uploadPath).scheme?.lowercase() == "content") {
-                                    tempDownloadedUri = uploadPath
-                                }
-                                when (val r = gutterRepository.uploadNodeImage(
-                                    context = context,
-                                    nodeId = node.nodeId,
-                                    fileCategory = category,
-                                    imageUri = Uri.parse(uploadPath),
-                                    token = token
-                                )) {
-                                    is ApiResult.Success -> {
-                                        success = true
+                            try {
+                                for (attempt in 1..3) {
+                                    val uploadPath = downloadIfRemoteUrl(path) ?: break
+                                    if (uploadPath != path && Uri.parse(uploadPath).scheme?.lowercase() == "content") {
+                                        tempDownloadedUri = uploadPath
                                     }
-                                    is ApiResult.Error -> {
-                                        android.util.Log.w(
-                                            "PhotoUpload",
-                                            "node${node.nodeId} photo$category attempt$attempt 失敗: ${r.message}"
+                                    val uploadResult = if (index == lastPendingIndex) {
+                                        withTimeoutOrNull(LAST_PHOTO_WAIT_TIMEOUT_MS) {
+                                            gutterRepository.uploadNodeImage(
+                                                context = context,
+                                                nodeId = node.nodeId,
+                                                fileCategory = category,
+                                                imageUri = Uri.parse(uploadPath),
+                                                token = token
+                                            )
+                                        } ?: throw LastPhotoUploadTimeoutException(
+                                            run {
+                                                android.util.Log.w(
+                                                    "PhotoUpload",
+                                                    "最後一張照片 node${node.nodeId} photo$category 等待回應逾時 ${LAST_PHOTO_WAIT_TIMEOUT_MS}ms"
+                                                )
+                                                UploadBatchResult.TimedOut(
+                                                    failCount = failedCount,
+                                                    completedCount = completedCount
+                                                )
+                                            }
+                                        )
+                                    } else {
+                                        gutterRepository.uploadNodeImage(
+                                            context = context,
+                                            nodeId = node.nodeId,
+                                            fileCategory = category,
+                                            imageUri = Uri.parse(uploadPath),
+                                            token = token
                                         )
                                     }
+                                    when (uploadResult) {
+                                        is ApiResult.Success -> {
+                                            success = true
+                                        }
+                                        is ApiResult.Error -> {
+                                            android.util.Log.w(
+                                                "PhotoUpload",
+                                                "node${node.nodeId} photo$category attempt$attempt 失敗: ${uploadResult.message}"
+                                            )
+                                        }
+                                    }
+                                    if (success) break
                                 }
-                                if (success) break
-                            }
-
-                            // 立即清除「為了重傳而下載」的暫存照片檔
-                            tempDownloadedUri?.let { downloaded ->
-                                DraftPhotoCleaner.deleteWaypointsLocalPhotos(
-                                    context = context,
-                                    waypoints = listOf(mapOf("photo1" to downloaded))
-                                )
+                            } finally {
+                                // 立即清除「為了重傳而下載」的暫存照片檔
+                                tempDownloadedUri?.let { downloaded ->
+                                    DraftPhotoCleaner.deleteWaypointsLocalPhotos(
+                                        context = context,
+                                        waypoints = listOf(mapOf("photo1" to downloaded))
+                                    )
+                                }
                             }
 
                             withContext(Dispatchers.Main) {
@@ -163,11 +200,17 @@ class PhotoUploadManager(
                     }
                 }
             }
-            return failedCount
+            return UploadBatchResult.Completed(failedCount)
+        } catch (e: LastPhotoUploadTimeoutException) {
+            return e.result
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             android.util.Log.e("PhotoUpload", "上傳照片時發生未預期錯誤: ${e.message}", e)
-            return total - completedCount
+            return UploadBatchResult.Completed(total - completedCount)
         }
+    }
+
+    private companion object {
+        private const val LAST_PHOTO_WAIT_TIMEOUT_MS = 60_000L
     }
 }

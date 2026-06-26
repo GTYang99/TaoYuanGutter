@@ -881,7 +881,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     /**
-     * 上傳所有點位的本機照片，回傳失敗張數。
+     * 上傳所有點位的本機照片，回傳批次結果。
      * 委派給 [PhotoUploadManager] 處理並行上傳、重試與暫存清理，
      * 透過 [PhotoUploadManager.UploadListener] 橋接 [MainBlockingUiController] 的 UI 進度顯示。
      */
@@ -889,10 +889,10 @@ class MainActivity : AppCompatActivity(),
         waypoints: List<Waypoint>,
         nodes: List<DitchNode>,
         token: String
-    ): Int {
+    ): PhotoUploadManager.UploadBatchResult {
         // 先計算待上傳數量以決定是否需要顯示進度 UI
         val pendingCount = photoUploadManager.countPendingPhotos(waypoints, nodes)
-        if (pendingCount == 0) return 0
+        if (pendingCount == 0) return PhotoUploadManager.UploadBatchResult.Completed(0)
 
         mainBlockingUiController.beginPhotoUpload(pendingCount)
         try {
@@ -973,60 +973,70 @@ class MainActivity : AppCompatActivity(),
     ) {
         lifecycleScope.launch {
             try {
-                val failCount = uploadWaypointPhotos(
+                when (val result = uploadWaypointPhotos(
                     waypoints = persistedWaypoints,
                     nodes = nodes,
                     token = token
-                )
-                mainBlockingUiController.setInspectLoading(false)
-                if (failCount == 0) {
-                    activeSheet?.dismissAllowingStateLoss()
-                    activeSheet = null
-                    pendingDraftId?.let { draftId ->
-                        draftCoordinator.deleteDraftAndLocalPhotos(
-                            context = this@MainActivity,
-                            draftId = draftId,
-                            fallbackWaypoints = persistedWaypoints
-                        )
-                    }
-                    currentSessionDraftId = null
-                    
-                    if (initialSpiState == "2" && !spiNum.isNullOrBlank()) {
-                        // 重設狀態，避免之後重複觸發
-                        initialSpiState = null
-                        showRestoreStateDialog(spiNum, persistedWaypoints, token)
-                    } else if (!isFinishing && !isDestroyed && !spiNum.isNullOrBlank()) {
-                        reopenInspectPreviewAfterUpdate(
-                            spiNum = spiNum,
-                            persistedWaypoints = persistedWaypoints,
-                            token = token
-                        )
-                    } else if (!isFinishing && !isDestroyed) {
-                        MaterialAlertDialogBuilder(this@MainActivity)
-                            .setTitle("上傳成功")
-                            .setMessage(getString(R.string.msg_gutter_uploaded))
-                            .setPositiveButton(getString(R.string.confirm), null)
-                            .show()
-                    }
-                } else if (!isFinishing && !isDestroyed) {
-                    MaterialAlertDialogBuilder(this@MainActivity)
-                        .setTitle("上傳失敗")
-                        .setMessage("線段資料與照片已完成本輪上傳，但仍有 $failCount 張照片失敗。")
-                        .setNegativeButton("存入草稿") { _, _ ->
+                )) {
+                    is PhotoUploadManager.UploadBatchResult.Completed -> {
+                        val failCount = result.failCount
+                        mainBlockingUiController.setInspectLoading(false)
+                        if (failCount == 0) {
                             activeSheet?.dismissAllowingStateLoss()
                             activeSheet = null
+                            pendingDraftId?.let { draftId ->
+                                draftCoordinator.deleteDraftAndLocalPhotos(
+                                    context = this@MainActivity,
+                                    draftId = draftId,
+                                    fallbackWaypoints = persistedWaypoints
+                                )
+                            }
+                            currentSessionDraftId = null
+
+                            if (initialSpiState == "2" && !spiNum.isNullOrBlank()) {
+                                // 重設狀態，避免之後重複觸發
+                                initialSpiState = null
+                                showRestoreStateDialog(spiNum, persistedWaypoints, token)
+                            } else if (!isFinishing && !isDestroyed && !spiNum.isNullOrBlank()) {
+                                reopenInspectPreviewAfterUpdate(
+                                    spiNum = spiNum,
+                                    persistedWaypoints = persistedWaypoints,
+                                    token = token
+                                )
+                            } else if (!isFinishing && !isDestroyed) {
+                                MaterialAlertDialogBuilder(this@MainActivity)
+                                    .setTitle("上傳成功")
+                                    .setMessage(getString(R.string.msg_gutter_uploaded))
+                                    .setPositiveButton(getString(R.string.confirm), null)
+                                    .show()
+                            }
+                        } else if (!isFinishing && !isDestroyed) {
+                            MaterialAlertDialogBuilder(this@MainActivity)
+                                .setTitle("上傳失敗")
+                                .setMessage("線段資料與照片已完成本輪上傳，但仍有 $failCount 張照片失敗。")
+                                .setNegativeButton("存入草稿") { _, _ ->
+                                    activeSheet?.dismissAllowingStateLoss()
+                                    activeSheet = null
+                                }
+                                .setPositiveButton("重傳") { _, _ ->
+                                    finalizePhotoUploadFlow(
+                                        spiNum = spiNum,
+                                        persistedWaypoints = persistedWaypoints,
+                                        nodes = nodes,
+                                        pendingDraftId = pendingDraftId,
+                                        token = token
+                                    )
+                                }
+                                .setCancelable(false)
+                                .show()
                         }
-                        .setPositiveButton("重傳") { _, _ ->
-                            finalizePhotoUploadFlow(
-                                spiNum = spiNum,
-                                persistedWaypoints = persistedWaypoints,
-                                nodes = nodes,
-                                pendingDraftId = pendingDraftId,
-                                token = token
-                            )
+                    }
+                    is PhotoUploadManager.UploadBatchResult.TimedOut -> {
+                        mainBlockingUiController.setInspectLoading(false)
+                        if (!isFinishing && !isDestroyed) {
+                            showPhotoUploadTimeoutAlert()
                         }
-                        .setCancelable(false)
-                        .show()
+                    }
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -1055,6 +1065,18 @@ class MainActivity : AppCompatActivity(),
                 }
             }
         }
+    }
+
+    private fun showPhotoUploadTimeoutAlert() {
+        MaterialAlertDialogBuilder(this)
+            .setTitle(getString(R.string.msg_photo_upload_timeout_title))
+            .setMessage(getString(R.string.msg_photo_upload_timeout_message))
+            .setPositiveButton(getString(R.string.confirm)) { _, _ ->
+                activeSheet?.dismissAllowingStateLoss()
+                activeSheet = null
+            }
+            .setCancelable(false)
+            .show()
     }
 
     private fun showRestoreStateDialog(
