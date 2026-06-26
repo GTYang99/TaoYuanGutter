@@ -3,6 +3,7 @@ package com.example.taoyuangutter.pending
 import android.content.Context
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
+import java.io.File
 
 /**
  * 封裝地圖流程草稿的儲存規則，讓 Activity 不必直接操作
@@ -25,6 +26,33 @@ class GutterDraftCoordinator(
 
     fun deleteDraft(id: Long) {
         repository.delete(id)
+    }
+
+    fun ensureDraftExists(
+        draftId: Long,
+        waypoints: List<Waypoint>,
+        isOffline: Boolean,
+        isCurve: Boolean = false
+    ) {
+        if (repository.getById(draftId) != null) return
+        val snapshots = waypoints.map { wp ->
+            WaypointSnapshot(
+                type = wp.type.name,
+                label = wp.label,
+                latitude = wp.latLng?.latitude,
+                longitude = wp.latLng?.longitude,
+                basicData = HashMap(wp.basicData)
+            )
+        }
+        repository.save(
+            GutterSessionDraft(
+                id = draftId,
+                savedAt = System.currentTimeMillis(),
+                kind = if (isCurve) KIND_CURVE else KIND_GUTTER,
+                isOffline = isOffline,
+                waypoints = snapshots
+            )
+        )
     }
 
     fun autoSaveSessionDraft(
@@ -126,6 +154,50 @@ class GutterDraftCoordinator(
                 else -> value.isNotBlank()
             }
         }
+    }
+
+    fun deleteDraftIfEffectivelyEmpty(draftId: Long) {
+        val draft = repository.getById(draftId) ?: return
+        if (!hasRetainableContent(draft)) {
+            DraftPhotoCleaner.deleteDraftLocalPhotos(appContext, draft)
+            repository.delete(draftId)
+        }
+    }
+
+    fun cleanupEmptyDrafts() {
+        repository.getAll().forEach { draft ->
+            if (!hasRetainableContent(draft)) {
+                DraftPhotoCleaner.deleteDraftLocalPhotos(appContext, draft)
+                repository.delete(draft.id)
+            }
+        }
+    }
+
+    private fun hasRetainableContent(draft: GutterSessionDraft): Boolean {
+        return draft.waypoints.any { snapshot ->
+            (snapshot.latitude != null && snapshot.longitude != null) ||
+                hasRetainableBasicData(snapshot.basicData)
+        }
+    }
+
+    private fun hasRetainableBasicData(basicData: Map<String, String>): Boolean {
+        return basicData.any { (key, value) ->
+            when {
+                key == "is_virtual" || key == "_isImported" -> false
+                key == "IS_PENDING_DEPLOY" -> value.equals("1", ignoreCase = true) ||
+                    value.equals("true", ignoreCase = true) ||
+                    value.equals("y", ignoreCase = true) ||
+                    value.equals("yes", ignoreCase = true)
+                key.startsWith("_pending_photo_") -> hasUsablePendingPhoto(value)
+                else -> value.isNotBlank()
+            }
+        }
+    }
+
+    private fun hasUsablePendingPhoto(path: String?): Boolean {
+        if (path.isNullOrBlank()) return false
+        val file = File(path)
+        return file.exists() && file.length() > 0L
     }
 
     fun deleteDraftAndLocalPhotos(context: Context, draftId: Long, fallbackWaypoints: List<Waypoint>) {

@@ -55,6 +55,7 @@ import com.google.android.material.tabs.TabLayoutMediator
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.NodeDetails
+import com.example.taoyuangutter.common.PendingPhotoDraftState
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
@@ -70,20 +71,37 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.net.MalformedURLException
 import java.net.URL
 
-class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadingHost {
+class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadingHost,
+    GutterBasicInfoFragment.DraftChangeHost,
+    GutterPhotosFragment.DraftChangeHost {
 
     private lateinit var binding: ActivityGutterFormBinding
     private lateinit var pagerAdapter: GutterFormPagerAdapter
     private var photoLoadingCount: Int = 0
+    private var restoredCurrentFormData: HashMap<String, String>? = null
 
     override fun setPhotoLoading(visible: Boolean) {
         if (!::binding.isInitialized) return
         if (visible) photoLoadingCount++ else photoLoadingCount = (photoLoadingCount - 1).coerceAtLeast(0)
         binding.photoLoadingOverlay.visibility = if (photoLoadingCount > 0) View.VISIBLE else View.GONE
+    }
+
+    override fun onBasicInfoDraftChanged(data: Map<String, String>) {
+        mergeCurrentFormData(data)
+        queueSessionDraftSync()
+    }
+
+    override fun onPhotosDraftChanged(photo1: String?, photo2: String?, photo3: String?) {
+        updateCurrentFormPhotos(photo1, photo2, photo3)
+        queueSessionDraftSync()
+    }
+
+    override fun onPendingPhotoDraftChanged(slot: Int, pendingOutputPath: String?) {
+        updateCurrentPendingPhoto(slot, pendingOutputPath)
+        queueSessionDraftSync()
     }
 
     fun showCameraOverlay(slot: Int, outputPath: String) {
@@ -321,7 +339,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var sessionDraftId = 0L
     /** 整條側溝目前的 waypoint 快照，供表單編輯中即時覆寫草稿。 */
     private val sessionWaypoints = mutableListOf<WaypointSnapshot>()
-    private var draftSyncJob: kotlinx.coroutines.Job? = null
+    /** 表單唯一正式資料來源：畫面顯示、草稿保存、送出上傳都以這份資料為準。 */
+    private val currentFormData = hashMapOf<String, String>()
     private var originalSessionWaypoint: WaypointSnapshot? = null
 
     /** 編輯模式：API 的 node_id（有值時儲存才會上傳照片） */
@@ -360,20 +379,26 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	        val data = result.data ?: return@registerForActivityResult
 	        val latitude = data.getDoubleExtra(MapPointPickerActivity.RESULT_LATITUDE, Double.NaN)
 	        val longitude = data.getDoubleExtra(MapPointPickerActivity.RESULT_LONGITUDE, Double.NaN)
-	        if (latitude.isNaN() || longitude.isNaN()) return@registerForActivityResult
-	        currentLat = latitude
-	        currentLng = longitude
-	        if (currentIndex in sessionWaypoints.indices) {
-	            sessionWaypoints[currentIndex] = sessionWaypoints[currentIndex].copy(
-	                latitude = latitude,
-	                longitude = longitude
-	            )
-	        }
-	        pagerAdapter.getBasicInfoFragment()?.updateCoordinates(longitude, latitude)
-	        formMap?.let { map ->
-	            renderSessionPreview(map)
-	            map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 18f))
-	        }
+        if (latitude.isNaN() || longitude.isNaN()) return@registerForActivityResult
+        currentLat = latitude
+        currentLng = longitude
+        if (currentIndex in sessionWaypoints.indices) {
+            sessionWaypoints[currentIndex] = sessionWaypoints[currentIndex].copy(
+                latitude = latitude,
+                longitude = longitude
+            )
+        }
+        mergeCurrentFormData(
+            mapOf(
+                "NODE_X" to "%.6f".format(longitude),
+                "NODE_Y" to "%.6f".format(latitude)
+            )
+        )
+        pagerAdapter.getBasicInfoFragment()?.updateCoordinates(longitude, latitude)
+        formMap?.let { map ->
+            renderSessionPreview(map)
+            map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 18f))
+        }
 		    }
 
 		    // ── 匯入既有點位（半屏 BottomSheet；上半部沿用本頁背景地圖） ─────────────
@@ -424,9 +449,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		            }
 		        }
 
-	    private fun handleImportedNodeDetails(nodeDetails: NodeDetails) {
-	        setImportedWaypointLocked(true)
-	        pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
+    private fun handleImportedNodeDetails(nodeDetails: NodeDetails) {
+        setImportedWaypointLocked(true)
+        pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
 
 	        // 匯入時同步下載照片到本機（依序 1→2→3）
 	        lifecycleScope.launch {
@@ -462,8 +487,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	                    )
 	                }?.toString()
 
-	                pagerAdapter.getPhotosFragment()?.prefillPhotos(p1, p2, p3)
-	                showUploadLoading(false)
+                pagerAdapter.getPhotosFragment()?.prefillPhotos(p1, p2, p3)
+                updateCurrentFormPhotos(p1, p2, p3)
+                showUploadLoading(false)
 
 	                val missing = mutableListOf<String>()
 	                if (p1.isNullOrEmpty()) missing.add("第1張")
@@ -960,6 +986,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             currentLng = savedInstanceState.getDouble("saved_current_lng")
             hasShownEditPolyline = savedInstanceState.getBoolean("saved_has_shown_edit_polyline")
             sessionDraftId = savedInstanceState.getLong("saved_session_draft_id")
+            restoredCurrentFormData = savedInstanceState.getString("saved_current_form_data_json")?.let { json ->
+                try {
+                    val type = object : TypeToken<HashMap<String, String>>() {}.type
+                    Gson().fromJson<HashMap<String, String>>(json, type)
+                } catch (_: Exception) {
+                    null
+                }
+            }
             val origJson = savedInstanceState.getString("saved_original_waypoint_json")
             if (!origJson.isNullOrEmpty()) {
                 originalSessionWaypoint = try { Gson().fromJson(origJson, WaypointSnapshot::class.java) } catch (e: Exception) { null }
@@ -973,6 +1007,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             val lng   = longitudes.getOrElse(currentIndex) { 0.0 }
             currentLat = lat
             currentLng = lng
+        }
+
+        // 保險機制：若外層沒有把 sessionDraftId 帶進來，但這頁是可編輯表單，
+        // 仍然先建立一個穩定的草稿 ID，避免後續即時同步直接跳過。
+        if (!isViewMode && sessionDraftId <= 0L) {
+            sessionDraftId = System.currentTimeMillis()
+            intent.putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
         }
 
         launchedInViewMode = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
@@ -1017,7 +1058,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         // 修正：如果是由系統重建，優先使用恢復後的 sessionWaypoints 作為目前點位的資料基底
         val existingData: HashMap<String, String> = if (savedInstanceState != null && currentIndex in sessionWaypoints.indices) {
-            HashMap(sessionWaypoints[currentIndex].basicData)
+            HashMap(sessionWaypoints[currentIndex].basicData).apply {
+                restoredCurrentFormData?.let { putAll(it) }
+            }
         } else if (isOfflineMode && sessionDraftId > 0L) {
             val draft = GutterSessionRepository(this).getById(sessionDraftId)
             val wp = draft?.waypoints?.firstOrNull()
@@ -1041,6 +1084,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (savedInstanceState == null) {
             importedWaypointLocked = parseLooseBoolean(existingData["_isImported"])
         }
+        initializeCurrentFormData(existingData)
 
         // 全螢幕地圖背景 + 表單面板（不論離線或一般模式皆使用新版佈局）
         setupFullScreenWithMap()
@@ -1067,22 +1111,17 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         setupImportWaypointButton()
         setupFab()
         binding.viewPager.post {
-            attachDraftSyncCallbacks()
-            // 開啟表單時先做一次草稿回寫，將舊草稿中的照片 URI 懶遷移成 app 可穩定讀取的副本。
-            queueSessionDraftSync()
+            refreshCurrentFormDataFromFragments()
         }
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
         binding.viewPager.post { applyImportedWaypointLock() }
     }
 
     override fun onPause() {
-        // 編輯中只要不是已經準備結束，就先把最新狀態寫回草稿，
+        // 編輯中只要不是已經準備結束，就先把最新狀態直接寫回草稿，
         // 讓背景切走、系統回收、短暫閃退時都能盡量保住內容。
         if (!isFinishing && !isViewMode) {
-            draftSyncJob?.cancel()
-            draftSyncJob = lifecycleScope.launch {
-                syncSessionDraftNow()
-            }
+            syncSessionDraftNowBlocking()
         }
         super.onPause()
     }
@@ -1409,7 +1448,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         pagerAdapter.getBasicInfoFragment()?.setEditable(true)
         pagerAdapter.getPhotosFragment()?.setEditable(true)
         binding.cbIsVirtual.isEnabled = true
-        attachDraftSyncCallbacks()
     }
 
     private fun setImportedWaypointLocked(locked: Boolean) {
@@ -1436,10 +1474,103 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.cbIsVirtual.isEnabled = false
     }
 
+    private fun initializeCurrentFormData(initialData: Map<String, String>) {
+        currentFormData.clear()
+        currentFormData.putAll(PendingPhotoDraftState.promotePendingFilesToPhotos(this, initialData))
+        ensureCurrentFormCoordinates()
+        syncCurrentWaypointFromCurrentFormData()
+    }
+
+    private fun refreshCurrentFormDataFromFragments() {
+        pagerAdapter.getBasicInfoFragment()?.let { mergeCurrentFormData(it.collectData()) }
+        pagerAdapter.getPhotosFragment()?.let { photosFragment ->
+            val (photo1, photo2, photo3) = photosFragment.getPhotoPaths()
+            updateCurrentFormPhotos(photo1, photo2, photo3)
+        }
+    }
+
+    private fun mergeCurrentFormData(data: Map<String, String>) {
+        currentFormData.putAll(data)
+        ensureCurrentFormCoordinates()
+        syncCurrentWaypointFromCurrentFormData()
+    }
+
+    private fun updateCurrentFormPhotos(photo1: String?, photo2: String?, photo3: String?) {
+        currentFormData["photo1"] = photo1 ?: ""
+        currentFormData["photo2"] = photo2 ?: ""
+        currentFormData["photo3"] = photo3 ?: ""
+        syncCurrentWaypointFromCurrentFormData()
+    }
+
+    private fun updateCurrentPendingPhoto(slot: Int, pendingOutputPath: String?) {
+        if (slot !in 1..3) return
+        PendingPhotoDraftState.writePath(currentFormData, slot, pendingOutputPath)
+        syncCurrentWaypointFromCurrentFormData()
+    }
+
+    private fun currentFormPhotos(): Triple<String?, String?, String?> = Triple(
+        currentFormData["photo1"]?.takeIf { it.isNotBlank() },
+        currentFormData["photo2"]?.takeIf { it.isNotBlank() },
+        currentFormData["photo3"]?.takeIf { it.isNotBlank() }
+    )
+
+    private fun currentFormSnapshot(): HashMap<String, String> = HashMap(currentFormData).apply {
+        putIfAbsent("photo1", "")
+        putIfAbsent("photo2", "")
+        putIfAbsent("photo3", "")
+    }
+
+    private fun ensureCurrentFormCoordinates() {
+        if (currentLat != 0.0) {
+            currentFormData["NODE_Y"] = currentFormData["NODE_Y"]?.takeIf { it.isNotBlank() }
+                ?: "%.6f".format(currentLat)
+        }
+        if (currentLng != 0.0) {
+            currentFormData["NODE_X"] = currentFormData["NODE_X"]?.takeIf { it.isNotBlank() }
+                ?: "%.6f".format(currentLng)
+        }
+    }
+
+    private fun syncCurrentWaypointFromCurrentFormData() {
+        if (currentIndex !in sessionWaypoints.indices) return
+        val existing = sessionWaypoints[currentIndex]
+        val latitude = currentFormData["NODE_Y"]?.toDoubleOrNull()
+            ?: existing.latitude
+            ?: currentLat.takeIf { it != 0.0 }
+        val longitude = currentFormData["NODE_X"]?.toDoubleOrNull()
+            ?: existing.longitude
+            ?: currentLng.takeIf { it != 0.0 }
+        sessionWaypoints[currentIndex] = existing.copy(
+            latitude = latitude,
+            longitude = longitude,
+            basicData = HashMap(existing.basicData).apply { putAll(currentFormData) }
+        )
+    }
+
+    private fun resolveEffectiveCoordinates(data: Map<String, String>): Pair<Double?, Double?> {
+        val formLat = data["NODE_Y"]?.toDoubleOrNull()
+        val formLng = data["NODE_X"]?.toDoubleOrNull()
+        val effectiveLat = if (formLat != null && formLat in -90.0..90.0) formLat
+        else if (currentLat != 0.0) currentLat
+        else null
+        val effectiveLng = if (formLng != null && formLng in -180.0..180.0) formLng
+        else if (currentLng != 0.0) currentLng
+        else null
+        return effectiveLat to effectiveLng
+    }
+
+    private fun syncNormalizedPhotosBackToUiIfNeeded(photo1: String?, photo2: String?, photo3: String?) {
+        updateCurrentFormPhotos(photo1, photo2, photo3)
+        if (!photo1.isNullOrBlank()) updateCurrentPendingPhoto(1, null)
+        if (!photo2.isNullOrBlank()) updateCurrentPendingPhoto(2, null)
+        if (!photo3.isNullOrBlank()) updateCurrentPendingPhoto(3, null)
+        pagerAdapter.getPhotosFragment()?.syncPersistedPhotoPaths(photo1, photo2, photo3)
+    }
+
     private fun saveAndFinish() {
-        val data = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
-        val (photo1, photo2, photo3) =
-            pagerAdapter.getPhotosFragment()?.getPhotoPaths() ?: Triple(null, null, null)
+        syncSessionDraftNowBlocking()
+        val data = currentFormSnapshot()
+        val (photo1, photo2, photo3) = currentFormPhotos()
         dispatchEditResult(data, photo1, photo2, photo3)
     }
 
@@ -1473,11 +1604,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         })
     }
 
-    private fun attachDraftSyncCallbacks() {
-        pagerAdapter.getBasicInfoFragment()?.onDraftChanged = { queueSessionDraftSync() }
-        pagerAdapter.getPhotosFragment()?.onDraftChanged = { queueSessionDraftSync() }
-    }
-
     private fun setupTabButtons() {
         // 使用 TabLayoutMediator 連接 TabLayout 和 ViewPager2
         TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
@@ -1491,15 +1617,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun updateTabUI(selected: Int) {
-        attachDraftSyncCallbacks()
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
     }
 
     private fun launchLocationPicker() {
         if (isViewMode) return
-        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
-        val initialLat = basicData["NODE_Y"]?.toDoubleOrNull() ?: currentLat
-        val initialLng = basicData["NODE_X"]?.toDoubleOrNull() ?: currentLng
+        val initialLat = currentFormData["NODE_Y"]?.toDoubleOrNull() ?: currentLat
+        val initialLng = currentFormData["NODE_X"]?.toDoubleOrNull() ?: currentLng
         val wmtsLayer = intent.getStringExtra(EXTRA_WMTS_LAYER)
         // 使用即時的 sessionWaypoints（而非啟動時的舊 JSON），
         // 讓地圖選點頁面能顯示最新的行程線段。單點離線模式只有 1 個 waypoint，不需傳線段。
@@ -1582,35 +1706,19 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun handleNavigateBack() {
         if (launchedInViewMode && isEditMode && !isViewMode) {
             // 檢視→編輯→返回：先把目前編輯結果寫回草稿，再回到預覽
-            draftSyncJob?.cancel()
-            lifecycleScope.launch {
-                syncSessionDraftNow()
-                formMap?.let { renderSessionPreview(it) }
-                returnToPreviewMode()
-            }
+            syncSessionDraftNowBlocking()
+            formMap?.let { renderSessionPreview(it) }
+            returnToPreviewMode()
             return
         }
         buildAndFinishWithResult()
     }
 
     private fun buildAndFinishWithResult() {
-        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
-        val (photo1, photo2, photo3) =
-            pagerAdapter.getPhotosFragment()?.getPhotoPaths() ?: Triple(null, null, null)
-
-        val formLat = basicData["NODE_Y"]?.toDoubleOrNull()
-        val formLng = basicData["NODE_X"]?.toDoubleOrNull()
-        
-        // 修正邏輯：
-        // 1. 如果表單內有有效座標，優先使用。
-        // 2. 如果表單內無座標，但進入時帶有有效座標（currentLat != 0.0），則維持原座標。
-        // 3. 以上皆非，則回傳 null（MainActivity 接收後不會更新座標，維持 null）。
-        val effectiveLat = if (formLat != null && formLat in -90.0..90.0) formLat 
-                          else if (currentLat != 0.0) currentLat 
-                          else null
-        val effectiveLng = if (formLng != null && formLng in -180.0..180.0) formLng 
-                          else if (currentLng != 0.0) currentLng 
-                          else null
+        syncSessionDraftNowBlocking()
+        val basicData = currentFormSnapshot()
+        val (photo1, photo2, photo3) = currentFormPhotos()
+        val (effectiveLat, effectiveLng) = resolveEffectiveCoordinates(basicData)
 
         fun dispatchResult() {
             val resultIntent = Intent().apply {
@@ -1634,11 +1742,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             finish()
         }
 
-        draftSyncJob?.cancel()
-        lifecycleScope.launch {
-            syncSessionDraftNow()
-            dispatchResult()
-        }
+        dispatchResult()
     }
 
     private fun restoreSessionWaypoints(savedInstanceState: Bundle?) {
@@ -1677,115 +1781,99 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun queueSessionDraftSync() {
         if (isViewMode) return
         if (currentIndex !in sessionWaypoints.indices) return
-        draftSyncJob?.cancel()
-        draftSyncJob = lifecycleScope.launch {
-            delay(150)
+        syncSessionDraftNowBlocking()
+    }
+
+    /** 立即將目前表單狀態同步寫入草稿。 */
+    private fun syncSessionDraftNowBlocking() {
+        if (isViewMode) return
+        runBlocking {
             syncSessionDraftNow()
         }
     }
 
-	    private suspend fun syncSessionDraftNow() {
-	        if (isViewMode) return
-	        if (currentIndex !in sessionWaypoints.indices) return
+    private suspend fun syncSessionDraftNow() {
+        if (isViewMode) return
+        if (currentIndex !in sessionWaypoints.indices) return
 
-	        val basicData = pagerAdapter.getBasicInfoFragment()?.collectData() ?: emptyMap()
-	        val photosFragment = pagerAdapter.getPhotosFragment()
-	        val (photo1, photo2, photo3) = photosFragment?.getPhotoPaths()
-	            ?: Triple(null, null, null)
-	        val existing = sessionWaypoints[currentIndex]
-	        val existingPhoto1 = existing.basicData["photo1"]
-	        val existingPhoto2 = existing.basicData["photo2"]
-	        val existingPhoto3 = existing.basicData["photo3"]
+        ensureCurrentFormCoordinates()
+        val existing = sessionWaypoints[currentIndex]
+        val mergedBasicData = HashMap(existing.basicData).apply { putAll(currentFormSnapshot()) }
+        val normalizedBasicData = PhotoUriStore.normalizeBasicDataPhotoUris(
+            context = this,
+            basicData = mergedBasicData,
+            prefix = "GUTTER_EXT_"
+        )
 
-	        val p1 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(
-	            this,
-	            photo1 ?: existingPhoto1,
-	            prefix = "GUTTER_EXT_"
-	        )
-	        val p2 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(
-	            this,
-	            photo2 ?: existingPhoto2,
-	            prefix = "GUTTER_EXT_"
-	        )
-	        val p3 = PhotoUriStore.ensureCopiedToAppPicturesIfNeeded(
-	            this,
-	            photo3 ?: existingPhoto3,
-	            prefix = "GUTTER_EXT_"
-	        )
+        syncNormalizedPhotosBackToUiIfNeeded(
+            photo1 = normalizedBasicData["photo1"]?.takeIf { it.isNotBlank() },
+            photo2 = normalizedBasicData["photo2"]?.takeIf { it.isNotBlank() },
+            photo3 = normalizedBasicData["photo3"]?.takeIf { it.isNotBlank() }
+        )
 
-	        val formLat = basicData["NODE_Y"]?.toDoubleOrNull()
-	        val formLng = basicData["NODE_X"]?.toDoubleOrNull()
-	        val mergedBasicData = HashMap(existing.basicData).apply {
-	            putAll(basicData)
-	            // 優先用照片 Fragment 目前的狀態；若 Fragment 暫時不可用，則沿用草稿內既有照片，
-	            // 並仍嘗試把能讀到的舊路徑補成 app 可穩定存取的副本。
-	            if (photosFragment != null || existingPhoto1 != null || existingPhoto2 != null || existingPhoto3 != null) {
-	                put("photo1", p1 ?: existingPhoto1 ?: "")
-	                put("photo2", p2 ?: existingPhoto2 ?: "")
-	                put("photo3", p3 ?: existingPhoto3 ?: "")
-	            }
-	        }
+        val formLat = normalizedBasicData["NODE_Y"]?.toDoubleOrNull()
+        val formLng = normalizedBasicData["NODE_X"]?.toDoubleOrNull()
 
-	        sessionWaypoints[currentIndex] = existing.copy(
-	            latitude = if (formLat != null && formLat in -90.0..90.0) formLat else existing.latitude,
-	            longitude = if (formLng != null && formLng in -180.0..180.0) formLng else existing.longitude,
-	            basicData = mergedBasicData
-	        )
-	        val normalizedWaypoints = PhotoUriStore.normalizeSnapshotPhotoUris(
-	            context = this,
-	            waypoints = sessionWaypoints.toList(),
-	            prefix = "GUTTER_EXT_"
-	        )
-	        sessionWaypoints.clear()
-	        sessionWaypoints.addAll(normalizedWaypoints)
+        sessionWaypoints[currentIndex] = existing.copy(
+            latitude = if (formLat != null && formLat in -90.0..90.0) formLat else existing.latitude,
+            longitude = if (formLng != null && formLng in -180.0..180.0) formLng else existing.longitude,
+            basicData = normalizedBasicData
+        )
+        val normalizedWaypoints = PhotoUriStore.normalizeSnapshotPhotoUris(
+            context = this,
+            waypoints = sessionWaypoints.toList(),
+            prefix = "GUTTER_EXT_"
+        )
+        sessionWaypoints.clear()
+        sessionWaypoints.addAll(normalizedWaypoints)
+        currentFormData.putAll(sessionWaypoints[currentIndex].basicData)
 
-	        // 空草稿判斷：沒有任何座標，且沒有任何「實際內容」時，不保留草稿。
-	        // 這裡會忽略預設欄位，例如 is_virtual=0 / _isImported=0 / IS_PENDING_DEPLOY=0，
-	        // 避免只有預設值卻讓草稿一直殘留。
-	        val hasAnyLatLng = sessionWaypoints.any { it.latitude != null && it.longitude != null }
-	        val hasAnyMeaningfulBasicData = sessionWaypoints.any { wp ->
-	            wp.basicData.any { (key, value) ->
-	                when (key) {
-	                    "is_virtual", "_isImported" -> false
-	                    "IS_PENDING_DEPLOY" -> value.equals("1", ignoreCase = true) ||
-	                        value.equals("true", ignoreCase = true) ||
-	                        value.equals("y", ignoreCase = true) ||
-	                        value.equals("yes", ignoreCase = true)
-	                    else -> value.isNotBlank()
-	                }
-	            }
-	        }
-	        if (!hasAnyLatLng && !hasAnyMeaningfulBasicData) {
-	            deleteCurrentSessionDraftIfNeeded()
-	            return
-	        }
+        // 空草稿判斷：沒有任何座標，且沒有任何「實際內容」時，不保留草稿。
+        // 這裡會忽略預設欄位，例如 is_virtual=0 / _isImported=0 / IS_PENDING_DEPLOY=0，
+        // 避免只有預設值卻讓草稿一直殘留。
+        val hasAnyLatLng = sessionWaypoints.any { it.latitude != null && it.longitude != null }
+        val hasAnyMeaningfulBasicData = sessionWaypoints.any { wp ->
+            wp.basicData.any { (key, value) ->
+                when (key) {
+                    "is_virtual", "_isImported" -> false
+                    "IS_PENDING_DEPLOY" -> value.equals("1", ignoreCase = true) ||
+                        value.equals("true", ignoreCase = true) ||
+                        value.equals("y", ignoreCase = true) ||
+                        value.equals("yes", ignoreCase = true)
+                    else -> value.isNotBlank()
+                }
+            }
+        }
+        if (!hasAnyLatLng && !hasAnyMeaningfulBasicData) {
+            deleteCurrentSessionDraftIfNeeded()
+            return
+        }
 
-	        val resolvedDraftId = sessionDraftId.takeIf { it > 0L } ?: run {
-	            android.util.Log.w(
-	                "GutterFormActivity",
-	                "skip draft sync because sessionDraftId is missing"
-	            )
-	            return
-	        }
-	        sessionDraftId = resolvedDraftId
+        val resolvedDraftId = sessionDraftId.takeIf { it > 0L } ?: run {
+            android.util.Log.w(
+                "GutterFormActivity",
+                "skip draft sync because sessionDraftId is missing"
+            )
+            return
+        }
+        sessionDraftId = resolvedDraftId
 
-	        val repo = GutterSessionRepository(this)
-	        val existingDraft = repo.getById(resolvedDraftId)
-	        val preservedIsOffline = existingDraft?.isOffline
-	            ?: (isOfflineMode || intent.getBooleanExtra(EXTRA_SESSION_IS_OFFLINE, false))
-	        repo.save(
-		            GutterSessionDraft(
-		                id = resolvedDraftId,
-		                savedAt = System.currentTimeMillis(),
-		                isOffline = isOfflineMode || preservedIsOffline,
-		                isSinglePoint = false,
-		                waypoints = sessionWaypoints.toList()
-		            )
-	        )
-	    }
+        val repo = GutterSessionRepository(this)
+        val existingDraft = repo.getById(resolvedDraftId)
+        val preservedIsOffline = existingDraft?.isOffline
+            ?: (isOfflineMode || intent.getBooleanExtra(EXTRA_SESSION_IS_OFFLINE, false))
+        repo.save(
+            GutterSessionDraft(
+                id = resolvedDraftId,
+                savedAt = System.currentTimeMillis(),
+                isOffline = isOfflineMode || preservedIsOffline,
+                isSinglePoint = false,
+                waypoints = sessionWaypoints.toList()
+            )
+        )
+    }
 
     private fun deleteCurrentSessionDraftIfNeeded() {
-        draftSyncJob?.cancel()
         val draftId = sessionDraftId.takeIf { it > 0L } ?: return
         GutterSessionRepository(this).getById(draftId)?.let { draft ->
             DraftPhotoCleaner.deleteDraftLocalPhotos(this, draft)
@@ -1794,21 +1882,25 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         sessionDraftId = 0L
     }
 
-			    private fun restoreCurrentWaypointState() {
-			        if (isOfflineMode) return
-		        val original = originalSessionWaypoint ?: return
-		        if (currentIndex !in sessionWaypoints.indices) return
-		        draftSyncJob?.cancel()
-		        sessionWaypoints[currentIndex] = original.copy(basicData = HashMap(original.basicData))
-		        // 同步回表單欄位（座標）
-		        val lat = original.latitude
-		        val lng = original.longitude
-		        if (lat != null && lng != null) {
-		            currentLat = lat
-		            currentLng = lng
-		            pagerAdapter.getBasicInfoFragment()?.updateCoordinates(lng, lat)
-		        }
-		    }
+    private fun restoreCurrentWaypointState() {
+        if (isOfflineMode) return
+        val original = originalSessionWaypoint ?: return
+        if (currentIndex !in sessionWaypoints.indices) return
+        sessionWaypoints[currentIndex] = original.copy(basicData = HashMap(original.basicData))
+        initializeCurrentFormData(original.basicData)
+        val lat = original.latitude
+        val lng = original.longitude
+        if (lat != null && lng != null) {
+            currentLat = lat
+            currentLng = lng
+            pagerAdapter.getBasicInfoFragment()?.updateCoordinates(lng, lat)
+        }
+        syncNormalizedPhotosBackToUiIfNeeded(
+            photo1 = original.basicData["photo1"]?.takeIf { it.isNotBlank() },
+            photo2 = original.basicData["photo2"]?.takeIf { it.isNotBlank() },
+            photo3 = original.basicData["photo3"]?.takeIf { it.isNotBlank() }
+        )
+    }
 
     // ── 上傳等待遮罩 ─────────────────────────────────────────────────────
 
@@ -1872,15 +1964,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
      *               false → 先驗證所有必填欄位與三張照片，通過才存檔並關閉
      */
     private fun saveOfflineAndClose(silent: Boolean = false) {
-        // 先取消任何排隊中的延遲 sync，避免 finish() 後仍觸發造成非預期寫入
-        draftSyncJob?.cancel()
-	        if (!silent) {
-	            val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
-	            if (basicError != null) {
-	                binding.viewPager.currentItem = 0
-	                Toast.makeText(this, String.format(getString(R.string.msg_fill_required), basicError), Toast.LENGTH_SHORT).show()
-	                return
-	            }
+        if (!silent) {
+            val basicError = pagerAdapter.getBasicInfoFragment()?.validateRequiredFields()
+            if (basicError != null) {
+                binding.viewPager.currentItem = 0
+                Toast.makeText(this, String.format(getString(R.string.msg_fill_required), basicError), Toast.LENGTH_SHORT).show()
+                return
+            }
 
             // 虛擬點不需驗證照片
             if (!binding.cbIsVirtual.isChecked) {
@@ -1890,16 +1980,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     Toast.makeText(this, String.format(getString(R.string.msg_take_photo_required), photoError), Toast.LENGTH_SHORT).show()
                     return
                 }
-	            }
-	        }
-	        lifecycleScope.launch {
-	            syncSessionDraftNow()
-	            if (!silent) {
-	                Toast.makeText(this@GutterFormActivity, getString(R.string.msg_draft_saved), Toast.LENGTH_SHORT).show()
-	            }
-	            finish()
-	        }
-	    }
+            }
+        }
+        syncSessionDraftNowBlocking()
+        if (!silent) {
+            Toast.makeText(this@GutterFormActivity, getString(R.string.msg_draft_saved), Toast.LENGTH_SHORT).show()
+        }
+        finish()
+    }
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
@@ -1909,6 +1997,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString("saved_waypoints_json", Gson().toJson(sessionWaypoints))
+        outState.putString("saved_current_form_data_json", Gson().toJson(currentFormData))
         outState.putBoolean("saved_is_view_mode", isViewMode)
         outState.putBoolean("saved_is_edit_mode", isEditMode)
         outState.putBoolean("saved_imported_waypoint_locked", importedWaypointLocked)

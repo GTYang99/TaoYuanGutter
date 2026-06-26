@@ -3,6 +3,7 @@ package com.example.taoyuangutter.pending
 import android.content.Context
 import android.net.Uri
 import android.os.Environment
+import com.example.taoyuangutter.common.PendingPhotoDraftState
 import java.io.File
 
 /**
@@ -22,6 +23,9 @@ object DraftPhotoCleaner {
             deleteLocalPhoto(context, wp.basicData["photo1"])
             deleteLocalPhoto(context, wp.basicData["photo2"])
             deleteLocalPhoto(context, wp.basicData["photo3"])
+            deleteLocalPhoto(context, PendingPhotoDraftState.readPath(wp.basicData, 1))
+            deleteLocalPhoto(context, PendingPhotoDraftState.readPath(wp.basicData, 2))
+            deleteLocalPhoto(context, PendingPhotoDraftState.readPath(wp.basicData, 3))
         }
     }
 
@@ -30,6 +34,9 @@ object DraftPhotoCleaner {
             deleteLocalPhoto(context, data["photo1"])
             deleteLocalPhoto(context, data["photo2"])
             deleteLocalPhoto(context, data["photo3"])
+            deleteLocalPhoto(context, PendingPhotoDraftState.readPath(data, 1))
+            deleteLocalPhoto(context, PendingPhotoDraftState.readPath(data, 2))
+            deleteLocalPhoto(context, PendingPhotoDraftState.readPath(data, 3))
         }
     }
 
@@ -85,4 +92,3 @@ object DraftPhotoCleaner {
         return allowedBases.any { base -> filePath.startsWith(base + File.separator) || filePath == base }
     }
 }
-

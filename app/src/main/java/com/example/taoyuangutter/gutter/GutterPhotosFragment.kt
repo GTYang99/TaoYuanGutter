@@ -32,9 +32,15 @@ import java.util.Locale
 
 class GutterPhotosFragment : Fragment() {
 
+    interface DraftChangeHost {
+        fun onPhotosDraftChanged(photo1: String?, photo2: String?, photo3: String?)
+        fun onPendingPhotoDraftChanged(slot: Int, pendingOutputPath: String?)
+    }
+
     private var _binding: FragmentGutterPhotosBinding? = null
     private val binding get() = _binding!!
     var onDraftChanged: (() -> Unit)? = null
+    private var draftChangeHost: DraftChangeHost? = null
 
     private var photoUriSlot1: Uri? = null
     private var photoUriSlot2: Uri? = null
@@ -46,6 +52,12 @@ class GutterPhotosFragment : Fragment() {
 
     /** 防止多張照片同時載入失敗時重複彈出 Alert（每次 setEditable 重置） */
     private var hasShownLoadErrorAlert = false
+
+    /**
+     * 內部同步已儲存照片時會短暫開啟。
+     * 這段期間不應回報草稿變更，否則會把「UI 回寫」誤當成「使用者操作」。
+     */
+    private var suppressDraftChangeCallback = false
 
     /** LandscapeCameraActivity 輸出檔案的絕對路徑（Activity 重建後恢復用） */
     private var pendingOutputPath: String? = null
@@ -62,7 +74,11 @@ class GutterPhotosFragment : Fragment() {
         if (granted && pendingSlot > 0) {
             maybeRequestLegacyWritePermissionThenLaunch()
         } else if (!granted) {
+            val canceledSlot = pendingSlot
             pendingSlot = 0
+            if (canceledSlot > 0) {
+                draftChangeHost?.onPendingPhotoDraftChanged(canceledSlot, null)
+            }
             Toast.makeText(requireContext(), getString(R.string.msg_camera_permission_required), Toast.LENGTH_SHORT).show()
         }
     }
@@ -71,12 +87,16 @@ class GutterPhotosFragment : Fragment() {
         ActivityResultContracts.RequestPermission()
     ) { granted ->
         if (!granted) {
+            val canceledSlot = pendingSlot
             Toast.makeText(
                 requireContext(),
                 "需要儲存權限才能同時寫入系統相簿",
                 Toast.LENGTH_SHORT
             ).show()
             pendingSlot = 0
+            if (canceledSlot > 0) {
+                draftChangeHost?.onPendingPhotoDraftChanged(canceledSlot, null)
+            }
             return@registerForActivityResult
         }
         if (pendingSlot > 0) {
@@ -144,6 +164,16 @@ class GutterPhotosFragment : Fragment() {
         }
     }
 
+    override fun onAttach(context: android.content.Context) {
+        super.onAttach(context)
+        draftChangeHost = context as? DraftChangeHost
+    }
+
+    override fun onDetach() {
+        draftChangeHost = null
+        super.onDetach()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
@@ -171,6 +201,9 @@ class GutterPhotosFragment : Fragment() {
                     Uri.fromFile(file)
                 }
                 applyPhotoToSlot(slot, uri, notifyDraftChanged = true)
+            }
+            if (slot in 1..3) {
+                draftChangeHost?.onPendingPhotoDraftChanged(slot, null)
             }
             pendingSlot = 0
             pendingOutputPath = null
@@ -323,11 +356,16 @@ class GutterPhotosFragment : Fragment() {
     private fun launchCameraOverlay(slot: Int) {
         val outputFile = createOutputFile(slot)
         if (outputFile == null) {
+            val failedSlot = pendingSlot
             pendingSlot = 0
+            if (failedSlot > 0) {
+                draftChangeHost?.onPendingPhotoDraftChanged(failedSlot, null)
+            }
             Toast.makeText(requireContext(), getString(R.string.msg_photo_prepare_failed), Toast.LENGTH_SHORT).show()
             return
         }
         pendingOutputPath = outputFile.absolutePath
+        draftChangeHost?.onPendingPhotoDraftChanged(slot, outputFile.absolutePath)
         (activity as? GutterFormActivity)?.showCameraOverlay(slot, outputFile.absolutePath)
     }
 
@@ -397,8 +435,10 @@ class GutterPhotosFragment : Fragment() {
                     return true
                 }
 
-                clearPhotoSlot(slot, notifyDraftChanged = true)
-                // local: 讓欄位回到空狀態，避免顯示與可用性不同步
+                photoView.visibility = View.GONE
+                placeholder.visibility = View.VISIBLE
+                // local：保留 slot 的資料，不因暫時載入失敗而把草稿內容清掉
+                // 讓 Activity 的草稿同步與下一次重建還能接住同一張照片。
                 return true
             }
 
@@ -435,7 +475,25 @@ class GutterPhotosFragment : Fragment() {
 
         val context = context
         if (context != null && !PhotoUploadValidator.isUsableForUpload(context, uri.toString())) {
-            clearPhotoSlot(slot, notifyDraftChanged)
+            if (notifyDraftChanged) {
+                clearPhotoSlot(slot, notifyDraftChanged)
+            } else {
+                when (slot) {
+                    1 -> {
+                        photoUriSlot1 = uri
+                        showPhoto(1, binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, null)
+                    }
+                    2 -> {
+                        photoUriSlot2 = uri
+                        showPhoto(2, binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, null)
+                    }
+                    3 -> {
+                        photoUriSlot3 = uri
+                        showPhoto(3, binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
+                    }
+                }
+                (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
+            }
             return
         }
 
@@ -456,7 +514,7 @@ class GutterPhotosFragment : Fragment() {
                 binding.btnDeleteSlot3.visibility = View.VISIBLE
             }
         }
-        if (notifyDraftChanged) onDraftChanged?.invoke()
+        if (notifyDraftChanged) notifyDraftChanged()
     }
 
     private fun clearPhotoSlot(slot: Int, notifyDraftChanged: Boolean) {
@@ -478,7 +536,10 @@ class GutterPhotosFragment : Fragment() {
             }
         }
         (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
-        if (notifyDraftChanged) onDraftChanged?.invoke()
+        if (!suppressDraftChangeCallback) {
+            draftChangeHost?.onPendingPhotoDraftChanged(slot, null)
+        }
+        if (notifyDraftChanged) notifyDraftChanged()
     }
 
     /**
@@ -526,22 +587,50 @@ class GutterPhotosFragment : Fragment() {
     )
 
     /**
+     * 將已正規化後的草稿照片路徑回寫到 Fragment 狀態。
+     * 不再次觸發草稿回寫，避免 Activity 在同步草稿後形成遞迴。
+     */
+    fun syncPersistedPhotoPaths(photo1: String?, photo2: String?, photo3: String?) {
+        suppressDraftChangeCallback = true
+        try {
+            photoUriSlot1 = parseUriString(photo1)
+            photoUriSlot2 = parseUriString(photo2)
+            photoUriSlot3 = parseUriString(photo3)
+            if (_binding != null) {
+                renderStoredPhotoSlots()
+            }
+        } finally {
+            suppressDraftChangeCallback = false
+        }
+    }
+
+    /**
      * 匯入既有點位資料後，將下載完成的照片 URI 預填入三個欄位。
      * @param photo1-3 內容 URI（content:// 或 file://），null/空字串表示該欄位仍需補拍
      */
     fun prefillPhotos(photo1: String?, photo2: String?, photo3: String?) {
-        if (_binding == null) return
+        photoUriSlot1 = parseUriString(photo1)
+        photoUriSlot2 = parseUriString(photo2)
+        photoUriSlot3 = parseUriString(photo3)
+        if (_binding != null) {
+            renderStoredPhotoSlots()
 
-        fun parse(s: String?): Uri? =
-            s?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
-
-        applyPhotoToSlot(1, parse(photo1), notifyDraftChanged = false)
-        applyPhotoToSlot(2, parse(photo2), notifyDraftChanged = false)
-        applyPhotoToSlot(3, parse(photo3), notifyDraftChanged = false)
-
-        // 依目前模式更新刪除按鈕狀態
-        val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
-        setEditable(!isViewMode)
-        onDraftChanged?.invoke()
+            // 依目前模式更新刪除按鈕狀態
+            val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
+            setEditable(!isViewMode)
+        }
+        notifyDraftChanged()
     }
+
+    private fun notifyDraftChanged() {
+        onDraftChanged?.invoke()
+        draftChangeHost?.onPhotosDraftChanged(
+            photoUriSlot1?.toString(),
+            photoUriSlot2?.toString(),
+            photoUriSlot3?.toString()
+        )
+    }
+
+    private fun parseUriString(uriString: String?): Uri? =
+        uriString?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
 }

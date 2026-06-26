@@ -297,6 +297,7 @@ class MainActivity : AppCompatActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         super.onCreate(savedInstanceState)
+        draftCoordinator.cleanupEmptyDrafts()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         applySystemBarInsets()
@@ -367,6 +368,10 @@ class MainActivity : AppCompatActivity(),
                     when (result.resultCode) {
                         Activity.RESULT_OK -> if (pendingWaypointFormIndex >= 0) {
 	                            val data = result.data
+                            val returnedDraftId = data?.getLongExtra(GutterFormActivity.EXTRA_SESSION_DRAFT_ID, 0L) ?: 0L
+                            if (returnedDraftId > 0L) {
+                                currentSessionDraftId = returnedDraftId
+                            }
 
                             // ── 更新地圖定位座標 ────────────────────────────────
                             // 優先使用 GutterFormActivity 回傳的 lat/lng（已保證永遠有值）；
@@ -427,10 +432,14 @@ class MainActivity : AppCompatActivity(),
                         }
                     }
 	                }
-	                inspectSheet != null -> {
-	                    if (result.resultCode == Activity.RESULT_OK) {
-	                        val data = result.data
-	                        val idx  = data?.getIntExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, -1) ?: -1
+                inspectSheet != null -> {
+                    if (result.resultCode == Activity.RESULT_OK) {
+                        val data = result.data
+                        val returnedDraftId = data?.getLongExtra(GutterFormActivity.EXTRA_SESSION_DRAFT_ID, 0L) ?: 0L
+                        if (returnedDraftId > 0L) {
+                            currentSessionDraftId = returnedDraftId
+                        }
+                        val idx  = data?.getIntExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, -1) ?: -1
 		                        if (idx >= 0) {
 		                            val rawData = GutterFormContract.readResultData(data)
                             lifecycleScope.launch {
@@ -1616,6 +1625,12 @@ class MainActivity : AppCompatActivity(),
                 currentSessionDraftId = draftId
                 currentSessionIsOffline = isOffline
                 activeSheet = sheet
+                draftCoordinator.ensureDraftExists(
+                    draftId = draftId,
+                    waypoints = sheet.getWaypoints(),
+                    isOffline = isOffline,
+                    isCurve = sheet.isCurveMode()
+                )
             },
             onResumedWaypointsReady = { waypoints ->
                 currentWaypoints = waypoints
@@ -1652,6 +1667,8 @@ class MainActivity : AppCompatActivity(),
                     mainBlockingUiController.setMainButtonsEnabled(false)
                 },
                 onWaypointsCleared = {
+                    currentSessionDraftId?.let { draftCoordinator.deleteDraftIfEffectivelyEmpty(it) }
+                    currentSessionDraftId = null
                     isInEditingMode = false
                     setMainButtonsEnabledRespectingInspectLock(true) // 關閉表單，還原按鈕
                     mapCameraController.setPersistentBottomInset(0)

@@ -20,10 +20,15 @@ import com.example.taoyuangutter.databinding.FragmentGutterBasicInfoBinding
 
 class GutterBasicInfoFragment : Fragment() {
 
+    interface DraftChangeHost {
+        fun onBasicInfoDraftChanged(data: Map<String, String>)
+    }
+
     private var _binding: FragmentGutterBasicInfoBinding? = null
     private val binding get() = _binding!!
     var onDraftChanged: (() -> Unit)? = null
     var onRequestLocationPick: (() -> Unit)? = null
+    private var draftChangeHost: DraftChangeHost? = null
     private var isFormEditable: Boolean = true
     private var isImportLocked: Boolean = false
     private var isVirtualMode: Boolean = false // 新增：是否為虛擬點模式
@@ -127,6 +132,16 @@ class GutterBasicInfoFragment : Fragment() {
     ): View {
         _binding = FragmentGutterBasicInfoBinding.inflate(inflater, container, false)
         return binding.root
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        draftChangeHost = context as? DraftChangeHost
+    }
+
+    override fun onDetach() {
+        draftChangeHost = null
+        super.onDetach()
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -275,7 +290,7 @@ class GutterBasicInfoFragment : Fragment() {
         // Avoid stale listeners when toggling enabled state / rebinding view.
         binding.btnPendingDeploy.setOnCheckedChangeListener(null)
         binding.btnPendingDeploy.setOnCheckedChangeListener { _, _ ->
-            if (binding.btnPendingDeploy.isEnabled) onDraftChanged?.invoke()
+            if (binding.btnPendingDeploy.isEnabled) notifyDraftChanged()
         }
     }
 
@@ -308,7 +323,7 @@ class GutterBasicInfoFragment : Fragment() {
                 binding.tilTopWidth.error = null
             }
             applyCantOpenUi(checked)
-            onDraftChanged?.invoke()
+            notifyDraftChanged()
         }
     }
 
@@ -608,7 +623,7 @@ class GutterBasicInfoFragment : Fragment() {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) = Unit
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) = Unit
             override fun afterTextChanged(s: Editable?) {
-                onDraftChanged?.invoke()
+                notifyDraftChanged()
             }
         }
 
@@ -626,9 +641,9 @@ class GutterBasicInfoFragment : Fragment() {
         // 側溝形式另外要同步刷新明溝遮罩與可編輯狀態。
         binding.rgGutterType.setOnCheckedChangeListener { _, _ ->
             applyGutterTypeUi()
-            onDraftChanged?.invoke()
+            notifyDraftChanged()
         }
-        val radioListener = RadioGroup.OnCheckedChangeListener { _, _ -> onDraftChanged?.invoke() }
+        val radioListener = RadioGroup.OnCheckedChangeListener { _, _ -> notifyDraftChanged() }
         listOf(
             binding.rgMatType,
             binding.rgIsBroken,
@@ -671,7 +686,7 @@ class GutterBasicInfoFragment : Fragment() {
     fun updateCoordinates(longitude: Double, latitude: Double) {
         coordXValue = "%.6f".format(longitude)
         coordYValue = "%.6f".format(latitude)
-        onDraftChanged?.invoke()
+        notifyDraftChanged()
     }
 
     /** 切換虛擬點模式 */
@@ -682,7 +697,7 @@ class GutterBasicInfoFragment : Fragment() {
         binding.llVirtualHidden2.visibility = visibility
         // 根據需求保留「溝蓋板厚度」欄位，不隨虛擬模式隱藏
         binding.llVirtualHidden3.visibility = visibility
-        onDraftChanged?.invoke()
+        notifyDraftChanged()
     }
 
     fun setImportLocked(locked: Boolean) {
@@ -771,7 +786,14 @@ class GutterBasicInfoFragment : Fragment() {
             }
         }
         applyGutterTypeUi()
+        notifyDraftChanged()
+    }
+
+    private fun notifyDraftChanged() {
         onDraftChanged?.invoke()
+        if (_binding != null) {
+            draftChangeHost?.onBasicInfoDraftChanged(collectData())
+        }
     }
 
     private fun nodeTypCodeToText(code: String?): String = when (code) {

@@ -26,14 +26,15 @@ class GutterSessionFlowCoordinator {
     }
 
     fun createAddSessionStart(isOfflineMainMode: Boolean): AddSessionStart {
+        val draftId = System.currentTimeMillis()
         return AddSessionStart(
             // 先在 session 開始時就分配固定 draftId，讓 sheet 與表單共用同一筆草稿。
-            draftId = System.currentTimeMillis(),
+            draftId = draftId,
             isOffline = isOfflineMainMode,
             sheet = if (isOfflineMainMode) {
-                AddGutterBottomSheet.newOfflineInstance()
+                AddGutterBottomSheet.newOfflineInstance(draftId = draftId)
             } else {
-                AddGutterBottomSheet.newInstance()
+                AddGutterBottomSheet.newInstance(draftId = draftId)
             }
         )
     }

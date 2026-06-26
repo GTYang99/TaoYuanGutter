@@ -23,6 +23,7 @@ import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.StoreDitchNodeRequest
 import com.example.taoyuangutter.api.StoreDitchRequest
 import com.example.taoyuangutter.common.PhotoUriStore
+import com.example.taoyuangutter.common.PendingPhotoDraftState
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterBinding
 import com.example.taoyuangutter.login.LoginActivity
@@ -1002,7 +1003,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             try {
                 val normalized = PhotoUriStore.normalizeWaypointPhotoUris(
                     context = requireContext(),
-                    waypoints = waypoints,
+                    waypoints = waypoints.map { waypoint ->
+                        waypoint.copy(
+                            basicData = PendingPhotoDraftState.promotePendingFilesToPhotos(
+                                requireContext(),
+                                waypoint.basicData
+                            )
+                        )
+                    },
                     prefix = "GUTTER_EXT_"
                 )
                 var changed = false
@@ -1440,11 +1448,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         private const val ARG_IS_CURVE            = "is_curve"
 
         /** 新增模式（一般地圖流程） */
-        fun newInstance() = AddGutterBottomSheet()
+        fun newInstance(draftId: Long = 0L) = AddGutterBottomSheet().apply {
+            if (draftId > 0L) {
+                arguments = Bundle().apply { putLong(ARG_DRAFT_ID, draftId) }
+            }
+        }
 
         /** 新增模式（離線流程，顯示「取消」按鈕） */
-        fun newOfflineInstance() = AddGutterBottomSheet().apply {
-            arguments = Bundle().apply { putBoolean(ARG_OFFLINE_MODE, true) }
+        fun newOfflineInstance(draftId: Long = 0L) = AddGutterBottomSheet().apply {
+            arguments = Bundle().apply {
+                putBoolean(ARG_OFFLINE_MODE, true)
+                if (draftId > 0L) putLong(ARG_DRAFT_ID, draftId)
+            }
         }
 
         /** 檢視線段模式（點選 Polyline 後開啟） */
