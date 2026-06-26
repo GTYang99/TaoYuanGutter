@@ -1074,6 +1074,7 @@ class MainActivity : AppCompatActivity(),
             .setPositiveButton(getString(R.string.confirm)) { _, _ ->
                 activeSheet?.dismissAllowingStateLoss()
                 activeSheet = null
+                restoreMainUiAfterSheetClosed()
             }
             .setCancelable(false)
             .show()
@@ -1272,7 +1273,7 @@ class MainActivity : AppCompatActivity(),
                             isInEditingMode = false  // 刪除成功後退出編輯模式，允許重新加載 scope 線段
                             binding.btnAddGutter.visibility = View.VISIBLE
                             mapCameraController.setPersistentBottomInset(0)
-                            setMainButtonsEnabledRespectingInspectLock(true)
+                            restoreMainUiAfterSheetClosed()
                             Toast.makeText(this@MainActivity, String.format(getString(R.string.msg_delete_success), spiNum), Toast.LENGTH_SHORT).show()
                             // ── 重新加載地圖可視範圍內的側溝數據 ──
                             loadGuttersByViewport()
@@ -1590,6 +1591,23 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    /**
+     * 在 sheet / dialog 收尾後，嘗試把主畫面恢復到可操作狀態。
+     * 只有在沒有任何 loading、沒有任何 sheet、也沒有測距時才會真的解除 inspect lock。
+     */
+    private fun restoreMainUiAfterSheetClosed() {
+        if (mainBlockingUiController.isBusyBlocking()) {
+            mainBlockingUiController.setMainButtonsEnabled(false)
+            return
+        }
+        if (activeSheet != null || inspectSheet != null || isInspecting || measureManager?.isMeasuring == true) {
+            mainBlockingUiController.setMainButtonsEnabled(false)
+            return
+        }
+        isInspectUiLocked = false
+        mainBlockingUiController.setMainButtonsEnabled(true)
+    }
+
 
     /** 顯示「待上傳草稿」BottomSheet，並處理「繼續編輯」回呼。 */
     private fun showPendingDraftsSheet() {
@@ -1692,7 +1710,7 @@ class MainActivity : AppCompatActivity(),
                     currentSessionDraftId?.let { draftCoordinator.deleteDraftIfEffectivelyEmpty(it) }
                     currentSessionDraftId = null
                     isInEditingMode = false
-                    setMainButtonsEnabledRespectingInspectLock(true) // 關閉表單，還原按鈕
+                    restoreMainUiAfterSheetClosed() // 關閉表單後，若沒有其他阻擋才還原按鈕
                     mapCameraController.setPersistentBottomInset(0)
                     gutterMapController.clearPreviewLayer()
                     activeSheet = null

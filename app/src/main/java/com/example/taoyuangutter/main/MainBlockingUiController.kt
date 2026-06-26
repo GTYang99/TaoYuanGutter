@@ -52,6 +52,10 @@ class MainBlockingUiController(
         setPhotoUploadBlocking(false)
     }
 
+    fun isBusyBlocking(): Boolean {
+        return inspectLoadingVisible || photoUploadBlockingVisible
+    }
+
     fun setMainButtonsEnabled(enabled: Boolean) {
         fun setFabEnabled(view: View, value: Boolean) {
             view.isEnabled = value
