@@ -4,8 +4,10 @@ import com.example.taoyuangutter.R
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.OrientationEventListener
 import android.view.Surface
 import android.view.View
@@ -220,6 +222,7 @@ class LandscapeCameraActivity : AppCompatActivity() {
             ContextCompat.getMainExecutor(this),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
+                    logPhotoFileStats("capture", file)
                     val resultIntent = Intent().apply {
                         putExtra(EXTRA_RESULT_PATH, file.absolutePath)
                     }
@@ -233,6 +236,20 @@ class LandscapeCameraActivity : AppCompatActivity() {
                     Toast.makeText(this@LandscapeCameraActivity, getString(R.string.msg_camera_capture_failed), Toast.LENGTH_SHORT).show()
                 }
             }
+        )
+    }
+
+    private fun logPhotoFileStats(stage: String, file: File) {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        runCatching { BitmapFactory.decodeFile(file.absolutePath, bounds) }
+        val dimensionText = if (bounds.outWidth > 0 && bounds.outHeight > 0) {
+            "${bounds.outWidth}x${bounds.outHeight}"
+        } else {
+            "unknown"
+        }
+        Log.i(
+            "LandscapeCamera",
+            "$stage photo path=${file.absolutePath}, size=${file.length() / 1024} KB, dimensions=$dimensionText"
         )
     }
 }

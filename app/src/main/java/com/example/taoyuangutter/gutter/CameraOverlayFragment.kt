@@ -722,7 +722,9 @@ class CameraOverlayFragment : Fragment() {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
                     viewLifecycleOwner.lifecycleScope.launch {
                         val galleryCopy = withContext(Dispatchers.IO) {
+                            logJpegSpec("normalize-original", file)
                             normalizeCapturedPhotoOrientation(file)
+                            logJpegSpec("normalize-converted", file)
                             PhotoAlbumStore.copyToSystemAlbum(requireContext(), file)
                         }
                         if (galleryCopy == null) {
@@ -742,6 +744,39 @@ class CameraOverlayFragment : Fragment() {
                     Toast.makeText(requireContext(), getString(R.string.msg_camera_capture_failed), Toast.LENGTH_SHORT).show()
                 }
             }
+        )
+    }
+
+    private fun logPhotoFileStats(stage: String, file: File) {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        runCatching {
+            BitmapFactory.decodeFile(file.absolutePath, bounds)
+        }
+
+        val sizeText = "${file.length() / 1024} KB"
+        val dimensionText = if (bounds.outWidth > 0 && bounds.outHeight > 0) {
+            "${bounds.outWidth}x${bounds.outHeight}"
+        } else {
+            "unknown"
+        }
+
+        Log.i(
+            "CameraOverlay",
+            "$stage photo path=${file.absolutePath}, size=$sizeText, dimensions=$dimensionText"
+        )
+    }
+
+    private fun logJpegSpec(stage: String, file: File) {
+        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+        runCatching { BitmapFactory.decodeFile(file.absolutePath, bounds) }
+        val dimensionText = if (bounds.outWidth > 0 && bounds.outHeight > 0) {
+            "${bounds.outWidth}x${bounds.outHeight}"
+        } else {
+            "unknown"
+        }
+        Log.i(
+            "CameraOverlay",
+            "$stage jpg path=${file.absolutePath}, bytes=${file.length()}, dimensions=$dimensionText"
         )
     }
 
@@ -827,9 +862,14 @@ class CameraOverlayFragment : Fragment() {
             }
 
             FileOutputStream(file).use { out ->
-                output.compress(Bitmap.CompressFormat.JPEG, 95, out)
+                output.compress(Bitmap.CompressFormat.JPEG, 100, out)
             }
             output.recycle()
+
+            Log.i(
+                "CameraOverlay",
+                "normalize-jpeg completed path=${file.absolutePath}, bytes=${file.length()}, dimensions=${output.width}x${output.height}, orientation=$orientation, applyColor=$shouldApplyColorMatrix"
+            )
 
             val fixedExif = ExifInterface(file.absolutePath)
             fixedExif.setAttribute(

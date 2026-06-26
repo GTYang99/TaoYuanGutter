@@ -554,10 +554,19 @@ class GutterRepository(
         token: String
     ): ApiResult<NodeImageUploadResponse> {
         return try {
+            val sourceStats = readImageStats(context, imageUri)
+            val sourceSizeText = sourceStats?.sizeBytes?.let { "${it / 1024} KB" } ?: "unknown"
+            val sourceDimensionText = sourceStats?.let { "${it.width}x${it.height}" } ?: "unknown"
+            android.util.Log.i(
+                "CameraOverlay",
+                "upload-before-compress uri=$imageUri, size=$sourceSizeText, dimensions=$sourceDimensionText"
+            )
+            logImageStats("upload-source", context, imageUri)
             // 壓縮並縮放圖片後再上傳，顯著減少上傳時間
             val tempFile = withContext(Dispatchers.IO) {
                 compressImageToTempFile(context, imageUri)
             } ?: return ApiResult.Error("無法處理圖片檔案")
+            logImageStats("upload-temp", tempFile)
 
             try {
                 android.util.Log.i(
@@ -595,8 +604,8 @@ class GutterRepository(
 
     /**
      * 依據目前連線狀態 (如行動數據、頻寬慢速) 提供自適應圖片品質與尺寸。
-     * - Wi-Fi 或好網路：1080px / 品質 55%
-     * - 行動數據或慢速網路：960px / 品質 50%
+     * - Wi-Fi 或好網路：1920px / 品質 80%
+     * - 行動數據或慢速網路：1440px / 品質 80%
      */
     private fun getAdaptiveQualityAndSize(context: Context): Pair<Int, Int> {
         return try {
@@ -607,16 +616,117 @@ class GutterRepository(
                 if (capabilities != null) {
                     val hasCellular = capabilities.hasTransport(android.net.NetworkCapabilities.TRANSPORT_CELLULAR)
                     val linkDownstream = capabilities.linkDownstreamBandwidthKbps
-                    val isSlow = linkDownstream in 1..1500 // < 1.5 Mbps
+                    val isSlow = linkDownstream in 1..3000 // < 3 Mbps
                     if (hasCellular || isSlow) {
-                        return Pair(960, 50) // 極致壓縮
+                        return Pair(1440, 100) // 極致壓縮
                     }
                 }
             }
-            Pair(1080, 55) // 預設優化值 (下修自原本的 1440px / 70%)
+            Pair(1440, 100) // 預設優化值 (下修自原本的 1440px / 70%)
         } catch (e: Exception) {
-            Pair(1080, 55)
+            Pair(1440, 100)
         }
+    }
+
+    private data class ImageStats(
+        val width: Int,
+        val height: Int,
+        val sizeBytes: Long?
+    )
+
+    private fun logImageStats(stage: String, context: Context, uri: Uri) {
+        val stats = readImageStats(context, uri)
+        val sizeText = stats?.sizeBytes?.let { "${it / 1024} KB" } ?: "unknown"
+        val dimensionText = stats?.let { "${it.width}x${it.height}" } ?: "unknown"
+        android.util.Log.i(
+            "PhotoUpload",
+            "$stage uri=$uri, size=$sizeText, dimensions=$dimensionText"
+        )
+    }
+
+    private fun logImageStats(stage: String, file: File) {
+        val stats = readImageStats(file)
+        val sizeText = stats?.sizeBytes?.let { "${it / 1024} KB" } ?: "unknown"
+        val dimensionText = stats?.let { "${it.width}x${it.height}" } ?: "unknown"
+        android.util.Log.i(
+            "PhotoUpload",
+            "$stage file=${file.absolutePath}, size=$sizeText, dimensions=$dimensionText"
+        )
+    }
+
+    private fun readImageStats(context: Context, uri: Uri): ImageStats? {
+        return runCatching {
+            resolveLocalFile(context, uri)?.let { file ->
+                val options = android.graphics.BitmapFactory.Options().apply {
+                    inJustDecodeBounds = true
+                }
+                android.graphics.BitmapFactory.decodeFile(file.absolutePath, options)
+                return ImageStats(
+                    width = options.outWidth,
+                    height = options.outHeight,
+                    sizeBytes = file.length()
+                )
+            }
+
+            val options = android.graphics.BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                android.graphics.BitmapFactory.decodeStream(inputStream, null, options)
+            } ?: return null
+
+            val sizeBytes = runCatching {
+                context.contentResolver.openAssetFileDescriptor(uri, "r")?.length
+            }.getOrNull()
+
+            ImageStats(
+                width = options.outWidth,
+                height = options.outHeight,
+                sizeBytes = sizeBytes
+            )
+        }.getOrNull()
+    }
+
+    private fun readImageStats(file: File): ImageStats? {
+        return runCatching {
+            val options = android.graphics.BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            android.graphics.BitmapFactory.decodeFile(file.absolutePath, options)
+            ImageStats(
+                width = options.outWidth,
+                height = options.outHeight,
+                sizeBytes = file.length()
+            )
+        }.getOrNull()
+    }
+
+    private fun resolveLocalFile(context: Context, uri: Uri): File? {
+        return when (uri.scheme?.lowercase()) {
+            "file" -> uri.path?.let(::File)
+            "content" -> resolveOurFileProviderFile(context, uri)
+            else -> null
+        }
+    }
+
+    private fun resolveOurFileProviderFile(context: Context, uri: Uri): File? {
+        val expectedAuthority = "${context.packageName}.fileprovider"
+        if (uri.authority != expectedAuthority) return null
+
+        val segments = uri.pathSegments
+        if (segments.isEmpty()) return null
+
+        val rootName = segments.firstOrNull() ?: return null
+        val relativePath = segments.drop(1).joinToString(separator = "/")
+        if (relativePath.isBlank()) return null
+
+        val baseDir: File = when (rootName) {
+            "gutter_images_external" -> context.getExternalFilesDir(Environment.DIRECTORY_PICTURES) ?: return null
+            "gutter_images_internal" -> context.filesDir
+            else -> return null
+        }
+
+        return File(baseDir, relativePath)
     }
 
     private fun calculateInSampleSize(context: Context, uri: Uri, maxSize: Int): Int {
@@ -649,6 +759,16 @@ class GutterRepository(
     private fun compressImageToTempFile(context: Context, uri: Uri): File? {
         return try {
             val (maxSize, quality) = getAdaptiveQualityAndSize(context)
+            android.util.Log.i(
+                "CameraOverlay",
+                "adaptive-config uri=$uri, maxSize=$maxSize, quality=$quality"
+            )
+            val sourceStatsForSize = readImageStats(context, uri)
+            android.util.Log.i(
+                "CameraOverlay",
+                "compress-source-size uri=$uri, bytes=${sourceStatsForSize?.sizeBytes ?: -1L}, dimensions=${sourceStatsForSize?.width}x${sourceStatsForSize?.height}"
+            )
+            logImageStats("compress-source", context, uri)
 
             // 1. 使用 ImageDecoder 或 BitmapFactory 載入 Bitmap
             val decodedBitmap: android.graphics.Bitmap? = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
@@ -691,9 +811,13 @@ class GutterRepository(
             FileOutputStream(tempFile).use { out ->
                 rotatedBitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, quality, out)
             }
-            
-            val originalSize = context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { it.length } ?: 0
-            android.util.Log.i("GutterRepository", "圖片壓縮完成 (${maxSize}px, ${quality}%): 原始=${originalSize / 1024}KB -> 壓縮後=${tempFile.length() / 1024}KB (約縮小 ${if(originalSize>0) 100 - (tempFile.length()*100/originalSize) else 0}%)")
+            logImageStats("compress-temp", tempFile)
+            val originalStats = readImageStats(context, uri)
+            val originalSize = originalStats?.sizeBytes ?: 0L
+            android.util.Log.i(
+                "GutterRepository",
+                "圖片壓縮完成 (${maxSize}px, ${quality}%): 原始=${originalSize / 1024}KB, 壓縮後=${tempFile.length() / 1024}KB, 原始尺寸=${originalStats?.width}x${originalStats?.height}, 壓縮尺寸=${rotatedBitmap.width}x${rotatedBitmap.height}"
+            )
             
             if (rotatedBitmap != scaledBitmap) scaledBitmap.recycle()
             rotatedBitmap.recycle()
