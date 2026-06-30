@@ -550,6 +550,8 @@ class GutterPhotosFragment : Fragment() {
     }
 
     private fun clearPhotoSlot(slot: Int, notifyDraftChanged: Boolean) {
+        (activity as? GutterFormActivity)?.beginPhotoDraftBatch()
+        try {
         when (slot) {
             1 -> {
                 photoUriSlot1 = null
@@ -579,6 +581,9 @@ class GutterPhotosFragment : Fragment() {
             draftChangeHost?.onPendingPhotoDraftChanged(slot, null)
         }
         if (notifyDraftChanged) notifyDraftChanged()
+        } finally {
+            (activity as? GutterFormActivity)?.endPhotoDraftBatch()
+        }
     }
 
     /**

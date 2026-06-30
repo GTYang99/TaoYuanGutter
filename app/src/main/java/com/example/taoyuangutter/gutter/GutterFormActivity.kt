@@ -83,6 +83,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private lateinit var pagerAdapter: GutterFormPagerAdapter
     private var photoLoadingCount: Int = 0
     private var restoredCurrentFormData: HashMap<String, String>? = null
+    private var photoDraftBatchDepth: Int = 0
+    private var pendingPhotoDraftSync: Boolean = false
 
     override fun setPhotoLoading(visible: Boolean) {
         if (!::binding.isInitialized) return
@@ -97,17 +99,29 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     override fun onPhotosDraftChanged(photo1: String?, photo2: String?, photo3: String?) {
         updateCurrentFormPhotos(photo1, photo2, photo3)
-        queueSessionDraftSync()
+        queuePhotoDraftSync()
     }
 
     override fun onPhotoCapturedAtDraftChanged(slot: Int, capturedAt: String?) {
         updateCurrentPhotoCapturedAt(slot, capturedAt)
-        queueSessionDraftSync()
+        queuePhotoDraftSync()
     }
 
     override fun onPendingPhotoDraftChanged(slot: Int, pendingOutputPath: String?) {
         updateCurrentPendingPhoto(slot, pendingOutputPath)
-        queueSessionDraftSync()
+        queuePhotoDraftSync()
+    }
+
+    fun beginPhotoDraftBatch() {
+        photoDraftBatchDepth++
+    }
+
+    fun endPhotoDraftBatch() {
+        photoDraftBatchDepth = (photoDraftBatchDepth - 1).coerceAtLeast(0)
+        if (photoDraftBatchDepth == 0 && pendingPhotoDraftSync) {
+            pendingPhotoDraftSync = false
+            queueSessionDraftSync()
+        }
     }
 
     fun showCameraOverlay(slot: Int, outputPath: String) {
@@ -1854,6 +1868,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (isViewMode) return
         if (currentIndex !in sessionWaypoints.indices) return
         syncSessionDraftNowBlocking()
+    }
+
+    private fun queuePhotoDraftSync() {
+        if (photoDraftBatchDepth > 0) {
+            pendingPhotoDraftSync = true
+            return
+        }
+        queueSessionDraftSync()
     }
 
     /** 立即將目前表單狀態同步寫入草稿。 */
