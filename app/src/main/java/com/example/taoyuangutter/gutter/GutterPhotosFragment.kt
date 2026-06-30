@@ -23,6 +23,7 @@ import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.taoyuangutter.databinding.FragmentGutterPhotosBinding
+import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
@@ -34,6 +35,7 @@ class GutterPhotosFragment : Fragment() {
 
     interface DraftChangeHost {
         fun onPhotosDraftChanged(photo1: String?, photo2: String?, photo3: String?)
+        fun onPhotoCapturedAtDraftChanged(slot: Int, capturedAt: String?)
         fun onPendingPhotoDraftChanged(slot: Int, pendingOutputPath: String?)
     }
 
@@ -45,6 +47,9 @@ class GutterPhotosFragment : Fragment() {
     private var photoUriSlot1: Uri? = null
     private var photoUriSlot2: Uri? = null
     private var photoUriSlot3: Uri? = null
+    private var photoCapturedAtSlot1: String? = null
+    private var photoCapturedAtSlot2: String? = null
+    private var photoCapturedAtSlot3: String? = null
     private var isImportLocked: Boolean = false
 
     /** 目前正在等候拍照結果的照片欄位（1/2/3） */
@@ -113,10 +118,16 @@ class GutterPhotosFragment : Fragment() {
         const val ARG_PHOTO_1      = "arg_photo_1"
         const val ARG_PHOTO_2      = "arg_photo_2"
         const val ARG_PHOTO_3      = "arg_photo_3"
+        const val ARG_PHOTO_1_CAPTURED_AT = "arg_photo_1_captured_at"
+        const val ARG_PHOTO_2_CAPTURED_AT = "arg_photo_2_captured_at"
+        const val ARG_PHOTO_3_CAPTURED_AT = "arg_photo_3_captured_at"
         // savedInstanceState keys
         private const val KEY_PHOTO_1        = "photo_1"
         private const val KEY_PHOTO_2        = "photo_2"
         private const val KEY_PHOTO_3        = "photo_3"
+        private const val KEY_PHOTO_1_CAPTURED_AT = "photo_1_captured_at"
+        private const val KEY_PHOTO_2_CAPTURED_AT = "photo_2_captured_at"
+        private const val KEY_PHOTO_3_CAPTURED_AT = "photo_3_captured_at"
         private const val KEY_PENDING_SLOT   = "pending_slot"
         private const val KEY_PENDING_PATH   = "pending_path"
 
@@ -125,6 +136,9 @@ class GutterPhotosFragment : Fragment() {
             photo1: String? = null,
             photo2: String? = null,
             photo3: String? = null,
+            capturedAt1: String? = null,
+            capturedAt2: String? = null,
+            capturedAt3: String? = null,
             isImported: Boolean = false // 新增：傳入匯入旗標
         ) = GutterPhotosFragment().apply {
             arguments = Bundle().apply {
@@ -133,6 +147,9 @@ class GutterPhotosFragment : Fragment() {
                 if (!photo1.isNullOrEmpty()) putString(ARG_PHOTO_1, photo1)
                 if (!photo2.isNullOrEmpty()) putString(ARG_PHOTO_2, photo2)
                 if (!photo3.isNullOrEmpty()) putString(ARG_PHOTO_3, photo3)
+                if (!capturedAt1.isNullOrEmpty()) putString(ARG_PHOTO_1_CAPTURED_AT, capturedAt1)
+                if (!capturedAt2.isNullOrEmpty()) putString(ARG_PHOTO_2_CAPTURED_AT, capturedAt2)
+                if (!capturedAt3.isNullOrEmpty()) putString(ARG_PHOTO_3_CAPTURED_AT, capturedAt3)
             }
         }
     }
@@ -152,6 +169,9 @@ class GutterPhotosFragment : Fragment() {
             savedInstanceState.getString(KEY_PHOTO_1)?.let { photoUriSlot1 = Uri.parse(it) }
             savedInstanceState.getString(KEY_PHOTO_2)?.let { photoUriSlot2 = Uri.parse(it) }
             savedInstanceState.getString(KEY_PHOTO_3)?.let { photoUriSlot3 = Uri.parse(it) }
+            photoCapturedAtSlot1 = savedInstanceState.getString(KEY_PHOTO_1_CAPTURED_AT)
+            photoCapturedAtSlot2 = savedInstanceState.getString(KEY_PHOTO_2_CAPTURED_AT)
+            photoCapturedAtSlot3 = savedInstanceState.getString(KEY_PHOTO_3_CAPTURED_AT)
             pendingSlot       = savedInstanceState.getInt(KEY_PENDING_SLOT, 0)
             pendingOutputPath = savedInstanceState.getString(KEY_PENDING_PATH)
         } else {
@@ -161,6 +181,9 @@ class GutterPhotosFragment : Fragment() {
             photoUriSlot1 = tryLoad(arguments?.getString(ARG_PHOTO_1))
             photoUriSlot2 = tryLoad(arguments?.getString(ARG_PHOTO_2))
             photoUriSlot3 = tryLoad(arguments?.getString(ARG_PHOTO_3))
+            photoCapturedAtSlot1 = arguments?.getString(ARG_PHOTO_1_CAPTURED_AT)
+            photoCapturedAtSlot2 = arguments?.getString(ARG_PHOTO_2_CAPTURED_AT)
+            photoCapturedAtSlot3 = arguments?.getString(ARG_PHOTO_3_CAPTURED_AT)
         }
     }
 
@@ -191,6 +214,11 @@ class GutterPhotosFragment : Fragment() {
             if (code == Activity.RESULT_OK && !path.isNullOrBlank() && slot in 1..3) {
                 (activity as? PhotoLoadingHost)?.setPhotoLoading(true)
                 val file = File(path)
+                setCapturedAtForSlot(
+                    slot = slot,
+                    capturedAt = PhotoCapturedAtResolver.resolveBestEffort(requireContext(), file.absolutePath),
+                    notifyDraftChanged = true
+                )
                 val uri = try {
                     FileProvider.getUriForFile(
                         requireContext(),
@@ -228,6 +256,9 @@ class GutterPhotosFragment : Fragment() {
         photoUriSlot1?.let { outState.putString(KEY_PHOTO_1, it.toString()) }
         photoUriSlot2?.let { outState.putString(KEY_PHOTO_2, it.toString()) }
         photoUriSlot3?.let { outState.putString(KEY_PHOTO_3, it.toString()) }
+        photoCapturedAtSlot1?.let { outState.putString(KEY_PHOTO_1_CAPTURED_AT, it) }
+        photoCapturedAtSlot2?.let { outState.putString(KEY_PHOTO_2_CAPTURED_AT, it) }
+        photoCapturedAtSlot3?.let { outState.putString(KEY_PHOTO_3_CAPTURED_AT, it) }
         outState.putInt(KEY_PENDING_SLOT, pendingSlot)
         pendingOutputPath?.let { outState.putString(KEY_PENDING_PATH, it) }
     }
@@ -465,6 +496,7 @@ class GutterPhotosFragment : Fragment() {
         applyPhotoToSlot(1, photoUriSlot1, notifyDraftChanged = false)
         applyPhotoToSlot(2, photoUriSlot2, notifyDraftChanged = false)
         applyPhotoToSlot(3, photoUriSlot3, notifyDraftChanged = false)
+        renderCapturedAtLabels()
     }
 
     private fun applyPhotoToSlot(slot: Int, uri: Uri?, notifyDraftChanged: Boolean) {
@@ -521,21 +553,28 @@ class GutterPhotosFragment : Fragment() {
         when (slot) {
             1 -> {
                 photoUriSlot1 = null
+                photoCapturedAtSlot1 = null
                 showPhoto(1, binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, null)
                 binding.btnDeleteSlot1.visibility = View.GONE
             }
             2 -> {
                 photoUriSlot2 = null
+                photoCapturedAtSlot2 = null
                 showPhoto(2, binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, null)
                 binding.btnDeleteSlot2.visibility = View.GONE
             }
             3 -> {
                 photoUriSlot3 = null
+                photoCapturedAtSlot3 = null
                 showPhoto(3, binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
                 binding.btnDeleteSlot3.visibility = View.GONE
             }
         }
+        renderCapturedAtLabels()
         (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
+        if (!suppressDraftChangeCallback) {
+            draftChangeHost?.onPhotoCapturedAtDraftChanged(slot, null)
+        }
         if (!suppressDraftChangeCallback) {
             draftChangeHost?.onPendingPhotoDraftChanged(slot, null)
         }
@@ -586,16 +625,33 @@ class GutterPhotosFragment : Fragment() {
         photoUriSlot3?.toString()
     )
 
+    fun getPhotoCapturedAt(slot: Int): String? = when (slot) {
+        1 -> photoCapturedAtSlot1
+        2 -> photoCapturedAtSlot2
+        3 -> photoCapturedAtSlot3
+        else -> null
+    }?.takeIf { it.isNotBlank() }
+
     /**
      * 將已正規化後的草稿照片路徑回寫到 Fragment 狀態。
      * 不再次觸發草稿回寫，避免 Activity 在同步草稿後形成遞迴。
      */
-    fun syncPersistedPhotoPaths(photo1: String?, photo2: String?, photo3: String?) {
+    fun syncPersistedPhotoState(
+        photo1: String?,
+        photo2: String?,
+        photo3: String?,
+        capturedAt1: String?,
+        capturedAt2: String?,
+        capturedAt3: String?
+    ) {
         suppressDraftChangeCallback = true
         try {
             photoUriSlot1 = parseUriString(photo1)
             photoUriSlot2 = parseUriString(photo2)
             photoUriSlot3 = parseUriString(photo3)
+            photoCapturedAtSlot1 = capturedAt1?.takeIf { it.isNotBlank() }
+            photoCapturedAtSlot2 = capturedAt2?.takeIf { it.isNotBlank() }
+            photoCapturedAtSlot3 = capturedAt3?.takeIf { it.isNotBlank() }
             if (_binding != null) {
                 renderStoredPhotoSlots()
             }
@@ -608,10 +664,20 @@ class GutterPhotosFragment : Fragment() {
      * 匯入既有點位資料後，將下載完成的照片 URI 預填入三個欄位。
      * @param photo1-3 內容 URI（content:// 或 file://），null/空字串表示該欄位仍需補拍
      */
-    fun prefillPhotos(photo1: String?, photo2: String?, photo3: String?) {
+    fun prefillPhotos(
+        photo1: String?,
+        photo2: String?,
+        photo3: String?,
+        capturedAt1: String? = null,
+        capturedAt2: String? = null,
+        capturedAt3: String? = null
+    ) {
         photoUriSlot1 = parseUriString(photo1)
         photoUriSlot2 = parseUriString(photo2)
         photoUriSlot3 = parseUriString(photo3)
+        photoCapturedAtSlot1 = capturedAt1?.takeIf { it.isNotBlank() }
+        photoCapturedAtSlot2 = capturedAt2?.takeIf { it.isNotBlank() }
+        photoCapturedAtSlot3 = capturedAt3?.takeIf { it.isNotBlank() }
         if (_binding != null) {
             renderStoredPhotoSlots()
 
@@ -629,6 +695,42 @@ class GutterPhotosFragment : Fragment() {
             photoUriSlot2?.toString(),
             photoUriSlot3?.toString()
         )
+    }
+
+    private fun setCapturedAtForSlot(slot: Int, capturedAt: String?, notifyDraftChanged: Boolean) {
+        val normalized = capturedAt?.takeIf { it.isNotBlank() }
+        when (slot) {
+            1 -> photoCapturedAtSlot1 = normalized
+            2 -> photoCapturedAtSlot2 = normalized
+            3 -> photoCapturedAtSlot3 = normalized
+            else -> return
+        }
+        renderCapturedAtLabels()
+        if (notifyDraftChanged && !suppressDraftChangeCallback) {
+            draftChangeHost?.onPhotoCapturedAtDraftChanged(slot, normalized)
+        }
+    }
+
+    private fun renderCapturedAtLabels() {
+        if (_binding == null) return
+        bindCapturedAt(binding.tvPhotoTime1, photoUriSlot1 != null, photoCapturedAtSlot1)
+        bindCapturedAt(binding.tvPhotoTime2, photoUriSlot2 != null, photoCapturedAtSlot2)
+        bindCapturedAt(binding.tvPhotoTime3, photoUriSlot3 != null, photoCapturedAtSlot3)
+    }
+
+    private fun bindCapturedAt(
+        view: android.widget.TextView,
+        hasPhoto: Boolean,
+        capturedAt: String?
+    ) {
+        if (!hasPhoto) {
+            view.text = ""
+            view.visibility = View.GONE
+            return
+        }
+        val text = capturedAt?.takeIf { it.isNotBlank() } ?: "-"
+        view.text = text
+        view.visibility = View.VISIBLE
     }
 
     private fun parseUriString(uriString: String?): Uri? =

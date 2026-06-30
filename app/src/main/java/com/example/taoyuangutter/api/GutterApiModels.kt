@@ -58,7 +58,9 @@ data class WaypointRequest(
     /** 側溝內徑寬度尺寸（橫向 4:3） */
     @SerializedName("PHOTO_WID")   val photoWid: String = "",
     /** 側溝深度尺寸（橫向 4:3） */
-    @SerializedName("PHOTO_DEP")   val photoDep: String = ""
+    @SerializedName("PHOTO_DEP")   val photoDep: String = "",
+    /** 三張照片拍攝時間，依照片欄位順序對應 */
+    @SerializedName("captured_at") val capturedAt: List<String> = emptyList()
 )
 
 /** 上傳整條側溝的 Request Body */
@@ -359,6 +361,8 @@ data class NodeDetails(
     @SerializedName("is_virtual") val isVirtual: String? = null,
     /** 已上傳的照片列表 */
     @SerializedName("node_img")   val nodeImg: List<NodeImg> = emptyList(),
+    /** 照片拍攝時間，依 fileCategory 1/2/3 順序對應 */
+    @SerializedName("captured_at") val capturedAt: List<String> = emptyList(),
     /** 與查詢點的距離（closestNodeDetails 會回傳，可能為字串數字） */
     @SerializedName("distance")   val distance: String? = null
 ) {
@@ -485,7 +489,9 @@ data class StoreDitchNodeRequest(
     /** 淤積程度：0=無、1=輕度、2=中度、3=嚴重 */
     @SerializedName("IS_SILT")    val isSilt: Int?,
     /** 補充說明（非必填） */
-    @SerializedName("NODE_NOTE")  val nodeNote: String? = null
+    @SerializedName("NODE_NOTE")  val nodeNote: String? = null,
+    /** 三張照片拍攝時間，依照片欄位 1/2/3 順序對應 */
+    @SerializedName("captured_at") val capturedAt: List<String>? = null
 )
 
 /**

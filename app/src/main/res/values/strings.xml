@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="photo_time_placeholder" translatable="false">2026-06-24 16:48:01</string>
     <string name="app_name">TaoYuanGutter</string>
     <string name="welcome_title">您好，歡迎使用</string>
     <string name="platform_title">桃園市道路側溝資料平台</string>

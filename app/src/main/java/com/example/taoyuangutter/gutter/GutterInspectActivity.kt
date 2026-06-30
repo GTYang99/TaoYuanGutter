@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.AbsoluteSizeSpan
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.WindowManager
@@ -18,6 +19,9 @@ import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
+import com.example.taoyuangutter.api.NodeDetails
+import com.example.taoyuangutter.api.safeCapturedAt
+import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.databinding.ActivityGutterInspectBinding
 import com.example.taoyuangutter.login.LoginActivity
 import com.google.gson.Gson
@@ -65,6 +69,7 @@ class GutterInspectActivity : AppCompatActivity() {
     }
 
     companion object {
+        private const val TAG = "GutterInspectActivity"
         private const val EXTRA_DITCH_JSON        = "ditch_json"
         private const val EXTRA_CAN_EDIT          = "can_edit"
         private const val EXTRA_LATITUDES         = "latitudes"
@@ -313,6 +318,14 @@ class GutterInspectActivity : AppCompatActivity() {
         ditch: DitchDetails,
         token: String
     ): EditPreloadResult {
+        val preloadedDetailsByNodeId = parsePreloadedNodeDetails(preloadedNodeDetailsJson)
+            .mapNotNull { detail ->
+                val nodeId = detail.nodeId ?: return@mapNotNull null
+                nodeId to detail
+            }
+            .toMap()
+        val preloadedPhotosByNodeId = parsePreloadedNodePhotos(preloadedNodePhotosJson)
+            .associateBy { it.nodeId }
         val orderedNodes = ditch.nodes.sortedWith(
             compareBy(
                 { when (it.nodeAtt) { "1" -> 0; "3" -> 2; else -> 1 } },
@@ -324,46 +337,77 @@ class GutterInspectActivity : AppCompatActivity() {
 
         orderedNodes.forEachIndexed { idx, node ->
             val target = result.getOrNull(idx) ?: run {
+                Log.w(TAG, "edit preload target waypoint missing for nodeId=${node.nodeId} index=$idx")
                 hasFailure = true
                 return@forEachIndexed
             }
-            val nodeResult = repository.getNodeDetails(node.nodeId, token)
-            val nodeDetails = when (nodeResult) {
-                is ApiResult.Success -> nodeResult.data.data?.firstOrNull()
-                is ApiResult.Error -> null
+            val nodeDetails = preloadedDetailsByNodeId[node.nodeId] ?: run {
+                Log.w(TAG, "edit preload detail cache miss; fallback getNodeDetails nodeId=${node.nodeId}")
+                val nodeResult = repository.getNodeDetails(node.nodeId, token)
+                when (nodeResult) {
+                    is ApiResult.Success -> nodeResult.data.data?.firstOrNull()
+                    is ApiResult.Error -> {
+                        Log.w(
+                            TAG,
+                            "edit preload getNodeDetails failed nodeId=${node.nodeId} code=${nodeResult.code} message=${nodeResult.message}"
+                        )
+                        null
+                    }
+                }
             }
             if (nodeDetails == null) {
+                Log.w(TAG, "edit preload nodeDetails unavailable nodeId=${node.nodeId}")
                 hasFailure = true
                 return@forEachIndexed
             }
             val lat = nodeDetails.latitude?.toDoubleOrNull() ?: target.latLng?.latitude ?: wgsLatitudes.getOrNull(idx)
             val lng = nodeDetails.longitude?.toDoubleOrNull() ?: target.latLng?.longitude ?: wgsLongitudes.getOrNull(idx)
             val latLng = if (lat != null && lng != null) LatLng(lat, lng) else null
+            val preloadedPhotos = preloadedPhotosByNodeId[node.nodeId]
 
-            suspend fun downloadRequiredPhoto(category: String, prefix: String): String {
-                val url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == category }?.url
-                if (url.isNullOrBlank()) return ""
+            suspend fun resolvePhoto(category: String, prefix: String): String {
+                val cachedPhoto = preloadedPhotos.photoForCategory(category)
+                if (cachedPhoto.isNotBlank()) {
+                    return cachedPhoto
+                }
+                val url = node.url.firstOrNull { it.fileCategory == category }?.url
+                    ?: nodeDetails.nodeImg.firstOrNull { it.fileCategory == category }?.url
+                if (url.isNullOrBlank()) {
+                    Log.d(TAG, "edit preload photo absent nodeId=${node.nodeId} category=$category")
+                    return ""
+                }
+                Log.w(
+                    TAG,
+                    "edit preload photo cache miss; fallback download nodeId=${node.nodeId} category=$category url=$url"
+                )
                 return repository.downloadImageToLocalContentUri(
                     context = this,
                     url = url,
                     prefix = prefix
                 )?.toString() ?: run {
+                    Log.w(
+                        TAG,
+                        "edit preload fallback photo download failed nodeId=${node.nodeId} category=$category url=$url"
+                    )
                     hasFailure = true
                     ""
                 }
             }
 
-            val photo1 = downloadRequiredPhoto("1", "EDIT_${node.nodeId}_1_")
-            val photo2 = downloadRequiredPhoto("2", "EDIT_${node.nodeId}_2_")
-            val photo3 = downloadRequiredPhoto("3", "EDIT_${node.nodeId}_3_")
+            val photo1 = resolvePhoto("1", "EDIT_${node.nodeId}_1_")
+            val photo2 = resolvePhoto("2", "EDIT_${node.nodeId}_2_")
+            val photo3 = resolvePhoto("3", "EDIT_${node.nodeId}_3_")
 
             val basicData = hashMapOf(
                 "_nodeId" to node.nodeId.toString(),
                 "SPI_NUM" to ditch.spiNum,
                 "NODE_TYP" to (nodeDetails.nodeTyP ?: ""),
                 "MAT_TYP" to (nodeDetails.matTyp ?: ""),
+                // Keep current edit-flow compatibility: form preload still expects map-like lon/lat here.
                 "NODE_X" to (nodeDetails.longitude ?: ""),
                 "NODE_Y" to (nodeDetails.latitude ?: ""),
+                "_nodeCoordX" to (nodeDetails.nodeX ?: ""),
+                "_nodeCoordY" to (nodeDetails.nodeY ?: ""),
                 "NODE_LE" to (nodeDetails.nodeLe ?: ""),
                 "XY_NUM" to (nodeDetails.xyNum ?: ""),
                 "COVER_DEP" to nodeDetails.coverDepAsString,
@@ -380,6 +424,31 @@ class GutterInspectActivity : AppCompatActivity() {
                 "photo2" to photo2,
                 "photo3" to photo3
             )
+            PhotoCapturedAtResolver.writeBasicData(
+                basicData,
+                1,
+                nodeDetails.safeCapturedAt(0, TAG, "edit preload")
+            )
+            PhotoCapturedAtResolver.writeBasicData(
+                basicData,
+                2,
+                nodeDetails.safeCapturedAt(1, TAG, "edit preload")
+            )
+            PhotoCapturedAtResolver.writeBasicData(
+                basicData,
+                3,
+                nodeDetails.safeCapturedAt(2, TAG, "edit preload")
+            )
+
+            Log.w(
+                TAG,
+                "edit preload mapped nodeId=${node.nodeId} label=${target.label} " +
+                    "mapLat=${latLng?.latitude} mapLng=${latLng?.longitude} " +
+                    "formNODE_X=${basicData["NODE_X"]} formNODE_Y=${basicData["NODE_Y"]} " +
+                    "rawNodeCoordX=${basicData["_nodeCoordX"]} rawNodeCoordY=${basicData["_nodeCoordY"]} " +
+                    "xyNum=${basicData["XY_NUM"]} nodeTyp=${basicData["NODE_TYP"]} matTyp=${basicData["MAT_TYP"]} " +
+                    "photo1=${photo1.isNotBlank()} photo2=${photo2.isNotBlank()} photo3=${photo3.isNotBlank()}"
+            )
 
             target.latLng = latLng
             target.basicData = basicData
@@ -389,6 +458,35 @@ class GutterInspectActivity : AppCompatActivity() {
             waypoints = result,
             hasFailure = hasFailure
         )
+    }
+
+    private fun parsePreloadedNodeDetails(json: String?): List<NodeDetails> {
+        return try {
+            val type = object : TypeToken<List<NodeDetails>>() {}.type
+            Gson().fromJson<List<NodeDetails>>(json ?: "[]", type) ?: emptyList()
+        } catch (e: Exception) {
+            Log.w(TAG, "failed to parse preloaded node details json", e)
+            emptyList()
+        }
+    }
+
+    private fun parsePreloadedNodePhotos(json: String?): List<InspectPreloadedNodePhotos> {
+        return try {
+            val type = object : TypeToken<List<InspectPreloadedNodePhotos>>() {}.type
+            Gson().fromJson<List<InspectPreloadedNodePhotos>>(json ?: "[]", type) ?: emptyList()
+        } catch (e: Exception) {
+            Log.w(TAG, "failed to parse preloaded node photos json", e)
+            emptyList()
+        }
+    }
+
+    private fun InspectPreloadedNodePhotos?.photoForCategory(category: String): String {
+        return when (category) {
+            "1" -> this?.photo1.orEmpty()
+            "2" -> this?.photo2.orEmpty()
+            "3" -> this?.photo3.orEmpty()
+            else -> ""
+        }
     }
 
     private fun openEditForm(waypoints: List<Waypoint>) {

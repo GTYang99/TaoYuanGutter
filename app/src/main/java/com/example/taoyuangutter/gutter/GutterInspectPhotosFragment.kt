@@ -18,6 +18,7 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.NodeDetails
+import com.example.taoyuangutter.api.safeCapturedAt
 import com.example.taoyuangutter.databinding.FragmentInspectPhotosBinding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -151,10 +152,44 @@ class GutterInspectPhotosFragment : Fragment() {
             loadPhoto(point.photo2, binding.ivPhotoSlot2, binding.placeholderSlot2)
             loadPhoto(point.photo3, binding.ivPhotoSlot3, binding.placeholderSlot3)
         }
+        renderPhotoCapturedAtLabels(point.details)
 
         binding.ivPhotoSlot1.setOnClickListener { if (!isVirtual) showImageDetail(point.photo1) }
         binding.ivPhotoSlot2.setOnClickListener { if (!isVirtual) showImageDetail(point.photo2) }
         binding.ivPhotoSlot3.setOnClickListener { if (!isVirtual) showImageDetail(point.photo3) }
+    }
+
+    private fun renderPhotoCapturedAtLabels(details: NodeDetails?) {
+        bindCapturedAt(
+            binding.tvPhotoTime1,
+            pointHasPhoto(details?.nodeImg, "1"),
+            details?.safeCapturedAt(0, "GutterInspectPhotos", "render photo time 1")
+        )
+        bindCapturedAt(
+            binding.tvPhotoTime2,
+            pointHasPhoto(details?.nodeImg, "2"),
+            details?.safeCapturedAt(1, "GutterInspectPhotos", "render photo time 2")
+        )
+        bindCapturedAt(
+            binding.tvPhotoTime3,
+            pointHasPhoto(details?.nodeImg, "3"),
+            details?.safeCapturedAt(2, "GutterInspectPhotos", "render photo time 3")
+        )
+    }
+
+    private fun bindCapturedAt(view: TextView, hasPhoto: Boolean, capturedAt: String?) {
+        if (!hasPhoto) {
+            view.text = ""
+            view.visibility = View.GONE
+            return
+        }
+        val text = capturedAt?.takeIf { it.isNotBlank() } ?: "-"
+        view.text = text
+        view.visibility = View.VISIBLE
+    }
+
+    private fun pointHasPhoto(nodeImg: List<com.example.taoyuangutter.api.NodeImg>?, category: String): Boolean {
+        return nodeImg?.any { it.fileCategory == category && it.url.isNotBlank() } == true
     }
 
     private fun showImageDetail(url: String) {

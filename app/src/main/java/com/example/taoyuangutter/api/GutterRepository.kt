@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Build
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
+import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.google.android.gms.maps.model.LatLng
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -183,7 +184,12 @@ class GutterRepository(
                         // 照片 URI（multipart 上傳待實作，暫帶路徑字串）
                         photoOv   = wp.basicData["photo1"]     ?: "",
                         photoWid  = wp.basicData["photo2"]     ?: "",
-                        photoDep  = wp.basicData["photo3"]     ?: ""
+                        photoDep  = wp.basicData["photo3"]     ?: "",
+                        capturedAt = listOfNotNull(
+                            PhotoCapturedAtResolver.readBasicData(wp.basicData, 1),
+                            PhotoCapturedAtResolver.readBasicData(wp.basicData, 2),
+                            PhotoCapturedAtResolver.readBasicData(wp.basicData, 3)
+                        )
                     )
                 }
             )

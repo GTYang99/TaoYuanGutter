@@ -20,9 +20,11 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
+import com.example.taoyuangutter.api.safeCapturedAt
 import com.example.taoyuangutter.api.StoreDitchNodeRequest
 import com.example.taoyuangutter.api.StoreDitchRequest
 import com.example.taoyuangutter.common.PhotoUriStore
+import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PendingPhotoDraftState
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterBinding
@@ -1258,6 +1260,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         val p1 = nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.url ?: ""
                         val p2 = nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.url ?: ""
                         val p3 = nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.url ?: ""
+                        val capturedAt1 = nd.safeCapturedAt(0, "AddGutterSheet", "preload edit waypoint")
+                        val capturedAt2 = nd.safeCapturedAt(1, "AddGutterSheet", "preload edit waypoint")
+                        val capturedAt3 = nd.safeCapturedAt(2, "AddGutterSheet", "preload edit waypoint")
 
                         val merged = HashMap(waypoints[targetIndex].basicData).apply {
                             put("_nodeId", nodeId.toString())
@@ -1287,6 +1292,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             if (get("photo1").isNullOrBlank() && p1.isNotEmpty()) put("photo1", p1)
                             if (get("photo2").isNullOrBlank() && p2.isNotEmpty()) put("photo2", p2)
                             if (get("photo3").isNullOrBlank() && p3.isNotEmpty()) put("photo3", p3)
+                            if (capturedAt1 != null) put("photo1CapturedAt", capturedAt1)
+                            if (capturedAt2 != null) put("photo2CapturedAt", capturedAt2)
+                            if (capturedAt3 != null) put("photo3CapturedAt", capturedAt3)
                         }
                         waypoints[targetIndex].basicData = merged
                     }
@@ -1395,7 +1403,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 	                    isBroken  = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0),
 	                    isHanging = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
 	                    isSilt    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
-	                    nodeNote  = wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() }
+	                    nodeNote  = wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() },
+                        capturedAt = listOfNotNull(
+                            PhotoCapturedAtResolver.readBasicData(wp.basicData, 1),
+                            PhotoCapturedAtResolver.readBasicData(wp.basicData, 2),
+                            PhotoCapturedAtResolver.readBasicData(wp.basicData, 3)
+                        ).takeIf { it.isNotEmpty() }
 	                )
             }
         )

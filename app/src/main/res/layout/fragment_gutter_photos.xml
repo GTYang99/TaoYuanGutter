@@ -2,6 +2,7 @@
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/colorSurface">
@@ -22,14 +23,32 @@
         <!-- ══════════════════════════════════════════════════════════ -->
         <!-- ① 測量位置及側溝概況                                      -->
         <!-- ══════════════════════════════════════════════════════════ -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/photo_slot_overview"
-            android:textSize="14sp"
-            android:textColor="@color/textColorSecondary"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/photo_slot_overview"
+                android:textSize="14sp"
+                android:textColor="@color/textColorSecondary"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvPhotoTime1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/textColorSecondary"
+                android:visibility="gone"
+                tools:text="2026-06-24 16:48:01" />
+
+        </LinearLayout>
 
         <!--
             照片區：ConstraintLayout 用 wrap_content 高度，
@@ -141,14 +160,32 @@
         <!-- ══════════════════════════════════════════════════════════ -->
         <!-- ② 側溝內徑寬度尺寸                                       -->
         <!-- ══════════════════════════════════════════════════════════ -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/label_photo_width"
-            android:textSize="14sp"
-            android:textColor="@color/textColorSecondary"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/label_photo_width"
+                android:textSize="14sp"
+                android:textColor="@color/textColorSecondary"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvPhotoTime2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/textColorSecondary"
+                android:visibility="gone"
+                tools:text="2026-06-24 16:48:02" />
+
+        </LinearLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/photoSlot2"
@@ -252,14 +289,32 @@
         <!-- ══════════════════════════════════════════════════════════ -->
         <!-- ③ 側溝深度尺寸                                           -->
         <!-- ══════════════════════════════════════════════════════════ -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/label_photo_depth"
-            android:textSize="14sp"
-            android:textColor="@color/textColorSecondary"
-            android:textStyle="bold"
-            android:layout_marginBottom="8dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/label_photo_depth"
+                android:textSize="14sp"
+                android:textColor="@color/textColorSecondary"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvPhotoTime3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="12sp"
+                android:textColor="@color/textColorSecondary"
+                android:visibility="gone"
+                tools:text="2026-06-24 16:48:03" />
+
+        </LinearLayout>
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:id="@+id/photoSlot3"

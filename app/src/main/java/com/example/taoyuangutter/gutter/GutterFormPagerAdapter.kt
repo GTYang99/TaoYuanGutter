@@ -34,6 +34,9 @@ class GutterFormPagerAdapter(
                     photo1 = basicData["photo1"],
                     photo2 = basicData["photo2"],
                     photo3 = basicData["photo3"],
+                    capturedAt1 = basicData["photo1CapturedAt"],
+                    capturedAt2 = basicData["photo2CapturedAt"],
+                    capturedAt3 = basicData["photo3CapturedAt"],
                     isImported = isImported
                 )
             }
