@@ -61,7 +61,6 @@ import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
-import com.example.taoyuangutter.pending.DraftPhotoCleaner
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.WaypointSnapshot
@@ -1036,13 +1035,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             currentLng = lng
         }
 
-        // 保險機制：若外層沒有把 sessionDraftId 帶進來，但這頁是可編輯表單，
-        // 仍然先建立一個穩定的草稿 ID，避免後續即時同步直接跳過。
-        if (!isViewMode && sessionDraftId <= 0L) {
-            sessionDraftId = System.currentTimeMillis()
-            intent.putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
-        }
-
         launchedInViewMode = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
         isOfflineMode = intent.getBooleanExtra(EXTRA_OFFLINE_MODE, false)
         showPlanOverlay = intent.getBooleanExtra(EXTRA_SHOW_PLAN, true)
@@ -1910,27 +1902,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         sessionWaypoints.addAll(normalizedWaypoints)
         currentFormData.putAll(sessionWaypoints[currentIndex].basicData)
 
-        // 空草稿判斷：沒有任何座標，且沒有任何「實際內容」時，不保留草稿。
-        // 這裡會忽略預設欄位，例如 is_virtual=0 / _isImported=0 / IS_PENDING_DEPLOY=0，
-        // 避免只有預設值卻讓草稿一直殘留。
-        val hasAnyLatLng = sessionWaypoints.any { it.latitude != null && it.longitude != null }
-        val hasAnyMeaningfulBasicData = sessionWaypoints.any { wp ->
-            wp.basicData.any { (key, value) ->
-                when (key) {
-                    "is_virtual", "_isImported" -> false
-                    "IS_PENDING_DEPLOY" -> value.equals("1", ignoreCase = true) ||
-                        value.equals("true", ignoreCase = true) ||
-                        value.equals("y", ignoreCase = true) ||
-                        value.equals("yes", ignoreCase = true)
-                    else -> value.isNotBlank()
-                }
-            }
-        }
-        if (!hasAnyLatLng && !hasAnyMeaningfulBasicData) {
-            deleteCurrentSessionDraftIfNeeded()
-            return
-        }
-
         val resolvedDraftId = sessionDraftId.takeIf { it > 0L } ?: run {
             android.util.Log.w(
                 "GutterFormActivity",
@@ -1953,15 +1924,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 waypoints = sessionWaypoints.toList()
             )
         )
-    }
-
-    private fun deleteCurrentSessionDraftIfNeeded() {
-        val draftId = sessionDraftId.takeIf { it > 0L } ?: return
-        GutterSessionRepository(this).getById(draftId)?.let { draft ->
-            DraftPhotoCleaner.deleteDraftLocalPhotos(this, draft)
-        }
-        GutterSessionRepository(this).delete(draftId)
-        sessionDraftId = 0L
     }
 
     private fun restoreCurrentWaypointState() {
