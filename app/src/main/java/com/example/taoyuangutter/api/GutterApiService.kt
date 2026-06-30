@@ -146,20 +146,6 @@ interface GutterApiService {
     ): Response<NodeDetailsResponse>
 
     /**
-     * 取得所有既有點位的列表（不帶任何參數）。
-     *
-     * GET /api/v1/node/nodeDetails
-     * Authorization: Bearer {token}
-     *
-     * @param authorization Bearer token
-     * Response: [AllNodeDetailsResponse]
-     */
-    @GET("api/v1/node/nodeDetails")
-    suspend fun getAllNodeDetails(
-        @Header("Authorization") authorization: String
-    ): Response<AllNodeDetailsResponse>
-
-    /**
      * 上傳單張點位照片（multipart/form-data）。
      * 同一 node_id + fileCategory 只保留一張，舊圖會被覆蓋。
      *
@@ -193,21 +179,6 @@ interface GutterApiService {
         @Body                    request: StoreDitchRequest,
         @Header("Authorization") authorization: String
     ): Response<StoreDitchResponse>
-
-    /**
-     * 新增曲線側溝（以 XY_NUM 陣列指定順序）。
-     *
-     * POST /api/v1/ditch/storeCurveDitch
-     * Authorization: Bearer {token}
-     *
-     * Body: [StoreCurveDitchRequest]
-     * Response: [StoreCurveDitchResponse]
-     */
-    @POST("api/v1/ditch/storeCurveDitch")
-    suspend fun storeCurveDitch(
-        @Body                    request: StoreCurveDitchRequest,
-        @Header("Authorization") authorization: String
-    ): Response<StoreCurveDitchResponse>
 
     /**
      * 變更側溝狀態（例如恢復狀態）。

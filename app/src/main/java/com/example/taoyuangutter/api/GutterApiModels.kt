@@ -518,32 +518,6 @@ data class StoreDitchResponse(
 )
 
 // ════════════════════════════════════════════════════════════════
-//  POST /api/v1/ditch/storeCurveDitch  ── 新增曲線側溝
-// ════════════════════════════════════════════════════════════════
-
-/**
- * 新增曲線側溝 Request Body。
- *
- * XY_NUM 陣列依順序區分起點與終點（最少 2 筆）。
- */
-data class StoreCurveDitchRequest(
-    @SerializedName("XY_NUM") val xyNums: List<String>
-)
-
-/**
- * 新增曲線側溝回應。
- *
- * 注意：errors 可能為 object / array([]) / null，因此用 [JsonElement] 容錯，
- * 避免遇到 errors=[] 時 Gson 解析 Map 直接失敗。
- */
-data class StoreCurveDitchResponse(
-    @SerializedName("success") val success: Boolean,
-    @SerializedName("message") val message: String?,
-    @SerializedName("data")    val data: DitchDetails?,
-    @SerializedName("errors")  val errors: JsonElement?
-)
-
-// ════════════════════════════════════════════════════════════════
 //  DELETE /api/v1/ditch/deleteDitch  ── 刪除側溝
 // ════════════════════════════════════════════════════════════════
 
@@ -551,21 +525,6 @@ data class StoreCurveDitchResponse(
 data class DeleteDitchResponse(
     @SerializedName("success") val success: Boolean,
     @SerializedName("message") val message: String?,
-    @SerializedName("errors")  val errors: Map<String, List<String>>?
-)
-
-// ════════════════════════════════════════════════════════════════
-//  GET /api/v1/node/nodeDetails（無參數）── 取得所有點位列表
-// ════════════════════════════════════════════════════════════════
-
-/**
- * 取得所有點位列表的 API 回應。
- * 當呼叫 /api/v1/node/nodeDetails 不帶任何參數時，取得所有既有點位。
- */
-data class AllNodeDetailsResponse(
-    @SerializedName("success") val success: Boolean,
-    @SerializedName("message") val message: String?,
-    @SerializedName("data")    val data: List<NodeDetails>?,
     @SerializedName("errors")  val errors: Map<String, List<String>>?
 )
 

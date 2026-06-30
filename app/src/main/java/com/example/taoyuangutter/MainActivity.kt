@@ -1710,10 +1710,10 @@ class MainActivity : AppCompatActivity(),
                     currentSessionDraftId?.let { draftCoordinator.deleteDraftIfEffectivelyEmpty(it) }
                     currentSessionDraftId = null
                     isInEditingMode = false
-                    restoreMainUiAfterSheetClosed() // 關閉表單後，若沒有其他阻擋才還原按鈕
                     mapCameraController.setPersistentBottomInset(0)
                     gutterMapController.clearPreviewLayer()
                     activeSheet = null
+                    restoreMainUiAfterSheetClosed() // 關閉表單後，若沒有其他阻擋才還原按鈕
                     if (!isOfflineMainMode) {
                         loadGuttersByViewport(showFeedback = true)
                     } else {
