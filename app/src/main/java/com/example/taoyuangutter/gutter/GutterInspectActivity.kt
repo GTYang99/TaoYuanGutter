@@ -526,7 +526,7 @@ class GutterInspectActivity : AppCompatActivity() {
     private fun showEditPreloadWarning(photoIssues: List<String>, onContinue: () -> Unit) {
         val title = if (photoIssues.isNotEmpty()) "照片數量不滿足" else "資料讀取失敗"
         val message = if (photoIssues.isNotEmpty()) {
-            "照片數量不滿足，以下節點照片缺失或下載失敗：\n${photoIssues.joinToString("\n")}\n\n仍要繼續進入編輯嗎？"
+            "照片數量不滿足，以下節點照片缺失或下載失敗：\n${photoIssues.joinToString("\n")}\n\n會覆蓋草稿資料\n仍要繼續進入編輯嗎？"
         } else {
             "部分點位資料或照片下載失敗，進入編輯後可能需要補齊。"
         }

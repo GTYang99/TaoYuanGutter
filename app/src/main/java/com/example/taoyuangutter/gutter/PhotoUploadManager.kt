@@ -5,7 +5,6 @@ import android.net.Uri
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
-import com.example.taoyuangutter.common.PhotoContentFingerprint
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.pending.DraftPhotoCleaner
 import com.example.taoyuangutter.pending.WaypointSnapshot
@@ -61,15 +60,14 @@ class PhotoUploadManager(
         var count = 0
         for (i in nodes.indices) {
             val wp = waypoints.getOrNull(i) ?: continue
-            val original = originalWaypoints?.getOrNull(i)
             if (wp.isVirtual) continue
             val slots = listOf(
-                Triple(wp.basicData["photo1"], original?.basicData?.get("photo1"), 1),
-                Triple(wp.basicData["photo2"], original?.basicData?.get("photo2"), 2),
-                Triple(wp.basicData["photo3"], original?.basicData?.get("photo3"), 3)
+                wp.basicData["photo1"],
+                wp.basicData["photo2"],
+                wp.basicData["photo3"]
             )
-            for ((path, originalPath, _) in slots) {
-                if (shouldUploadPhoto(path, originalPath)) count++
+            for (path in slots) {
+                if (PhotoUploadValidator.isUsableForUpload(context, path)) count++
             }
         }
         return count
@@ -89,24 +87,19 @@ class PhotoUploadManager(
         for (i in nodes.indices) {
             val node = nodes[i]
             val wp = waypoints.getOrNull(i) ?: continue
-            val original = originalWaypoints?.getOrNull(i)
             if (wp.isVirtual) {
                 android.util.Log.d("PhotoUpload", "節點 ${node.nodeId} 為虛擬點，略過所有照片上傳")
                 continue
             }
-            val slots = listOf(
-                Triple(wp.basicData["photo1"], original?.basicData?.get("photo1"), 1),
-                Triple(wp.basicData["photo2"], original?.basicData?.get("photo2"), 2),
-                Triple(wp.basicData["photo3"], original?.basicData?.get("photo3"), 3)
+            val slots: List<Pair<String?, Int>> = listOf(
+                wp.basicData["photo1"] to 1,
+                wp.basicData["photo2"] to 2,
+                wp.basicData["photo3"] to 3
             )
-            for (triple in slots) {
-                val path = triple.first
-                val originalPath = triple.second
-                val category = triple.third
-                if (shouldUploadPhoto(path, originalPath)) {
-                    val usablePath = path ?: continue
-                    pending.add(Triple(node, usablePath, category))
-                }
+            for ((path, category) in slots) {
+                if (!PhotoUploadValidator.isUsableForUpload(context, path)) continue
+                val usablePath = path ?: continue
+                pending.add(Triple(node, usablePath, category))
             }
         }
 
@@ -220,12 +213,6 @@ class PhotoUploadManager(
             android.util.Log.e("PhotoUpload", "上傳照片時發生未預期錯誤: ${e.message}", e)
             return UploadBatchResult.Completed(total - completedCount)
         }
-    }
-
-    private suspend fun shouldUploadPhoto(currentPath: String?, originalPath: String?): Boolean {
-        if (!PhotoUploadValidator.isUsableForUpload(context, currentPath)) return false
-        if (originalPath.isNullOrBlank()) return true
-        return !PhotoContentFingerprint.samePhoto(context, currentPath, originalPath)
     }
 
     private companion object {
