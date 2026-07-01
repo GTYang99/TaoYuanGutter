@@ -1574,12 +1574,25 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     )
 
     private fun currentFormSnapshot(): HashMap<String, String> = HashMap(currentFormData).apply {
+        preserveEditSpiNum(this)
         putIfAbsent("photo1", "")
         putIfAbsent("photo2", "")
         putIfAbsent("photo3", "")
         putIfAbsent("photo1CapturedAt", "")
         putIfAbsent("photo2CapturedAt", "")
         putIfAbsent("photo3CapturedAt", "")
+    }
+
+    private fun preserveEditSpiNum(target: MutableMap<String, String>) {
+        if (!isEditMode) return
+        val originalSpiNum = originalSessionWaypoint?.basicData?.get("SPI_NUM")
+            ?.takeIf { it.isNotBlank() }
+            ?: sessionWaypoints.getOrNull(currentIndex)?.basicData?.get("SPI_NUM")
+                ?.takeIf { it.isNotBlank() }
+        if (originalSpiNum.isNullOrBlank()) return
+        if (target["SPI_NUM"].isNullOrBlank()) {
+            target["SPI_NUM"] = originalSpiNum
+        }
     }
 
     private fun currentFormPhotoCapturedAt(slot: Int): String? =
@@ -1672,7 +1685,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     photo1 = photo1,
                     photo2 = photo2,
                     photo3 = photo3,
-                    includeSpiNum = !isEditMode
+                    includeSpiNum = true
                 )
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
@@ -1817,7 +1830,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     photo1 = photo1,
                     photo2 = photo2,
                     photo3 = photo3,
-                    includeSpiNum = !isEditMode
+                    includeSpiNum = true
                 )
                 if (sessionDraftId > 0L) {
                     putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
