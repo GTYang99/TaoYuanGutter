@@ -49,7 +49,8 @@ class GutterInspectActivity : AppCompatActivity() {
 
     private data class EditPreloadResult(
         val waypoints: List<Waypoint>,
-        val hasFailure: Boolean
+        val hasFailure: Boolean,
+        val photoIssues: List<String>
     )
 
     private lateinit var binding: ActivityGutterInspectBinding
@@ -294,19 +295,21 @@ class GutterInspectActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val preloadResult = preloadEditableWaypoints(d, token)
-                if (preloadResult.hasFailure) {
-                    showEditPreloadWarning {
-                        openEditForm(preloadResult.waypoints)
-                    }
+                if (preloadResult.hasFailure || preloadResult.photoIssues.isNotEmpty()) {
+                    showEditPreloadWarning(
+                        photoIssues = preloadResult.photoIssues,
+                        onContinue = { openEditForm(preloadResult.waypoints) }
+                    )
                 } else {
                     openEditForm(preloadResult.waypoints)
                 }
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                showEditPreloadWarning {
-                    openEditForm(ditchToWaypoints(d))
-                }
+                showEditPreloadWarning(
+                    photoIssues = emptyList(),
+                    onContinue = { openEditForm(ditchToWaypoints(d)) }
+                )
             } finally {
                 binding.btnEdit.isEnabled = true
                 binding.btnEdit.alpha = 1.0f
@@ -334,6 +337,7 @@ class GutterInspectActivity : AppCompatActivity() {
         )
         val result = ditchToWaypoints(ditch).toMutableList()
         var hasFailure = false
+        val photoIssues = mutableListOf<String>()
 
         orderedNodes.forEachIndexed { idx, node ->
             val target = result.getOrNull(idx) ?: run {
@@ -364,16 +368,22 @@ class GutterInspectActivity : AppCompatActivity() {
             val lng = nodeDetails.longitude?.toDoubleOrNull() ?: target.latLng?.longitude ?: wgsLongitudes.getOrNull(idx)
             val latLng = if (lat != null && lng != null) LatLng(lat, lng) else null
             val preloadedPhotos = preloadedPhotosByNodeId[node.nodeId]
+            val isVirtualNode = parseLooseBoolean(nodeDetails.isVirtual)
 
             suspend fun resolvePhoto(category: String, prefix: String): String {
                 val cachedPhoto = preloadedPhotos.photoForCategory(category)
                 if (cachedPhoto.isNotBlank()) {
                     return cachedPhoto
                 }
+                if (isVirtualNode) {
+                    Log.d(TAG, "edit preload photo skipped for virtual nodeId=${node.nodeId} category=$category")
+                    return ""
+                }
                 val url = node.url.firstOrNull { it.fileCategory == category }?.url
                     ?: nodeDetails.nodeImg.firstOrNull { it.fileCategory == category }?.url
                 if (url.isNullOrBlank()) {
                     Log.d(TAG, "edit preload photo absent nodeId=${node.nodeId} category=$category")
+                    photoIssues.add("nodeId=${node.nodeId} category=$category")
                     return ""
                 }
                 Log.w(
@@ -390,6 +400,7 @@ class GutterInspectActivity : AppCompatActivity() {
                         "edit preload fallback photo download failed nodeId=${node.nodeId} category=$category url=$url"
                     )
                     hasFailure = true
+                    photoIssues.add("nodeId=${node.nodeId} category=$category")
                     ""
                 }
             }
@@ -456,7 +467,8 @@ class GutterInspectActivity : AppCompatActivity() {
 
         return EditPreloadResult(
             waypoints = result,
-            hasFailure = hasFailure
+            hasFailure = hasFailure,
+            photoIssues = photoIssues.distinct()
         )
     }
 
@@ -511,10 +523,16 @@ class GutterInspectActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun showEditPreloadWarning(onContinue: () -> Unit) {
+    private fun showEditPreloadWarning(photoIssues: List<String>, onContinue: () -> Unit) {
+        val title = if (photoIssues.isNotEmpty()) "照片數量不滿足" else "資料讀取失敗"
+        val message = if (photoIssues.isNotEmpty()) {
+            "照片數量不滿足，以下節點照片缺失或下載失敗：\n${photoIssues.joinToString("\n")}\n\n仍要繼續進入編輯嗎？"
+        } else {
+            "部分點位資料或照片下載失敗，進入編輯後可能需要補齊。"
+        }
         android.app.AlertDialog.Builder(this)
-            .setTitle("資料讀取失敗")
-            .setMessage("部分點位資料或照片下載失敗，進入編輯後可能需要補齊。")
+            .setTitle(title)
+            .setMessage(message)
             .setPositiveButton("繼續進入") { _, _ -> onContinue() }
             .show()
     }
