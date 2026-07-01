@@ -998,6 +998,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         )
     }
 
+    /**
+     * 回傳編輯模式初始快照的深拷貝。
+     * 供上傳流程判斷哪些照片是使用者真的替換過的。
+     */
+    fun getOriginalWaypointSnapshots(): List<WaypointSnapshot> = originalWaypointsSnapshot.map { snap ->
+        snap.copy(basicData = HashMap(snap.basicData))
+    }
+
     private fun normalizeRestoredPhotoUrisIfNeeded() {
         if (!pendingPhotoUriNormalization || _binding == null) return
         binding.btnSubmitGutter.isEnabled = isOfflineMode || draftId > 0L

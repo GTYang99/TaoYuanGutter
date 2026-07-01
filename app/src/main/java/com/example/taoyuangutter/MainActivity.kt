@@ -226,8 +226,10 @@ class MainActivity : AppCompatActivity(),
      * - LocationPicker 確認座標或表單填寫返回時，由 [autoSaveSessionDraft] 建立並記住此 ID。
      * - 恢復草稿時設為已知草稿的 ID，讓後續自動更新覆蓋同一筆。
      * - 成功上傳（[onGutterSaved]）後重設為 null。
-     */
+    */
     private var currentSessionDraftId: Long? = null
+    /** 編輯更新時的照片原始快照，供上傳流程判斷哪些 slot 真正變更。 */
+    private var pendingEditOriginalWaypoints: List<WaypointSnapshot>? = null
     /** true = 此次 session 為離線草稿（只存本機，不打 API） */
     private var currentSessionIsOffline: Boolean = false
     /** 編輯模式開始時，側溝的原始狀態（用於判斷是否觸發「恢復狀態」詢問）。 */
@@ -888,10 +890,15 @@ class MainActivity : AppCompatActivity(),
     private suspend fun uploadWaypointPhotos(
         waypoints: List<Waypoint>,
         nodes: List<DitchNode>,
-        token: String
+        token: String,
+        originalWaypoints: List<WaypointSnapshot>? = null
     ): PhotoUploadManager.UploadBatchResult {
         // 先計算待上傳數量以決定是否需要顯示進度 UI
-        val pendingCount = photoUploadManager.countPendingPhotos(waypoints, nodes)
+        val pendingCount = photoUploadManager.countPendingPhotos(
+            waypoints = waypoints,
+            nodes = nodes,
+            originalWaypoints = originalWaypoints
+        )
         if (pendingCount == 0) return PhotoUploadManager.UploadBatchResult.Completed(0)
 
         mainBlockingUiController.beginPhotoUpload(pendingCount)
@@ -900,6 +907,7 @@ class MainActivity : AppCompatActivity(),
                 waypoints = waypoints,
                 nodes = nodes,
                 token = token,
+                originalWaypoints = originalWaypoints,
                 listener = object : PhotoUploadManager.UploadListener {
                     override fun onProgressUpdate(completedCount: Int, totalCount: Int) {
                         // PhotoUploadManager 已在 Main thread 回呼
@@ -917,6 +925,7 @@ class MainActivity : AppCompatActivity(),
     override fun onUpdateGutter(waypoints: List<Waypoint>, spiNum: String) {
         shouldReturnToInspectPreview = false
         inspectPreviewIntent = null
+        pendingEditOriginalWaypoints = activeSheet?.getOriginalWaypointSnapshots()
         // 斷開 onDismiss 回呼，避免 dismiss 後觸發重複清除；API 結果由 onGutterSaved 回報
         activeSheet?.onWaypointsChanged = null
         // 保留 baseline（灰色參考線）直到 onGutterSaved 確認 storeDitch 成功再清除
@@ -969,14 +978,16 @@ class MainActivity : AppCompatActivity(),
         persistedWaypoints: List<Waypoint>,
         nodes: List<DitchNode>,
         pendingDraftId: Long?,
-        token: String
+        token: String,
+        originalWaypoints: List<WaypointSnapshot>? = null
     ) {
         lifecycleScope.launch {
             try {
                 when (val result = uploadWaypointPhotos(
                     waypoints = persistedWaypoints,
                     nodes = nodes,
-                    token = token
+                    token = token,
+                    originalWaypoints = originalWaypoints
                 )) {
                     is PhotoUploadManager.UploadBatchResult.Completed -> {
                         val failCount = result.failCount
@@ -1024,7 +1035,8 @@ class MainActivity : AppCompatActivity(),
                                         persistedWaypoints = persistedWaypoints,
                                         nodes = nodes,
                                         pendingDraftId = pendingDraftId,
-                                        token = token
+                                        token = token,
+                                        originalWaypoints = originalWaypoints
                                     )
                                 }
                                 .setCancelable(false)
@@ -1057,7 +1069,8 @@ class MainActivity : AppCompatActivity(),
                                 persistedWaypoints = persistedWaypoints,
                                 nodes = nodes,
                                 pendingDraftId = pendingDraftId,
-                                token = token
+                                token = token,
+                                originalWaypoints = originalWaypoints
                             )
                         }
                         .setCancelable(false)
@@ -1207,6 +1220,7 @@ class MainActivity : AppCompatActivity(),
             mainBlockingUiController.setInspectLoading(false)
             return
         }
+
         if (spiNum != null) {
             // 更新模式：斷開監聽以避免 dismiss 觸發 redundant reload，移除舊線段，重載可視範圍
             activeSheet?.onWaypointsChanged = null
@@ -1231,8 +1245,10 @@ class MainActivity : AppCompatActivity(),
             persistedWaypoints = persistedWaypoints,
             nodes = nodes,
             pendingDraftId = pendingDraftId,
-            token = token
+            token = token,
+            originalWaypoints = pendingEditOriginalWaypoints
         )
+        pendingEditOriginalWaypoints = null
     }
 
     override fun onGutterSaveFailed(waypoints: List<Waypoint>) {
