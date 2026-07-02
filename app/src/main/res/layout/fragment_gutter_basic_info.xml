@@ -68,63 +68,30 @@
                 android:textColor="@color/textColorSecondary"
                 android:layout_marginBottom="4dp" />
 
-            <RadioGroup
-                android:id="@+id/rgGutterType"
+            <FrameLayout
+                android:id="@+id/layoutGutterTypeSelector"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:background="@color/white"
-                android:paddingStart="12dp"
-                android:paddingEnd="12dp"
-                android:paddingTop="4dp"
-                android:paddingBottom="4dp"
+                android:layout_height="48dp"
                 android:layout_marginBottom="16dp">
 
-                <RadioButton
-                    android:id="@+id/rbGutterType0"
+                <Spinner
+                    android:id="@+id/spinnerGutterType"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/gutter_type_u_open"
-                    android:buttonTint="@color/colorPrimary"
-                    android:textColor="@color/textColorPrimary"
-                    android:textSize="14sp"
-                    android:paddingTop="10dp"
-                    android:paddingBottom="10dp" />
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_inspect_field"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="40dp"
+                    android:gravity="center_vertical|start" />
 
-                <RadioButton
-                    android:id="@+id/rbGutterType1"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/gutter_type_u_covered"
-                    android:buttonTint="@color/colorPrimary"
-                    android:textColor="@color/textColorPrimary"
-                    android:textSize="14sp"
-                    android:paddingTop="10dp"
-                    android:paddingBottom="10dp" />
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="8dp"
+                    android:src="@drawable/ic_dropdown_arrow"
+                    android:contentDescription="@null" />
 
-                <RadioButton
-                    android:id="@+id/rbGutterType2"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/gutter_type_l_mixed"
-                    android:buttonTint="@color/colorPrimary"
-                    android:textColor="@color/textColorPrimary"
-                    android:textSize="14sp"
-                    android:paddingTop="10dp"
-                    android:paddingBottom="10dp" />
-
-                <RadioButton
-                    android:id="@+id/rbGutterType3"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/gutter_type_other"
-                    android:buttonTint="@color/colorPrimary"
-                    android:textColor="@color/textColorPrimary"
-                    android:textSize="14sp"
-                    android:paddingTop="10dp"
-                    android:paddingBottom="10dp" />
-
-            </RadioGroup>
+            </FrameLayout>
 
         </LinearLayout>
 
@@ -144,7 +111,7 @@
             android:layout_height="40dp"
             android:insetTop="0dp"
             android:insetBottom="0dp"
-            android:text="定位"
+            android:text="編輯定位"
             android:textAllCaps="false"
             android:textColor="@color/text_grey"
             android:textSize="14sp"

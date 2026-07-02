@@ -16,9 +16,12 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.util.Log
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
@@ -143,6 +146,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val KEY_PENDING_PATH = "pending_path"
 
         /** 側溝形式選項（NODE_TYP）*/
+        private const val GUTTER_TYPE_PLACEHOLDER = "請選擇"
         val GUTTER_TYPES = listOf(
             "U形溝（明溝）",
             "U形溝（加蓋）",
@@ -269,6 +273,7 @@ class GutterBasicInfoFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         val isViewMode   = arguments?.getBoolean(ARG_VIEW_MODE)   ?: false
         val isEditMode   = arguments?.getBoolean(ARG_IS_EDIT_MODE) ?: false
+        setupGutterTypeSpinner()
 
         // 修正：僅在初次建立（無 savedInstanceState）時預填資料
         // 系統重建時，EditText 與 CheckBox 會由系統自動還原其 state
@@ -379,6 +384,28 @@ class GutterBasicInfoFragment : Fragment() {
         for (i in 0 until childCount) { getChildAt(i)?.isEnabled = enabled }
     }
 
+    private fun setupGutterTypeSpinner() {
+        val adapter = ArrayAdapter(
+            requireContext(),
+            android.R.layout.simple_spinner_item,
+             GUTTER_TYPES
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        binding.spinnerGutterType.adapter = adapter
+        binding.spinnerGutterType.dropDownVerticalOffset = 120
+    }
+
+    private fun Spinner.selectByText(text: String?) {
+        val index = GUTTER_TYPES.indexOf(text)
+        setSelection(if (index >= 0) index + 1 else 0, false)
+    }
+
+    private fun selectedGutterTypeText(): String {
+        val text = binding.spinnerGutterType.selectedItem?.toString().orEmpty()
+        return if (text == GUTTER_TYPE_PLACEHOLDER) "" else text
+    }
+
     /** 從 args 預填既有資料（有則填，無則走座標預填） */
     private fun prefillData() {
         val args = arguments ?: return
@@ -419,7 +446,7 @@ class GutterBasicInfoFragment : Fragment() {
             setVirtualMode(parseLooseBoolean(isVirtualArg))
             setImportLocked(parseLooseBoolean(isImportedArg))
             binding.etGutterId.setText(spiNum)
-            binding.rgGutterType.setCheckedByText(nodeTypCodeToText(nodeTyp))
+            binding.spinnerGutterType.selectByText(nodeTypCodeToText(nodeTyp))
             binding.rgMatType.setCheckedByText(matTypCodeToText(matTyp))
             coordXValue = nodeX
             coordYValue = nodeY
@@ -494,7 +521,7 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     private fun isUOpenGutter(): Boolean {
-        return _binding != null && binding.rgGutterType.checkedRadioButtonId == R.id.rbGutterType0
+        return _binding != null && selectedGutterTypeText() == GUTTER_TYPES[0]
     }
 
     private fun applyCantOpenUi(isCantOpen: Boolean) {
@@ -633,18 +660,18 @@ class GutterBasicInfoFragment : Fragment() {
         }
 
         listOf(
-            binding.rgGutterType,
             binding.rgMatType,
             binding.rgIsBroken,
             binding.rgIsHanging,
             binding.rgIsSilt
         ).forEach { rg -> rg.setChildrenEnabled(actualEnabled) }
+        binding.spinnerGutterType.isEnabled = actualEnabled
 
         // 匯入鎖定與檢視模式均使用 0.5 半透明，提供一致的「不可修改」視覺暗示
         val alpha = if (actualEnabled) 1f else 0.5f
         listOf(
             binding.tilGutterId,
-            binding.rgGutterType,
+            binding.layoutGutterTypeSelector,
             binding.rgMatType,
             binding.tilMeasureId,
             binding.tilCoverThickness,
@@ -804,11 +831,14 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etRemarks
         ).forEach { it.addTextChangedListener(watcher) }
 
-        // RadioGroup 選取變更時通知草稿更新；
-        // 側溝形式另外要同步刷新明溝遮罩與可編輯狀態。
-        binding.rgGutterType.setOnCheckedChangeListener { _, _ ->
-            applyGutterTypeUi()
-            notifyDraftChanged()
+        // 側溝形式改為下拉選擇，變更時同步刷新明溝遮罩與草稿。
+        binding.spinnerGutterType.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                applyGutterTypeUi()
+                notifyDraftChanged()
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
         }
         val radioListener = RadioGroup.OnCheckedChangeListener { _, _ -> notifyDraftChanged() }
         listOf(
@@ -821,9 +851,8 @@ class GutterBasicInfoFragment : Fragment() {
 
     /** 收集表單資料（供 GutterFormActivity 提交用） */
     fun collectData(): Map<String, String> {
-        val gutterTypeText = binding.rgGutterType.getCheckedText()
-        // 使用 ID 判斷是否為「U形溝（明溝）」
-        val isUOpen = binding.rgGutterType.checkedRadioButtonId == R.id.rbGutterType0
+        val gutterTypeText = selectedGutterTypeText()
+        val isUOpen = gutterTypeText == GUTTER_TYPES[0]
         
         return mapOf(
             "is_virtual"  to (if (isVirtualMode) "1" else "0"),
@@ -903,7 +932,7 @@ class GutterBasicInfoFragment : Fragment() {
                 2 -> GUTTER_TYPES[1]  // U型溝（加蓋）
                 else -> ""
             }
-            rgGutterType.setCheckedByText(nodeTypText)
+            spinnerGutterType.selectByText(nodeTypText)
 
             // 材質（API key 為 MAT_TYP，值為字串）
             val matTypText = when (nodeDetails.matTyp?.toIntOrNull()) {
