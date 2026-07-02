@@ -8,9 +8,12 @@ import android.text.SpannableStringBuilder
 import android.text.style.AbsoluteSizeSpan
 import android.util.Log
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.taoyuangutter.R
 import androidx.lifecycle.lifecycleScope
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
@@ -24,6 +27,8 @@ import com.example.taoyuangutter.api.safeCapturedAt
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.databinding.ActivityGutterInspectBinding
 import com.example.taoyuangutter.login.LoginActivity
+import com.google.android.material.button.MaterialButton
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.google.android.material.tabs.TabLayoutMediator
 
@@ -530,11 +535,23 @@ class GutterInspectActivity : AppCompatActivity() {
         } else {
             "部分點位資料或照片下載失敗，進入編輯後可能需要補齊。"
         }
-        android.app.AlertDialog.Builder(this)
-            .setTitle(title)
-            .setMessage(message)
-            .setPositiveButton("繼續進入") { _, _ -> onContinue() }
-            .show()
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_preload_warning, null, false)
+        dialogView.findViewById<TextView>(R.id.tvDialogTitle).text = title
+        dialogView.findViewById<TextView>(R.id.tvDialogMessage).text = message
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setView(dialogView)
+            .create()
+
+        dialogView.findViewById<MaterialButton>(R.id.btnCancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialogView.findViewById<MaterialButton>(R.id.btnContinue).setOnClickListener {
+            dialog.dismiss()
+            onContinue()
+        }
+
+        dialog.show()
     }
 
     /**
