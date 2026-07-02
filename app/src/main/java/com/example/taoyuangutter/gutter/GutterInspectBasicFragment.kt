@@ -7,7 +7,11 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import com.example.taoyuangutter.api.DitchDetails
 import com.example.taoyuangutter.api.DitchXyNum
+import com.example.taoyuangutter.api.endDepAsString
+import com.example.taoyuangutter.api.endWidAsString
 import com.example.taoyuangutter.api.NodeDetails
+import com.example.taoyuangutter.api.strDepAsString
+import com.example.taoyuangutter.api.strWidAsString
 import com.example.taoyuangutter.databinding.FragmentInspectBasicBinding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -65,10 +69,10 @@ class GutterInspectBasicFragment : Fragment() {
                     putString(ARG_END_Y,   ditch?.endY  ?: "")
                     putString(ARG_END_LE,  ditch?.endLe ?: "")
                     putString(ARG_NODE_XY, ditch?.nodeXy ?: "")
-                    putString(ARG_STR_DEP, ditch?.strDep?.toString() ?: "")
-                    putString(ARG_END_DEP, ditch?.endDep?.toString() ?: "")
-                    putString(ARG_STR_WID, ditch?.strWid?.toString() ?: "")
-                    putString(ARG_END_WID, ditch?.endWid?.toString() ?: "")
+                    putString(ARG_STR_DEP, ditch?.strDepAsString ?: "")
+                    putString(ARG_END_DEP, ditch?.endDepAsString ?: "")
+                    putString(ARG_STR_WID, ditch?.strWidAsString ?: "")
+                    putString(ARG_END_WID, ditch?.endWidAsString ?: "")
                     putString(ARG_LENG,    ditch?.leng  ?: "")
                     putString(ARG_SLOP,    ditch?.slop  ?: "")
                     putString(ARG_NOTE,    ditch?.note  ?: "")

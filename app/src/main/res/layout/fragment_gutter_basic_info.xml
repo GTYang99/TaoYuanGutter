@@ -72,16 +72,20 @@
                 android:id="@+id/layoutGutterTypeSelector"
                 android:layout_width="match_parent"
                 android:layout_height="48dp"
-                android:layout_marginBottom="16dp">
+                android:layout_marginBottom="16dp"
+                android:foreground="?attr/selectableItemBackground">
 
-                <Spinner
-                    android:id="@+id/spinnerGutterType"
+                <TextView
+                    android:id="@+id/tvGutterTypeSelector"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:background="@drawable/bg_inspect_field"
+                    android:gravity="center_vertical|start"
                     android:paddingStart="12dp"
                     android:paddingEnd="40dp"
-                    android:gravity="center_vertical|start" />
+                    android:text="請選擇"
+                    android:textColor="@color/inputFieldHint"
+                    android:textSize="14sp" />
 
                 <ImageView
                     android:layout_width="24dp"

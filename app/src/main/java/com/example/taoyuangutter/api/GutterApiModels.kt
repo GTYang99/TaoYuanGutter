@@ -241,14 +241,14 @@ data class DitchDetails(
     /** 終點高程 */
     @SerializedName("END_LE")   val endLe: String?,
     @SerializedName("NODE_XY")  val nodeXy: String?,
-    /** 起點深度（公分） */
-    @SerializedName("STR_DEP")  val strDep: Int?,
-    /** 終點深度（公分） */
-    @SerializedName("END_DEP")  val endDep: Int?,
-    /** 起點寬度（公分） */
-    @SerializedName("STR_WID")  val strWid: Int?,
-    /** 終點寬度（公分） */
-    @SerializedName("END_WID")  val endWid: Int?,
+    /** 起點深度（公分）；後端可能回傳數字 / 字串數字 / 空字串 */
+    @SerializedName("STR_DEP")  val strDep: Any?,
+    /** 終點深度（公分）；後端可能回傳數字 / 字串數字 / 空字串 */
+    @SerializedName("END_DEP")  val endDep: Any?,
+    /** 起點寬度（公分）；後端可能回傳數字 / 字串數字 / 空字串 */
+    @SerializedName("STR_WID")  val strWid: Any?,
+    /** 終點寬度（公分）；後端可能回傳數字 / 字串數字 / 空字串 */
+    @SerializedName("END_WID")  val endWid: Any?,
     /** 線段長度（公尺） */
     @SerializedName("LENG")     val leng: String?,
     /** 坡度 */
@@ -420,6 +420,36 @@ data class NodeDetails(
             else -> false
         }
 }
+
+private fun normalizeNumericLikeValue(value: Any?): String {
+    return when (value) {
+        null -> ""
+        is Number -> {
+            val d = value.toDouble()
+            if (d == d.toLong().toDouble()) d.toLong().toString() else d.toString()
+        }
+        is String -> value.trim().let { raw ->
+            when {
+                raw.isBlank() -> ""
+                raw == "null" -> ""
+                else -> raw
+            }
+        }
+        else -> value.toString().takeIf { it != "null" } ?: ""
+    }
+}
+
+val DitchDetails.strDepAsString: String
+    get() = normalizeNumericLikeValue(strDep)
+
+val DitchDetails.endDepAsString: String
+    get() = normalizeNumericLikeValue(endDep)
+
+val DitchDetails.strWidAsString: String
+    get() = normalizeNumericLikeValue(strWid)
+
+val DitchDetails.endWidAsString: String
+    get() = normalizeNumericLikeValue(endWid)
 
 /** 點位照片（nodeDetails 回傳格式，僅含 url 與 fileCategory） */
 data class NodeImg(

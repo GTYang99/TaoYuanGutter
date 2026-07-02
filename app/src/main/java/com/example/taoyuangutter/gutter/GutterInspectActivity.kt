@@ -279,14 +279,12 @@ class GutterInspectActivity : AppCompatActivity() {
         val noPhotosOnServer = d.nodes.all { it.url.isEmpty() }
 
         if (noPhotosOnServer) {
-            android.app.AlertDialog.Builder(this)
-                .setTitle("進入編輯確認")
-                .setMessage("伺服器上目前無此側溝的照片資料。若您本機存有此側溝的草稿（含照片），進入編輯模式後將會被覆蓋。確定要進入編輯嗎？")
-                .setNegativeButton("取消", null)
-                .setPositiveButton("確定編輯") { _, _ ->
+            showEditEntryConfirmation(
+                message = "伺服器上目前無此側溝的照片資料。若您本機存有此側溝的草稿（含照片），進入編輯模式後將會被覆蓋。確定要進入編輯嗎？",
+                continueText = "確定編輯"
+            ) {
                     startPreload(d, token)
-                }
-                .show()
+            }
         } else {
             startPreload(d, token)
         }
@@ -529,15 +527,23 @@ class GutterInspectActivity : AppCompatActivity() {
     }
 
     private fun showEditPreloadWarning(photoIssues: List<String>, onContinue: () -> Unit) {
-        val title = if (photoIssues.isNotEmpty()) "照片數量不滿足" else "資料讀取失敗"
         val message = if (photoIssues.isNotEmpty()) {
             "照片數量不滿足，以下節點照片缺失或下載失敗：\n${photoIssues.joinToString("\n")}\n\n會覆蓋草稿資料\n仍要繼續進入編輯嗎？"
         } else {
             "部分點位資料或照片下載失敗，進入編輯後可能需要補齊。"
         }
+        showEditEntryConfirmation(message = message, onContinue = onContinue)
+    }
+
+    private fun showEditEntryConfirmation(
+        message: String,
+        continueText: String = "繼續進入",
+        onContinue: () -> Unit
+    ) {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_preload_warning, null, false)
-        dialogView.findViewById<TextView>(R.id.tvDialogTitle).text = title
+        dialogView.findViewById<TextView>(R.id.tvDialogTitle).text = "進入編輯確認"
         dialogView.findViewById<TextView>(R.id.tvDialogMessage).text = message
+        dialogView.findViewById<MaterialButton>(R.id.btnContinue).text = continueText
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setView(dialogView)

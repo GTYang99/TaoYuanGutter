@@ -38,7 +38,7 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="取消（返回上一頁）"
+            android:text="取消"
             android:textAllCaps="false"
             android:textColor="@color/text_grey"
             app:backgroundTint="@android:color/transparent"
