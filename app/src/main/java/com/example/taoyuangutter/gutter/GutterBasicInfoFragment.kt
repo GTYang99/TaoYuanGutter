@@ -1374,7 +1374,13 @@ class GutterBasicInfoFragment : Fragment() {
             view.visibility = View.GONE
             return
         }
-        view.text = capturedAt?.takeIf { it.isNotBlank() } ?: "-"
+        val text = capturedAt?.takeIf { it.isNotBlank() }
+        if (text.isNullOrBlank()) {
+            view.text = ""
+            view.visibility = View.GONE
+            return
+        }
+        view.text = text
         view.visibility = View.VISIBLE
     }
 

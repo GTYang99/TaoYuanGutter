@@ -34,7 +34,10 @@ class GutterInspectPhotosFragment : Fragment() {
         val details: NodeDetails?,
         val photo1: String,
         val photo2: String,
-        val photo3: String
+        val photo3: String,
+        val capturedAt1: String?,
+        val capturedAt2: String?,
+        val capturedAt3: String?
     )
 
     private var _binding: FragmentInspectPhotosBinding? = null
@@ -108,7 +111,10 @@ class GutterInspectPhotosFragment : Fragment() {
                 details = detail,
                 photo1 = p?.photo1.orEmpty(),
                 photo2 = p?.photo2.orEmpty(),
-                photo3 = p?.photo3.orEmpty()
+                photo3 = p?.photo3.orEmpty(),
+                capturedAt1 = detail?.capturedAt?.getOrNull(0)?.takeIf { it.isNotBlank() },
+                capturedAt2 = detail?.capturedAt?.getOrNull(1)?.takeIf { it.isNotBlank() },
+                capturedAt3 = detail?.capturedAt?.getOrNull(2)?.takeIf { it.isNotBlank() }
             )
         }
 
@@ -164,8 +170,9 @@ class GutterInspectPhotosFragment : Fragment() {
             binding.layoutFields.addView(createFieldRow("側溝高程", normalizeDisplayValue(details?.nodeLe)))
             binding.layoutFields.addView(
                 createPhotoSection(
-                    title = "測量位置及側溝概況",
+                    title = getString(R.string.photo_slot_overview),
                     url = point.photo1,
+                    capturedAt = point.capturedAt1,
                     onClick = { showImageDetail(point.photo1) }
                 )
             )
@@ -174,9 +181,23 @@ class GutterInspectPhotosFragment : Fragment() {
         if (!isVirtual) {
             binding.layoutFields.addView(createFieldRow("溝蓋板厚度(cm)", normalizeDisplayValue(details?.coverDepAsString)))
             binding.layoutFields.addView(createFieldRow("側溝頂寬度(cm)", normalizeDisplayValue(details?.nodeWidAsString)))
-            binding.layoutFields.addView(createPhotoSection(title = null, url = point.photo2, onClick = { showImageDetail(point.photo2) }))
+            binding.layoutFields.addView(
+                createPhotoSection(
+                    title = getString(R.string.label_photo_width),
+                    url = point.photo2,
+                    capturedAt = point.capturedAt2,
+                    onClick = { showImageDetail(point.photo2) }
+                )
+            )
             binding.layoutFields.addView(createFieldRow("側溝測量深度(cm)", normalizeDisplayValue(details?.nodeDepAsString)))
-            binding.layoutFields.addView(createPhotoSection(title = null, url = point.photo3, onClick = { showImageDetail(point.photo3) }))
+            binding.layoutFields.addView(
+                createPhotoSection(
+                    title = getString(R.string.label_photo_depth),
+                    url = point.photo3,
+                    capturedAt = point.capturedAt3,
+                    onClick = { showImageDetail(point.photo3) }
+                )
+            )
             binding.layoutFields.addView(createFieldRow("側溝材質", normalizeDisplayValue(mapMaterialType(details?.matTyp))))
             binding.layoutFields.addView(createFieldRow("淤積程度", normalizeDisplayValue(mapSilt(details?.isSilt))))
             binding.layoutFields.addView(createFieldRow("溝體結構受損", normalizeDisplayValue(mapBoolean01(details?.isBroken == "1"))))
@@ -227,7 +248,12 @@ class GutterInspectPhotosFragment : Fragment() {
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
-    private fun createPhotoSection(title: String?, url: String?, onClick: () -> Unit): View {
+    private fun createPhotoSection(
+        title: String,
+        url: String?,
+        capturedAt: String?,
+        onClick: () -> Unit
+    ): View {
         val root = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(
@@ -237,19 +263,36 @@ class GutterInspectPhotosFragment : Fragment() {
                 bottomMargin = dp(16)
             }
         }
-        if (!title.isNullOrBlank()) {
-            root.addView(TextView(requireContext()).apply {
+        root.addView(LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dp(8)
+            }
+            addView(TextView(requireContext()).apply {
                 text = title
                 textSize = 13f
                 setTextColor(resources.getColor(R.color.textColorSecondary, null))
                 layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply {
-                    bottomMargin = dp(8)
-                }
+                    0,
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    1f
+                )
             })
-        }
+            addView(TextView(requireContext()).apply {
+                text = capturedAt.orEmpty()
+                textSize = 12f
+                setTextColor(resources.getColor(R.color.textColorSecondary, null))
+                visibility = if (capturedAt.isNullOrBlank()) View.GONE else View.VISIBLE
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+            })
+        })
 
         val card = ConstraintLayout(requireContext()).apply {
             layoutParams = LinearLayout.LayoutParams(
