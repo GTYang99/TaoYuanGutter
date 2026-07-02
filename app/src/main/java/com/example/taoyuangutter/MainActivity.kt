@@ -455,7 +455,10 @@ class MainActivity : AppCompatActivity(),
                         }
 		                    }
                     inspectSheet?.showSelf()
-                    mapCameraController.fitCameraToWaypoints(inspectWaypoints)
+                    mapCameraController.fitCameraToWaypointsWithViewportFraction(
+                        inspectWaypoints,
+                        viewportHeightFraction = 1.0 / 3.0
+                    )
                 }
                 else -> clearWorkingMarkers()
             }
@@ -580,7 +583,10 @@ class MainActivity : AppCompatActivity(),
                 currentWaypoints = wps.toMutableList()
                 // 進入編輯時先不顯示紫色線段；等座標真的變更後才顯示
                 refreshWorkingMarkers(wps)
-                mapCameraController.fitCameraToWaypoints(wps)
+                mapCameraController.fitCameraToWaypointsWithViewportFraction(
+                    wps,
+                    viewportHeightFraction = 1.0 / 3.0
+                )
                 // fitCameraToWaypoints 會觸發 setOnCameraIdleListener → loadGuttersByViewportDebounced()
             } else {
                 // ── 從檢視模式返回（不編輯）時，清除起終點標記並恢復其他線段顯示 ──
@@ -1439,7 +1445,10 @@ class MainActivity : AppCompatActivity(),
         lockInspectUi()
 
         mainBlockingUiController.setInspectLoading(true, "載入側溝資料中…")
-        mapCameraController.fitCameraToWaypoints(start.routeWaypoints)
+        mapCameraController.fitCameraToWaypointsWithViewportFraction(
+            start.routeWaypoints,
+            viewportHeightFraction = 1.0 / 3.0
+        )
 
         lifecycleScope.launch {
             try {

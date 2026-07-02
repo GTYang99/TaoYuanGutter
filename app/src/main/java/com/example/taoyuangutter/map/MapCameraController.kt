@@ -93,6 +93,27 @@ class MapCameraController(
         }
     }
 
+    /**
+     * 檢視/編輯專用：以實際可視高度比例來 fit。
+     * 例如可視區只剩畫面高度 1/3 時，就傳入 1/3。
+     */
+    fun fitCameraToWaypointsWithViewportFraction(
+        waypoints: List<Waypoint>,
+        viewportHeightFraction: Double,
+        resetPaddingAfter: Boolean = true,
+        maxZoom: Float? = null,
+        paddingDp: Int = 64
+    ) {
+        val clampedFraction = viewportHeightFraction.coerceIn(0.1, 1.0)
+        fitCameraToWaypoints(
+            waypoints = waypoints,
+            bottomOffsetRatio = 1.0 - clampedFraction,
+            resetPaddingAfter = resetPaddingAfter,
+            maxZoom = maxZoom,
+            paddingDp = paddingDp
+        )
+    }
+
     fun fitCameraToTaggedPolylines(polylines: Iterable<Polyline>) {
         val allWaypoints = mutableListOf<Waypoint>()
         polylines.forEach { poly ->
