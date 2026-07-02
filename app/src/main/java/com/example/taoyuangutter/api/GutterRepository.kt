@@ -624,13 +624,13 @@ class GutterRepository(
                     val linkDownstream = capabilities.linkDownstreamBandwidthKbps
                     val isSlow = linkDownstream in 1..3000 // < 3 Mbps
                     if (hasCellular || isSlow) {
-                        return Pair(4000, 80) // 極致壓縮hi
+                        return Pair(2160, 80) // 極致壓縮hi
                     }
                 }
             }
-            Pair(4000, 80) // 預設優化值 (下修自原本的 1440px / 70%)
+            Pair(2160, 80) // 預設優化值 (下修自原本的 1440px / 70%)
         } catch (e: Exception) {
-            Pair(4000, 80)
+            Pair(2160, 80)
         }
     }
 
