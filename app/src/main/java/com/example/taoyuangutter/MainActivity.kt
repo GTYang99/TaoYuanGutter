@@ -989,8 +989,12 @@ class MainActivity : AppCompatActivity(),
     ) {
         lifecycleScope.launch {
             try {
-                when (val result = uploadWaypointPhotos(
+                val uploadWaypoints = buildEditPhotoUploadWaypoints(
                     waypoints = persistedWaypoints,
+                    originalWaypoints = originalWaypoints
+                )
+                when (val result = uploadWaypointPhotos(
+                    waypoints = uploadWaypoints,
                     nodes = nodes,
                     token = token,
                     originalWaypoints = originalWaypoints
@@ -1083,6 +1087,64 @@ class MainActivity : AppCompatActivity(),
                         .show()
                 }
             }
+        }
+    }
+
+    /**
+     * 編輯更新時，若某個 node 的照片與原始版本完全相同，就把該 slot 清空，
+     * 讓後續既有的照片上傳流程自然跳過。
+     *
+     * 這只影響 edit update 的「上傳用副本」，不改動 storeDitch、草稿或原始 waypoints。
+     */
+    private fun buildEditPhotoUploadWaypoints(
+        waypoints: List<Waypoint>,
+        originalWaypoints: List<WaypointSnapshot>?
+    ): List<Waypoint> {
+        if (originalWaypoints.isNullOrEmpty()) return waypoints
+
+        val originalByNodeId = originalWaypoints
+            .mapNotNull { snapshot ->
+                val nodeId = snapshot.basicData["_nodeId"]?.takeIf { it.isNotBlank() }
+                if (nodeId.isNullOrBlank()) null else nodeId to snapshot
+            }
+            .toMap()
+
+        return waypoints.mapIndexed { index, waypoint ->
+            val currentNodeId = waypoint.basicData["_nodeId"]?.takeIf { it.isNotBlank() }
+            val original = currentNodeId?.let { originalByNodeId[it] } ?: originalWaypoints.getOrNull(index)
+            if (original == null) return@mapIndexed waypoint
+
+            val originalNodeId = original.basicData["_nodeId"]?.takeIf { it.isNotBlank() } ?: currentNodeId ?: "unknown"
+            val merged = HashMap(waypoint.basicData)
+            var changed = false
+
+            for (slot in 1..3) {
+                val photoKey = "photo$slot"
+                val capturedAtKey = "photo${slot}CapturedAt"
+                val currentPhoto = merged[photoKey]?.trim().orEmpty()
+                val originalPhoto = original.basicData[photoKey]?.trim().orEmpty()
+                val currentCapturedAt = merged[capturedAtKey]?.trim().orEmpty()
+                val originalCapturedAt = original.basicData[capturedAtKey]?.trim().orEmpty()
+
+                val sameByCapturedAt =
+                    currentCapturedAt.isNotEmpty() &&
+                        currentCapturedAt == originalCapturedAt &&
+                        originalCapturedAt.isNotEmpty()
+                val sameByPhotoPath =
+                    currentPhoto.isNotEmpty() && currentPhoto == originalPhoto
+
+                if (sameByCapturedAt || sameByPhotoPath) {
+                    merged[photoKey] = ""
+                    merged[capturedAtKey] = ""
+                    changed = true
+                    android.util.Log.d(
+                        "PhotoUpload",
+                        "skip unchanged photo upload: nodeId=$originalNodeId slot=$slot by=${if (sameByCapturedAt) "capturedAt" else "photoPath"}"
+                    )
+                }
+            }
+
+            if (!changed) waypoint else waypoint.copy(basicData = merged)
         }
     }
 
