@@ -155,6 +155,154 @@
             app:strokeWidth="1dp"
             />
 
+        <LinearLayout
+            android:id="@+id/layoutOverviewPhotoSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/photo_slot_overview"
+                    android:textSize="14sp"
+                    android:textColor="@color/textColorSecondary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvPhotoTime1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textColor="@color/textColorSecondary"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTakePhotoSlot1"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="拍攝照片"
+                android:textAllCaps="false"
+                android:textColor="@color/colorPrimary"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="@color/colorBgTitle"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/colorPrimaryLight2"
+                app:strokeWidth="1dp" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/photoSlot1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_photo_placeholder"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:clipToOutline="true"
+                android:outlineProvider="background">
+
+                <View
+                    android:id="@+id/ratioAnchor1"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    app:layout_constraintDimensionRatio="H,4:3"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <LinearLayout
+                    android:id="@+id/placeholderSlot1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    app:layout_constraintTop_toTopOf="@id/ratioAnchor1"
+                    app:layout_constraintBottom_toBottomOf="@id/ratioAnchor1"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <ImageView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:src="@drawable/ic_camera"
+                        android:scaleType="centerInside"
+                        android:alpha="0.6"
+                        android:contentDescription="@null" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_take_photo"
+                        android:textSize="12sp"
+                        android:textColor="@color/inputFieldHint"
+                        android:layout_marginTop="6dp" />
+
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ivPhotoSlot1"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone"
+                    android:contentDescription="@null"
+                    app:layout_constraintTop_toTopOf="@id/ratioAnchor1"
+                    app:layout_constraintBottom_toBottomOf="@id/ratioAnchor1"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/pbPhotoLoading1"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:visibility="gone"
+                    android:indeterminate="true"
+                    android:elevation="12dp"
+                    app:indicatorColor="?attr/colorPrimary"
+                    app:trackColor="@android:color/transparent"
+                    app:layout_constraintTop_toTopOf="@id/ratioAnchor1"
+                    app:layout_constraintBottom_toBottomOf="@id/ratioAnchor1"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <ImageView
+                    android:id="@+id/btnDeleteSlot1"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_delete"
+                    android:tint="@color/colorPrimary"
+                    android:scaleType="centerInside"
+                    android:padding="5dp"
+                    android:background="@drawable/bg_delete_btn"
+                    android:visibility="gone"
+                    android:contentDescription="@null"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </LinearLayout>
+
         <!-- 虛擬模式下隱藏的區段 2 -->
         <LinearLayout
             android:id="@+id/llVirtualHidden2"
@@ -350,6 +498,154 @@
 
         </com.google.android.material.textfield.TextInputLayout>
 
+        <LinearLayout
+            android:id="@+id/layoutWidthPhotoSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/label_photo_width"
+                    android:textSize="14sp"
+                    android:textColor="@color/textColorSecondary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvPhotoTime2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textColor="@color/textColorSecondary"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTakePhotoSlot2"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="拍攝照片"
+                android:textAllCaps="false"
+                android:textColor="@color/colorPrimary"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="@color/colorBgTitle"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/colorPrimaryLight2"
+                app:strokeWidth="1dp" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/photoSlot2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_photo_placeholder"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:clipToOutline="true"
+                android:outlineProvider="background">
+
+                <View
+                    android:id="@+id/ratioAnchor2"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    app:layout_constraintDimensionRatio="H,4:3"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <LinearLayout
+                    android:id="@+id/placeholderSlot2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    app:layout_constraintTop_toTopOf="@id/ratioAnchor2"
+                    app:layout_constraintBottom_toBottomOf="@id/ratioAnchor2"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <ImageView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:src="@drawable/ic_camera"
+                        android:scaleType="centerInside"
+                        android:alpha="0.6"
+                        android:contentDescription="@null" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_take_photo"
+                        android:textSize="12sp"
+                        android:textColor="@color/inputFieldHint"
+                        android:layout_marginTop="6dp" />
+
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ivPhotoSlot2"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone"
+                    android:contentDescription="@null"
+                    app:layout_constraintTop_toTopOf="@id/ratioAnchor2"
+                    app:layout_constraintBottom_toBottomOf="@id/ratioAnchor2"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/pbPhotoLoading2"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:visibility="gone"
+                    android:indeterminate="true"
+                    android:elevation="12dp"
+                    app:indicatorColor="?attr/colorPrimary"
+                    app:trackColor="@android:color/transparent"
+                    app:layout_constraintTop_toTopOf="@id/ratioAnchor2"
+                    app:layout_constraintBottom_toBottomOf="@id/ratioAnchor2"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <ImageView
+                    android:id="@+id/btnDeleteSlot2"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_delete"
+                    android:tint="@color/colorPrimary"
+                    android:scaleType="centerInside"
+                    android:padding="5dp"
+                    android:background="@drawable/bg_delete_btn"
+                    android:visibility="gone"
+                    android:contentDescription="@null"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </LinearLayout>
+
         <!-- ⑧ 側溝測量深度 ──────────────────────────────────────── -->
         <TextView
             android:layout_width="match_parent"
@@ -382,6 +678,154 @@
                 android:paddingBottom="14dp" />
 
         </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
+            android:id="@+id/layoutDepthPhotoSection"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="8dp">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/label_photo_depth"
+                    android:textSize="14sp"
+                    android:textColor="@color/textColorSecondary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvPhotoTime3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textColor="@color/textColorSecondary"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnTakePhotoSlot3"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:insetTop="0dp"
+                android:insetBottom="0dp"
+                android:text="拍攝照片"
+                android:textAllCaps="false"
+                android:textColor="@color/colorPrimary"
+                android:textSize="14sp"
+                android:layout_marginBottom="12dp"
+                app:backgroundTint="@color/colorBgTitle"
+                app:cornerRadius="12dp"
+                app:strokeColor="@color/colorPrimaryLight2"
+                app:strokeWidth="1dp" />
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/photoSlot3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_photo_placeholder"
+                android:clickable="true"
+                android:focusable="true"
+                android:foreground="?attr/selectableItemBackgroundBorderless"
+                android:clipToOutline="true"
+                android:outlineProvider="background">
+
+                <View
+                    android:id="@+id/ratioAnchor3"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    app:layout_constraintDimensionRatio="H,4:3"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <LinearLayout
+                    android:id="@+id/placeholderSlot3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    app:layout_constraintTop_toTopOf="@id/ratioAnchor3"
+                    app:layout_constraintBottom_toBottomOf="@id/ratioAnchor3"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent">
+
+                    <ImageView
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:src="@drawable/ic_camera"
+                        android:scaleType="centerInside"
+                        android:alpha="0.6"
+                        android:contentDescription="@null" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_take_photo"
+                        android:textSize="12sp"
+                        android:textColor="@color/inputFieldHint"
+                        android:layout_marginTop="6dp" />
+
+                </LinearLayout>
+
+                <ImageView
+                    android:id="@+id/ivPhotoSlot3"
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:scaleType="centerCrop"
+                    android:visibility="gone"
+                    android:contentDescription="@null"
+                    app:layout_constraintTop_toTopOf="@id/ratioAnchor3"
+                    app:layout_constraintBottom_toBottomOf="@id/ratioAnchor3"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/pbPhotoLoading3"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:visibility="gone"
+                    android:indeterminate="true"
+                    android:elevation="12dp"
+                    app:indicatorColor="?attr/colorPrimary"
+                    app:trackColor="@android:color/transparent"
+                    app:layout_constraintTop_toTopOf="@id/ratioAnchor3"
+                    app:layout_constraintBottom_toBottomOf="@id/ratioAnchor3"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent" />
+
+                <ImageView
+                    android:id="@+id/btnDeleteSlot3"
+                    android:layout_width="28dp"
+                    android:layout_height="28dp"
+                    android:src="@drawable/ic_delete"
+                    android:tint="@color/colorPrimary"
+                    android:scaleType="centerInside"
+                    android:padding="5dp"
+                    android:background="@drawable/bg_delete_btn"
+                    android:visibility="gone"
+                    android:contentDescription="@null"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginEnd="8dp" />
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </LinearLayout>
 
 
 

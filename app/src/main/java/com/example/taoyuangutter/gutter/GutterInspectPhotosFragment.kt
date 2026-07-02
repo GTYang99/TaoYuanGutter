@@ -4,21 +4,24 @@ import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewOutlineProvider
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.DataSource
 import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
+import com.example.taoyuangutter.R
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.NodeDetails
-import com.example.taoyuangutter.api.safeCapturedAt
 import com.example.taoyuangutter.databinding.FragmentInspectPhotosBinding
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -139,57 +142,7 @@ class GutterInspectPhotosFragment : Fragment() {
 
     private fun renderPoint(point: PointViewData) {
         val isVirtual = point.details?.isVirtual == "1" || point.details?.isVirtual?.lowercase() == "true"
-        
-        renderFields(point.details)
-        
-        if (isVirtual) {
-            // 虛擬點不下載/不顯示照片，維持空白佔位
-            loadPhoto(null, binding.ivPhotoSlot1, binding.placeholderSlot1)
-            loadPhoto(null, binding.ivPhotoSlot2, binding.placeholderSlot2)
-            loadPhoto(null, binding.ivPhotoSlot3, binding.placeholderSlot3)
-        } else {
-            loadPhoto(point.photo1, binding.ivPhotoSlot1, binding.placeholderSlot1)
-            loadPhoto(point.photo2, binding.ivPhotoSlot2, binding.placeholderSlot2)
-            loadPhoto(point.photo3, binding.ivPhotoSlot3, binding.placeholderSlot3)
-        }
-        renderPhotoCapturedAtLabels(point.details)
-
-        binding.ivPhotoSlot1.setOnClickListener { if (!isVirtual) showImageDetail(point.photo1) }
-        binding.ivPhotoSlot2.setOnClickListener { if (!isVirtual) showImageDetail(point.photo2) }
-        binding.ivPhotoSlot3.setOnClickListener { if (!isVirtual) showImageDetail(point.photo3) }
-    }
-
-    private fun renderPhotoCapturedAtLabels(details: NodeDetails?) {
-        bindCapturedAt(
-            binding.tvPhotoTime1,
-            pointHasPhoto(details?.nodeImg, "1"),
-            details?.safeCapturedAt(0, "GutterInspectPhotos", "render photo time 1")
-        )
-        bindCapturedAt(
-            binding.tvPhotoTime2,
-            pointHasPhoto(details?.nodeImg, "2"),
-            details?.safeCapturedAt(1, "GutterInspectPhotos", "render photo time 2")
-        )
-        bindCapturedAt(
-            binding.tvPhotoTime3,
-            pointHasPhoto(details?.nodeImg, "3"),
-            details?.safeCapturedAt(2, "GutterInspectPhotos", "render photo time 3")
-        )
-    }
-
-    private fun bindCapturedAt(view: TextView, hasPhoto: Boolean, capturedAt: String?) {
-        if (!hasPhoto) {
-            view.text = ""
-            view.visibility = View.GONE
-            return
-        }
-        val text = capturedAt?.takeIf { it.isNotBlank() } ?: "-"
-        view.text = text
-        view.visibility = View.VISIBLE
-    }
-
-    private fun pointHasPhoto(nodeImg: List<com.example.taoyuangutter.api.NodeImg>?, category: String): Boolean {
-        return nodeImg?.any { it.fileCategory == category && it.url.isNotBlank() } == true
+        renderFields(point, isVirtual)
     }
 
     private fun showImageDetail(url: String) {
@@ -198,44 +151,38 @@ class GutterInspectPhotosFragment : Fragment() {
             .show(childFragmentManager, "image_detail")
     }
 
-    private fun renderFields(details: NodeDetails?) {
+    private fun renderFields(point: PointViewData, isVirtual: Boolean) {
+        val details = point.details
         binding.layoutFields.removeAllViews()
-
-        val rows = mutableListOf<Pair<String, String?>>()
-        
-        val isVirtual = details?.isVirtual == "1" || details?.isVirtual?.lowercase() == "true"
-        
-        rows.add("待架站" to mapBooleanCode(details?.isPendingDeploy))
-        rows.add("虛擬點" to if (isVirtual) "是" else "否")
-        
+        binding.layoutFields.addView(createFieldRow("待架站", normalizeDisplayValue(mapBooleanCode(details?.isPendingDeploy))))
         if (!isVirtual) {
-            rows.add("側溝型式" to mapNodeType(details?.nodeTyP))
+            binding.layoutFields.addView(createFieldRow("側溝型式", normalizeDisplayValue(mapNodeType(details?.nodeTyP))))
         }
-        
-        rows.add("側溝X(E)座標" to details?.nodeX)
-        rows.add("側溝Y(N)座標" to details?.nodeY)
-        
+        binding.layoutFields.addView(createFieldRow("側溝X(E)座標", normalizeDisplayValue(details?.nodeX)))
+        binding.layoutFields.addView(createFieldRow("側溝Y(N)座標", normalizeDisplayValue(details?.nodeY)))
         if (!isVirtual) {
-            rows.add("側溝高程" to details?.nodeLe)
+            binding.layoutFields.addView(createFieldRow("側溝高程", normalizeDisplayValue(details?.nodeLe)))
+            binding.layoutFields.addView(
+                createPhotoSection(
+                    title = "測量位置及側溝概況",
+                    url = point.photo1,
+                    onClick = { showImageDetail(point.photo1) }
+                )
+            )
         }
-        
-        rows.add("測量座標編號" to details?.xyNum)
-        
+        binding.layoutFields.addView(createFieldRow("測量座標編號", normalizeDisplayValue(details?.xyNum)))
         if (!isVirtual) {
-            rows.add("溝蓋板厚度(cm)" to details?.coverDepAsString)
-            rows.add("側溝頂寬度(cm)" to details?.nodeWidAsString)
-            rows.add("側溝測量深度(cm)" to details?.nodeDepAsString)
-            rows.add("側溝材質" to mapMaterialType(details?.matTyp))
-            rows.add("淤積程度" to mapSilt(details?.isSilt))
-            rows.add("溝體結構受損" to mapBoolean01(details?.isBroken == "1"))
-            rows.add("附掛或過路管線" to mapBoolean01(details?.isHanging == "1"))
+            binding.layoutFields.addView(createFieldRow("溝蓋板厚度(cm)", normalizeDisplayValue(details?.coverDepAsString)))
+            binding.layoutFields.addView(createFieldRow("側溝頂寬度(cm)", normalizeDisplayValue(details?.nodeWidAsString)))
+            binding.layoutFields.addView(createPhotoSection(title = null, url = point.photo2, onClick = { showImageDetail(point.photo2) }))
+            binding.layoutFields.addView(createFieldRow("側溝測量深度(cm)", normalizeDisplayValue(details?.nodeDepAsString)))
+            binding.layoutFields.addView(createPhotoSection(title = null, url = point.photo3, onClick = { showImageDetail(point.photo3) }))
+            binding.layoutFields.addView(createFieldRow("側溝材質", normalizeDisplayValue(mapMaterialType(details?.matTyp))))
+            binding.layoutFields.addView(createFieldRow("淤積程度", normalizeDisplayValue(mapSilt(details?.isSilt))))
+            binding.layoutFields.addView(createFieldRow("溝體結構受損", normalizeDisplayValue(mapBoolean01(details?.isBroken == "1"))))
+            binding.layoutFields.addView(createFieldRow("附掛或過路管線", normalizeDisplayValue(mapBoolean01(details?.isHanging == "1"))))
         }
-        
-        rows.add("補充說明" to details?.note)
-
-        rows.forEach { (label, rawValue) ->
-            binding.layoutFields.addView(createFieldRow(label, normalizeDisplayValue(rawValue)))
-        }
+        binding.layoutFields.addView(createFieldRow("補充說明", normalizeDisplayValue(details?.note)))
     }
 
     private fun createFieldRow(label: String, value: String): View {
@@ -279,6 +226,97 @@ class GutterInspectPhotosFragment : Fragment() {
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
+
+    private fun createPhotoSection(title: String?, url: String?, onClick: () -> Unit): View {
+        val root = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                bottomMargin = dp(16)
+            }
+        }
+        if (!title.isNullOrBlank()) {
+            root.addView(TextView(requireContext()).apply {
+                text = title
+                textSize = 13f
+                setTextColor(resources.getColor(R.color.textColorSecondary, null))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    bottomMargin = dp(8)
+                }
+            })
+        }
+
+        val card = ConstraintLayout(requireContext()).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
+            background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_photo_placeholder)
+            clipToOutline = true
+            outlineProvider = ViewOutlineProvider.BACKGROUND
+        }
+        val ratioAnchor = View(requireContext()).apply {
+            id = View.generateViewId()
+            layoutParams = ConstraintLayout.LayoutParams(0, 0).apply {
+                topToTop = ConstraintLayout.LayoutParams.PARENT_ID
+                bottomToBottom = ConstraintLayout.LayoutParams.PARENT_ID
+                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+                dimensionRatio = "H,4:3"
+            }
+        }
+        val placeholder = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER
+            layoutParams = ConstraintLayout.LayoutParams(
+                ConstraintLayout.LayoutParams.WRAP_CONTENT,
+                ConstraintLayout.LayoutParams.WRAP_CONTENT
+            ).apply {
+                topToTop = ratioAnchor.id
+                bottomToBottom = ratioAnchor.id
+                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+            }
+            addView(ImageView(requireContext()).apply {
+                layoutParams = LinearLayout.LayoutParams(dp(48), dp(48))
+                setImageResource(R.drawable.ic_camera)
+                alpha = 0.3f
+            })
+            addView(TextView(requireContext()).apply {
+                text = getString(R.string.no_photo)
+                textSize = 12f
+                setTextColor(resources.getColor(R.color.inputFieldHint, null))
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    topMargin = dp(6)
+                }
+            })
+        }
+        val imageView = ImageView(requireContext()).apply {
+            scaleType = ImageView.ScaleType.CENTER_CROP
+            visibility = View.GONE
+            layoutParams = ConstraintLayout.LayoutParams(0, 0).apply {
+                topToTop = ratioAnchor.id
+                bottomToBottom = ratioAnchor.id
+                startToStart = ConstraintLayout.LayoutParams.PARENT_ID
+                endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
+            }
+            setOnClickListener { onClick() }
+        }
+        card.addView(ratioAnchor)
+        card.addView(placeholder)
+        card.addView(imageView)
+        root.addView(card)
+        loadPhoto(url, imageView, placeholder)
+        return root
+    }
 
     private fun loadPhoto(url: String?, imageView: ImageView, placeholder: View) {
         if (!url.isNullOrBlank()) {

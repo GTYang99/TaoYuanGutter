@@ -1,8 +1,13 @@
 package com.example.taoyuangutter.gutter
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
+import android.net.Uri
 import android.os.Bundle
+import android.os.Build
+import android.os.Environment
+import android.os.SystemClock
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -11,12 +16,29 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
 import android.util.Log
+import android.widget.ImageView
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
+import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
 import com.example.taoyuangutter.R
+import com.example.taoyuangutter.common.PhotoCapturedAtResolver
+import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.FragmentGutterBasicInfoBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class GutterBasicInfoFragment : Fragment() {
 
@@ -35,6 +57,49 @@ class GutterBasicInfoFragment : Fragment() {
     // Keep using request keys NODE_X/NODE_Y; just change UI presentation.
     private var coordXValue: String = ""
     private var coordYValue: String = ""
+    private var photoDraftChangeHost: GutterPhotosFragment.DraftChangeHost? = null
+    private var photoUriSlot1: Uri? = null
+    private var photoUriSlot2: Uri? = null
+    private var photoUriSlot3: Uri? = null
+    private var photoCapturedAtSlot1: String? = null
+    private var photoCapturedAtSlot2: String? = null
+    private var photoCapturedAtSlot3: String? = null
+    private var pendingSlot: Int = 0
+    private var pendingOutputPath: String? = null
+    private var hasShownPhotoLoadErrorAlert = false
+    private var suppressPhotoDraftCallbacks = false
+
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted && pendingSlot > 0) {
+            maybeRequestLegacyWritePermissionThenLaunch()
+        } else if (!granted) {
+            val canceledSlot = pendingSlot
+            pendingSlot = 0
+            if (canceledSlot > 0) {
+                photoDraftChangeHost?.onPendingPhotoDraftChanged(canceledSlot, null)
+            }
+            Toast.makeText(requireContext(), getString(R.string.msg_camera_permission_required), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private val legacyWritePermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            val canceledSlot = pendingSlot
+            pendingSlot = 0
+            if (canceledSlot > 0) {
+                photoDraftChangeHost?.onPendingPhotoDraftChanged(canceledSlot, null)
+            }
+            Toast.makeText(requireContext(), "需要儲存權限才能同時寫入系統相簿", Toast.LENGTH_SHORT).show()
+            return@registerForActivityResult
+        }
+        if (pendingSlot > 0) {
+            launchCameraOverlay(pendingSlot)
+        }
+    }
 
     companion object {
         private const val ARG_LAT          = "latitude"
@@ -62,6 +127,20 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_DATA_IS_PENDING_DEPLOY = "d_is_pending_deploy"
         private const val ARG_DATA_IS_VIRTUAL  = "d_is_virtual" // 新增：虛擬點欄位
         private const val ARG_DATA_IS_IMPORTED = "d_is_imported" // 新增：匯入點位旗標
+        private const val ARG_PHOTO_1 = "arg_photo_1"
+        private const val ARG_PHOTO_2 = "arg_photo_2"
+        private const val ARG_PHOTO_3 = "arg_photo_3"
+        private const val ARG_PHOTO_1_CAPTURED_AT = "arg_photo_1_captured_at"
+        private const val ARG_PHOTO_2_CAPTURED_AT = "arg_photo_2_captured_at"
+        private const val ARG_PHOTO_3_CAPTURED_AT = "arg_photo_3_captured_at"
+        private const val KEY_PHOTO_1 = "photo_1"
+        private const val KEY_PHOTO_2 = "photo_2"
+        private const val KEY_PHOTO_3 = "photo_3"
+        private const val KEY_PHOTO_1_CAPTURED_AT = "photo_1_captured_at"
+        private const val KEY_PHOTO_2_CAPTURED_AT = "photo_2_captured_at"
+        private const val KEY_PHOTO_3_CAPTURED_AT = "photo_3_captured_at"
+        private const val KEY_PENDING_SLOT = "pending_slot"
+        private const val KEY_PENDING_PATH = "pending_path"
 
         /** 側溝形式選項（NODE_TYP）*/
         val GUTTER_TYPES = listOf(
@@ -116,6 +195,12 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_DATA_IS_SILT,     basicData["IS_SILT"]     ?: basicData["isSilt"] ?: "")
                 putString(ARG_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: basicData["isCantOpen"] ?: "")
                 putString(ARG_DATA_NODE_NOTE,   basicData["NODE_NOTE"]   ?: basicData["remarks"] ?: "")
+                putString(ARG_PHOTO_1, basicData["photo1"] ?: "")
+                putString(ARG_PHOTO_2, basicData["photo2"] ?: "")
+                putString(ARG_PHOTO_3, basicData["photo3"] ?: "")
+                putString(ARG_PHOTO_1_CAPTURED_AT, basicData["photo1CapturedAt"] ?: "")
+                putString(ARG_PHOTO_2_CAPTURED_AT, basicData["photo2CapturedAt"] ?: "")
+                putString(ARG_PHOTO_3_CAPTURED_AT, basicData["photo3CapturedAt"] ?: "")
                 putString(
                     ARG_DATA_IS_PENDING_DEPLOY,
                     basicData["IS_PENDING_DEPLOY"]
@@ -134,14 +219,49 @@ class GutterBasicInfoFragment : Fragment() {
         return binding.root
     }
 
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        if (savedInstanceState != null) {
+            savedInstanceState.getString(KEY_PHOTO_1)?.let { photoUriSlot1 = Uri.parse(it) }
+            savedInstanceState.getString(KEY_PHOTO_2)?.let { photoUriSlot2 = Uri.parse(it) }
+            savedInstanceState.getString(KEY_PHOTO_3)?.let { photoUriSlot3 = Uri.parse(it) }
+            photoCapturedAtSlot1 = savedInstanceState.getString(KEY_PHOTO_1_CAPTURED_AT)
+            photoCapturedAtSlot2 = savedInstanceState.getString(KEY_PHOTO_2_CAPTURED_AT)
+            photoCapturedAtSlot3 = savedInstanceState.getString(KEY_PHOTO_3_CAPTURED_AT)
+            pendingSlot = savedInstanceState.getInt(KEY_PENDING_SLOT, 0)
+            pendingOutputPath = savedInstanceState.getString(KEY_PENDING_PATH)
+        } else {
+            photoUriSlot1 = parseUriString(arguments?.getString(ARG_PHOTO_1))
+            photoUriSlot2 = parseUriString(arguments?.getString(ARG_PHOTO_2))
+            photoUriSlot3 = parseUriString(arguments?.getString(ARG_PHOTO_3))
+            photoCapturedAtSlot1 = arguments?.getString(ARG_PHOTO_1_CAPTURED_AT)
+            photoCapturedAtSlot2 = arguments?.getString(ARG_PHOTO_2_CAPTURED_AT)
+            photoCapturedAtSlot3 = arguments?.getString(ARG_PHOTO_3_CAPTURED_AT)
+        }
+    }
+
     override fun onAttach(context: Context) {
         super.onAttach(context)
         draftChangeHost = context as? DraftChangeHost
+        photoDraftChangeHost = context as? GutterPhotosFragment.DraftChangeHost
     }
 
     override fun onDetach() {
         draftChangeHost = null
+        photoDraftChangeHost = null
         super.onDetach()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        photoUriSlot1?.let { outState.putString(KEY_PHOTO_1, it.toString()) }
+        photoUriSlot2?.let { outState.putString(KEY_PHOTO_2, it.toString()) }
+        photoUriSlot3?.let { outState.putString(KEY_PHOTO_3, it.toString()) }
+        photoCapturedAtSlot1?.let { outState.putString(KEY_PHOTO_1_CAPTURED_AT, it) }
+        photoCapturedAtSlot2?.let { outState.putString(KEY_PHOTO_2_CAPTURED_AT, it) }
+        photoCapturedAtSlot3?.let { outState.putString(KEY_PHOTO_3_CAPTURED_AT, it) }
+        outState.putInt(KEY_PENDING_SLOT, pendingSlot)
+        pendingOutputPath?.let { outState.putString(KEY_PENDING_PATH, it) }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -159,6 +279,39 @@ class GutterBasicInfoFragment : Fragment() {
             coordXValue = arguments?.getString(ARG_DATA_NODE_X) ?: ""
             coordYValue = arguments?.getString(ARG_DATA_NODE_Y) ?: ""
         }
+        parentFragmentManager.setFragmentResultListener(
+            CameraOverlayFragment.RESULT_KEY,
+            viewLifecycleOwner
+        ) { _, bundle ->
+            val code = bundle.getInt(CameraOverlayFragment.RESULT_CODE, Activity.RESULT_CANCELED)
+            val slot = bundle.getInt(CameraOverlayFragment.RESULT_SLOT, 0)
+            val path = bundle.getString(CameraOverlayFragment.RESULT_PATH) ?: pendingOutputPath
+            if (code == Activity.RESULT_OK && !path.isNullOrBlank() && slot in 1..3) {
+                (activity as? PhotoLoadingHost)?.setPhotoLoading(true)
+                val file = File(path)
+                setCapturedAtForSlot(
+                    slot = slot,
+                    capturedAt = PhotoCapturedAtResolver.resolveBestEffort(requireContext(), file.absolutePath),
+                    notifyDraftChanged = true
+                )
+                val uri = try {
+                    FileProvider.getUriForFile(
+                        requireContext(),
+                        "${requireContext().packageName}.fileprovider",
+                        file
+                    )
+                } catch (_: Exception) {
+                    Uri.fromFile(file)
+                }
+                applyPhotoToSlot(slot, uri, notifyDraftChanged = true)
+            }
+            if (slot in 1..3) {
+                photoDraftChangeHost?.onPendingPhotoDraftChanged(slot, null)
+            }
+            pendingSlot = 0
+            pendingOutputPath = null
+        }
+        renderStoredPhotoSlots()
         setEditable(!isViewMode)
         setupCantOpen()
         
@@ -245,6 +398,12 @@ class GutterBasicInfoFragment : Fragment() {
         val isSilt     = args.getString(ARG_DATA_IS_SILT,     "")
         val isCantOpen = args.getString(ARG_DATA_IS_CANTOPEN, "")
         val nodeNote   = args.getString(ARG_DATA_NODE_NOTE,   "")
+        val photo1 = args.getString(ARG_PHOTO_1, "")
+        val photo2 = args.getString(ARG_PHOTO_2, "")
+        val photo3 = args.getString(ARG_PHOTO_3, "")
+        val photo1CapturedAt = args.getString(ARG_PHOTO_1_CAPTURED_AT, "")
+        val photo2CapturedAt = args.getString(ARG_PHOTO_2_CAPTURED_AT, "")
+        val photo3CapturedAt = args.getString(ARG_PHOTO_3_CAPTURED_AT, "")
         val isPendingDeploy = args.getString(ARG_DATA_IS_PENDING_DEPLOY, "")
         val isVirtualArg = args.getString(ARG_DATA_IS_VIRTUAL, "0")
         val isImportedArg = args.getString(ARG_DATA_IS_IMPORTED, "")
@@ -252,7 +411,8 @@ class GutterBasicInfoFragment : Fragment() {
         val hasAnyData = listOf(
             spiNum, nodeTyp, matTyp, nodeX, nodeY, nodeLe,
             xyNum, coverDep, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote,
-            isPendingDeploy, isVirtualArg, isImportedArg
+            isPendingDeploy, isVirtualArg, isImportedArg,
+            photo1, photo2, photo3, photo1CapturedAt, photo2CapturedAt, photo3CapturedAt
         ).any { it.isNotEmpty() && it != "0" && it != "false" }
 
         if (hasAnyData) {
@@ -269,6 +429,12 @@ class GutterBasicInfoFragment : Fragment() {
             binding.etCoverThickness.setText(coverDep)
             binding.etDepth.setText(nodeDep)
             binding.etTopWidth.setText(nodeWid)
+            photoUriSlot1 = parseUriString(photo1)
+            photoUriSlot2 = parseUriString(photo2)
+            photoUriSlot3 = parseUriString(photo3)
+            photoCapturedAtSlot1 = photo1CapturedAt.takeIf { it.isNotBlank() }
+            photoCapturedAtSlot2 = photo2CapturedAt.takeIf { it.isNotBlank() }
+            photoCapturedAtSlot3 = photo3CapturedAt.takeIf { it.isNotBlank() }
             binding.rgIsBroken.setCheckedByText(isBrokenCodeToText(isBroken))
             binding.rgIsHanging.setCheckedByText(isHangingCodeToText(isHanging))
             binding.rgIsSilt.setCheckedByText(isSiltCodeToText(isSilt))
@@ -504,6 +670,7 @@ class GutterBasicInfoFragment : Fragment() {
         // 重新套用「無法開蓋」狀態（例如從檢視進入編輯）
         applyCantOpenUi(binding.cbCantOpen.isChecked)
         applyImportLockUi()
+        setPhotoEditable(actualEnabled, isViewMode = !enabled)
     }
 
     /** 隱藏虛擬鍵盤 */
@@ -679,7 +846,13 @@ class GutterBasicInfoFragment : Fragment() {
             "IS_SILT"     to siltTextToCode(binding.rgIsSilt.getCheckedText()),
             // 以 "1"/"" 形式存入 basicData（送出 API 時再轉為 JSON boolean）
             "IS_CANTOPEN" to (if (binding.cbCantOpen.isChecked) "1" else ""),
-            "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: "")
+            "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: ""),
+            "photo1" to (photoUriSlot1?.toString() ?: ""),
+            "photo2" to (photoUriSlot2?.toString() ?: ""),
+            "photo3" to (photoUriSlot3?.toString() ?: ""),
+            "photo1CapturedAt" to (photoCapturedAtSlot1 ?: ""),
+            "photo2CapturedAt" to (photoCapturedAtSlot2 ?: ""),
+            "photo3CapturedAt" to (photoCapturedAtSlot3 ?: "")
         )
     }
 
@@ -697,6 +870,9 @@ class GutterBasicInfoFragment : Fragment() {
         binding.llVirtualHidden2.visibility = visibility
         // 根據需求保留「溝蓋板厚度」欄位，不隨虛擬模式隱藏
         binding.llVirtualHidden3.visibility = visibility
+        binding.layoutOverviewPhotoSection.visibility = visibility
+        binding.layoutWidthPhotoSection.visibility = visibility
+        binding.layoutDepthPhotoSection.visibility = visibility
         notifyDraftChanged()
     }
 
@@ -789,6 +965,413 @@ class GutterBasicInfoFragment : Fragment() {
         notifyDraftChanged()
     }
 
+    fun validateAllPhotos(): String? {
+        val context = context ?: return "照片尚未準備完成"
+        if (!PhotoUploadValidator.isUsableForUpload(context, photoUriSlot1?.toString())) {
+            return "測量位置及側溝概況"
+        }
+        if (!PhotoUploadValidator.isUsableForUpload(context, photoUriSlot2?.toString())) {
+            return "側溝頂寬度"
+        }
+        if (!PhotoUploadValidator.isUsableForUpload(context, photoUriSlot3?.toString())) {
+            return "側溝測量深度"
+        }
+        return null
+    }
+
+    fun getPhotoPaths(): Triple<String?, String?, String?> = Triple(
+        photoUriSlot1?.toString(),
+        photoUriSlot2?.toString(),
+        photoUriSlot3?.toString()
+    )
+
+    fun syncPersistedPhotoState(
+        photo1: String?,
+        photo2: String?,
+        photo3: String?,
+        capturedAt1: String?,
+        capturedAt2: String?,
+        capturedAt3: String?
+    ) {
+        suppressPhotoDraftCallbacks = true
+        try {
+            photoUriSlot1 = parseUriString(photo1)
+            photoUriSlot2 = parseUriString(photo2)
+            photoUriSlot3 = parseUriString(photo3)
+            photoCapturedAtSlot1 = capturedAt1?.takeIf { it.isNotBlank() }
+            photoCapturedAtSlot2 = capturedAt2?.takeIf { it.isNotBlank() }
+            photoCapturedAtSlot3 = capturedAt3?.takeIf { it.isNotBlank() }
+            if (_binding != null) {
+                renderStoredPhotoSlots()
+                setPhotoEditable(isFormEditable && !isImportLocked, isViewMode = !isFormEditable)
+            }
+        } finally {
+            suppressPhotoDraftCallbacks = false
+        }
+    }
+
+    fun prefillPhotos(
+        photo1: String?,
+        photo2: String?,
+        photo3: String?,
+        capturedAt1: String? = null,
+        capturedAt2: String? = null,
+        capturedAt3: String? = null
+    ) {
+        photoUriSlot1 = parseUriString(photo1)
+        photoUriSlot2 = parseUriString(photo2)
+        photoUriSlot3 = parseUriString(photo3)
+        photoCapturedAtSlot1 = capturedAt1?.takeIf { it.isNotBlank() }
+        photoCapturedAtSlot2 = capturedAt2?.takeIf { it.isNotBlank() }
+        photoCapturedAtSlot3 = capturedAt3?.takeIf { it.isNotBlank() }
+        if (_binding != null) {
+            renderStoredPhotoSlots()
+            setPhotoEditable(isFormEditable && !isImportLocked, isViewMode = !isFormEditable)
+        }
+        notifyPhotoDraftChanged()
+    }
+
+    private fun setPhotoEditable(enabled: Boolean, isViewMode: Boolean) {
+        if (_binding == null) return
+        if (enabled) {
+            binding.btnTakePhotoSlot1.setOnClickListener { requestCameraForSlot(1) }
+            binding.btnTakePhotoSlot2.setOnClickListener { requestCameraForSlot(2) }
+            binding.btnTakePhotoSlot3.setOnClickListener { requestCameraForSlot(3) }
+            binding.photoSlot1.setOnClickListener { requestCameraForSlot(1) }
+            binding.photoSlot2.setOnClickListener { requestCameraForSlot(2) }
+            binding.photoSlot3.setOnClickListener { requestCameraForSlot(3) }
+            binding.btnDeleteSlot1.setOnClickListener { deletePhoto(1) }
+            binding.btnDeleteSlot2.setOnClickListener { deletePhoto(2) }
+            binding.btnDeleteSlot3.setOnClickListener { deletePhoto(3) }
+        } else {
+            hasShownPhotoLoadErrorAlert = false
+            binding.btnTakePhotoSlot1.setOnClickListener(null)
+            binding.btnTakePhotoSlot2.setOnClickListener(null)
+            binding.btnTakePhotoSlot3.setOnClickListener(null)
+            binding.photoSlot1.setOnClickListener(null)
+            binding.photoSlot2.setOnClickListener(null)
+            binding.photoSlot3.setOnClickListener(null)
+            binding.btnDeleteSlot1.visibility = View.GONE
+            binding.btnDeleteSlot2.visibility = View.GONE
+            binding.btnDeleteSlot3.visibility = View.GONE
+        }
+        renderPhotoSectionState(1, enabled, isViewMode)
+        renderPhotoSectionState(2, enabled, isViewMode)
+        renderPhotoSectionState(3, enabled, isViewMode)
+        val alpha = if (enabled) 1f else 0.6f
+        binding.layoutOverviewPhotoSection.alpha = alpha
+        binding.layoutWidthPhotoSection.alpha = alpha
+        binding.layoutDepthPhotoSection.alpha = alpha
+    }
+
+    private fun renderPhotoSectionState(slot: Int, editable: Boolean, isViewMode: Boolean) {
+        val hasPhoto = when (slot) {
+            1 -> photoUriSlot1 != null
+            2 -> photoUriSlot2 != null
+            else -> photoUriSlot3 != null
+        }
+        val button = when (slot) {
+            1 -> binding.btnTakePhotoSlot1
+            2 -> binding.btnTakePhotoSlot2
+            else -> binding.btnTakePhotoSlot3
+        }
+        val card = when (slot) {
+            1 -> binding.photoSlot1
+            2 -> binding.photoSlot2
+            else -> binding.photoSlot3
+        }
+        val placeholder = when (slot) {
+            1 -> binding.placeholderSlot1
+            2 -> binding.placeholderSlot2
+            else -> binding.placeholderSlot3
+        }
+        val delete = when (slot) {
+            1 -> binding.btnDeleteSlot1
+            2 -> binding.btnDeleteSlot2
+            else -> binding.btnDeleteSlot3
+        }
+
+        if (hasPhoto) {
+            button.visibility = View.GONE
+            card.visibility = View.VISIBLE
+            placeholder.visibility = View.GONE
+            delete.visibility = if (editable) View.VISIBLE else View.GONE
+        } else {
+            button.visibility = if (editable) View.VISIBLE else View.GONE
+            card.visibility = View.GONE
+            placeholder.visibility = if (isViewMode) View.INVISIBLE else View.VISIBLE
+            delete.visibility = View.GONE
+        }
+    }
+
+    private fun deletePhoto(slot: Int) {
+        val dialog = MaterialAlertDialogBuilder(requireContext())
+            .setTitle("確認刪除")
+            .setMessage("確定要刪除這張照片嗎？")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("刪除") { _, _ ->
+                clearPhotoSlot(slot, notifyDraftChanged = true)
+            }
+            .show()
+        dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE)
+            .setTextColor(android.graphics.Color.parseColor("#D32F2F"))
+    }
+
+    private fun requestCameraForSlot(slot: Int) {
+        pendingSlot = slot
+        if (ContextCompat.checkSelfPermission(
+                requireContext(), android.Manifest.permission.CAMERA
+            ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            maybeRequestLegacyWritePermissionThenLaunch()
+        } else {
+            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+        }
+    }
+
+    private fun maybeRequestLegacyWritePermissionThenLaunch() {
+        val slot = pendingSlot
+        if (slot <= 0) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q &&
+            ContextCompat.checkSelfPermission(
+                requireContext(),
+                android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) {
+            legacyWritePermissionLauncher.launch(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            return
+        }
+        launchCameraOverlay(slot)
+    }
+
+    private fun launchCameraOverlay(slot: Int) {
+        val outputFile = createOutputFile(slot)
+        if (outputFile == null) {
+            val failedSlot = pendingSlot
+            pendingSlot = 0
+            if (failedSlot > 0) {
+                photoDraftChangeHost?.onPendingPhotoDraftChanged(failedSlot, null)
+            }
+            Toast.makeText(requireContext(), getString(R.string.msg_photo_prepare_failed), Toast.LENGTH_SHORT).show()
+            return
+        }
+        pendingOutputPath = outputFile.absolutePath
+        photoDraftChangeHost?.onPendingPhotoDraftChanged(slot, outputFile.absolutePath)
+        (activity as? GutterFormActivity)?.showCameraOverlay(slot, outputFile.absolutePath)
+    }
+
+    private fun createOutputFile(slot: Int): File? {
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir = requireContext().getExternalFilesDir(Environment.DIRECTORY_PICTURES)
+            ?: File(requireContext().filesDir, "Pictures").apply { mkdirs() }
+        return try {
+            File.createTempFile("GUTTER_${slot}_${timeStamp}_", ".jpg", storageDir)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun renderStoredPhotoSlots() {
+        applyPhotoToSlot(1, photoUriSlot1, notifyDraftChanged = false)
+        applyPhotoToSlot(2, photoUriSlot2, notifyDraftChanged = false)
+        applyPhotoToSlot(3, photoUriSlot3, notifyDraftChanged = false)
+        renderCapturedAtLabels()
+    }
+
+    private fun applyPhotoToSlot(slot: Int, uri: Uri?, notifyDraftChanged: Boolean) {
+        if (uri == null) {
+            clearPhotoSlot(slot, notifyDraftChanged)
+            return
+        }
+        val context = context
+        if (context != null && !PhotoUploadValidator.isUsableForUpload(context, uri.toString())) {
+            if (notifyDraftChanged) {
+                clearPhotoSlot(slot, notifyDraftChanged)
+            } else {
+                when (slot) {
+                    1 -> {
+                        photoUriSlot1 = uri
+                        showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, null)
+                    }
+                    2 -> {
+                        photoUriSlot2 = uri
+                        showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, null)
+                    }
+                    3 -> {
+                        photoUriSlot3 = uri
+                        showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
+                    }
+                }
+                (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
+            }
+            return
+        }
+        when (slot) {
+            1 -> {
+                photoUriSlot1 = uri
+                showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, uri)
+            }
+            2 -> {
+                photoUriSlot2 = uri
+                showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, uri)
+            }
+            3 -> {
+                photoUriSlot3 = uri
+                showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, uri)
+            }
+        }
+        renderPhotoSectionState(slot, isFormEditable && !isImportLocked, isViewMode = !isFormEditable)
+        if (notifyDraftChanged) notifyPhotoDraftChanged()
+    }
+
+    private fun clearPhotoSlot(slot: Int, notifyDraftChanged: Boolean) {
+        (activity as? GutterFormActivity)?.beginPhotoDraftBatch()
+        try {
+            when (slot) {
+                1 -> {
+                    photoUriSlot1 = null
+                    photoCapturedAtSlot1 = null
+                    showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, null)
+                }
+                2 -> {
+                    photoUriSlot2 = null
+                    photoCapturedAtSlot2 = null
+                    showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, null)
+                }
+                3 -> {
+                    photoUriSlot3 = null
+                    photoCapturedAtSlot3 = null
+                    showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
+                }
+            }
+            renderPhotoSectionState(slot, isFormEditable && !isImportLocked, isViewMode = !isFormEditable)
+            renderCapturedAtLabels()
+            (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
+            if (!suppressPhotoDraftCallbacks) {
+                photoDraftChangeHost?.onPhotoCapturedAtDraftChanged(slot, null)
+                photoDraftChangeHost?.onPendingPhotoDraftChanged(slot, null)
+            }
+            if (notifyDraftChanged) notifyPhotoDraftChanged()
+        } finally {
+            (activity as? GutterFormActivity)?.endPhotoDraftBatch()
+        }
+    }
+
+    private fun showPhoto(
+        photoView: ImageView,
+        placeholder: View,
+        loading: View,
+        uri: Uri?
+    ) {
+        if (uri == null) {
+            loading.visibility = View.GONE
+            placeholder.visibility = View.VISIBLE
+            photoView.visibility = View.GONE
+            Glide.with(this).clear(photoView)
+            photoView.setImageDrawable(null)
+            return
+        }
+        placeholder.visibility = View.GONE
+        photoView.visibility = View.VISIBLE
+        val startMs = SystemClock.uptimeMillis()
+        loading.visibility = View.VISIBLE
+        val scheme = uri.scheme?.lowercase()
+        val isRemote = scheme == "http" || scheme == "https"
+        val targetW = photoView.width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels
+        val targetH = (targetW * 3) / 4
+        Glide.with(this)
+            .load(uri)
+            .override(targetW, targetH)
+            .centerCrop()
+            .listener(object : RequestListener<android.graphics.drawable.Drawable> {
+                override fun onLoadFailed(
+                    e: GlideException?,
+                    model: Any?,
+                    target: Target<android.graphics.drawable.Drawable>,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    if (_binding != null) {
+                        val delayMs = (250L - (SystemClock.uptimeMillis() - startMs)).coerceAtLeast(0L)
+                        loading.postDelayed({ if (_binding != null) loading.visibility = View.GONE }, delayMs)
+                    }
+                    (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
+                    photoView.visibility = View.GONE
+                    placeholder.visibility = View.VISIBLE
+                    if (isRemote) showPhotoLoadErrorAlert()
+                    return true
+                }
+
+                override fun onResourceReady(
+                    resource: android.graphics.drawable.Drawable,
+                    model: Any,
+                    target: Target<android.graphics.drawable.Drawable>?,
+                    dataSource: DataSource,
+                    isFirstResource: Boolean
+                ): Boolean {
+                    if (_binding != null) {
+                        val delayMs = (250L - (SystemClock.uptimeMillis() - startMs)).coerceAtLeast(0L)
+                        loading.postDelayed({ if (_binding != null) loading.visibility = View.GONE }, delayMs)
+                    }
+                    (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
+                    return false
+                }
+            })
+            .into(photoView)
+    }
+
+    private fun setCapturedAtForSlot(slot: Int, capturedAt: String?, notifyDraftChanged: Boolean) {
+        val normalized = capturedAt?.takeIf { it.isNotBlank() }
+        when (slot) {
+            1 -> photoCapturedAtSlot1 = normalized
+            2 -> photoCapturedAtSlot2 = normalized
+            3 -> photoCapturedAtSlot3 = normalized
+            else -> return
+        }
+        renderCapturedAtLabels()
+        if (notifyDraftChanged && !suppressPhotoDraftCallbacks) {
+            photoDraftChangeHost?.onPhotoCapturedAtDraftChanged(slot, normalized)
+        }
+    }
+
+    private fun renderCapturedAtLabels() {
+        bindCapturedAt(binding.tvPhotoTime1, photoUriSlot1 != null, photoCapturedAtSlot1)
+        bindCapturedAt(binding.tvPhotoTime2, photoUriSlot2 != null, photoCapturedAtSlot2)
+        bindCapturedAt(binding.tvPhotoTime3, photoUriSlot3 != null, photoCapturedAtSlot3)
+    }
+
+    private fun bindCapturedAt(view: TextView, hasPhoto: Boolean, capturedAt: String?) {
+        if (!hasPhoto) {
+            view.text = ""
+            view.visibility = View.GONE
+            return
+        }
+        view.text = capturedAt?.takeIf { it.isNotBlank() } ?: "-"
+        view.visibility = View.VISIBLE
+    }
+
+    private fun showPhotoLoadErrorAlert() {
+        if (hasShownPhotoLoadErrorAlert) return
+        hasShownPhotoLoadErrorAlert = true
+        val act = activity ?: return
+        act.runOnUiThread {
+            if (act.isFinishing || act.isDestroyed) return@runOnUiThread
+            MaterialAlertDialogBuilder(act)
+                .setTitle("資料加載不完整")
+                .setMessage("部分照片無法載入，資料可能不完整。\n\n請關閉後重新點選側溝線段。")
+                .setPositiveButton("確定", null)
+                .show()
+        }
+    }
+
+    private fun notifyPhotoDraftChanged() {
+        if (suppressPhotoDraftCallbacks) return
+        photoDraftChangeHost?.onPhotosDraftChanged(
+            photoUriSlot1?.toString(),
+            photoUriSlot2?.toString(),
+            photoUriSlot3?.toString()
+        )
+    }
+
     private fun notifyDraftChanged() {
         onDraftChanged?.invoke()
         if (_binding != null) {
@@ -873,4 +1456,7 @@ class GutterBasicInfoFragment : Fragment() {
             else -> false
         }
     }
+
+    private fun parseUriString(uriString: String?): Uri? =
+        uriString?.takeIf { it.isNotBlank() }?.let { Uri.parse(it) }
 }

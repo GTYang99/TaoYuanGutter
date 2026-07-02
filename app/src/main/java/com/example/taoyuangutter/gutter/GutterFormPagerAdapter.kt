@@ -15,9 +15,9 @@ class GutterFormPagerAdapter(
 ) : FragmentStateAdapter(fragmentActivity) {
 
     // 保留 Fragment 引用，供外部切換編輯模式時直接呼叫
-    private val fragments = arrayOfNulls<Fragment>(2)
+    private val fragments = arrayOfNulls<Fragment>(1)
 
-    override fun getItemCount(): Int = 2
+    override fun getItemCount(): Int = 1
 
     override fun createFragment(position: Int): Fragment {
         val frag: Fragment = when (position) {
@@ -25,19 +25,6 @@ class GutterFormPagerAdapter(
                 val isVirtual = basicData["is_virtual"] ?: basicData["IS_VIRTUAL"] ?: "0"
                 GutterBasicInfoFragment.newInstance(
                     latitude, longitude, viewMode, basicData, isOfflineMode, isEditMode, isVirtual
-                )
-            }
-            1 -> {
-                val isImported = (basicData["_isImported"] ?: "0") == "1"
-                GutterPhotosFragment.newInstance(
-                    viewMode,
-                    photo1 = basicData["photo1"],
-                    photo2 = basicData["photo2"],
-                    photo3 = basicData["photo3"],
-                    capturedAt1 = basicData["photo1CapturedAt"],
-                    capturedAt2 = basicData["photo2CapturedAt"],
-                    capturedAt3 = basicData["photo3CapturedAt"],
-                    isImported = isImported
                 )
             }
             else -> throw IllegalArgumentException("Unknown page $position")
@@ -55,9 +42,4 @@ class GutterFormPagerAdapter(
         (fragments[0] as? GutterBasicInfoFragment)
             ?: fragmentActivity.supportFragmentManager
                    .findFragmentByTag("f${getItemId(0)}") as? GutterBasicInfoFragment
-
-    fun getPhotosFragment(): GutterPhotosFragment? =
-        (fragments[1] as? GutterPhotosFragment)
-            ?: fragmentActivity.supportFragmentManager
-                   .findFragmentByTag("f${getItemId(1)}") as? GutterPhotosFragment
 }

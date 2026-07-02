@@ -517,7 +517,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     val capturedAt2 = nodeDetails.safeCapturedAt(1, "GutterFormActivity", "import existing waypoint")
                     val capturedAt3 = nodeDetails.safeCapturedAt(2, "GutterFormActivity", "import existing waypoint")
 
-                pagerAdapter.getPhotosFragment()?.prefillPhotos(
+                pagerAdapter.getBasicInfoFragment()?.prefillPhotos(
                     photo1 = p1,
                     photo2 = p2,
                     photo3 = p3,
@@ -1494,7 +1494,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.fabSubmit.visibility = View.GONE
         binding.btnDone.setOnClickListener { saveAndFinish() }
         pagerAdapter.getBasicInfoFragment()?.setEditable(true)
-        pagerAdapter.getPhotosFragment()?.setEditable(true)
         binding.cbIsVirtual.isEnabled = true
     }
 
@@ -1507,7 +1506,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (!::pagerAdapter.isInitialized) return
         binding.viewPager.post {
             pagerAdapter.getBasicInfoFragment()?.setImportLocked(importedWaypointLocked)
-            pagerAdapter.getPhotosFragment()?.setImportLocked(importedWaypointLocked)
         }
     }
 
@@ -1518,7 +1516,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.fabSubmit.visibility = View.GONE
         binding.btnEdit.setOnClickListener { enterEditMode() }
         pagerAdapter.getBasicInfoFragment()?.setEditable(false)
-        pagerAdapter.getPhotosFragment()?.setEditable(false)
         binding.cbIsVirtual.isEnabled = false
     }
 
@@ -1532,7 +1529,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private fun refreshCurrentFormDataFromFragments() {
         pagerAdapter.getBasicInfoFragment()?.let { mergeCurrentFormData(it.collectData()) }
-        pagerAdapter.getPhotosFragment()?.let { photosFragment ->
+        pagerAdapter.getBasicInfoFragment()?.let { photosFragment ->
             val (photo1, photo2, photo3) = photosFragment.getPhotoPaths()
             updateCurrentFormPhotos(photo1, photo2, photo3)
         }
@@ -1656,7 +1653,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (!photo1.isNullOrBlank()) updateCurrentPendingPhoto(1, null)
         if (!photo2.isNullOrBlank()) updateCurrentPendingPhoto(2, null)
         if (!photo3.isNullOrBlank()) updateCurrentPendingPhoto(3, null)
-        pagerAdapter.getPhotosFragment()?.syncPersistedPhotoState(
+        pagerAdapter.getBasicInfoFragment()?.syncPersistedPhotoState(
             photo1 = photo1,
             photo2 = photo2,
             photo3 = photo3,
@@ -1705,13 +1702,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private fun setupTabButtons() {
         // 使用 TabLayoutMediator 連接 TabLayout 和 ViewPager2
-        TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
-            tab.text = when (position) {
-                0 -> "基本資料"
-                1 -> "照片上傳"
-                else -> ""
-            }
-        }.attach()
+        binding.switchPageBar.visibility = View.GONE
+        binding.tabLayout.visibility = View.GONE
         updateTabUI(0)
     }
 
@@ -1768,10 +1760,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
             when {
                 isOfflineMode -> saveOfflineAndClose(silent = false)
-                isEditMode && binding.viewPager.currentItem == 1 -> {
-                    // 照片頁面編輯模式：直接上傳照片並完成，不驗證基本資料
-                    buildAndFinishWithResult()
-                }
                 else -> saveAndClose()
             }
         }
@@ -1793,9 +1781,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             return
         }
 
-        val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
+        val photoError = pagerAdapter.getBasicInfoFragment()?.validateAllPhotos()
         if (photoError != null) {
-            binding.viewPager.currentItem = 1
             Toast.makeText(this, String.format(getString(R.string.msg_take_photo_required), photoError), Toast.LENGTH_SHORT).show()
             return
         }
@@ -2053,9 +2040,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
             // 虛擬點不需驗證照片
             if (!binding.cbIsVirtual.isChecked) {
-                val photoError = pagerAdapter.getPhotosFragment()?.validateAllPhotos()
+                val photoError = pagerAdapter.getBasicInfoFragment()?.validateAllPhotos()
                 if (photoError != null) {
-                    binding.viewPager.currentItem = 1
                     Toast.makeText(this, String.format(getString(R.string.msg_take_photo_required), photoError), Toast.LENGTH_SHORT).show()
                     return
                 }
@@ -2107,7 +2093,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     /** 僅更新 Activity 層級的 UI（Tab, ViewPager 等）*/
     private fun applyVirtualModeUi(isVirtual: Boolean) {
-        binding.switchPageBar.visibility = if (isVirtual) View.GONE else View.VISIBLE
+        binding.switchPageBar.visibility = View.GONE
         
         if (isOfflineMode) {
             binding.importWaypointBar.visibility = View.GONE
@@ -2115,10 +2101,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             binding.importWaypointBar.visibility = if (isVirtual) View.GONE else View.VISIBLE
         }
 
-        binding.viewPager.isUserInputEnabled = !isVirtual
-        if (isVirtual && binding.viewPager.currentItem != 0) {
-            binding.viewPager.setCurrentItem(0, false)
-        }
+        binding.viewPager.isUserInputEnabled = false
     }
 
     private fun applyVirtualMode(isVirtual: Boolean) {
