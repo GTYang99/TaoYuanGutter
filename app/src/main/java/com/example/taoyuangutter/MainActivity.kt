@@ -230,6 +230,8 @@ class MainActivity : AppCompatActivity(),
     private var currentSessionDraftId: Long? = null
     /** 編輯更新時的照片原始快照，供上傳流程判斷哪些 slot 真正變更。 */
     private var pendingEditOriginalWaypoints: List<WaypointSnapshot>? = null
+    /** true = 目前這次 session 是由待上傳草稿恢復而來，照片需全量上傳。 */
+    private var currentSessionResumedFromDraft: Boolean = false
     /** true = 此次 session 為離線草稿（只存本機，不打 API） */
     private var currentSessionIsOffline: Boolean = false
     /** 編輯模式開始時，側溝的原始狀態（用於判斷是否觸發「恢復狀態」詢問）。 */
@@ -503,6 +505,7 @@ class MainActivity : AppCompatActivity(),
                 }
 
                 currentSessionDraftId = null   // 編輯模式開始 → 以新 session ID 追蹤草稿
+                currentSessionResumedFromDraft = false
                 shouldReturnToInspectPreview = true
 
                 // ── 進入編輯模式時：隱藏所有其他已存在的線段，只顯示正在編輯的側溝 ──
@@ -657,6 +660,7 @@ class MainActivity : AppCompatActivity(),
     private fun restoreStateAfterRecreation(savedState: Bundle) {
         pendingWaypointFormIndex = savedState.getInt(KEY_PENDING_WP_INDEX, -1)
         currentSessionDraftId = if (savedState.containsKey("saved_session_draft_id")) savedState.getLong("saved_session_draft_id") else null
+        currentSessionResumedFromDraft = savedState.getBoolean("saved_session_resumed_from_draft", false)
         currentSessionIsOffline = savedState.getBoolean("saved_session_is_offline", false)
         isInspecting = savedState.getBoolean("saved_is_inspecting", false)
         isInEditingMode = savedState.getBoolean("saved_is_in_editing_mode", false)
@@ -725,6 +729,7 @@ class MainActivity : AppCompatActivity(),
         // 儲存正在開啟表單的點位索引，確保 MainActivity 重建後仍能正確回寫
         outState.putInt(KEY_PENDING_WP_INDEX, pendingWaypointFormIndex)
         currentSessionDraftId?.let { outState.putLong("saved_session_draft_id", it) }
+        outState.putBoolean("saved_session_resumed_from_draft", currentSessionResumedFromDraft)
         outState.putBoolean("saved_session_is_offline", currentSessionIsOffline)
         outState.putBoolean("saved_is_inspecting", isInspecting)
         outState.putBoolean("saved_is_in_editing_mode", isInEditingMode)
@@ -989,9 +994,17 @@ class MainActivity : AppCompatActivity(),
     ) {
         lifecycleScope.launch {
             try {
-                val uploadWaypoints = buildEditPhotoUploadWaypoints(
-                    waypoints = persistedWaypoints,
-                    originalWaypoints = originalWaypoints
+                val uploadWaypoints = if (currentSessionResumedFromDraft) {
+                    persistedWaypoints
+                } else {
+                    buildEditPhotoUploadWaypoints(
+                        waypoints = persistedWaypoints,
+                        originalWaypoints = originalWaypoints
+                    )
+                }
+                android.util.Log.d(
+                    "PhotoUpload",
+                    "photo upload mode=${if (currentSessionResumedFromDraft) "FULL_DRAFT" else "EDIT_DIFF_OR_DEFAULT"}, resumedFromDraft=$currentSessionResumedFromDraft, originalWaypoints=${originalWaypoints?.size ?: 0}"
                 )
                 when (val result = uploadWaypointPhotos(
                     waypoints = uploadWaypoints,
@@ -1013,6 +1026,7 @@ class MainActivity : AppCompatActivity(),
                                 )
                             }
                             currentSessionDraftId = null
+                            currentSessionResumedFromDraft = false
 
                             if (initialSpiState == "2" && !spiNum.isNullOrBlank()) {
                                 // 重設狀態，避免之後重複觸發
@@ -1342,7 +1356,10 @@ class MainActivity : AppCompatActivity(),
                             draftCoordinator.deleteDraftsBySpiNum(this@MainActivity, spiNum)
                             if (currentSessionDraftId != null) {
                                 val currentDraft = draftCoordinator.getDraft(currentSessionDraftId!!)
-                                if (currentDraft == null) currentSessionDraftId = null
+                                if (currentDraft == null) {
+                                    currentSessionDraftId = null
+                                    currentSessionResumedFromDraft = false
+                                }
                             }
 
                             // 從地圖移除該側溝的線段
@@ -1650,6 +1667,7 @@ class MainActivity : AppCompatActivity(),
 
     /** 原本的「新增側溝」流程，從 FAB 移入獨立方法。 */
     private fun openAddGutterFlow() {
+        currentSessionResumedFromDraft = false
         gutterSessionUiCoordinator.startAddSession(
             isOfflineMainMode = isOfflineMainMode,
             hooks = buildSessionUiHooks()
@@ -1710,6 +1728,7 @@ class MainActivity : AppCompatActivity(),
      * 確保兩個 FragmentTransaction 不會同時競爭同一個 FragmentManager。
      */
     private fun resumePendingDraft(draft: GutterSessionDraft) {
+        currentSessionResumedFromDraft = true
         gutterSessionUiCoordinator.resumeDraft(
             draft = draft,
             isOfflineMainMode = isOfflineMainMode,
@@ -1796,6 +1815,7 @@ class MainActivity : AppCompatActivity(),
                 onWaypointsCleared = {
                     currentSessionDraftId?.let { draftCoordinator.deleteDraftIfEffectivelyEmpty(it) }
                     currentSessionDraftId = null
+                    currentSessionResumedFromDraft = false
                     isInEditingMode = false
                     mapCameraController.setPersistentBottomInset(0)
                     gutterMapController.clearPreviewLayer()
