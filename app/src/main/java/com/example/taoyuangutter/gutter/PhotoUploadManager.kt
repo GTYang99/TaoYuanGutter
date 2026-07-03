@@ -26,9 +26,31 @@ class PhotoUploadManager(
     private val gutterRepository: GutterRepository = GutterRepository()
 ) {
 
+    enum class PhotoFailureReasonType {
+        API,
+        NETWORK,
+        IMAGE_PROCESSING
+    }
+
+    data class PhotoUploadFailure(
+        val nodeId: Int,
+        val fileCategory: Int,
+        val attempt: Int,
+        val message: String,
+        val code: Int? = null,
+        val reasonType: PhotoFailureReasonType = PhotoFailureReasonType.API
+    )
+
     sealed class UploadBatchResult {
-        data class Completed(val failCount: Int) : UploadBatchResult()
-        data class TimedOut(val failCount: Int, val completedCount: Int) : UploadBatchResult()
+        data class Completed(
+            val failCount: Int,
+            val failures: List<PhotoUploadFailure> = emptyList()
+        ) : UploadBatchResult()
+        data class TimedOut(
+            val failCount: Int,
+            val completedCount: Int,
+            val failures: List<PhotoUploadFailure> = emptyList()
+        ) : UploadBatchResult()
     }
 
     private class LastPhotoUploadTimeoutException(
@@ -109,6 +131,7 @@ class PhotoUploadManager(
         var failedCount = 0
         var completedCount = 0
         val lastPendingIndex = pending.lastIndex
+        val failures = mutableListOf<PhotoUploadFailure>()
 
         try {
             // 控制併發數 (最多同時上傳 3 張照片)
@@ -133,6 +156,7 @@ class PhotoUploadManager(
 
                             var success = false
                             var tempDownloadedUri: String? = null
+                            var lastFailure: PhotoUploadFailure? = null
                             try {
                                 for (attempt in 1..3) {
                                     val uploadPath = downloadIfRemoteUrl(path) ?: break
@@ -156,7 +180,8 @@ class PhotoUploadManager(
                                                 )
                                                 UploadBatchResult.TimedOut(
                                                     failCount = failedCount,
-                                                    completedCount = completedCount
+                                                    completedCount = completedCount,
+                                                    failures = failures.toList()
                                                 )
                                             }
                                         )
@@ -172,8 +197,17 @@ class PhotoUploadManager(
                                     when (uploadResult) {
                                         is ApiResult.Success -> {
                                             success = true
+                                            lastFailure = null
                                         }
                                         is ApiResult.Error -> {
+                                            lastFailure = PhotoUploadFailure(
+                                                nodeId = node.nodeId,
+                                                fileCategory = category,
+                                                attempt = attempt,
+                                                message = uploadResult.message,
+                                                code = uploadResult.code,
+                                                reasonType = classifyFailureReason(uploadResult.message)
+                                            )
                                             android.util.Log.w(
                                                 "PhotoUpload",
                                                 "node${node.nodeId} photo$category attempt$attempt 失敗: ${uploadResult.message}"
@@ -199,19 +233,39 @@ class PhotoUploadManager(
                                     listener?.onProgressUpdate(completedCount, total)
                                 } else {
                                     failedCount++
+                                    lastFailure?.let { failures += it }
                                 }
                             }
                         }
                     }
                 }
             }
-            return UploadBatchResult.Completed(failedCount)
+            return UploadBatchResult.Completed(failedCount, failures.toList())
         } catch (e: LastPhotoUploadTimeoutException) {
             return e.result
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             android.util.Log.e("PhotoUpload", "上傳照片時發生未預期錯誤: ${e.message}", e)
-            return UploadBatchResult.Completed(total - completedCount)
+            return UploadBatchResult.Completed(
+                failCount = total - completedCount,
+                failures = failures.toList()
+            )
+        }
+    }
+
+    private fun classifyFailureReason(message: String): PhotoFailureReasonType {
+        val lowered = message.lowercase()
+        return when {
+            message.contains("無法處理圖片檔案") ||
+                lowered.contains("decode") ||
+                lowered.contains("bitmap") -> PhotoFailureReasonType.IMAGE_PROCESSING
+            message.contains("網路連線失敗") ||
+                lowered.contains("timeout") ||
+                lowered.contains("timed out") ||
+                lowered.contains("unable to resolve host") ||
+                lowered.contains("failed to connect") ||
+                lowered.contains("connection reset") -> PhotoFailureReasonType.NETWORK
+            else -> PhotoFailureReasonType.API
         }
     }
 

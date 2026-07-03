@@ -25,6 +25,7 @@ import androidx.lifecycle.lifecycleScope
 import android.net.Uri
 import com.example.taoyuangutter.common.LocationPickEvents
 import com.example.taoyuangutter.common.PhotoUriStore
+import com.example.taoyuangutter.common.UploadFailureClassifier
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterApiClient
@@ -1046,9 +1047,10 @@ class MainActivity : AppCompatActivity(),
                                     .show()
                             }
                         } else if (!isFinishing && !isDestroyed) {
+                            val errorUi = UploadFailureClassifier.forPhotoBatchFailures(result.failures)
                             MaterialAlertDialogBuilder(this@MainActivity)
                                 .setTitle("上傳失敗")
-                                .setMessage("線段資料與照片已完成本輪上傳，但仍有 $failCount 張照片失敗。")
+                                .setMessage(errorUi.buildDialogMessage())
                                 .setNegativeButton("存入草稿") { _, _ ->
                                     activeSheet?.dismissAllowingStateLoss()
                                     activeSheet = null
@@ -1070,7 +1072,12 @@ class MainActivity : AppCompatActivity(),
                     is PhotoUploadManager.UploadBatchResult.TimedOut -> {
                         mainBlockingUiController.setInspectLoading(false)
                         if (!isFinishing && !isDestroyed) {
-                            showPhotoUploadTimeoutAlert()
+                            showPhotoUploadTimeoutAlert(
+                                UploadFailureClassifier.forPhotoTimeout(
+                                    failCount = result.failCount,
+                                    completedCount = result.completedCount
+                                ).buildDialogMessage()
+                            )
                         }
                     }
                 }
@@ -1080,9 +1087,10 @@ class MainActivity : AppCompatActivity(),
                 android.util.Log.e("PhotoUpload", "uploadWaypointPhotos 例外: ${e.message}", e)
                 mainBlockingUiController.setInspectLoading(false)
                 if (!isFinishing && !isDestroyed) {
+                    val errorUi = UploadFailureClassifier.forPhotoException(e.localizedMessage)
                     MaterialAlertDialogBuilder(this@MainActivity)
                         .setTitle("上傳失敗")
-                        .setMessage("線段資料已送出，但照片上傳發生錯誤。")
+                        .setMessage(errorUi.buildDialogMessage())
                         .setNegativeButton("存入草稿") { _, _ ->
                             activeSheet?.dismissAllowingStateLoss()
                             activeSheet = null
@@ -1162,10 +1170,10 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
-    private fun showPhotoUploadTimeoutAlert() {
+    private fun showPhotoUploadTimeoutAlert(message: String) {
         MaterialAlertDialogBuilder(this)
             .setTitle(getString(R.string.msg_photo_upload_timeout_title))
-            .setMessage(getString(R.string.msg_photo_upload_timeout_message))
+            .setMessage(message)
             .setPositiveButton(getString(R.string.confirm)) { _, _ ->
                 activeSheet?.dismissAllowingStateLoss()
                 activeSheet = null

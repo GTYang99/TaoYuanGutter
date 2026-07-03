@@ -27,6 +27,7 @@ import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PendingPhotoDraftState
 import com.example.taoyuangutter.common.PhotoUploadValidator
+import com.example.taoyuangutter.common.UploadFailureClassifier
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterBinding
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
@@ -843,9 +844,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             "edit failed: message=${result.message}, code=${result.code}"
                         )
                         updateSubmitButtonState()
+                        val errorUi = UploadFailureClassifier.forStoreDitchError(result)
                         showStoreDitchFailureDialog(
                             activity = requireActivity(),
-                            message = "更新失敗：${result.message}",
+                            message = errorUi.buildDialogMessage(),
                             onRetry = { performEditSubmit() },
                             onSaveDraft = { dismissAllowingStateLoss() }
                         )
@@ -856,9 +858,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             } catch (e: Exception) {
                 android.util.Log.e("StoreDitch", "edit exception: ${e.message}", e)
                 updateSubmitButtonState()
+                val errorUi = UploadFailureClassifier.forStoreDitchException(e.localizedMessage)
                 showStoreDitchFailureDialog(
                     activity = requireActivity(),
-                    message = "更新失敗，請檢查網路後再試。",
+                    message = errorUi.buildDialogMessage(),
                     onRetry = { performEditSubmit() },
                     onSaveDraft = { dismissAllowingStateLoss() }
                 )
@@ -888,9 +891,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             "add failed: message=${result.message}, code=${result.code}"
                         )
                         setSubmitLoading(false)
+                        val errorUi = UploadFailureClassifier.forStoreDitchError(result)
                         showStoreDitchFailureDialog(
                             activity = activity,
-                            message = "上傳失敗：${result.message}",
+                            message = errorUi.buildDialogMessage(),
                             onRetry = {
                                 (activity as? LocationPickerHost)?.onGutterRetry()
                                 submitNewGutterRequest(activity, validWaypoints, token)
@@ -904,9 +908,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             } catch (e: Exception) {
                 android.util.Log.e("StoreDitch", "add exception: ${e.message}", e)
                 setSubmitLoading(false)
+                val errorUi = UploadFailureClassifier.forStoreDitchException(e.localizedMessage)
                 showStoreDitchFailureDialog(
                     activity = activity,
-                    message = "上傳失敗，請檢查網路後再試。",
+                    message = errorUi.buildDialogMessage(),
                     onRetry = { submitNewGutterRequest(activity, validWaypoints, token) },
                     onSaveDraft = { dismissAllowingStateLoss() }
                 )
