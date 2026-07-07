@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.gutter
 
+import android.graphics.Typeface
 import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -180,24 +181,24 @@ class GutterInspectPhotosFragment : Fragment() {
         binding.layoutFields.addView(createFieldRow("測量座標編號", normalizeDisplayValue(details?.xyNum)))
         if (!isVirtual) {
             binding.layoutFields.addView(createFieldRow("溝蓋板厚度(cm)", normalizeDisplayValue(details?.coverDepAsString)))
-            binding.layoutFields.addView(createFieldRow("側溝頂寬度(cm)", normalizeDisplayValue(details?.nodeWidAsString)))
             binding.layoutFields.addView(
                 createPhotoSection(
-                    title = getString(R.string.label_photo_width),
+                    title = getString(R.string.label_photo_title_width),
                     url = point.photo2,
                     capturedAt = point.capturedAt2,
                     onClick = { showImageDetail(point.photo2) }
                 )
             )
-            binding.layoutFields.addView(createFieldRow("側溝測量深度(cm)", normalizeDisplayValue(details?.nodeDepAsString)))
+            binding.layoutFields.addView(createFieldRow("側溝頂寬度(cm)", normalizeDisplayValue(details?.nodeWidAsString)))
             binding.layoutFields.addView(
                 createPhotoSection(
-                    title = getString(R.string.label_photo_depth),
+                    title = getString(R.string.label_photo_title_depth),
                     url = point.photo3,
                     capturedAt = point.capturedAt3,
                     onClick = { showImageDetail(point.photo3) }
                 )
             )
+            binding.layoutFields.addView(createFieldRow("側溝測量深度(cm)", normalizeDisplayValue(details?.nodeDepAsString)))
             binding.layoutFields.addView(createFieldRow("側溝材質", normalizeDisplayValue(mapMaterialType(details?.matTyp))))
             binding.layoutFields.addView(createFieldRow("淤積程度", normalizeDisplayValue(mapSilt(details?.isSilt))))
             binding.layoutFields.addView(createFieldRow("溝體結構受損", normalizeDisplayValue(mapBoolean01(details?.isBroken == "1"))))
@@ -275,6 +276,7 @@ class GutterInspectPhotosFragment : Fragment() {
             addView(TextView(requireContext()).apply {
                 text = title
                 textSize = 13f
+                setTypeface(typeface, Typeface.NORMAL)
                 setTextColor(resources.getColor(R.color.textColorSecondary, null))
                 layoutParams = LinearLayout.LayoutParams(
                     0,

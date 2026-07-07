@@ -218,7 +218,9 @@
     <string name="btn_curve">弧線</string>
     <string name="btn_pending_deploy">待架站</string>
     <string name="label_photo_width">側溝內徑寬度尺寸</string>
+    <string name="label_photo_title_width">側溝頂寬度照片</string>
     <string name="label_photo_depth">側溝深度尺寸</string>
+    <string name="label_photo_title_depth">側溝測量深度照片</string>
     <string name="label_take_photo">點擊拍照</string>
     <string name="label_form_title">側溝資料填寫</string>
 
