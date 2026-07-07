@@ -270,13 +270,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		            putExtra(EXTRA_LONGITUDES, lngs)
 	            putExtra(EXTRA_CURRENT_INDEX, index)
 	            putExtra(EXTRA_WAYPOINT_INDEX, index)   // 與 currentIndex 一致，確保 buildAndFinishWithResult 回傳正確索引
-	            putExtra(EXTRA_VIEW_MODE, false)
-	            putExtra(EXTRA_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
-	            putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
-	            putExtra(EXTRA_SESSION_IS_OFFLINE, sessionIsOffline)
-	            if (!sessionWaypointsJson.isNullOrEmpty()) {
-	                putExtra(EXTRA_SESSION_WAYPOINTS_JSON, sessionWaypointsJson)
-	            }
+		            putExtra(EXTRA_VIEW_MODE, false)
+		            putExtra(EXTRA_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
+		            putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
+		            putExtra(EXTRA_OFFLINE_MODE, sessionIsOffline)
+		            putExtra(EXTRA_SESSION_IS_OFFLINE, sessionIsOffline)
+		            if (!sessionWaypointsJson.isNullOrEmpty()) {
+		                putExtra(EXTRA_SESSION_WAYPOINTS_JSON, sessionWaypointsJson)
+		            }
 		            if (!wmtsLayer.isNullOrEmpty()) {
 	                putExtra(EXTRA_WMTS_LAYER, wmtsLayer)
 	            }
