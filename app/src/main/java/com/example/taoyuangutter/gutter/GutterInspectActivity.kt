@@ -372,6 +372,7 @@ class GutterInspectActivity : AppCompatActivity() {
             val latLng = if (lat != null && lng != null) LatLng(lat, lng) else null
             val preloadedPhotos = preloadedPhotosByNodeId[node.nodeId]
             val isVirtualNode = parseLooseBoolean(nodeDetails.isVirtual)
+            val isCantOpenNode = nodeDetails.isCantOpenAsBoolean
 
             suspend fun resolvePhoto(category: String, prefix: String): String {
                 val cachedPhoto = preloadedPhotos.photoForCategory(category)
@@ -380,6 +381,10 @@ class GutterInspectActivity : AppCompatActivity() {
                 }
                 if (isVirtualNode) {
                     Log.d(TAG, "edit preload photo skipped for virtual nodeId=${node.nodeId} category=$category")
+                    return ""
+                }
+                if (isCantOpenNode && category in listOf("2", "3")) {
+                    Log.d(TAG, "edit preload photo skipped for cant-open nodeId=${node.nodeId} category=$category")
                     return ""
                 }
                 val url = node.url.firstOrNull { it.fileCategory == category }?.url
@@ -528,7 +533,7 @@ class GutterInspectActivity : AppCompatActivity() {
 
     private fun showEditPreloadWarning(photoIssues: List<String>, onContinue: () -> Unit) {
         val message = if (photoIssues.isNotEmpty()) {
-            "照片數量不滿足，以下節點照片缺失或下載失敗：\n${photoIssues.joinToString("\n")}\n\n會覆蓋草稿資料\n仍要繼續進入編輯嗎？"
+            "照片數量不滿足，以下節點照片缺失或下載失敗：\n${photoIssues.joinToString("\n")}\n\n無法開蓋點位需有概況照 1 張，其餘點位需有 3 張。\n會覆蓋草稿資料\n仍要繼續進入編輯嗎？"
         } else {
             "部分點位資料或照片下載失敗，進入編輯後可能需要補齊。"
         }

@@ -2,6 +2,7 @@ package com.example.taoyuangutter.gutter
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.content.res.ColorStateList
 import android.content.Context
 import android.net.Uri
 import android.os.Bundle
@@ -34,6 +35,7 @@ import com.example.taoyuangutter.R
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.FragmentGutterBasicInfoBinding
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import java.io.File
 import java.text.SimpleDateFormat
@@ -503,6 +505,9 @@ class GutterBasicInfoFragment : Fragment() {
 
         // 依照目前狀態套用一次
         applyCantOpenUi(binding.cbCantOpen.isChecked)
+        if (!isViewMode && binding.cbCantOpen.isChecked) {
+            clearMeasurementPhotosForCantOpen(notifyDraftChanged = false)
+        }
 
         // 之後才開始監聽，避免 prefill 時觸發清空
         binding.cbCantOpen.setOnCheckedChangeListener { _, checked ->
@@ -518,6 +523,7 @@ class GutterBasicInfoFragment : Fragment() {
                 binding.tilCoverThickness.error = null
                 binding.tilDepth.error = null
                 binding.tilTopWidth.error = null
+                clearMeasurementPhotosForCantOpen(notifyDraftChanged = false)
             }
             applyCantOpenUi(checked)
             notifyDraftChanged()
@@ -995,10 +1001,11 @@ class GutterBasicInfoFragment : Fragment() {
         if (!PhotoUploadValidator.isUsableForUpload(context, photoUriSlot1?.toString())) {
             return "測量位置及側溝概況"
         }
-        if (!PhotoUploadValidator.isUsableForUpload(context, photoUriSlot2?.toString())) {
+        val isCantOpen = binding.cbCantOpen.isChecked
+        if (!isCantOpen && !PhotoUploadValidator.isUsableForUpload(context, photoUriSlot2?.toString())) {
             return "側溝頂寬度"
         }
-        if (!PhotoUploadValidator.isUsableForUpload(context, photoUriSlot3?.toString())) {
+        if (!isCantOpen && !PhotoUploadValidator.isUsableForUpload(context, photoUriSlot3?.toString())) {
             return "側溝測量深度"
         }
         return null
@@ -1095,6 +1102,7 @@ class GutterBasicInfoFragment : Fragment() {
             2 -> photoUriSlot2 != null
             else -> photoUriSlot3 != null
         }
+        val isCantOpenPhotoSlot = binding.cbCantOpen.isChecked && slot in 2..3
         val button = when (slot) {
             1 -> binding.btnTakePhotoSlot1
             2 -> binding.btnTakePhotoSlot2
@@ -1127,6 +1135,7 @@ class GutterBasicInfoFragment : Fragment() {
             placeholder.visibility = if (isViewMode) View.INVISIBLE else View.VISIBLE
             delete.visibility = View.GONE
         }
+        applyTakePhotoButtonStyle(button, enabled = editable && !isCantOpenPhotoSlot, disabledByCantOpen = isCantOpenPhotoSlot)
     }
 
     private fun deletePhoto(slot: Int) {
@@ -1143,6 +1152,7 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     private fun requestCameraForSlot(slot: Int) {
+        if (binding.cbCantOpen.isChecked && slot in 2..3) return
         pendingSlot = slot
         if (ContextCompat.checkSelfPermission(
                 requireContext(), android.Manifest.permission.CAMERA
@@ -1280,6 +1290,46 @@ class GutterBasicInfoFragment : Fragment() {
         } finally {
             (activity as? GutterFormActivity)?.endPhotoDraftBatch()
         }
+    }
+
+    private fun clearMeasurementPhotosForCantOpen(notifyDraftChanged: Boolean) {
+        if (_binding == null) return
+        (activity as? GutterFormActivity)?.beginPhotoDraftBatch()
+        try {
+            clearPhotoSlot(2, notifyDraftChanged = false)
+            clearPhotoSlot(3, notifyDraftChanged = false)
+            if (notifyDraftChanged) notifyPhotoDraftChanged()
+        } finally {
+            (activity as? GutterFormActivity)?.endPhotoDraftBatch()
+        }
+    }
+
+    private fun applyTakePhotoButtonStyle(
+        button: MaterialButton,
+        enabled: Boolean,
+        disabledByCantOpen: Boolean
+    ) {
+        button.isEnabled = enabled
+        button.alpha = 1f
+        val context = button.context
+        val background = if (disabledByCantOpen) {
+            ContextCompat.getColor(context, R.color.photoButtonDisabled)
+        } else {
+            ContextCompat.getColor(context, R.color.colorBgTitle)
+        }
+        val stroke = if (disabledByCantOpen) {
+            ContextCompat.getColor(context, R.color.photoButtonDisabled)
+        } else {
+            ContextCompat.getColor(context, R.color.colorPrimaryLight2)
+        }
+        val text = if (disabledByCantOpen) {
+            ContextCompat.getColor(context, R.color.white)
+        } else {
+            ContextCompat.getColor(context, R.color.colorPrimary)
+        }
+        button.backgroundTintList = ColorStateList.valueOf(background)
+        button.strokeColor = ColorStateList.valueOf(stroke)
+        button.setTextColor(text)
     }
 
     private fun showPhoto(

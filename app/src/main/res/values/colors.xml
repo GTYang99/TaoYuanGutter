@@ -7,6 +7,7 @@
     <color name="brand_purple_light">#F4F1FF</color>
     <color name="colorPrimaryLight2">#B8A7F7</color>
     <color name="photoButtonBackground">#CDC0F6</color>
+    <color name="photoButtonDisabled">#E9E9EB</color>
     <color name="text_grey">#333333</color>
     <color name="hint_grey">#CCCCCC</color>
     <color name="border_grey">#E0E0E0</color>

@@ -1566,8 +1566,12 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private fun currentFormPhotos(): Triple<String?, String?, String?> = Triple(
         currentFormData["photo1"]?.takeIf { it.isNotBlank() },
-        currentFormData["photo2"]?.takeIf { it.isNotBlank() },
-        currentFormData["photo3"]?.takeIf { it.isNotBlank() }
+        currentFormData["photo2"]?.takeIf {
+            it.isNotBlank() && !parseLooseBoolean(currentFormData["IS_CANTOPEN"])
+        },
+        currentFormData["photo3"]?.takeIf {
+            it.isNotBlank() && !parseLooseBoolean(currentFormData["IS_CANTOPEN"])
+        }
     )
 
     private fun currentFormSnapshot(): HashMap<String, String> = HashMap(currentFormData).apply {
@@ -1578,6 +1582,12 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         putIfAbsent("photo1CapturedAt", "")
         putIfAbsent("photo2CapturedAt", "")
         putIfAbsent("photo3CapturedAt", "")
+        if (parseLooseBoolean(this["IS_CANTOPEN"])) {
+            this["photo2"] = ""
+            this["photo3"] = ""
+            this["photo2CapturedAt"] = ""
+            this["photo3CapturedAt"] = ""
+        }
     }
 
     private fun preserveEditSpiNum(target: MutableMap<String, String>) {
@@ -1999,7 +2009,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             android.util.Log.d("PhotoUpload", "虛擬點不進行照片上傳，nodeId=$nodeId")
             return@coroutineScope
         }
+        val isCantOpen = parseLooseBoolean(currentFormData["IS_CANTOPEN"])
         listOf(photo1 to 1, photo2 to 2, photo3 to 3)
+            .filterNot { (_, category) -> isCantOpen && category in 2..3 }
             .filter { (path, _) -> PhotoUploadValidator.isUsableForUpload(this@GutterFormActivity, path) }
             .map { (path, category) ->
                 async {

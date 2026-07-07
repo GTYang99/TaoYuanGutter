@@ -1190,7 +1190,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
 
             if (!wp.isVirtual) {
-                val missingPhotos = requiredPhotoKeys.filter { key ->
+                val requiredPhotos = if (isCantOpen) listOf("photo1") else requiredPhotoKeys
+                val missingPhotos = requiredPhotos.filter { key ->
                     !PhotoUploadValidator.isUsableForUpload(ctx, wp.basicData[key])
                 }
                 if (missingPhotos.isNotEmpty()) {
@@ -1206,7 +1207,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         MaterialAlertDialogBuilder(ctx)
             .setTitle("資料/照片不足")
             .setMessage(
-                "送出前需確認：每個點位都有照片類別 1/2/3（三張）且必要欄位完整。\n\n- " +
+                "送出前需確認：每個點位的必要欄位與必要照片皆完整。\n\n- " +
                     issues.joinToString("\n- ")
             )
             .setPositiveButton("確定", null)
