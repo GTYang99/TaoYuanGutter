@@ -160,6 +160,7 @@ class GutterInspectPhotosFragment : Fragment() {
 
     private fun renderFields(point: PointViewData, isVirtual: Boolean) {
         val details = point.details
+        val isCantOpen = details?.isCantOpenAsBoolean == true
         binding.layoutFields.removeAllViews()
         binding.layoutFields.addView(createFieldRow("待架站", normalizeDisplayValue(mapBooleanCode(details?.isPendingDeploy))))
         if (!isVirtual) {
@@ -179,7 +180,7 @@ class GutterInspectPhotosFragment : Fragment() {
             )
         }
         binding.layoutFields.addView(createFieldRow("測量座標編號", normalizeDisplayValue(details?.xyNum)))
-        if (!isVirtual) {
+        if (!isVirtual && !isCantOpen) {
             binding.layoutFields.addView(createFieldRow("溝蓋板厚度(公分)", normalizeDisplayValue(details?.coverDepAsString)))
             binding.layoutFields.addView(
                 createPhotoSection(
