@@ -323,6 +323,7 @@ class GutterBasicInfoFragment : Fragment() {
         applyGutterTypeUi()
         applyCantOpenUi(binding.cbCantOpen.isChecked)
         setVirtualMode(isVirtualMode)
+        updateRequiredIndicators()
         
         setupPendingDeployButton(isViewMode)
         setupRangeWatchers()
@@ -538,6 +539,7 @@ class GutterBasicInfoFragment : Fragment() {
         // 若整個表單不可編輯（檢視模式）或處於匯入鎖定狀態，一律禁用
         if (!isFormEditable || isImportLocked) {
             setCantOpenFieldsEnabled(false)
+            updateRequiredIndicators()
             return
         }
 
@@ -561,6 +563,7 @@ class GutterBasicInfoFragment : Fragment() {
         )
 
         binding.cbCantOpen.isEnabled = true
+        updateRequiredIndicators()
     }
 
     private fun applyGutterTypeUi() {
@@ -582,6 +585,33 @@ class GutterBasicInfoFragment : Fragment() {
 
         // 重新評估下方細節欄位與厚度遮罩
         applyCantOpenUi(binding.cbCantOpen.isChecked)
+        updateRequiredIndicators()
+    }
+
+    private fun updateRequiredIndicators() {
+        if (_binding == null) return
+
+        val isVirtual = isVirtualMode
+        val isCantOpen = binding.cbCantOpen.isChecked
+        val isUOpen = isUOpenGutter()
+        val detailFieldsRequired = !isVirtual && !isCantOpen && !isUOpen
+        val widthDepthPhotosRequired = !isVirtual && !isCantOpen
+        val overviewPhotoRequired = !isVirtual
+        val coverThicknessRequired = !isVirtual && !isCantOpen && !isUOpen
+
+        binding.tvGutterTypeRequired.visibility = View.VISIBLE
+        binding.tvLocationRequired.visibility = View.VISIBLE
+        binding.tvMeasureIdRequired.visibility = View.VISIBLE
+        binding.tvOverviewPhotoRequired.visibility = if (overviewPhotoRequired) View.VISIBLE else View.GONE
+        binding.tvCoverThicknessRequired.visibility = if (coverThicknessRequired) View.VISIBLE else View.GONE
+        binding.tvWidthPhotoRequired.visibility = if (widthDepthPhotosRequired) View.VISIBLE else View.GONE
+        binding.tvTopWidthRequired.visibility = if (detailFieldsRequired) View.VISIBLE else View.GONE
+        binding.tvDepthPhotoRequired.visibility = if (widthDepthPhotosRequired) View.VISIBLE else View.GONE
+        binding.tvDepthRequired.visibility = if (detailFieldsRequired) View.VISIBLE else View.GONE
+        binding.tvMatTypeRequired.visibility = if (detailFieldsRequired) View.VISIBLE else View.GONE
+        binding.tvBrokenRequired.visibility = if (detailFieldsRequired) View.VISIBLE else View.GONE
+        binding.tvHangingRequired.visibility = if (detailFieldsRequired) View.VISIBLE else View.GONE
+        binding.tvSiltRequired.visibility = if (detailFieldsRequired) View.VISIBLE else View.GONE
     }
 
     private fun setCantOpenFieldsEnabled(enabled: Boolean, forceCoverDisabled: Boolean = false) {
@@ -904,6 +934,7 @@ class GutterBasicInfoFragment : Fragment() {
         binding.layoutOverviewPhotoSection.visibility = visibility
         binding.layoutWidthPhotoSection.visibility = visibility
         binding.layoutDepthPhotoSection.visibility = visibility
+        updateRequiredIndicators()
         notifyDraftChanged()
     }
 

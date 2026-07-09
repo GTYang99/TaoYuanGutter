@@ -60,13 +60,31 @@
             </com.google.android.material.textfield.TextInputLayout>
 
             <!-- ② 側溝形式 ─────────────────────────────────────────── -->
-            <TextView
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/field_gutter_type"
-                android:textSize="13sp"
-                android:textColor="@color/textColorSecondary"
-                android:layout_marginBottom="4dp" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:id="@+id/tvGutterTypeTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/field_gutter_type"
+                    android:textSize="13sp"
+                    android:textColor="@color/textColorSecondary" />
+
+                <TextView
+                    android:id="@+id/tvGutterTypeRequired"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="*"
+                    android:textColor="#7B4FFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <FrameLayout
                 android:id="@+id/layoutGutterTypeSelector"
@@ -100,13 +118,31 @@
         </LinearLayout>
 
         <!-- ④ 側溝位置 ─────────────────────────────────────────── -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="側溝位置"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="6dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
+
+            <TextView
+                android:id="@+id/tvLocationTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="側溝位置"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tvLocationRequired"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="*"
+                android:textColor="#7B4FFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnPickLocation"
@@ -140,14 +176,31 @@
                 android:gravity="center_vertical"
                 android:layout_marginBottom="8dp">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/photo_slot_overview"
-                    android:textSize="14sp"
-                    android:textColor="@color/textColorSecondary"
-                    android:textStyle="bold" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvOverviewPhotoTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/photo_slot_overview"
+                        android:textSize="13sp"
+                        android:textColor="@color/textColorSecondary" />
+
+                    <TextView
+                        android:id="@+id/tvOverviewPhotoRequired"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="*"
+                        android:textColor="#7B4FFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvPhotoTime1"
@@ -322,13 +375,31 @@
             android:gravity="center_vertical"
             android:layout_marginBottom="4dp">
 
-            <TextView
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="@string/field_measure_id"
-                android:textSize="13sp"
-                android:textColor="@color/textColorSecondary" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvMeasureIdTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/field_measure_id"
+                    android:textSize="13sp"
+                    android:textColor="@color/textColorSecondary" />
+
+                <TextView
+                    android:id="@+id/tvMeasureIdRequired"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="*"
+                    android:textColor="#7B4FFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
 
             <com.google.android.material.checkbox.MaterialCheckBox
                 android:id="@+id/btnPendingDeploy"
@@ -372,13 +443,31 @@
                 android:gravity="center_vertical"
                 android:layout_marginBottom="4dp">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/field_cover_thickness_cm"
-                    android:textSize="13sp"
-                    android:textColor="@color/textColorSecondary" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvCoverThicknessTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/field_cover_thickness_cm"
+                        android:textSize="13sp"
+                        android:textColor="@color/textColorSecondary" />
+
+                    <TextView
+                        android:id="@+id/tvCoverThicknessRequired"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="*"
+                        android:textColor="#7B4FFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <com.google.android.material.checkbox.MaterialCheckBox
                     android:id="@+id/cbCantOpen"
@@ -450,14 +539,31 @@
                 android:gravity="center_vertical"
                 android:layout_marginBottom="8dp">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/label_photo_title_width"
-                    android:textSize="14sp"
-                    android:textColor="@color/textColorSecondary"
-                    android:textStyle="bold" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvWidthPhotoTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_photo_title_width"
+                        android:textSize="13sp"
+                        android:textColor="@color/textColorSecondary" />
+
+                    <TextView
+                        android:id="@+id/tvWidthPhotoRequired"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="*"
+                        android:textColor="#7B4FFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvPhotoTime2"
@@ -584,13 +690,31 @@
 
         </LinearLayout>
 
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/field_width_cm"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/tvTopWidthTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/field_width_cm"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tvTopWidthRequired"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="*"
+                android:textColor="#7B4FFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilTopWidth"
@@ -630,14 +754,31 @@
                 android:gravity="center_vertical"
                 android:layout_marginBottom="8dp">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/label_photo_title_depth"
-                    android:textSize="14sp"
-                    android:textColor="@color/textColorSecondary"
-                    android:textStyle="bold" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tvDepthPhotoTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/label_photo_title_depth"
+                        android:textSize="13sp"
+                        android:textColor="@color/textColorSecondary" />
+
+                    <TextView
+                        android:id="@+id/tvDepthPhotoRequired"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="*"
+                        android:textColor="#7B4FFF"
+                        android:textSize="13sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tvPhotoTime3"
@@ -765,13 +906,31 @@
         </LinearLayout>
 
         <!-- ⑧ 側溝測量深度 ──────────────────────────────────────── -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/field_depth_cm"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/tvDepthTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/field_depth_cm"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tvDepthRequired"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="*"
+                android:textColor="#7B4FFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilDepth"
@@ -800,13 +959,31 @@
 
 
         <!-- ③ 側溝材質 ─────────────────────────────────────────────────── -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/field_gutter_material"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/tvMatTypeTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/field_gutter_material"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tvMatTypeRequired"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="*"
+                android:textColor="#7B4FFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <RadioGroup
             android:id="@+id/rgMatType"
@@ -858,13 +1035,31 @@
         </RadioGroup>
 
         <!-- ⑨ 溝體結構受損 ──────────────────────────────────────────────── -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/label_broken"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/tvBrokenTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/label_broken"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tvBrokenRequired"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="*"
+                android:textColor="#7B4FFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <RadioGroup
             android:id="@+id/rgIsBroken"
@@ -904,13 +1099,31 @@
         </RadioGroup>
 
         <!-- ⑩ 附掛或過路管線 ─────────────────────────────────────────────── -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/label_hanging"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/tvHangingTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/label_hanging"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tvHangingRequired"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="*"
+                android:textColor="#7B4FFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <RadioGroup
             android:id="@+id/rgIsHanging"
@@ -950,13 +1163,31 @@
         </RadioGroup>
 
         <!-- ⑪ 淤積程度 ──────────────────────────────────────────────────── -->
-        <TextView
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/label_silt"
-            android:textSize="13sp"
-            android:textColor="@color/textColorSecondary"
-            android:layout_marginBottom="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="4dp">
+
+            <TextView
+                android:id="@+id/tvSiltTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/label_silt"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tvSiltRequired"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="*"
+                android:textColor="#7B4FFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
 
         <RadioGroup
             android:id="@+id/rgIsSilt"
