@@ -1346,6 +1346,10 @@ class MainActivity : AppCompatActivity(),
         saveWaypointsAsPendingDraft(waypoints)
     }
 
+    override fun onGutterSubmitFailed() {
+        mainBlockingUiController.setInspectLoading(false)
+    }
+
     override fun onDeleteGutter(spiNum: String) {
         AlertDialog.Builder(this)
             .setTitle("刪除側溝")

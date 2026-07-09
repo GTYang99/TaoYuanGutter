@@ -78,6 +78,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
          * 新增模式下 storeDitch 失敗時回呼（供 MainActivity 存為待上傳草稿）。
          */
         fun onGutterSaveFailed(waypoints: List<Waypoint>)
+        /** 新增模式下 storeDitch 失敗時，先關閉主畫面的 blocking loading。 */
+        fun onGutterSubmitFailed()
         /** BottomSheet 可視高度變動時，通知 MainActivity 更新地圖可視區。 */
         fun onSheetViewportInsetChanged(bottomInsetPx: Int)
         /** 重傳時重新顯示 BottomSheet */
@@ -891,6 +893,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             "add failed: message=${result.message}, code=${result.code}"
                         )
                         setSubmitLoading(false)
+                        (activity as? LocationPickerHost)?.onGutterSubmitFailed()
                         val errorUi = UploadFailureClassifier.forStoreDitchError(result)
                         showStoreDitchFailureDialog(
                             activity = activity,
@@ -908,6 +911,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             } catch (e: Exception) {
                 android.util.Log.e("StoreDitch", "add exception: ${e.message}", e)
                 setSubmitLoading(false)
+                (activity as? LocationPickerHost)?.onGutterSubmitFailed()
                 val errorUi = UploadFailureClassifier.forStoreDitchException(e.localizedMessage)
                 showStoreDitchFailureDialog(
                     activity = activity,

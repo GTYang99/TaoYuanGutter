@@ -180,7 +180,7 @@ class GutterInspectPhotosFragment : Fragment() {
         }
         binding.layoutFields.addView(createFieldRow("測量座標編號", normalizeDisplayValue(details?.xyNum)))
         if (!isVirtual) {
-            binding.layoutFields.addView(createFieldRow("溝蓋板厚度(cm)", normalizeDisplayValue(details?.coverDepAsString)))
+            binding.layoutFields.addView(createFieldRow("溝蓋板厚度(公分)", normalizeDisplayValue(details?.coverDepAsString)))
             binding.layoutFields.addView(
                 createPhotoSection(
                     title = getString(R.string.label_photo_title_width),
@@ -189,7 +189,7 @@ class GutterInspectPhotosFragment : Fragment() {
                     onClick = { showImageDetail(point.photo2) }
                 )
             )
-            binding.layoutFields.addView(createFieldRow("側溝頂寬度(cm)", normalizeDisplayValue(details?.nodeWidAsString)))
+            binding.layoutFields.addView(createFieldRow("側溝頂寬度(公分)", normalizeDisplayValue(details?.nodeWidAsString)))
             binding.layoutFields.addView(
                 createPhotoSection(
                     title = getString(R.string.label_photo_title_depth),
@@ -198,7 +198,7 @@ class GutterInspectPhotosFragment : Fragment() {
                     onClick = { showImageDetail(point.photo3) }
                 )
             )
-            binding.layoutFields.addView(createFieldRow("側溝測量深度(cm)", normalizeDisplayValue(details?.nodeDepAsString)))
+            binding.layoutFields.addView(createFieldRow("側溝測量深度(公分)", normalizeDisplayValue(details?.nodeDepAsString)))
             binding.layoutFields.addView(createFieldRow("側溝材質", normalizeDisplayValue(mapMaterialType(details?.matTyp))))
             binding.layoutFields.addView(createFieldRow("淤積程度", normalizeDisplayValue(mapSilt(details?.isSilt))))
             binding.layoutFields.addView(createFieldRow("溝體結構受損", normalizeDisplayValue(mapBoolean01(details?.isBroken == "1"))))
