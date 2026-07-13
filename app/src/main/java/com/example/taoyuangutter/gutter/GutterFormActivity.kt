@@ -479,44 +479,45 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun handleImportedNodeDetails(nodeDetails: NodeDetails) {
         setImportedWaypointLocked(true)
         pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
+        syncImportedVirtualState(parseLooseBoolean(nodeDetails.isVirtual))
 
-	        // 匯入時同步下載照片到本機（依序 1→2→3）
-	        lifecycleScope.launch {
-	            try {
-	                val photo1Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.url
-	                val photo2Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.url
-	                val photo3Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.url
+        // 匯入時同步下載照片到本機（依序 1→2→3）
+        lifecycleScope.launch {
+            try {
+                val photo1Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.url
+                val photo2Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.url
+                val photo3Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.url
 
-	                showUploadLoading(true, "正在下載照片（1/3）…")
-	                val p1 = photo1Url?.let {
-	                    gutterRepository.downloadImageToLocalContentUri(
-	                        context = this@GutterFormActivity,
-	                        url = it,
-	                        prefix = "IMPORT_1_"
-	                    )
-	                }?.toString()
+                showUploadLoading(true, "正在下載照片（1/3）…")
+                val p1 = photo1Url?.let {
+                    gutterRepository.downloadImageToLocalContentUri(
+                        context = this@GutterFormActivity,
+                        url = it,
+                        prefix = "IMPORT_1_"
+                    )
+                }?.toString()
 
-	                showUploadLoading(true, "正在下載照片（2/3）…")
-	                val p2 = photo2Url?.let {
-	                    gutterRepository.downloadImageToLocalContentUri(
-	                        context = this@GutterFormActivity,
-	                        url = it,
-	                        prefix = "IMPORT_2_"
-	                    )
-	                }?.toString()
+                showUploadLoading(true, "正在下載照片（2/3）…")
+                val p2 = photo2Url?.let {
+                    gutterRepository.downloadImageToLocalContentUri(
+                        context = this@GutterFormActivity,
+                        url = it,
+                        prefix = "IMPORT_2_"
+                    )
+                }?.toString()
 
-	                showUploadLoading(true, "正在下載照片（3/3）…")
-	                val p3 = photo3Url?.let {
-	                    gutterRepository.downloadImageToLocalContentUri(
-	                        context = this@GutterFormActivity,
-	                        url = it,
-	                        prefix = "IMPORT_3_"
-	                    )
-	                }?.toString()
+                showUploadLoading(true, "正在下載照片（3/3）…")
+                val p3 = photo3Url?.let {
+                    gutterRepository.downloadImageToLocalContentUri(
+                        context = this@GutterFormActivity,
+                        url = it,
+                        prefix = "IMPORT_3_"
+                    )
+                }?.toString()
 
-                    val capturedAt1 = nodeDetails.safeCapturedAt(0, "GutterFormActivity", "import existing waypoint")
-                    val capturedAt2 = nodeDetails.safeCapturedAt(1, "GutterFormActivity", "import existing waypoint")
-                    val capturedAt3 = nodeDetails.safeCapturedAt(2, "GutterFormActivity", "import existing waypoint")
+                val capturedAt1 = nodeDetails.safeCapturedAt(0, "GutterFormActivity", "import existing waypoint")
+                val capturedAt2 = nodeDetails.safeCapturedAt(1, "GutterFormActivity", "import existing waypoint")
+                val capturedAt3 = nodeDetails.safeCapturedAt(2, "GutterFormActivity", "import existing waypoint")
 
                 pagerAdapter.getBasicInfoFragment()?.prefillPhotos(
                     photo1 = p1,
@@ -527,38 +528,46 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     capturedAt3 = capturedAt3
                 )
                 updateCurrentFormPhotos(p1, p2, p3)
-                    updateCurrentPhotoCapturedAt(1, capturedAt1)
-                    updateCurrentPhotoCapturedAt(2, capturedAt2)
-                    updateCurrentPhotoCapturedAt(3, capturedAt3)
+                updateCurrentPhotoCapturedAt(1, capturedAt1)
+                updateCurrentPhotoCapturedAt(2, capturedAt2)
+                updateCurrentPhotoCapturedAt(3, capturedAt3)
                 showUploadLoading(false)
 
-	                val missing = mutableListOf<String>()
-	                if (p1.isNullOrEmpty()) missing.add("第1張")
-	                if (p2.isNullOrEmpty()) missing.add("第2張")
-	                if (p3.isNullOrEmpty()) missing.add("第3張")
-	                if (missing.isNotEmpty()) {
-	                    Toast.makeText(
-	                        this@GutterFormActivity,
-	                        "匯入完成，但${missing.joinToString("、")}照片未取得，請至照片頁補拍",
-	                        Toast.LENGTH_LONG
-	                    ).show()
-	                }
-	            } catch (e: CancellationException) {
-	                showUploadLoading(false)
-	            } catch (e: Exception) {
-	                showUploadLoading(false)
-	                Toast.makeText(
-	                    this@GutterFormActivity,
-	                    String.format(getString(R.string.msg_photo_download_failed), e.message),
-	                    Toast.LENGTH_SHORT
-	                ).show()
-	            }
-	        }
-	    }
+                val missing = mutableListOf<String>()
+                if (p1.isNullOrEmpty()) missing.add("第1張")
+                if (p2.isNullOrEmpty()) missing.add("第2張")
+                if (p3.isNullOrEmpty()) missing.add("第3張")
+                if (missing.isNotEmpty()) {
+                    Toast.makeText(
+                        this@GutterFormActivity,
+                        "匯入完成，但${missing.joinToString("、")}照片未取得，請至照片頁補拍",
+                        Toast.LENGTH_LONG
+                    ).show()
+                }
+            } catch (e: CancellationException) {
+                showUploadLoading(false)
+            } catch (e: Exception) {
+                showUploadLoading(false)
+                Toast.makeText(
+                    this@GutterFormActivity,
+                    String.format(getString(R.string.msg_photo_download_failed), e.message),
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
+    }
 
-		    private fun showImportExistingWaypointSheet() {
-	        if (isOfflineMode) return
-	        if (importSheet?.isAdded == true) return
+    private fun syncImportedVirtualState(isVirtual: Boolean) {
+        if (binding.cbIsVirtual.isChecked != isVirtual) {
+            binding.cbIsVirtual.isChecked = isVirtual
+        } else {
+            applyVirtualModeUi(isVirtual)
+        }
+    }
+
+    private fun showImportExistingWaypointSheet() {
+        if (isOfflineMode) return
+        if (importSheet?.isAdded == true) return
 
 	        // 讓上半部地圖可見（半屏 sheet 覆蓋下半部）
 	        binding.formPanel.visibility = View.GONE

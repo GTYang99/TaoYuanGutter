@@ -954,25 +954,18 @@ class GutterBasicInfoFragment : Fragment() {
     fun prefillDataFromImport(nodeDetails: com.example.taoyuangutter.api.NodeDetails) {
         setImportLocked(true)
         binding.apply {
+            setVirtualMode(parseLooseBoolean(nodeDetails.isVirtual))
+
             // 基本資訊
             etMeasureId.setText(nodeDetails.xyNum ?: "")
-            // 匯入既有點位時，待架站預設為否（可再由使用者自行切換）
-            setPendingDeploySelected(false)
+            setPendingDeploySelected(parseLooseBoolean(nodeDetails.isPendingDeploy))
 
             // 溝型（API key 為 NODE_TYP，值為字串）
-            val nodeTypText = when (nodeDetails.nodeTyP?.toIntOrNull()) {
-                1 -> GUTTER_TYPES[0]  // U型溝（明溝）
-                2 -> GUTTER_TYPES[1]  // U型溝（加蓋）
-                else -> ""
-            }
+            val nodeTypText = nodeTypCodeToText(nodeDetails.nodeTyP)
             setGutterTypeSelection(nodeTypText.takeIf { it.isNotBlank() }, notifyDraftChanged = false)
 
             // 材質（API key 為 MAT_TYP，值為字串）
-            val matTypText = when (nodeDetails.matTyp?.toIntOrNull()) {
-                1 -> MAT_TYPES[0]  // 混凝土
-                2 -> MAT_TYPES[1]  // 卵礫石
-                else -> ""
-            }
+            val matTypText = matTypCodeToText(nodeDetails.matTyp)
             rgMatType.setCheckedByText(matTypText)
 
             // 深度、寬度（API 回傳 Double，使用 AsString 方法自動轉換）
@@ -981,29 +974,15 @@ class GutterBasicInfoFragment : Fragment() {
             etTopWidth.setText(nodeDetails.nodeWidAsString)
 
             // 破損狀態（API key 為 IS_BROKEN，值為字串）
-            val brokenText = when (nodeDetails.isBroken?.toIntOrNull()) {
-                0 -> BROKEN_OPTIONS[0]  // 無破損
-                1 -> BROKEN_OPTIONS[1]  // 有破損
-                else -> ""
-            }
+            val brokenText = isBrokenCodeToText(nodeDetails.isBroken)
             rgIsBroken.setCheckedByText(brokenText)
 
             // 懸掛狀態（API key 為 IS_HANGING，值為字串）
-            val hangingText = when (nodeDetails.isHanging?.toIntOrNull()) {
-                0 -> HANGING_OPTIONS[0]  // 無懸掛
-                1 -> HANGING_OPTIONS[1]  // 有懸掛
-                else -> ""
-            }
+            val hangingText = isHangingCodeToText(nodeDetails.isHanging)
             rgIsHanging.setCheckedByText(hangingText)
 
             // 淤積狀態（API key 為 IS_SILT，值為字串）
-            val siltText = when (nodeDetails.isSilt?.toIntOrNull()) {
-                0 -> SILT_OPTIONS[0]  // 無
-                1 -> SILT_OPTIONS[1]  // 輕度
-                2 -> SILT_OPTIONS[2]  // 嚴重
-                3 -> SILT_OPTIONS[2]  // 舊資料緩衝：一律視為嚴重
-                else -> ""
-            }
+            val siltText = isSiltCodeToText(nodeDetails.isSilt)
             rgIsSilt.setCheckedByText(siltText)
 
             // 無法開蓋狀態（使用 isCantOpenAsBoolean 方法處理型別轉換）
