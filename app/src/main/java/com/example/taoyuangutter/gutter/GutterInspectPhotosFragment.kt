@@ -179,7 +179,6 @@ class GutterInspectPhotosFragment : Fragment() {
                 )
             )
         }
-        binding.layoutFields.addView(createFieldRow("測量座標編號", normalizeDisplayValue(details?.xyNum)))
         if (!isVirtual && !isCantOpen) {
             binding.layoutFields.addView(createFieldRow("溝蓋板厚度(公分)", normalizeDisplayValue(details?.coverDepAsString)))
             binding.layoutFields.addView(

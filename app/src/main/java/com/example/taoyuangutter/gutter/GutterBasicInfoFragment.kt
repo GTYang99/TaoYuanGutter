@@ -929,7 +929,7 @@ class GutterBasicInfoFragment : Fragment() {
         val visibility = if (isVirtual) View.GONE else View.VISIBLE
         binding.llVirtualHidden1.visibility = visibility
         binding.llVirtualHidden2.visibility = visibility
-        // 根據需求保留「溝蓋板厚度」欄位，不隨虛擬模式隱藏
+        binding.llCoverThicknessWrapper.visibility = visibility
         binding.llVirtualHidden3.visibility = visibility
         binding.layoutOverviewPhotoSection.visibility = visibility
         binding.layoutWidthPhotoSection.visibility = visibility
