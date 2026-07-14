@@ -514,7 +514,7 @@ class MainActivity : AppCompatActivity(),
                 scopeGutterPolylineController.clear()
                 submittedPolylines.forEach { it.remove() }
                 submittedPolylines.clear()
-                // 進入編輯時保留檢視期間的灰色參考線；紫色工作線延後到 latLng 真正變更才出現
+                // 進入編輯時保留檢視期間的灰色參考線；紫色工作線延後到座標順序或內容真的變更才出現
                 editLatLngSnapshot = buildLatLngSnapshot(wps)
                 hasShownEditPolyline = false
 
@@ -1865,9 +1865,9 @@ class MainActivity : AppCompatActivity(),
     }
 
     /**
-     * 編輯流程用刷新：僅在 latLng 真正改變後才開始顯示紫色線段。
+     * 編輯流程用刷新：僅在座標順序或內容真的改變後才開始顯示紫色線段。
      * - 在使用者還沒移動/更新座標前：只更新 markers（保留灰色參考線作對照）
-     * - 一旦座標改變：開始顯示/更新紫色線段
+     * - 一旦節點順序或座標改變：開始顯示/更新紫色線段
      */
     private fun refreshWorkingForEditFlow(waypoints: List<Waypoint>) {
         // 非編輯流程（例如新增/檢視）沿用原本行為
@@ -1897,7 +1897,6 @@ class MainActivity : AppCompatActivity(),
         fun quantize(v: Double): Long = kotlin.math.round(v * 1_000_000.0).toLong()
         return waypoints.mapNotNull { it.latLng }
             .map { quantize(it.latitude) to quantize(it.longitude) }
-            .sortedWith(compareBy({ it.first }, { it.second }))
     }
 
     private fun setReferenceRoute(points: List<LatLng>) {
