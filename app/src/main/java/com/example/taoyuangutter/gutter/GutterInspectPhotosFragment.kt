@@ -431,7 +431,21 @@ class GutterInspectPhotosFragment : Fragment() {
             }
         }
         val xyNum = details?.xyNum?.trim().orEmpty().takeIf { it.isNotEmpty() } ?: "---"
-        return "$baseLabel ($xyNum)"
+        val statusSuffix = buildPointStatusSuffix(details)
+        return "$baseLabel ($xyNum)$statusSuffix"
+    }
+
+    private fun buildPointStatusSuffix(details: NodeDetails?): String {
+        if (details == null) return ""
+        val suffixes = mutableListOf<String>()
+        if (details.isCantOpenAsBoolean) suffixes += "（無法開蓋）"
+        if (details.isVirtual?.trim()?.lowercase() in setOf("1", "true", "t", "y", "yes")) {
+            suffixes += "（虛擬點）"
+        }
+        if (details.isPendingDeploy?.trim()?.lowercase() in setOf("1", "true", "t", "y", "yes")) {
+            suffixes += "（待架站）"
+        }
+        return suffixes.joinToString(separator = "")
     }
 
     private fun mapNodeType(code: String?): String = when (code) {
