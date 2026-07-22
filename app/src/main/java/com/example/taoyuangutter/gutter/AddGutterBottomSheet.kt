@@ -59,6 +59,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
          * API 結果由 [onGutterSaved] / [onGutterSaveFailed] 回報。
          */
         fun onGutterSubmitted(waypoints: List<Waypoint>)
+        /** 送出前補傳照片時，顯示主畫面的 blocking 進度。 */
+        fun onPendingPhotoUploadStarted(totalCount: Int)
+        /** 送出前補傳照片的單張結果回報。 */
+        fun onPendingPhotoUploadProgress(success: Boolean)
+        /** 送出前補傳照片結束。 */
+        fun onPendingPhotoUploadFinished()
         /** 取得目前要檢視的 waypoints（檢視模式） */
         fun getInspectWaypoints(): List<Waypoint>
         /** 使用者點選某個點位的 cell（檢視模式），開啟 GutterFormActivity 檢視/編輯 */
@@ -86,6 +92,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         fun onSheetViewportInsetChanged(bottomInsetPx: Int)
         /** 重傳時重新顯示 BottomSheet */
         fun onGutterRetry()
+        /** 編輯模式：照片補傳完成後，切回既有 submitting blocking UI。 */
+        fun onGutterSubmitting()
     }
 
     /**
@@ -777,7 +785,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 if (!validateCurvePointCountOrAlert()) return@setOnClickListener
 
                 lifecycleScope.launch {
-                    if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) return@launch
+                    if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
+                        showSelf()
+                        return@launch
+                    }
                     val submittedWaypoints = waypoints.toList()
 
                     // 立即清除地圖暫存資料（新增模式不可回頭）
@@ -849,9 +860,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     return@launch
                 }
                 if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
+                    showSelf()
                     updateSubmitButtonState()
                     return@launch
                 }
+                (requireActivity() as? LocationPickerHost)?.onGutterSubmitting()
 
                 // 建立請求並呼叫 storeDitch（帶 SPI_NUM）
                 val request = buildStoreDitchRequest(waypoints.toList(), editSpiNum)
@@ -870,6 +883,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             "StoreDitch",
                             "edit failed: message=${result.message}, code=${result.code}"
                         )
+                        showSelf()
                         updateSubmitButtonState()
                         val errorUi = UploadFailureClassifier.forStoreDitchError(result)
                         showStoreDitchFailureDialog(
@@ -884,6 +898,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("StoreDitch", "edit exception: ${e.message}", e)
+                showSelf()
                 updateSubmitButtonState()
                 val errorUi = UploadFailureClassifier.forStoreDitchException(e.localizedMessage)
                 showStoreDitchFailureDialog(
@@ -1281,75 +1296,109 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             .show()
     }
 
-    private suspend fun ensureWaypointPhotosUploadedBeforeSubmit(
-        candidateWaypoints: List<Waypoint>,
-        token: String
-    ): Boolean {
-        val ctx = context ?: return false
-        val mutableWaypoints = candidateWaypoints.map { waypoint ->
-            waypoint.copy(basicData = HashMap(waypoint.basicData))
-        }.toMutableList()
-
-        mutableWaypoints.forEachIndexed { index, waypoint ->
-            if (waypoint.isVirtual) return@forEachIndexed
+    private fun countPendingPhotoUploads(candidateWaypoints: List<Waypoint>): Int {
+        val ctx = context ?: return 0
+        var count = 0
+        candidateWaypoints.forEach { waypoint ->
+            if (waypoint.isVirtual) return@forEach
             val isCantOpen = parseLooseBoolean(waypoint.basicData["IS_CANTOPEN"])
             (1..3).forEach { slot ->
-                if (isCantOpen && slot in 2..3) {
-                    PhotoUploadSlotState.clear(waypoint.basicData, slot)
-                    return@forEach
-                }
+                if (isCantOpen && slot in 2..3) return@forEach
                 val photoPath = waypoint.basicData["photo$slot"]
                 if (!PhotoUploadValidator.isUsableForUpload(ctx, photoPath)) return@forEach
                 val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
                 val state = PhotoUploadSlotState.readState(waypoint.basicData, slot)
                 if (state == PhotoUploadSlotState.STATE_SUCCESS && imgId != null) return@forEach
+                count++
+            }
+        }
+        return count
+    }
 
-                val result = repository.uploadNodeImage(
-                    context = ctx,
-                    nodeId = null,
-                    fileCategory = slot,
-                    imageUri = android.net.Uri.parse(photoPath),
-                    token = token
-                )
-                when (result) {
-                    is ApiResult.Success -> {
-                        PhotoUploadSlotState.writeState(
-                            waypoint.basicData,
-                            slot,
-                            state = PhotoUploadSlotState.STATE_SUCCESS,
-                            imgId = result.data.data?.imgId,
-                            error = null
-                        )
+    private suspend fun ensureWaypointPhotosUploadedBeforeSubmit(
+        candidateWaypoints: List<Waypoint>,
+        token: String
+    ): Boolean {
+        val ctx = context ?: return false
+        val host = activity as? LocationPickerHost
+        val mutableWaypoints = candidateWaypoints.map { waypoint ->
+            waypoint.copy(basicData = HashMap(waypoint.basicData))
+        }.toMutableList()
+        val pendingCount = countPendingPhotoUploads(mutableWaypoints)
+
+        if (pendingCount > 0) {
+            hideSelf()
+            host?.onPendingPhotoUploadStarted(pendingCount)
+        }
+
+        try {
+            mutableWaypoints.forEachIndexed { index, waypoint ->
+                if (waypoint.isVirtual) return@forEachIndexed
+                val isCantOpen = parseLooseBoolean(waypoint.basicData["IS_CANTOPEN"])
+                (1..3).forEach { slot ->
+                    if (isCantOpen && slot in 2..3) {
+                        PhotoUploadSlotState.clear(waypoint.basicData, slot)
+                        return@forEach
                     }
-                    is ApiResult.Error -> {
-                        PhotoUploadSlotState.writeState(
-                            waypoint.basicData,
-                            slot,
-                            state = PhotoUploadSlotState.STATE_FAILED,
-                            imgId = null,
-                            error = result.message
-                        )
-                        waypoints[index] = waypoint
-                        adapter.notifyItemChanged(index)
-                        onWaypointsChanged?.invoke(waypoints.toList())
-                        MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("照片上傳失敗")
-                            .setMessage("${waypoint.label} 第${slot}張照片上傳失敗：${result.message}")
-                            .setPositiveButton("確定", null)
-                            .show()
-                        return false
+                    val photoPath = waypoint.basicData["photo$slot"]
+                    if (!PhotoUploadValidator.isUsableForUpload(ctx, photoPath)) return@forEach
+                    val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
+                    val state = PhotoUploadSlotState.readState(waypoint.basicData, slot)
+                    if (state == PhotoUploadSlotState.STATE_SUCCESS && imgId != null) return@forEach
+
+                    val result = repository.uploadNodeImage(
+                        context = ctx,
+                        nodeId = null,
+                        fileCategory = slot,
+                        imageUri = android.net.Uri.parse(photoPath),
+                        token = token
+                    )
+                    when (result) {
+                        is ApiResult.Success -> {
+                            host?.onPendingPhotoUploadProgress(true)
+                            PhotoUploadSlotState.writeState(
+                                waypoint.basicData,
+                                slot,
+                                state = PhotoUploadSlotState.STATE_SUCCESS,
+                                imgId = result.data.data?.imgId,
+                                error = null
+                            )
+                        }
+                        is ApiResult.Error -> {
+                            host?.onPendingPhotoUploadProgress(false)
+                            PhotoUploadSlotState.writeState(
+                                waypoint.basicData,
+                                slot,
+                                state = PhotoUploadSlotState.STATE_FAILED,
+                                imgId = null,
+                                error = result.message
+                            )
+                            waypoints[index] = waypoint
+                            adapter.notifyItemChanged(index)
+                            onWaypointsChanged?.invoke(waypoints.toList())
+                            MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("照片上傳失敗")
+                                .setMessage("${waypoint.label} 第${slot}張照片上傳失敗：${result.message}")
+                                .setPositiveButton("確定", null)
+                                .show()
+                            return false
+                        }
                     }
                 }
+                waypoints[index] = waypoint
             }
-            waypoints[index] = waypoint
-        }
 
-        mutableWaypoints.forEachIndexed { index, waypoint ->
-            waypoints[index] = waypoint
+            mutableWaypoints.forEachIndexed { index, waypoint ->
+                waypoints[index] = waypoint
+            }
+            adapter.notifyDataSetChanged()
+            onWaypointsChanged?.invoke(waypoints.toList())
+            return true
+        } finally {
+            if (pendingCount > 0) {
+                host?.onPendingPhotoUploadFinished()
+            }
         }
-        adapter.notifyDataSetChanged()
-        onWaypointsChanged?.invoke(waypoints.toList())
-        return true
     }
 
     // ── 由 MainActivity 回呼：寫入選定座標 ──────────────────────────────

@@ -889,8 +889,26 @@ class MainActivity : AppCompatActivity(),
         mainBlockingUiController.setInspectLoading(true, getString(R.string.msg_gutter_submitting))
     }
 
+    override fun onPendingPhotoUploadStarted(totalCount: Int) {
+        if (totalCount <= 0) return
+        activeSheet?.hideSelf()
+        mainBlockingUiController.beginPhotoUpload(totalCount)
+    }
+
+    override fun onPendingPhotoUploadProgress(success: Boolean) {
+        mainBlockingUiController.recordPhotoUploadResult(success)
+    }
+
+    override fun onPendingPhotoUploadFinished() {
+        mainBlockingUiController.endPhotoUpload()
+    }
+
     override fun onGutterRetry() {
         // 重傳時，確保 Activity 端的載入動畫重新顯示
+        mainBlockingUiController.setInspectLoading(true, getString(R.string.msg_gutter_submitting))
+    }
+
+    override fun onGutterSubmitting() {
         mainBlockingUiController.setInspectLoading(true, getString(R.string.msg_gutter_submitting))
     }
 
