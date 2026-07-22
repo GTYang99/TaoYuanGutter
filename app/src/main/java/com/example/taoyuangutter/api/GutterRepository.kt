@@ -554,7 +554,7 @@ class GutterRepository(
      */
     suspend fun uploadNodeImage(
         context: Context,
-        nodeId: Int,
+        nodeId: Int?,
         fileCategory: Int,
         imageUri: Uri,
         token: String
@@ -583,7 +583,7 @@ class GutterRepository(
                 // 🌟 使用 RequestBodyBuilder DSL 構建封裝的 MultipartBody
                 val requestBody = buildRequestBody {
                     addFile("file", tempFile, "image/jpeg")
-                    param("node_id", nodeId)
+                    nodeId?.let { param("node_id", it) }
                     param("fileCategory", fileCategory)
                 }
 

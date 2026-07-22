@@ -585,34 +585,31 @@ class GutterInspectActivity : AppCompatActivity() {
             val lat = wgsLatitudes.getOrNull(idx)
             val lng = wgsLongitudes.getOrNull(idx)
             val latLng = if (lat != null && lng != null) LatLng(lat, lng) else null
+            fun baseData(): HashMap<String, String> = hashMapOf(
+                "_nodeId" to node.nodeId.toString(),
+                "SPI_NUM" to d.spiNum,
+                "is_virtual" to (d.isVirtual ?: "0"),
+                "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0"),
+                "photo1ImgId" to (node.url.firstOrNull { it.fileCategory == "1" }?.id?.toString() ?: ""),
+                "photo2ImgId" to (node.url.firstOrNull { it.fileCategory == "2" }?.id?.toString() ?: ""),
+                "photo3ImgId" to (node.url.firstOrNull { it.fileCategory == "3" }?.id?.toString() ?: ""),
+                "photo1UploadState" to (if (node.url.any { it.fileCategory == "1" && it.id != null }) "success" else "idle"),
+                "photo2UploadState" to (if (node.url.any { it.fileCategory == "2" && it.id != null }) "success" else "idle"),
+                "photo3UploadState" to (if (node.url.any { it.fileCategory == "3" && it.id != null }) "success" else "idle")
+            )
 
             when (node.nodeAtt) {
                 "1" -> result.add(Waypoint(
                     WaypointType.START, "起點", latLng,
-                    hashMapOf(
-                        "_nodeId"    to node.nodeId.toString(),
-                        "SPI_NUM"    to d.spiNum,
-                        "is_virtual" to (d.isVirtual ?: "0"),
-                        "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0")
-                    )
+                    baseData()
                 ))
                 "3" -> result.add(Waypoint(
                     WaypointType.END, "終點", latLng,
-                    hashMapOf(
-                        "_nodeId"    to node.nodeId.toString(),
-                        "SPI_NUM"    to d.spiNum,
-                        "is_virtual" to (d.isVirtual ?: "0"),
-                        "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0")
-                    )
+                    baseData()
                 ))
                 else -> result.add(Waypoint(
                     WaypointType.NODE, "節點${node.nodeNum ?: "?"}", latLng,
-                    hashMapOf(
-                        "_nodeId"    to node.nodeId.toString(),
-                        "SPI_NUM"    to d.spiNum,
-                        "is_virtual" to (d.isVirtual ?: "0"),
-                        "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0")
-                    )
+                    baseData()
                 ))
             }
         }

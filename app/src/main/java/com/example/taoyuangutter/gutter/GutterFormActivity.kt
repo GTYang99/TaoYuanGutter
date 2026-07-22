@@ -58,9 +58,12 @@ import com.example.taoyuangutter.api.NodeDetails
 import com.example.taoyuangutter.api.safeCapturedAt
 import com.example.taoyuangutter.common.PendingPhotoDraftState
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
+import com.example.taoyuangutter.common.PhotoSlotUploadCoordinator
+import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
+import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.WaypointSnapshot
@@ -85,6 +88,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var restoredCurrentFormData: HashMap<String, String>? = null
     private var photoDraftBatchDepth: Int = 0
     private var pendingPhotoDraftSync: Boolean = false
+    private val photoUploadListeners = mutableMapOf<Int, (PhotoSlotUploadCoordinator.Snapshot) -> Unit>()
 
     override fun setPhotoLoading(visible: Boolean) {
         if (!::binding.isInitialized) return
@@ -110,6 +114,34 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     override fun onPendingPhotoDraftChanged(slot: Int, pendingOutputPath: String?) {
         updateCurrentPendingPhoto(slot, pendingOutputPath)
         queuePhotoDraftSync()
+    }
+
+    override fun onPhotoSlotReadyForUpload(slot: Int, photoPath: String?) {
+        if (slot !in 1..3) return
+        if (photoPath.isNullOrBlank()) {
+            clearPhotoUploadState(slot)
+            queuePhotoDraftSync()
+            return
+        }
+        val token = LoginActivity.getSavedToken(this)
+        if (token.isNullOrBlank()) {
+            updatePhotoUploadState(slot, PhotoUploadSlotState.STATE_FAILED, error = getString(R.string.msg_login_first))
+            queuePhotoDraftSync()
+            return
+        }
+        val resolvedDraftId = sessionDraftId.takeIf { it > 0L } ?: return
+        val resolvedPhotoPath = (currentFormData["photo$slot"] as? String)?.takeIf { it.isNotBlank() } ?: photoPath
+        updatePhotoUploadState(slot, PhotoUploadSlotState.STATE_UPLOADING)
+        queuePhotoDraftSync()
+        PhotoSlotUploadCoordinator.enqueueUpload(
+            context = applicationContext,
+            repository = gutterRepository,
+            draftId = resolvedDraftId,
+            waypointIndex = currentIndex,
+            slot = slot,
+            photoPath = resolvedPhotoPath,
+            token = token
+        )
     }
 
     fun beginPhotoDraftBatch() {
@@ -204,6 +236,15 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val EXTRA_DATA_PHOTO_1_CAPTURED_AT = "ex_photo1_captured_at"
         const val EXTRA_DATA_PHOTO_2_CAPTURED_AT = "ex_photo2_captured_at"
         const val EXTRA_DATA_PHOTO_3_CAPTURED_AT = "ex_photo3_captured_at"
+        const val EXTRA_DATA_PHOTO_1_IMG_ID = "ex_photo1_img_id"
+        const val EXTRA_DATA_PHOTO_2_IMG_ID = "ex_photo2_img_id"
+        const val EXTRA_DATA_PHOTO_3_IMG_ID = "ex_photo3_img_id"
+        const val EXTRA_DATA_PHOTO_1_UPLOAD_STATE = "ex_photo1_upload_state"
+        const val EXTRA_DATA_PHOTO_2_UPLOAD_STATE = "ex_photo2_upload_state"
+        const val EXTRA_DATA_PHOTO_3_UPLOAD_STATE = "ex_photo3_upload_state"
+        const val EXTRA_DATA_PHOTO_1_UPLOAD_ERROR = "ex_photo1_upload_error"
+        const val EXTRA_DATA_PHOTO_2_UPLOAD_ERROR = "ex_photo2_upload_error"
+        const val EXTRA_DATA_PHOTO_3_UPLOAD_ERROR = "ex_photo3_upload_error"
         const val EXTRA_DATA_XY_NUM      = "ex_xy_num_value"
         const val EXTRA_DATA_NODE_ID     = "ex_nodeId" // 新增：傳入 API 的 node_id（編輯模式）
 
@@ -239,6 +280,15 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val RESULT_DATA_PHOTO_1_CAPTURED_AT = "r_photo1_captured_at"
         const val RESULT_DATA_PHOTO_2_CAPTURED_AT = "r_photo2_captured_at"
         const val RESULT_DATA_PHOTO_3_CAPTURED_AT = "r_photo3_captured_at"
+        const val RESULT_DATA_PHOTO_1_IMG_ID = "r_photo1_img_id"
+        const val RESULT_DATA_PHOTO_2_IMG_ID = "r_photo2_img_id"
+        const val RESULT_DATA_PHOTO_3_IMG_ID = "r_photo3_img_id"
+        const val RESULT_DATA_PHOTO_1_UPLOAD_STATE = "r_photo1_upload_state"
+        const val RESULT_DATA_PHOTO_2_UPLOAD_STATE = "r_photo2_upload_state"
+        const val RESULT_DATA_PHOTO_3_UPLOAD_STATE = "r_photo3_upload_state"
+        const val RESULT_DATA_PHOTO_1_UPLOAD_ERROR = "r_photo1_upload_error"
+        const val RESULT_DATA_PHOTO_2_UPLOAD_ERROR = "r_photo2_upload_error"
+        const val RESULT_DATA_PHOTO_3_UPLOAD_ERROR = "r_photo3_upload_error"
 
         // ── Reference Route (Gray Curve) ─────────────────────────────────
         const val EXTRA_REF_LATITUDES  = "extra_ref_latitudes"
@@ -531,6 +581,21 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 updateCurrentPhotoCapturedAt(1, capturedAt1)
                 updateCurrentPhotoCapturedAt(2, capturedAt2)
                 updateCurrentPhotoCapturedAt(3, capturedAt3)
+                updatePhotoUploadState(
+                    1,
+                    state = if (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.id != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
+                    imgId = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.id
+                )
+                updatePhotoUploadState(
+                    2,
+                    state = if (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.id != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
+                    imgId = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.id
+                )
+                updatePhotoUploadState(
+                    3,
+                    state = if (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
+                    imgId = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id
+                )
                 showUploadLoading(false)
 
                 val missing = mutableListOf<String>()
@@ -1140,6 +1205,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 "photo3=${!existingData["photo3"].isNullOrBlank()}"
         )
         initializeCurrentFormData(existingData)
+        registerPhotoUploadListeners()
 
         // 全螢幕地圖背景 + 表單面板（不論離線或一般模式皆使用新版佈局）
         setupFullScreenWithMap()
@@ -1166,10 +1232,53 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         setupImportWaypointButton()
         setupFab()
         binding.viewPager.post {
+            syncNormalizedPhotosBackToUiIfNeeded(
+                photo1 = currentFormData["photo1"]?.takeIf { it.isNotBlank() },
+                photo2 = currentFormData["photo2"]?.takeIf { it.isNotBlank() },
+                photo3 = currentFormData["photo3"]?.takeIf { it.isNotBlank() }
+            )
             refreshCurrentFormDataFromFragments()
         }
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
         binding.viewPager.post { applyImportedWaypointLock() }
+    }
+
+    private fun registerPhotoUploadListeners() {
+        val resolvedDraftId = sessionDraftId.takeIf { it > 0L } ?: return
+        unregisterPhotoUploadListeners()
+        (1..3).forEach { slot ->
+            val listener: (PhotoSlotUploadCoordinator.Snapshot) -> Unit = { snapshot ->
+                runOnUiThread {
+                    updatePhotoUploadState(
+                        slot = snapshot.slot,
+                        state = snapshot.state,
+                        imgId = snapshot.imgId,
+                        error = snapshot.error
+                    )
+                    queuePhotoDraftSync()
+                }
+            }
+            photoUploadListeners[slot] = listener
+            PhotoSlotUploadCoordinator.registerListener(
+                draftId = resolvedDraftId,
+                waypointIndex = currentIndex,
+                slot = slot,
+                listener = listener
+            )
+        }
+    }
+
+    private fun unregisterPhotoUploadListeners() {
+        val resolvedDraftId = sessionDraftId.takeIf { it > 0L } ?: return
+        photoUploadListeners.forEach { (slot, listener) ->
+            PhotoSlotUploadCoordinator.unregisterListener(
+                draftId = resolvedDraftId,
+                waypointIndex = currentIndex,
+                slot = slot,
+                listener = listener
+            )
+        }
+        photoUploadListeners.clear()
     }
 
     override fun onPause() {
@@ -1179,6 +1288,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             syncSessionDraftNowBlocking()
         }
         super.onPause()
+    }
+
+    override fun onDestroy() {
+        unregisterPhotoUploadListeners()
+        super.onDestroy()
     }
 
     private fun buildEmptyData(lat: Double, lng: Double) = hashMapOf(
@@ -1203,6 +1317,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         "photo1CapturedAt" to "",
         "photo2CapturedAt" to "",
         "photo3CapturedAt" to "",
+        "photo1UploadState" to PhotoUploadSlotState.STATE_IDLE,
+        "photo2UploadState" to PhotoUploadSlotState.STATE_IDLE,
+        "photo3UploadState" to PhotoUploadSlotState.STATE_IDLE,
         "is_virtual" to "0"
     )
 
@@ -1555,9 +1672,18 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         currentFormData["photo1"] = photo1 ?: ""
         currentFormData["photo2"] = photo2 ?: ""
         currentFormData["photo3"] = photo3 ?: ""
-        if (photo1.isNullOrBlank()) currentFormData["photo1CapturedAt"] = ""
-        if (photo2.isNullOrBlank()) currentFormData["photo2CapturedAt"] = ""
-        if (photo3.isNullOrBlank()) currentFormData["photo3CapturedAt"] = ""
+        if (photo1.isNullOrBlank()) {
+            currentFormData["photo1CapturedAt"] = ""
+            clearPhotoUploadState(1)
+        }
+        if (photo2.isNullOrBlank()) {
+            currentFormData["photo2CapturedAt"] = ""
+            clearPhotoUploadState(2)
+        }
+        if (photo3.isNullOrBlank()) {
+            currentFormData["photo3CapturedAt"] = ""
+            clearPhotoUploadState(3)
+        }
         enrichMissingPhotoCapturedAt(currentFormData)
         syncCurrentWaypointFromCurrentFormData()
     }
@@ -1572,6 +1698,25 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (slot !in 1..3) return
         PendingPhotoDraftState.writePath(currentFormData, slot, pendingOutputPath)
         syncCurrentWaypointFromCurrentFormData()
+    }
+
+    private fun updatePhotoUploadState(slot: Int, state: String, imgId: Int? = null, error: String? = null) {
+        if (slot !in 1..3) return
+        PhotoUploadSlotState.writeState(currentFormData, slot, state = state, imgId = imgId, error = error)
+        syncCurrentWaypointFromCurrentFormData()
+        pagerAdapter.getBasicInfoFragment()?.updatePhotoUploadStatus(slot, state, imgId, error)
+    }
+
+    private fun clearPhotoUploadState(slot: Int) {
+        if (slot !in 1..3) return
+        PhotoUploadSlotState.clear(currentFormData, slot)
+        syncCurrentWaypointFromCurrentFormData()
+        pagerAdapter.getBasicInfoFragment()?.updatePhotoUploadStatus(
+            slot = slot,
+            state = PhotoUploadSlotState.STATE_IDLE,
+            imgId = null,
+            error = null
+        )
     }
 
     private fun currentFormPhotos(): Triple<String?, String?, String?> = Triple(
@@ -1597,6 +1742,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             this["photo3"] = ""
             this["photo2CapturedAt"] = ""
             this["photo3CapturedAt"] = ""
+            PhotoUploadSlotState.clear(this, 2)
+            PhotoUploadSlotState.clear(this, 3)
         }
     }
 
@@ -1614,6 +1761,15 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private fun currentFormPhotoCapturedAt(slot: Int): String? =
         PhotoCapturedAtResolver.readBasicData(currentFormData, slot)
+
+    private fun currentFormPhotoUploadState(slot: Int): String =
+        PhotoUploadSlotState.readState(currentFormData, slot)
+
+    private fun currentFormPhotoImgId(slot: Int): Int? =
+        PhotoUploadSlotState.readImgId(currentFormData, slot)
+
+    private fun currentFormPhotoUploadError(slot: Int): String? =
+        PhotoUploadSlotState.readError(currentFormData, slot)
 
     private fun enrichMissingPhotoCapturedAt(target: HashMap<String, String>) {
         (1..3).forEach { slot ->
@@ -1679,7 +1835,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             photo3 = photo3,
             capturedAt1 = currentFormPhotoCapturedAt(1),
             capturedAt2 = currentFormPhotoCapturedAt(2),
-            capturedAt3 = currentFormPhotoCapturedAt(3)
+            capturedAt3 = currentFormPhotoCapturedAt(3),
+            uploadState1 = currentFormPhotoUploadState(1),
+            uploadState2 = currentFormPhotoUploadState(2),
+            uploadState3 = currentFormPhotoUploadState(3),
+            imgId1 = currentFormPhotoImgId(1),
+            imgId2 = currentFormPhotoImgId(2),
+            imgId3 = currentFormPhotoImgId(3),
+            uploadError1 = currentFormPhotoUploadError(1),
+            uploadError2 = currentFormPhotoUploadError(2),
+            uploadError3 = currentFormPhotoUploadError(3)
         )
     }
 

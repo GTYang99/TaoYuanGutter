@@ -37,6 +37,7 @@ class GutterPhotosFragment : Fragment() {
         fun onPhotosDraftChanged(photo1: String?, photo2: String?, photo3: String?)
         fun onPhotoCapturedAtDraftChanged(slot: Int, capturedAt: String?)
         fun onPendingPhotoDraftChanged(slot: Int, pendingOutputPath: String?)
+        fun onPhotoSlotReadyForUpload(slot: Int, photoPath: String?)
     }
 
     private var _binding: FragmentGutterPhotosBinding? = null

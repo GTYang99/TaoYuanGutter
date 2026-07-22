@@ -27,10 +27,12 @@ import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PendingPhotoDraftState
 import com.example.taoyuangutter.common.PhotoUploadValidator
+import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.common.UploadFailureClassifier
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterBinding
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
+import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.KIND_CURVE
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.gson.reflect.TypeToken
@@ -760,20 +762,32 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     Toast.makeText(requireContext(), getString(R.string.msg_end_point_required), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
-                val submittedWaypoints = waypoints.toList()
-
                 val token = LoginActivity.getSavedToken(requireContext()) ?: run {
                     Toast.makeText(requireContext(), getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
 
-                // 立即清除地圖暫存資料（新增模式不可回頭）
-                val host = requireActivity() as? LocationPickerHost
-                host?.onGutterSubmitted(submittedWaypoints)
-                val activity = requireActivity()
+                syncLatestDraftStateIntoWaypoints()
+                val uploadingLabel = findUploadingWaypointLabel(waypoints.toList())
+                if (!uploadingLabel.isNullOrBlank()) {
+                    showPhotosUploadingAlert(uploadingLabel)
+                    return@setOnClickListener
+                }
+                if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) return@setOnClickListener
+                if (!validateCurvePointCountOrAlert()) return@setOnClickListener
 
-                // 呼叫 storeDitch（不帶 SPI_NUM，由後端分配）
-                submitNewGutterRequest(activity, submittedWaypoints, token)
+                lifecycleScope.launch {
+                    if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) return@launch
+                    val submittedWaypoints = waypoints.toList()
+
+                    // 立即清除地圖暫存資料（新增模式不可回頭）
+                    val host = requireActivity() as? LocationPickerHost
+                    host?.onGutterSubmitted(submittedWaypoints)
+                    val activity = requireActivity()
+
+                    // 呼叫 storeDitch（不帶 SPI_NUM，由後端分配）
+                    submitNewGutterRequest(activity, submittedWaypoints, token)
+                }
             }
         }
     }
@@ -818,12 +832,23 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     updateSubmitButtonState()
                     return@launch
                 }
+                syncLatestDraftStateIntoWaypoints()
+                val uploadingLabel = findUploadingWaypointLabel(waypoints.toList())
+                if (!uploadingLabel.isNullOrBlank()) {
+                    showPhotosUploadingAlert(uploadingLabel)
+                    updateSubmitButtonState()
+                    return@launch
+                }
                 if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) {
                     updateSubmitButtonState()
                     return@launch
                 }
                 // 弧線上傳限制：僅允許起點/終點兩點
                 if (!validateCurvePointCountOrAlert()) {
+                    updateSubmitButtonState()
+                    return@launch
+                }
+                if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
                     updateSubmitButtonState()
                     return@launch
                 }
@@ -1219,6 +1244,114 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         return false
     }
 
+    private fun syncLatestDraftStateIntoWaypoints() {
+        if (draftId <= 0L || waypoints.isEmpty()) return
+        val latestWaypoints = GutterSessionRepository(requireContext()).getById(draftId)?.waypoints ?: return
+        if (latestWaypoints.size != waypoints.size) return
+        latestWaypoints.forEachIndexed { index, snapshot ->
+            val existing = waypoints.getOrNull(index) ?: return@forEachIndexed
+            waypoints[index] = existing.copy(
+                latLng = existing.latLng ?: snapshot.toLatLng(),
+                basicData = HashMap(existing.basicData).apply { putAll(snapshot.basicData) }
+            )
+        }
+        adapter.notifyDataSetChanged()
+        onWaypointsChanged?.invoke(waypoints.toList())
+    }
+
+    private fun WaypointSnapshot.toLatLng(): LatLng? {
+        val lat = latitude ?: return null
+        val lng = longitude ?: return null
+        return LatLng(lat, lng)
+    }
+
+    private fun findUploadingWaypointLabel(waypoints: List<Waypoint>): String? {
+        return waypoints.firstOrNull { wp ->
+            (1..3).any { slot ->
+                PhotoUploadSlotState.readState(wp.basicData, slot) == PhotoUploadSlotState.STATE_UPLOADING
+            }
+        }?.label
+    }
+
+    private fun showPhotosUploadingAlert(label: String) {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("照片上傳中")
+            .setMessage("$label 照片上傳中，請稍後上傳")
+            .setPositiveButton("確定", null)
+            .show()
+    }
+
+    private suspend fun ensureWaypointPhotosUploadedBeforeSubmit(
+        candidateWaypoints: List<Waypoint>,
+        token: String
+    ): Boolean {
+        val ctx = context ?: return false
+        val mutableWaypoints = candidateWaypoints.map { waypoint ->
+            waypoint.copy(basicData = HashMap(waypoint.basicData))
+        }.toMutableList()
+
+        mutableWaypoints.forEachIndexed { index, waypoint ->
+            if (waypoint.isVirtual) return@forEachIndexed
+            val isCantOpen = parseLooseBoolean(waypoint.basicData["IS_CANTOPEN"])
+            (1..3).forEach { slot ->
+                if (isCantOpen && slot in 2..3) {
+                    PhotoUploadSlotState.clear(waypoint.basicData, slot)
+                    return@forEach
+                }
+                val photoPath = waypoint.basicData["photo$slot"]
+                if (!PhotoUploadValidator.isUsableForUpload(ctx, photoPath)) return@forEach
+                val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
+                val state = PhotoUploadSlotState.readState(waypoint.basicData, slot)
+                if (state == PhotoUploadSlotState.STATE_SUCCESS && imgId != null) return@forEach
+
+                val result = repository.uploadNodeImage(
+                    context = ctx,
+                    nodeId = null,
+                    fileCategory = slot,
+                    imageUri = android.net.Uri.parse(photoPath),
+                    token = token
+                )
+                when (result) {
+                    is ApiResult.Success -> {
+                        PhotoUploadSlotState.writeState(
+                            waypoint.basicData,
+                            slot,
+                            state = PhotoUploadSlotState.STATE_SUCCESS,
+                            imgId = result.data.data?.imgId,
+                            error = null
+                        )
+                    }
+                    is ApiResult.Error -> {
+                        PhotoUploadSlotState.writeState(
+                            waypoint.basicData,
+                            slot,
+                            state = PhotoUploadSlotState.STATE_FAILED,
+                            imgId = null,
+                            error = result.message
+                        )
+                        waypoints[index] = waypoint
+                        adapter.notifyItemChanged(index)
+                        onWaypointsChanged?.invoke(waypoints.toList())
+                        MaterialAlertDialogBuilder(requireContext())
+                            .setTitle("照片上傳失敗")
+                            .setMessage("${waypoint.label} 第${slot}張照片上傳失敗：${result.message}")
+                            .setPositiveButton("確定", null)
+                            .show()
+                        return false
+                    }
+                }
+            }
+            waypoints[index] = waypoint
+        }
+
+        mutableWaypoints.forEachIndexed { index, waypoint ->
+            waypoints[index] = waypoint
+        }
+        adapter.notifyDataSetChanged()
+        onWaypointsChanged?.invoke(waypoints.toList())
+        return true
+    }
+
     // ── 由 MainActivity 回呼：寫入選定座標 ──────────────────────────────
     fun getWaypointLabel(index: Int): String =
         waypoints.getOrNull(index)?.label ?: "點位"
@@ -1313,6 +1446,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             if (capturedAt1 != null) put("photo1CapturedAt", capturedAt1)
                             if (capturedAt2 != null) put("photo2CapturedAt", capturedAt2)
                             if (capturedAt3 != null) put("photo3CapturedAt", capturedAt3)
+                            nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.id?.let {
+                                put("photo1ImgId", it.toString())
+                                put("photo1UploadState", PhotoUploadSlotState.STATE_SUCCESS)
+                            }
+                            nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.id?.let {
+                                put("photo2ImgId", it.toString())
+                                put("photo2UploadState", PhotoUploadSlotState.STATE_SUCCESS)
+                            }
+                            nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.id?.let {
+                                put("photo3ImgId", it.toString())
+                                put("photo3UploadState", PhotoUploadSlotState.STATE_SUCCESS)
+                            }
                         }
                         waypoints[targetIndex].basicData = merged
                     }
@@ -1396,38 +1541,46 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     WaypointType.NODE  -> 2
                     WaypointType.END   -> 3
                 }
-	                val isCantOpenBool = parseLooseBoolean(wp.basicData["IS_CANTOPEN"])
-	                val isCantOpenInt = if (isCantOpenBool) 1 else 0
-                    val isPendingDeployInt =
-                        if (parseLooseBoolean(wp.basicData["IS_PENDING_DEPLOY"])) 1 else 0
-                    val isVirtualBool = wp.isVirtual
-                    val coverDep = wp.basicData["COVER_DEP"]
-	                StoreDitchNodeRequest(
-	                    nodeId    = requestNodeId,
-	                    nodeAtt   = nodeAtt,
-	                    nodeNum   = if (nodeAtt == 2) nodeSequence++ else null,
-	                    nodeTyp   = wp.basicData["NODE_TYP"]?.toIntOrNull() ?: 1,
-	                    latitude  = wp.latLng?.latitude  ?: 0.0,
-	                    longitude = wp.latLng?.longitude ?: 0.0,
-	                    nodeLe    = wp.basicData["NODE_LE"]?.toDoubleOrNull(),
-	                    xyNum     = wp.basicData["XY_NUM"] ?: "",
+                val isCantOpenBool = parseLooseBoolean(wp.basicData["IS_CANTOPEN"])
+                val isCantOpenInt = if (isCantOpenBool) 1 else 0
+                val isPendingDeployInt =
+                    if (parseLooseBoolean(wp.basicData["IS_PENDING_DEPLOY"])) 1 else 0
+                val isVirtualBool = wp.isVirtual
+                val coverDep = wp.basicData["COVER_DEP"]
+                val imgIds = (1..3).mapNotNull { slot ->
+                    if (isCantOpenBool && slot in 2..3) {
+                        null
+                    } else {
+                        PhotoUploadSlotState.readImgId(wp.basicData, slot)
+                    }
+                }.takeIf { it.isNotEmpty() }
+                StoreDitchNodeRequest(
+                    nodeId    = requestNodeId,
+                    nodeAtt   = nodeAtt,
+                    nodeNum   = if (nodeAtt == 2) nodeSequence++ else null,
+                    nodeTyp   = wp.basicData["NODE_TYP"]?.toIntOrNull() ?: 1,
+                    latitude  = wp.latLng?.latitude  ?: 0.0,
+                    longitude = wp.latLng?.longitude ?: 0.0,
+                    nodeLe    = wp.basicData["NODE_LE"]?.toDoubleOrNull(),
+                    xyNum     = wp.basicData["XY_NUM"] ?: "",
                         isPendingDeploy = isPendingDeployInt,
-	                    isCantOpen = isCantOpenInt,
+                    isCantOpen = isCantOpenInt,
                         isVirtual = isVirtualBool,
-	                    matTyp    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
-	                    nodeDep   = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),
-	                    nodeWid   = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0),
-	                    coverDep  = if (isCantOpenBool || isVirtualBool) null else coverDep?.toIntOrNull(),
-	                    isBroken  = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0),
-	                    isHanging = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
-	                    isSilt    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
-	                    nodeNote  = wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() },
+                    matTyp    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
+                    nodeDep   = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),
+                    nodeWid   = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0),
+                    coverDep  = if (isCantOpenBool || isVirtualBool) null else coverDep?.toIntOrNull(),
+                    isBroken  = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0),
+                    isHanging = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
+                    isSilt    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
+                    nodeNote  = wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() },
                         capturedAt = listOfNotNull(
                             PhotoCapturedAtResolver.readBasicData(wp.basicData, 1),
                             PhotoCapturedAtResolver.readBasicData(wp.basicData, 2),
                             PhotoCapturedAtResolver.readBasicData(wp.basicData, 3)
-                        ).takeIf { it.isNotEmpty() }
-	                )
+                        ).takeIf { it.isNotEmpty() },
+                    imgIds = imgIds
+                )
             }
         )
     }

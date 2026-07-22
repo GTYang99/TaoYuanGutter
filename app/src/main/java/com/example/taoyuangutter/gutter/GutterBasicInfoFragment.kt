@@ -33,6 +33,7 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
+import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.FragmentGutterBasicInfoBinding
 import com.google.android.material.button.MaterialButton
@@ -66,6 +67,15 @@ class GutterBasicInfoFragment : Fragment() {
     private var photoCapturedAtSlot1: String? = null
     private var photoCapturedAtSlot2: String? = null
     private var photoCapturedAtSlot3: String? = null
+    private var photoUploadState1: String = PhotoUploadSlotState.STATE_IDLE
+    private var photoUploadState2: String = PhotoUploadSlotState.STATE_IDLE
+    private var photoUploadState3: String = PhotoUploadSlotState.STATE_IDLE
+    private var photoImgId1: Int? = null
+    private var photoImgId2: Int? = null
+    private var photoImgId3: Int? = null
+    private var photoUploadError1: String? = null
+    private var photoUploadError2: String? = null
+    private var photoUploadError3: String? = null
     private var pendingSlot: Int = 0
     private var pendingOutputPath: String? = null
     private var hasShownPhotoLoadErrorAlert = false
@@ -308,6 +318,7 @@ class GutterBasicInfoFragment : Fragment() {
                     Uri.fromFile(file)
                 }
                 applyPhotoToSlot(slot, uri, notifyDraftChanged = true)
+                photoDraftChangeHost?.onPhotoSlotReadyForUpload(slot, uri.toString())
             }
             if (slot in 1..3) {
                 photoDraftChangeHost?.onPendingPhotoDraftChanged(slot, null)
@@ -913,7 +924,16 @@ class GutterBasicInfoFragment : Fragment() {
             "photo3" to (photoUriSlot3?.toString() ?: ""),
             "photo1CapturedAt" to (photoCapturedAtSlot1 ?: ""),
             "photo2CapturedAt" to (photoCapturedAtSlot2 ?: ""),
-            "photo3CapturedAt" to (photoCapturedAtSlot3 ?: "")
+            "photo3CapturedAt" to (photoCapturedAtSlot3 ?: ""),
+            "photo1UploadState" to photoUploadState1,
+            "photo2UploadState" to photoUploadState2,
+            "photo3UploadState" to photoUploadState3,
+            "photo1ImgId" to (photoImgId1?.toString() ?: ""),
+            "photo2ImgId" to (photoImgId2?.toString() ?: ""),
+            "photo3ImgId" to (photoImgId3?.toString() ?: ""),
+            "photo1UploadError" to (photoUploadError1 ?: ""),
+            "photo2UploadError" to (photoUploadError2 ?: ""),
+            "photo3UploadError" to (photoUploadError3 ?: "")
         )
     }
 
@@ -1033,7 +1053,16 @@ class GutterBasicInfoFragment : Fragment() {
         photo3: String?,
         capturedAt1: String?,
         capturedAt2: String?,
-        capturedAt3: String?
+        capturedAt3: String?,
+        uploadState1: String = PhotoUploadSlotState.STATE_IDLE,
+        uploadState2: String = PhotoUploadSlotState.STATE_IDLE,
+        uploadState3: String = PhotoUploadSlotState.STATE_IDLE,
+        imgId1: Int? = null,
+        imgId2: Int? = null,
+        imgId3: Int? = null,
+        uploadError1: String? = null,
+        uploadError2: String? = null,
+        uploadError3: String? = null
     ) {
         suppressPhotoDraftCallbacks = true
         try {
@@ -1043,6 +1072,15 @@ class GutterBasicInfoFragment : Fragment() {
             photoCapturedAtSlot1 = capturedAt1?.takeIf { it.isNotBlank() }
             photoCapturedAtSlot2 = capturedAt2?.takeIf { it.isNotBlank() }
             photoCapturedAtSlot3 = capturedAt3?.takeIf { it.isNotBlank() }
+            photoUploadState1 = uploadState1
+            photoUploadState2 = uploadState2
+            photoUploadState3 = uploadState3
+            photoImgId1 = imgId1
+            photoImgId2 = imgId2
+            photoImgId3 = imgId3
+            photoUploadError1 = uploadError1
+            photoUploadError2 = uploadError2
+            photoUploadError3 = uploadError3
             if (_binding != null) {
                 renderStoredPhotoSlots()
                 setPhotoEditable(isFormEditable && !isImportLocked, isViewMode = !isFormEditable)
@@ -1071,6 +1109,30 @@ class GutterBasicInfoFragment : Fragment() {
             setPhotoEditable(isFormEditable && !isImportLocked, isViewMode = !isFormEditable)
         }
         notifyPhotoDraftChanged()
+    }
+
+    fun updatePhotoUploadStatus(slot: Int, state: String, imgId: Int?, error: String?) {
+        when (slot) {
+            1 -> {
+                photoUploadState1 = state
+                photoImgId1 = imgId
+                photoUploadError1 = error
+            }
+            2 -> {
+                photoUploadState2 = state
+                photoImgId2 = imgId
+                photoUploadError2 = error
+            }
+            3 -> {
+                photoUploadState3 = state
+                photoImgId3 = imgId
+                photoUploadError3 = error
+            }
+            else -> return
+        }
+        if (_binding != null) {
+            renderPhotoUploadIndicators()
+        }
     }
 
     private fun setPhotoEditable(enabled: Boolean, isViewMode: Boolean) {
@@ -1221,6 +1283,7 @@ class GutterBasicInfoFragment : Fragment() {
         applyPhotoToSlot(2, photoUriSlot2, notifyDraftChanged = false)
         applyPhotoToSlot(3, photoUriSlot3, notifyDraftChanged = false)
         renderCapturedAtLabels()
+        renderPhotoUploadIndicators()
     }
 
     private fun applyPhotoToSlot(slot: Int, uri: Uri?, notifyDraftChanged: Boolean) {
@@ -1276,23 +1339,34 @@ class GutterBasicInfoFragment : Fragment() {
                 1 -> {
                     photoUriSlot1 = null
                     photoCapturedAtSlot1 = null
+                    photoUploadState1 = PhotoUploadSlotState.STATE_IDLE
+                    photoImgId1 = null
+                    photoUploadError1 = null
                     showPhoto(binding.ivPhotoSlot1, binding.placeholderSlot1, binding.pbPhotoLoading1, null)
                 }
                 2 -> {
                     photoUriSlot2 = null
                     photoCapturedAtSlot2 = null
+                    photoUploadState2 = PhotoUploadSlotState.STATE_IDLE
+                    photoImgId2 = null
+                    photoUploadError2 = null
                     showPhoto(binding.ivPhotoSlot2, binding.placeholderSlot2, binding.pbPhotoLoading2, null)
                 }
                 3 -> {
                     photoUriSlot3 = null
                     photoCapturedAtSlot3 = null
+                    photoUploadState3 = PhotoUploadSlotState.STATE_IDLE
+                    photoImgId3 = null
+                    photoUploadError3 = null
                     showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
                 }
             }
             renderPhotoSectionState(slot, isFormEditable && !isImportLocked, isViewMode = !isFormEditable)
             renderCapturedAtLabels()
+            renderPhotoUploadIndicators()
             (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
             if (!suppressPhotoDraftCallbacks) {
+                photoDraftChangeHost?.onPhotoSlotReadyForUpload(slot, null)
                 photoDraftChangeHost?.onPhotoCapturedAtDraftChanged(slot, null)
                 photoDraftChangeHost?.onPendingPhotoDraftChanged(slot, null)
             }
@@ -1422,6 +1496,50 @@ class GutterBasicInfoFragment : Fragment() {
         bindCapturedAt(binding.tvPhotoTime1, photoUriSlot1 != null, photoCapturedAtSlot1)
         bindCapturedAt(binding.tvPhotoTime2, photoUriSlot2 != null, photoCapturedAtSlot2)
         bindCapturedAt(binding.tvPhotoTime3, photoUriSlot3 != null, photoCapturedAtSlot3)
+    }
+
+    private fun renderPhotoUploadIndicators() {
+        renderPhotoUploadIndicator(1, photoUploadState1)
+        renderPhotoUploadIndicator(2, photoUploadState2)
+        renderPhotoUploadIndicator(3, photoUploadState3)
+    }
+
+    private fun renderPhotoUploadIndicator(slot: Int, state: String) {
+        val icon = when (slot) {
+            1 -> binding.ivPhotoUploadStatus1
+            2 -> binding.ivPhotoUploadStatus2
+            else -> binding.ivPhotoUploadStatus3
+        }
+        val progress = when (slot) {
+            1 -> binding.pbPhotoUploadStatus1
+            2 -> binding.pbPhotoUploadStatus2
+            else -> binding.pbPhotoUploadStatus3
+        }
+        when (state) {
+            PhotoUploadSlotState.STATE_UPLOADING -> {
+                icon.visibility = View.GONE
+                progress.visibility = View.VISIBLE
+            }
+            PhotoUploadSlotState.STATE_SUCCESS -> {
+                progress.visibility = View.GONE
+                icon.visibility = View.VISIBLE
+                icon.setImageResource(R.drawable.ic_check)
+                icon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
+                icon.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_photo_upload_status_success)
+            }
+            PhotoUploadSlotState.STATE_FAILED -> {
+                progress.visibility = View.GONE
+                icon.visibility = View.VISIBLE
+                icon.setImageResource(R.drawable.ic_close)
+                icon.imageTintList = ColorStateList.valueOf(ContextCompat.getColor(requireContext(), R.color.white))
+                icon.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_photo_upload_status_failed)
+            }
+            else -> {
+                progress.visibility = View.GONE
+                icon.visibility = View.GONE
+                icon.background = null
+            }
+        }
     }
 
     private fun bindCapturedAt(view: TextView, hasPhoto: Boolean, capturedAt: String?) {

@@ -5,6 +5,7 @@ import android.net.Uri
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
+import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.pending.DraftPhotoCleaner
 import com.example.taoyuangutter.pending.WaypointSnapshot
@@ -84,11 +85,14 @@ class PhotoUploadManager(
             val wp = waypoints.getOrNull(i) ?: continue
             if (wp.isVirtual) continue
             val slots = listOf(
-                wp.basicData["photo1"],
-                wp.basicData["photo2"],
-                wp.basicData["photo3"]
+                wp.basicData["photo1"] to 1,
+                wp.basicData["photo2"] to 2,
+                wp.basicData["photo3"] to 3
             )
-            for (path in slots) {
+            for ((path, slot) in slots) {
+                val imgId = PhotoUploadSlotState.readImgId(wp.basicData, slot)
+                val state = PhotoUploadSlotState.readState(wp.basicData, slot)
+                if (state == PhotoUploadSlotState.STATE_SUCCESS && imgId != null) continue
                 if (PhotoUploadValidator.isUsableForUpload(context, path)) count++
             }
         }
@@ -119,6 +123,9 @@ class PhotoUploadManager(
                 wp.basicData["photo3"] to 3
             )
             for ((path, category) in slots) {
+                val imgId = PhotoUploadSlotState.readImgId(wp.basicData, category)
+                val state = PhotoUploadSlotState.readState(wp.basicData, category)
+                if (state == PhotoUploadSlotState.STATE_SUCCESS && imgId != null) continue
                 if (!PhotoUploadValidator.isUsableForUpload(context, path)) continue
                 val usablePath = path ?: continue
                 pending.add(Triple(node, usablePath, category))

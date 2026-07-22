@@ -40,6 +40,15 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_CAPTURED_AT, data["photo1CapturedAt"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_CAPTURED_AT, data["photo2CapturedAt"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_CAPTURED_AT, data["photo3CapturedAt"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_IMG_ID, data["photo1ImgId"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_IMG_ID, data["photo2ImgId"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_IMG_ID, data["photo3ImgId"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_UPLOAD_STATE, data["photo1UploadState"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_UPLOAD_STATE, data["photo2UploadState"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_UPLOAD_STATE, data["photo3UploadState"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_UPLOAD_ERROR, data["photo1UploadError"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_UPLOAD_ERROR, data["photo2UploadError"] ?: "")
+        intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_UPLOAD_ERROR, data["photo3UploadError"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_XY_NUM, data["XY_NUM"] ?: data["xyNum"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_NODE_ID, data["_nodeId"] ?: "")
     }
@@ -71,7 +80,16 @@ object GutterFormContract {
             "photo3" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3) ?: ""),
             "photo1CapturedAt" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_CAPTURED_AT) ?: ""),
             "photo2CapturedAt" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_CAPTURED_AT) ?: ""),
-            "photo3CapturedAt" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_CAPTURED_AT) ?: "")
+            "photo3CapturedAt" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_CAPTURED_AT) ?: ""),
+            "photo1ImgId" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_IMG_ID) ?: ""),
+            "photo2ImgId" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_IMG_ID) ?: ""),
+            "photo3ImgId" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_IMG_ID) ?: ""),
+            "photo1UploadState" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_UPLOAD_STATE) ?: ""),
+            "photo2UploadState" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_UPLOAD_STATE) ?: ""),
+            "photo3UploadState" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_UPLOAD_STATE) ?: ""),
+            "photo1UploadError" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_UPLOAD_ERROR) ?: ""),
+            "photo2UploadError" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_UPLOAD_ERROR) ?: ""),
+            "photo3UploadError" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_UPLOAD_ERROR) ?: "")
         )
     }
 
@@ -119,6 +137,15 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_CAPTURED_AT, basicData["photo1CapturedAt"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_CAPTURED_AT, basicData["photo2CapturedAt"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_CAPTURED_AT, basicData["photo3CapturedAt"] ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_IMG_ID, basicData["photo1ImgId"] ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_IMG_ID, basicData["photo2ImgId"] ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_IMG_ID, basicData["photo3ImgId"] ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_UPLOAD_STATE, basicData["photo1UploadState"] ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_UPLOAD_STATE, basicData["photo2UploadState"] ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_UPLOAD_STATE, basicData["photo3UploadState"] ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_UPLOAD_ERROR, basicData["photo1UploadError"] ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_UPLOAD_ERROR, basicData["photo2UploadError"] ?: "")
+        intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_UPLOAD_ERROR, basicData["photo3UploadError"] ?: "")
     }
 
     fun readResultData(intent: Intent?): HashMap<String, String> {
@@ -146,7 +173,16 @@ object GutterFormContract {
             "photo3" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3) ?: ""),
             "photo1CapturedAt" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_CAPTURED_AT) ?: ""),
             "photo2CapturedAt" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_CAPTURED_AT) ?: ""),
-            "photo3CapturedAt" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_CAPTURED_AT) ?: "")
+            "photo3CapturedAt" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_CAPTURED_AT) ?: ""),
+            "photo1ImgId" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_IMG_ID) ?: ""),
+            "photo2ImgId" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_IMG_ID) ?: ""),
+            "photo3ImgId" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_IMG_ID) ?: ""),
+            "photo1UploadState" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_UPLOAD_STATE) ?: ""),
+            "photo2UploadState" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_UPLOAD_STATE) ?: ""),
+            "photo3UploadState" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_UPLOAD_STATE) ?: ""),
+            "photo1UploadError" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_UPLOAD_ERROR) ?: ""),
+            "photo2UploadError" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_UPLOAD_ERROR) ?: ""),
+            "photo3UploadError" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_UPLOAD_ERROR) ?: "")
         )
     }
 }

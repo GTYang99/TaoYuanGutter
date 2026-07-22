@@ -210,6 +210,31 @@
                     android:textColor="@color/textColorSecondary"
                     android:visibility="gone" />
 
+                <FrameLayout
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginStart="8dp">
+
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/pbPhotoUploadStatus1"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:visibility="gone"
+                        android:indeterminate="true"
+                        app:indicatorColor="@color/colorPrimary"
+                        app:trackColor="@android:color/transparent" />
+
+                    <ImageView
+                        android:id="@+id/ivPhotoUploadStatus1"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:padding="3dp"
+                        android:visibility="gone"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
@@ -573,6 +598,31 @@
                     android:textSize="12sp"
                     android:visibility="gone" />
 
+                <FrameLayout
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginStart="8dp">
+
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/pbPhotoUploadStatus2"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:visibility="gone"
+                        android:indeterminate="true"
+                        app:indicatorColor="@color/colorPrimary"
+                        app:trackColor="@android:color/transparent" />
+
+                    <ImageView
+                        android:id="@+id/ivPhotoUploadStatus2"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:padding="3dp"
+                        android:visibility="gone"
+                        android:contentDescription="@null" />
+                </FrameLayout>
+
             </LinearLayout>
 
             <com.google.android.material.button.MaterialButton
@@ -787,6 +837,31 @@
                     android:textColor="@color/textColorSecondary"
                     android:textSize="12sp"
                     android:visibility="gone" />
+
+                <FrameLayout
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginStart="8dp">
+
+                    <com.google.android.material.progressindicator.CircularProgressIndicator
+                        android:id="@+id/pbPhotoUploadStatus3"
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:layout_gravity="center"
+                        android:visibility="gone"
+                        android:indeterminate="true"
+                        app:indicatorColor="@color/colorPrimary"
+                        app:trackColor="@android:color/transparent" />
+
+                    <ImageView
+                        android:id="@+id/ivPhotoUploadStatus3"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_gravity="center"
+                        android:padding="3dp"
+                        android:visibility="gone"
+                        android:contentDescription="@null" />
+                </FrameLayout>
 
             </LinearLayout>
 

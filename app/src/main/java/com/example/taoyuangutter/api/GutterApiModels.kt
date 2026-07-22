@@ -276,6 +276,8 @@ data class DitchNode(
     @SerializedName("NODE_NUM") val nodeNum: String?,
     /** 待架站：0/1/null（後端可能回傳字串） */
     @SerializedName("is_pendingDeploy") val isPendingDeploy: String? = null,
+    /** 該點位已綁定的照片 ID 集合（後端無序回傳） */
+    @SerializedName("img_ids") val imgIds: List<Int> = emptyList(),
     /** 該點位已上傳的照片 URL 列表（可為空） */
     @SerializedName("url")      val url: List<NodeImageUrl>
 )
@@ -455,7 +457,8 @@ val DitchDetails.endWidAsString: String
 data class NodeImg(
     @SerializedName("url")          val url: String,
     /** 照片類別：1=測量位置及側溝概況、2=側溝內徑寬度尺寸、3=側溝深度尺寸 */
-    @SerializedName("fileCategory") val fileCategory: String?
+    @SerializedName("fileCategory") val fileCategory: String?,
+    @SerializedName("id")           val id: Int? = null
 )
 
 // ════════════════════════════════════════════════════════════════
@@ -464,7 +467,8 @@ data class NodeImg(
 
 /** 照片上傳成功時 data 欄位（只含新圖片 URL） */
 data class NodeImageUploadData(
-    @SerializedName("url") val url: String
+    @SerializedName("url")    val url: String,
+    @SerializedName("img_id") val imgId: Int? = null
 )
 
 /** 點位照片上傳 API 回應（200 / 401 / 422 / 500 共用） */
@@ -521,7 +525,9 @@ data class StoreDitchNodeRequest(
     /** 補充說明（非必填） */
     @SerializedName("NODE_NOTE")  val nodeNote: String? = null,
     /** 三張照片拍攝時間，依照片欄位 1/2/3 順序對應 */
-    @SerializedName("captured_at") val capturedAt: List<String>? = null
+    @SerializedName("captured_at") val capturedAt: List<String>? = null,
+    /** 該點位已完成上傳的照片 img_id 集合（slot 對應由 fileCategory 1/2/3 提供） */
+    @SerializedName("img_ids") val imgIds: List<Int>? = null
 )
 
 /**
