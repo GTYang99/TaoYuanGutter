@@ -1112,6 +1112,7 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     fun updatePhotoUploadStatus(slot: Int, state: String, imgId: Int?, error: String?) {
+        Log.d("PhotoUpload", "updatePhotoUploadStatus called: slot=$slot, state=$state, imgId=$imgId, hasError=${error != null}")
         when (slot) {
             1 -> {
                 photoUploadState1 = state
@@ -1131,7 +1132,10 @@ class GutterBasicInfoFragment : Fragment() {
             else -> return
         }
         if (_binding != null) {
+            Log.d("PhotoUpload", "Binding exists, calling renderPhotoUploadIndicators")
             renderPhotoUploadIndicators()
+        } else {
+            Log.d("PhotoUpload", "WARNING: Binding is null, cannot render indicators")
         }
     }
 
@@ -1515,12 +1519,15 @@ class GutterBasicInfoFragment : Fragment() {
             2 -> binding.pbPhotoUploadStatus2
             else -> binding.pbPhotoUploadStatus3
         }
+        Log.d("PhotoUploadIndicator", "Slot $slot: state=$state, progress visibility will be set")
         when (state) {
             PhotoUploadSlotState.STATE_UPLOADING -> {
+                Log.d("PhotoUploadIndicator", "Slot $slot: Showing progress indicator")
                 icon.visibility = View.GONE
                 progress.visibility = View.VISIBLE
             }
             PhotoUploadSlotState.STATE_SUCCESS -> {
+                Log.d("PhotoUploadIndicator", "Slot $slot: Showing success icon")
                 progress.visibility = View.GONE
                 icon.visibility = View.VISIBLE
                 icon.setImageResource(R.drawable.ic_check)
@@ -1528,6 +1535,7 @@ class GutterBasicInfoFragment : Fragment() {
                 icon.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_photo_upload_status_success)
             }
             PhotoUploadSlotState.STATE_FAILED -> {
+                Log.d("PhotoUploadIndicator", "Slot $slot: Showing failed icon")
                 progress.visibility = View.GONE
                 icon.visibility = View.VISIBLE
                 icon.setImageResource(R.drawable.ic_close)
@@ -1535,6 +1543,7 @@ class GutterBasicInfoFragment : Fragment() {
                 icon.background = ContextCompat.getDrawable(requireContext(), R.drawable.bg_photo_upload_status_failed)
             }
             else -> {
+                Log.d("PhotoUploadIndicator", "Slot $slot: Hiding both progress and icon")
                 progress.visibility = View.GONE
                 icon.visibility = View.GONE
                 icon.background = null
