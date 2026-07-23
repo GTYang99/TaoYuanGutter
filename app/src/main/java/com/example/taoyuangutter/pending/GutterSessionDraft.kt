@@ -43,7 +43,8 @@ data class WaypointSnapshot(
     val label: String = "",
     val latitude: Double? = null,
     val longitude: Double? = null,
-    val basicData: HashMap<String, String> = hashMapOf()
+    val basicData: HashMap<String, String> = hashMapOf(),
+    val uid: String = ""
 ) {
     val isVirtual: Boolean
         get() {

@@ -3,6 +3,7 @@ package com.example.taoyuangutter.pending
 import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.util.UUID
 
 /**
  * 待上傳側溝草稿的本機儲存庫。
@@ -90,13 +91,16 @@ class GutterSessionRepository(context: Context) {
         } catch (_: Exception) {
             return null
         }
+        val normalizedWaypoints = waypoints.map { snapshot ->
+            if (snapshot.uid.isNotBlank()) snapshot else snapshot.copy(uid = UUID.randomUUID().toString())
+        }
         return GutterSessionDraft(
             id = entity.id,
             savedAt = entity.savedAt,
             kind = entity.kind,
             isOffline = entity.isOffline,
             isSinglePoint = entity.isSinglePoint,
-            waypoints = waypoints
+            waypoints = normalizedWaypoints
         )
     }
 

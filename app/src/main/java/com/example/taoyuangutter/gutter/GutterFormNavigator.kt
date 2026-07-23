@@ -71,7 +71,8 @@ class GutterFormNavigator(
                     label = currentWaypoint.label,
                     latitude = currentWaypoint.latLng?.latitude,
                     longitude = currentWaypoint.latLng?.longitude,
-                    basicData = HashMap(currentWaypoint.basicData)
+                    basicData = HashMap(currentWaypoint.basicData),
+                    uid = currentWaypoint.uid
                 )
             }
         )

@@ -502,7 +502,7 @@ class MainActivity : AppCompatActivity(),
                     val wpType = WaypointType.entries.firstOrNull { it.name == snap.type } ?: WaypointType.NODE
                     val latLng = if (snap.latitude != null && snap.longitude != null)
                         LatLng(snap.latitude, snap.longitude) else null
-                    Waypoint(wpType, snap.label, latLng, snap.basicData)
+                    Waypoint(wpType, snap.label, latLng, snap.basicData, snap.uid.ifBlank { snap.basicData["_nodeId"] ?: "${wpType.name}_${snap.label}" })
                 }
 
                 currentSessionDraftId = null   // 編輯模式開始 → 以新 session ID 追蹤草稿
@@ -674,7 +674,7 @@ class MainActivity : AppCompatActivity(),
             currentWaypoints = snapshots.map { snap ->
                 val wpType = WaypointType.entries.firstOrNull { it.name == snap.type } ?: WaypointType.NODE
                 val latLng = if (snap.latitude != null && snap.longitude != null) LatLng(snap.latitude, snap.longitude) else null
-                Waypoint(wpType, snap.label, latLng, snap.basicData)
+                Waypoint(wpType, snap.label, latLng, snap.basicData, snap.uid.ifBlank { snap.basicData["_nodeId"] ?: "${wpType.name}_${snap.label}" })
             }
         }
 
@@ -685,7 +685,7 @@ class MainActivity : AppCompatActivity(),
             inspectWaypoints = snapshots.map { snap ->
                 val wpType = WaypointType.entries.firstOrNull { it.name == snap.type } ?: WaypointType.NODE
                 val latLng = if (snap.latitude != null && snap.longitude != null) LatLng(snap.latitude, snap.longitude) else null
-                Waypoint(wpType, snap.label, latLng, snap.basicData)
+                Waypoint(wpType, snap.label, latLng, snap.basicData, snap.uid.ifBlank { snap.basicData["_nodeId"] ?: "${wpType.name}_${snap.label}" })
             }
         }
 
@@ -737,12 +737,12 @@ class MainActivity : AppCompatActivity(),
         outState.putString("saved_initial_spi_state", initialSpiState)
 
         val currentWpsSnapshots = currentWaypoints.map { wp ->
-            WaypointSnapshot(type = wp.type.name, label = wp.label, latitude = wp.latLng?.latitude, longitude = wp.latLng?.longitude, basicData = wp.basicData)
+            WaypointSnapshot(type = wp.type.name, label = wp.label, latitude = wp.latLng?.latitude, longitude = wp.latLng?.longitude, basicData = wp.basicData, uid = wp.uid)
         }
         outState.putString("saved_current_waypoints_json", Gson().toJson(currentWpsSnapshots))
 
         val inspectWpsSnapshots = inspectWaypoints.map { wp ->
-            WaypointSnapshot(type = wp.type.name, label = wp.label, latitude = wp.latLng?.latitude, longitude = wp.latLng?.longitude, basicData = wp.basicData)
+            WaypointSnapshot(type = wp.type.name, label = wp.label, latitude = wp.latLng?.latitude, longitude = wp.latLng?.longitude, basicData = wp.basicData, uid = wp.uid)
         }
         outState.putString("saved_inspect_waypoints_json", Gson().toJson(inspectWpsSnapshots))
 
@@ -1142,17 +1142,20 @@ class MainActivity : AppCompatActivity(),
     ): List<Waypoint> {
         if (originalWaypoints.isNullOrEmpty()) return waypoints
 
-        val originalByNodeId = originalWaypoints
+        val originalByUid = originalWaypoints
             .mapNotNull { snapshot ->
-                val nodeId = snapshot.basicData["_nodeId"]?.takeIf { it.isNotBlank() }
-                if (nodeId.isNullOrBlank()) null else nodeId to snapshot
+                val uid = snapshot.uid.takeIf { it.isNotBlank() }
+                if (uid.isNullOrBlank()) null else uid to snapshot
             }
             .toMap()
 
-        return waypoints.mapIndexed { index, waypoint ->
+        return waypoints.map { waypoint ->
             val currentNodeId = waypoint.basicData["_nodeId"]?.takeIf { it.isNotBlank() }
-            val original = currentNodeId?.let { originalByNodeId[it] } ?: originalWaypoints.getOrNull(index)
-            if (original == null) return@mapIndexed waypoint
+            val original = waypoint.uid.takeIf { it.isNotBlank() }?.let { originalByUid[it] }
+                ?: originalWaypoints.firstOrNull {
+                    it.basicData["_nodeId"]?.takeIf { id -> id.isNotBlank() } == currentNodeId
+                }
+            if (original == null) return@map waypoint
 
             val originalNodeId = original.basicData["_nodeId"]?.takeIf { it.isNotBlank() } ?: currentNodeId ?: "unknown"
             val merged = HashMap(waypoint.basicData)
@@ -1987,7 +1990,8 @@ class MainActivity : AppCompatActivity(),
                 basicData = hashMapOf(
                     "IS_PENDING_DEPLOY" to (if (parseLooseBoolean(node.isPendingDeploy)) "1" else "0"),
                     "is_virtual" to (if (parseLooseBoolean(node.isVirtual)) "1" else "0")
-                )
+                ),
+                uid = node.nodeId?.toString() ?: "${type.name}_${lat}_${lng}"
             )
         }
     }

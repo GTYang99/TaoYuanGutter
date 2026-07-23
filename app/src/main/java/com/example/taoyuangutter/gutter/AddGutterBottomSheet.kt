@@ -46,6 +46,7 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 import java.io.File
+import java.util.UUID
 
 class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
@@ -212,16 +213,17 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         // 儲存所有 waypoints（包含已填寫的 latLng 與 basicData），
         // 避免 Activity 在 GutterFormActivity 期間被系統回收後資料遺失。
         outState.putInt(KEY_WP_COUNT, waypoints.size)
-        waypoints.forEachIndexed { i, wp ->
-            outState.putString("wp_type_$i",  wp.type.name)
-            outState.putString("wp_label_$i", wp.label)
-            outState.putDouble("wp_lat_$i",   wp.latLng?.latitude  ?: Double.NaN)
-            outState.putDouble("wp_lng_$i",   wp.latLng?.longitude ?: Double.NaN)
-            val keys = wp.basicData.keys.toTypedArray()
-            val vals = keys.map { wp.basicData[it] ?: "" }.toTypedArray()
-            outState.putStringArray("wp_data_keys_$i", keys)
-            outState.putStringArray("wp_data_vals_$i", vals)
-        }
+            waypoints.forEachIndexed { i, wp ->
+                outState.putString("wp_type_$i",  wp.type.name)
+                outState.putString("wp_label_$i", wp.label)
+                outState.putDouble("wp_lat_$i",   wp.latLng?.latitude  ?: Double.NaN)
+                outState.putDouble("wp_lng_$i",   wp.latLng?.longitude ?: Double.NaN)
+                outState.putString("wp_uid_$i", wp.uid)
+                val keys = wp.basicData.keys.toTypedArray()
+                val vals = keys.map { wp.basicData[it] ?: "" }.toTypedArray()
+                outState.putStringArray("wp_data_keys_$i", keys)
+                outState.putStringArray("wp_data_vals_$i", vals)
+            }
     }
 
     /** 從 savedInstanceState 恢復 waypoints（Activity 重建後呼叫）。 */
@@ -235,13 +237,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             val label = state.getString("wp_label_$i") ?: ""
             val lat   = state.getDouble("wp_lat_$i", Double.NaN)
             val lng   = state.getDouble("wp_lng_$i", Double.NaN)
+            val uid   = state.getString("wp_uid_$i").orEmpty().ifBlank { UUID.randomUUID().toString() }
             val latLng = if (!lat.isNaN() && !lng.isNaN()) LatLng(lat, lng) else null
             val keys  = state.getStringArray("wp_data_keys_$i") ?: emptyArray()
             val vals  = state.getStringArray("wp_data_vals_$i") ?: emptyArray()
             val data  = hashMapOf<String, String>().apply {
                 keys.zip(vals.toList()).forEach { (k, v) -> put(k, v) }
             }
-            waypoints.add(Waypoint(type, label, latLng, data))
+            waypoints.add(Waypoint(type, label, latLng, data, uid))
         }
     }
 
@@ -266,7 +269,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     ?: WaypointType.NODE
                 val latLng = if (snap.latitude != null && snap.longitude != null)
                     LatLng(snap.latitude, snap.longitude) else null
-                waypoints.add(Waypoint(wpType, snap.label, latLng, snap.basicData))
+                waypoints.add(Waypoint(wpType, snap.label, latLng, snap.basicData, snapshotUid(snap)))
             }
             pendingPhotoUriNormalization = true
             android.util.Log.d("AddGutterSheet", "restoreFromSnapshot: loaded ${waypoints.size} waypoints")
@@ -292,7 +295,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     ?: WaypointType.NODE
                 val latLng = if (snap.latitude != null && snap.longitude != null)
                     LatLng(snap.latitude, snap.longitude) else null
-                waypoints.add(Waypoint(type, snap.label, latLng, snap.basicData))
+                waypoints.add(Waypoint(type, snap.label, latLng, snap.basicData, snapshotUid(snap)))
             }
             pendingPhotoUriNormalization = true
             if (editSpiNum.isBlank()) {
@@ -845,6 +848,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     return@launch
                 }
                 syncLatestDraftStateIntoWaypoints()
+                restoreUnchangedPhotoMetadataIntoWaypoints(waypoints)
                 val uploadingLabel = findUploadingWaypointLabel(waypoints.toList())
                 if (!uploadingLabel.isNullOrBlank()) {
                     showPhotosUploadingAlert(uploadingLabel)
@@ -1044,7 +1048,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             label     = wp.label,
             latitude  = wp.latLng?.latitude,
             longitude = wp.latLng?.longitude,
-            basicData = HashMap(wp.basicData)
+            basicData = HashMap(wp.basicData),
+            uid       = wp.uid
         )
     }
 
@@ -1054,6 +1059,57 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      */
     fun getOriginalWaypointSnapshots(): List<WaypointSnapshot> = originalWaypointsSnapshot.map { snap ->
         snap.copy(basicData = HashMap(snap.basicData))
+    }
+
+    private fun snapshotUid(snapshot: WaypointSnapshot): String =
+        snapshot.uid.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString()
+
+    private fun normalizedString(value: String?): String? =
+        value?.trim()?.takeIf { it.isNotEmpty() }
+
+    private fun originalSnapshotFor(waypoint: Waypoint): WaypointSnapshot? {
+        if (originalWaypointsSnapshot.isEmpty()) return null
+        return originalWaypointsSnapshot.firstOrNull { it.uid.isNotBlank() && it.uid == waypoint.uid }
+    }
+
+    private fun isUnchangedPhotoSlot(slot: Int, waypoint: Waypoint): Boolean {
+        if (editSpiNum.isEmpty()) return false
+        val original = originalSnapshotFor(waypoint) ?: return false
+        val photoKey = "photo$slot"
+        return normalizedString(waypoint.basicData[photoKey]) == normalizedString(original.basicData[photoKey])
+    }
+
+    private fun restoreUnchangedPhotoMetadataIntoWaypoints(targetWaypoints: MutableList<Waypoint>) {
+        if (editSpiNum.isEmpty() || originalWaypointsSnapshot.isEmpty()) return
+        targetWaypoints.forEachIndexed { index, waypoint ->
+            val original = originalSnapshotFor(waypoint) ?: return@forEachIndexed
+            val merged = HashMap(waypoint.basicData)
+            var changed = false
+            (1..3).forEach { slot ->
+                if (!isUnchangedPhotoSlot(slot, waypoint)) return@forEach
+                val photoCapturedAtKey = "photo${slot}CapturedAt"
+                val photoImgIdKey = "photo${slot}ImgId"
+                val photoUploadStateKey = "photo${slot}UploadState"
+                val photoUploadErrorKey = "photo${slot}UploadError"
+
+                listOf(
+                    photoCapturedAtKey to original.basicData[photoCapturedAtKey],
+                    photoImgIdKey to original.basicData[photoImgIdKey],
+                    photoUploadStateKey to original.basicData[photoUploadStateKey],
+                    photoUploadErrorKey to original.basicData[photoUploadErrorKey]
+                ).forEach { (key, value) ->
+                    if (value.isNullOrBlank()) {
+                        if (merged.remove(key) != null) changed = true
+                    } else if (merged[key] != value) {
+                        merged[key] = value
+                        changed = true
+                    }
+                }
+            }
+            if (changed) {
+                targetWaypoints[index] = waypoint.copy(basicData = merged)
+            }
+        }
     }
 
     private fun normalizeRestoredPhotoUrisIfNeeded() {
@@ -1307,6 +1363,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             val isCantOpen = parseLooseBoolean(waypoint.basicData["IS_CANTOPEN"])
             (1..3).forEach { slot ->
                 if (isCantOpen && slot in 2..3) return@forEach
+                if (isUnchangedPhotoSlot(slot, waypoint)) return@forEach
                 val photoPath = waypoint.basicData["photo$slot"]
                 if (!PhotoUploadValidator.isUsableForUpload(ctx, photoPath)) return@forEach
                 val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
@@ -1342,6 +1399,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         PhotoUploadSlotState.clear(waypoint.basicData, slot)
                         return@forEach
                     }
+                    if (isUnchangedPhotoSlot(slot, waypoint)) return@forEach
                     val photoPath = waypoint.basicData["photo$slot"]
                     if (!PhotoUploadValidator.isUsableForUpload(ctx, photoPath)) return@forEach
                     val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
@@ -1715,7 +1773,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     label     = wp.label,
                     latitude  = wp.latLng?.latitude,
                     longitude = wp.latLng?.longitude,
-                    basicData = wp.basicData
+                    basicData = HashMap(wp.basicData),
+                    uid       = wp.uid
                 )
             }
             val json = Gson().toJson(snapshots)

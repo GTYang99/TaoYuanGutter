@@ -2043,7 +2043,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                         label = label,
                         latitude = latitudes.getOrNull(index),
                         longitude = longitudes.getOrNull(index),
-                        basicData = hashMapOf()
+                        basicData = hashMapOf(),
+                        uid = "${label}_${index}_${latitudes.getOrNull(index)}_${longitudes.getOrNull(index)}"
                     )
                 )
             }

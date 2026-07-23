@@ -250,7 +250,8 @@ class GutterInspectActivity : AppCompatActivity() {
                 label     = wp.label,
                 latitude  = wp.latLng?.latitude,
                 longitude = wp.latLng?.longitude,
-                basicData = wp.basicData
+                basicData = wp.basicData,
+                uid       = wp.uid
             )
         }
 
@@ -517,7 +518,8 @@ class GutterInspectActivity : AppCompatActivity() {
                 label = wp.label,
                 latitude = wp.latLng?.latitude,
                 longitude = wp.latLng?.longitude,
-                basicData = wp.basicData
+                basicData = wp.basicData,
+                uid = wp.uid
             )
         }
 

@@ -41,7 +41,8 @@ class GutterDraftCoordinator(
                 label = wp.label,
                 latitude = wp.latLng?.latitude,
                 longitude = wp.latLng?.longitude,
-                basicData = HashMap(wp.basicData)
+                basicData = HashMap(wp.basicData),
+                uid = wp.uid
             )
         }
         repository.save(
@@ -78,7 +79,8 @@ class GutterDraftCoordinator(
                 label = wp.label,
                 latitude = wp.latLng?.latitude,
                 longitude = wp.latLng?.longitude,
-                basicData = wp.basicData
+                basicData = wp.basicData,
+                uid = wp.uid
             )
         }
 
