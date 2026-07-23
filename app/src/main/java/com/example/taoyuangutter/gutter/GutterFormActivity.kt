@@ -532,6 +532,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         setImportedWaypointLocked(true)
         pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
         syncImportedVirtualState(parseLooseBoolean(nodeDetails.isVirtual))
+        val isCantOpen = nodeDetails.isCantOpenAsBoolean
 
         // 匯入時同步下載照片到本機（依序 1→2→3）
         lifecycleScope.launch {
@@ -601,9 +602,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 showUploadLoading(false)
 
                 val missing = mutableListOf<String>()
-                if (p1.isNullOrEmpty()) missing.add("第1張")
-                if (p2.isNullOrEmpty()) missing.add("第2張")
-                if (p3.isNullOrEmpty()) missing.add("第3張")
+                if (p1.isNullOrEmpty()) {
+                    missing.add("第1張")
+                }
+                if (!isCantOpen) {
+                    if (p2.isNullOrEmpty()) missing.add("第2張")
+                    if (p3.isNullOrEmpty()) missing.add("第3張")
+                }
                 if (missing.isNotEmpty()) {
                     Toast.makeText(
                         this@GutterFormActivity,
