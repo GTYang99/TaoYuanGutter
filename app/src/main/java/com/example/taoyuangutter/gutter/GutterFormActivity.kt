@@ -86,6 +86,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private lateinit var pagerAdapter: GutterFormPagerAdapter
     private var photoLoadingCount: Int = 0
     private var restoredCurrentFormData: HashMap<String, String>? = null
+    private var restoredIsVirtual: Boolean? = null
     private var photoDraftBatchDepth: Int = 0
     private var pendingPhotoDraftSync: Boolean = false
     private val photoUploadListeners = mutableMapOf<Int, (PhotoSlotUploadCoordinator.Snapshot) -> Unit>()
@@ -472,6 +473,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             )
         )
         pagerAdapter.getBasicInfoFragment()?.updateCoordinates(longitude, latitude)
+        applyVirtualMode(binding.cbIsVirtual.isChecked)
         formMap?.let { map ->
             renderSessionPreview(map)
             map.animateCamera(CameraUpdateFactory.newLatLngZoom(LatLng(latitude, longitude), 18f))
@@ -1097,6 +1099,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             isViewMode = savedInstanceState.getBoolean("saved_is_view_mode")
             isEditMode = savedInstanceState.getBoolean("saved_is_edit_mode")
             importedWaypointLocked = savedInstanceState.getBoolean("saved_imported_waypoint_locked")
+            restoredIsVirtual = savedInstanceState.getBoolean("saved_is_virtual")
             currentLat = savedInstanceState.getDouble("saved_current_lat")
             currentLng = savedInstanceState.getDouble("saved_current_lng")
             hasShownEditPolyline = savedInstanceState.getBoolean("saved_has_shown_edit_polyline")
@@ -1223,15 +1226,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         setupTabButtons()
         
         // 取得初始虛擬狀態
-        val isVirtualInitial = when (existingData["is_virtual"]?.trim()?.lowercase()) {
-            "1", "true", "y", "yes" -> true
-            else -> false
-        }
+        val isVirtualInitial = restoredIsVirtual ?: parseLooseBoolean(existingData["is_virtual"])
         setupVirtualPointToggle(isVirtualInitial)
         
         setupImportWaypointButton()
         setupFab()
         binding.viewPager.post {
+            applyVirtualMode(binding.cbIsVirtual.isChecked)
             syncNormalizedPhotosBackToUiIfNeeded(
                 photo1 = currentFormData["photo1"]?.takeIf { it.isNotBlank() },
                 photo2 = currentFormData["photo2"]?.takeIf { it.isNotBlank() },
