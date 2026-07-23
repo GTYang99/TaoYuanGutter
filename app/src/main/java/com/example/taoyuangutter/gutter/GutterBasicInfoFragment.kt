@@ -154,6 +154,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val KEY_PHOTO_3_CAPTURED_AT = "photo_3_captured_at"
         private const val KEY_PENDING_SLOT = "pending_slot"
         private const val KEY_PENDING_PATH = "pending_path"
+        private const val KEY_SELECTED_GUTTER_TYPE = "selected_gutter_type"
 
         /** 側溝形式選項（NODE_TYP）*/
         val GUTTER_TYPES = listOf(
@@ -243,6 +244,8 @@ class GutterBasicInfoFragment : Fragment() {
             photoCapturedAtSlot3 = savedInstanceState.getString(KEY_PHOTO_3_CAPTURED_AT)
             pendingSlot = savedInstanceState.getInt(KEY_PENDING_SLOT, 0)
             pendingOutputPath = savedInstanceState.getString(KEY_PENDING_PATH)
+            selectedGutterType = savedInstanceState.getString(KEY_SELECTED_GUTTER_TYPE)
+                ?.takeIf { it in GUTTER_TYPES }
         } else {
             photoUriSlot1 = parseUriString(arguments?.getString(ARG_PHOTO_1))
             photoUriSlot2 = parseUriString(arguments?.getString(ARG_PHOTO_2))
@@ -275,6 +278,7 @@ class GutterBasicInfoFragment : Fragment() {
         photoCapturedAtSlot3?.let { outState.putString(KEY_PHOTO_3_CAPTURED_AT, it) }
         outState.putInt(KEY_PENDING_SLOT, pendingSlot)
         pendingOutputPath?.let { outState.putString(KEY_PENDING_PATH, it) }
+        selectedGutterType?.let { outState.putString(KEY_SELECTED_GUTTER_TYPE, it) }
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -292,6 +296,7 @@ class GutterBasicInfoFragment : Fragment() {
             // 重建時，仍需從 arguments 取得 X/Y 基底值（避免 collectData 時為空）
             coordXValue = arguments?.getString(ARG_DATA_NODE_X) ?: ""
             coordYValue = arguments?.getString(ARG_DATA_NODE_Y) ?: ""
+            setGutterTypeSelection(selectedGutterType, notifyDraftChanged = false)
         }
         parentFragmentManager.setFragmentResultListener(
             CameraOverlayFragment.RESULT_KEY,
