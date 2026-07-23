@@ -28,6 +28,11 @@ object PhotoSlotUploadCoordinator {
     private fun taskKey(draftId: Long, waypointIndex: Int, slot: Int): String =
         "$draftId:$waypointIndex:$slot"
 
+    fun isUploading(draftId: Long, waypointIndex: Int, slot: Int): Boolean {
+        if (draftId <= 0L || slot !in 1..3) return false
+        return inFlight.containsKey(taskKey(draftId, waypointIndex, slot))
+    }
+
     fun registerListener(
         draftId: Long,
         waypointIndex: Int,

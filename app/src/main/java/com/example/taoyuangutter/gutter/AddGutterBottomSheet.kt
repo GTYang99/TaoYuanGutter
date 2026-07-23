@@ -26,6 +26,7 @@ import com.example.taoyuangutter.api.StoreDitchRequest
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PendingPhotoDraftState
+import com.example.taoyuangutter.common.PhotoSlotUploadCoordinator
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.common.UploadFailureClassifier
@@ -1281,11 +1282,13 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun findUploadingWaypointLabel(waypoints: List<Waypoint>): String? {
-        return waypoints.firstOrNull { wp ->
+        val resolvedDraftId = draftId.takeIf { it > 0L } ?: return null
+        return waypoints.withIndex().firstOrNull { (index, wp) ->
             (1..3).any { slot ->
-                PhotoUploadSlotState.readState(wp.basicData, slot) == PhotoUploadSlotState.STATE_UPLOADING
+                PhotoUploadSlotState.readImgId(wp.basicData, slot) == null &&
+                    PhotoSlotUploadCoordinator.isUploading(resolvedDraftId, index, slot)
             }
-        }?.label
+        }?.value?.label
     }
 
     private fun showPhotosUploadingAlert(label: String) {
@@ -1307,8 +1310,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 val photoPath = waypoint.basicData["photo$slot"]
                 if (!PhotoUploadValidator.isUsableForUpload(ctx, photoPath)) return@forEach
                 val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
-                val state = PhotoUploadSlotState.readState(waypoint.basicData, slot)
-                if (state == PhotoUploadSlotState.STATE_SUCCESS && imgId != null) return@forEach
+                if (imgId != null) return@forEach
                 count++
             }
         }
@@ -1343,8 +1345,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     val photoPath = waypoint.basicData["photo$slot"]
                     if (!PhotoUploadValidator.isUsableForUpload(ctx, photoPath)) return@forEach
                     val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
-                    val state = PhotoUploadSlotState.readState(waypoint.basicData, slot)
-                    if (state == PhotoUploadSlotState.STATE_SUCCESS && imgId != null) return@forEach
+                    if (imgId != null) return@forEach
 
                     val result = repository.uploadNodeImage(
                         context = ctx,
