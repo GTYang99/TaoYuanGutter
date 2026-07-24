@@ -146,12 +146,30 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_PHOTO_1_CAPTURED_AT = "arg_photo_1_captured_at"
         private const val ARG_PHOTO_2_CAPTURED_AT = "arg_photo_2_captured_at"
         private const val ARG_PHOTO_3_CAPTURED_AT = "arg_photo_3_captured_at"
+        private const val ARG_PHOTO_1_UPLOAD_STATE = "arg_photo_1_upload_state"
+        private const val ARG_PHOTO_2_UPLOAD_STATE = "arg_photo_2_upload_state"
+        private const val ARG_PHOTO_3_UPLOAD_STATE = "arg_photo_3_upload_state"
+        private const val ARG_PHOTO_1_IMG_ID = "arg_photo_1_img_id"
+        private const val ARG_PHOTO_2_IMG_ID = "arg_photo_2_img_id"
+        private const val ARG_PHOTO_3_IMG_ID = "arg_photo_3_img_id"
+        private const val ARG_PHOTO_1_UPLOAD_ERROR = "arg_photo_1_upload_error"
+        private const val ARG_PHOTO_2_UPLOAD_ERROR = "arg_photo_2_upload_error"
+        private const val ARG_PHOTO_3_UPLOAD_ERROR = "arg_photo_3_upload_error"
         private const val KEY_PHOTO_1 = "photo_1"
         private const val KEY_PHOTO_2 = "photo_2"
         private const val KEY_PHOTO_3 = "photo_3"
         private const val KEY_PHOTO_1_CAPTURED_AT = "photo_1_captured_at"
         private const val KEY_PHOTO_2_CAPTURED_AT = "photo_2_captured_at"
         private const val KEY_PHOTO_3_CAPTURED_AT = "photo_3_captured_at"
+        private const val KEY_PHOTO_1_UPLOAD_STATE = "photo_1_upload_state"
+        private const val KEY_PHOTO_2_UPLOAD_STATE = "photo_2_upload_state"
+        private const val KEY_PHOTO_3_UPLOAD_STATE = "photo_3_upload_state"
+        private const val KEY_PHOTO_1_IMG_ID = "photo_1_img_id"
+        private const val KEY_PHOTO_2_IMG_ID = "photo_2_img_id"
+        private const val KEY_PHOTO_3_IMG_ID = "photo_3_img_id"
+        private const val KEY_PHOTO_1_UPLOAD_ERROR = "photo_1_upload_error"
+        private const val KEY_PHOTO_2_UPLOAD_ERROR = "photo_2_upload_error"
+        private const val KEY_PHOTO_3_UPLOAD_ERROR = "photo_3_upload_error"
         private const val KEY_PENDING_SLOT = "pending_slot"
         private const val KEY_PENDING_PATH = "pending_path"
         private const val KEY_SELECTED_GUTTER_TYPE = "selected_gutter_type"
@@ -215,6 +233,15 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_PHOTO_1_CAPTURED_AT, basicData["photo1CapturedAt"] ?: "")
                 putString(ARG_PHOTO_2_CAPTURED_AT, basicData["photo2CapturedAt"] ?: "")
                 putString(ARG_PHOTO_3_CAPTURED_AT, basicData["photo3CapturedAt"] ?: "")
+                putString(ARG_PHOTO_1_UPLOAD_STATE, basicData["photo1UploadState"] ?: "")
+                putString(ARG_PHOTO_2_UPLOAD_STATE, basicData["photo2UploadState"] ?: "")
+                putString(ARG_PHOTO_3_UPLOAD_STATE, basicData["photo3UploadState"] ?: "")
+                putString(ARG_PHOTO_1_IMG_ID, basicData["photo1ImgId"] ?: "")
+                putString(ARG_PHOTO_2_IMG_ID, basicData["photo2ImgId"] ?: "")
+                putString(ARG_PHOTO_3_IMG_ID, basicData["photo3ImgId"] ?: "")
+                putString(ARG_PHOTO_1_UPLOAD_ERROR, basicData["photo1UploadError"] ?: "")
+                putString(ARG_PHOTO_2_UPLOAD_ERROR, basicData["photo2UploadError"] ?: "")
+                putString(ARG_PHOTO_3_UPLOAD_ERROR, basicData["photo3UploadError"] ?: "")
                 putString(
                     ARG_DATA_IS_PENDING_DEPLOY,
                     basicData["IS_PENDING_DEPLOY"]
@@ -242,6 +269,15 @@ class GutterBasicInfoFragment : Fragment() {
             photoCapturedAtSlot1 = savedInstanceState.getString(KEY_PHOTO_1_CAPTURED_AT)
             photoCapturedAtSlot2 = savedInstanceState.getString(KEY_PHOTO_2_CAPTURED_AT)
             photoCapturedAtSlot3 = savedInstanceState.getString(KEY_PHOTO_3_CAPTURED_AT)
+            photoUploadState1 = savedInstanceState.getString(KEY_PHOTO_1_UPLOAD_STATE, PhotoUploadSlotState.STATE_IDLE)
+            photoUploadState2 = savedInstanceState.getString(KEY_PHOTO_2_UPLOAD_STATE, PhotoUploadSlotState.STATE_IDLE)
+            photoUploadState3 = savedInstanceState.getString(KEY_PHOTO_3_UPLOAD_STATE, PhotoUploadSlotState.STATE_IDLE)
+            photoImgId1 = savedInstanceState.getString(KEY_PHOTO_1_IMG_ID)?.toIntOrNull()
+            photoImgId2 = savedInstanceState.getString(KEY_PHOTO_2_IMG_ID)?.toIntOrNull()
+            photoImgId3 = savedInstanceState.getString(KEY_PHOTO_3_IMG_ID)?.toIntOrNull()
+            photoUploadError1 = savedInstanceState.getString(KEY_PHOTO_1_UPLOAD_ERROR)
+            photoUploadError2 = savedInstanceState.getString(KEY_PHOTO_2_UPLOAD_ERROR)
+            photoUploadError3 = savedInstanceState.getString(KEY_PHOTO_3_UPLOAD_ERROR)
             pendingSlot = savedInstanceState.getInt(KEY_PENDING_SLOT, 0)
             pendingOutputPath = savedInstanceState.getString(KEY_PENDING_PATH)
             selectedGutterType = savedInstanceState.getString(KEY_SELECTED_GUTTER_TYPE)
@@ -253,6 +289,18 @@ class GutterBasicInfoFragment : Fragment() {
             photoCapturedAtSlot1 = arguments?.getString(ARG_PHOTO_1_CAPTURED_AT)
             photoCapturedAtSlot2 = arguments?.getString(ARG_PHOTO_2_CAPTURED_AT)
             photoCapturedAtSlot3 = arguments?.getString(ARG_PHOTO_3_CAPTURED_AT)
+            photoUploadState1 = arguments?.getString(ARG_PHOTO_1_UPLOAD_STATE, PhotoUploadSlotState.STATE_IDLE)
+                ?: PhotoUploadSlotState.STATE_IDLE
+            photoUploadState2 = arguments?.getString(ARG_PHOTO_2_UPLOAD_STATE, PhotoUploadSlotState.STATE_IDLE)
+                ?: PhotoUploadSlotState.STATE_IDLE
+            photoUploadState3 = arguments?.getString(ARG_PHOTO_3_UPLOAD_STATE, PhotoUploadSlotState.STATE_IDLE)
+                ?: PhotoUploadSlotState.STATE_IDLE
+            photoImgId1 = arguments?.getString(ARG_PHOTO_1_IMG_ID)?.toIntOrNull()
+            photoImgId2 = arguments?.getString(ARG_PHOTO_2_IMG_ID)?.toIntOrNull()
+            photoImgId3 = arguments?.getString(ARG_PHOTO_3_IMG_ID)?.toIntOrNull()
+            photoUploadError1 = arguments?.getString(ARG_PHOTO_1_UPLOAD_ERROR)?.takeIf { it.isNotBlank() }
+            photoUploadError2 = arguments?.getString(ARG_PHOTO_2_UPLOAD_ERROR)?.takeIf { it.isNotBlank() }
+            photoUploadError3 = arguments?.getString(ARG_PHOTO_3_UPLOAD_ERROR)?.takeIf { it.isNotBlank() }
         }
     }
 
@@ -276,6 +324,15 @@ class GutterBasicInfoFragment : Fragment() {
         photoCapturedAtSlot1?.let { outState.putString(KEY_PHOTO_1_CAPTURED_AT, it) }
         photoCapturedAtSlot2?.let { outState.putString(KEY_PHOTO_2_CAPTURED_AT, it) }
         photoCapturedAtSlot3?.let { outState.putString(KEY_PHOTO_3_CAPTURED_AT, it) }
+        outState.putString(KEY_PHOTO_1_UPLOAD_STATE, photoUploadState1)
+        outState.putString(KEY_PHOTO_2_UPLOAD_STATE, photoUploadState2)
+        outState.putString(KEY_PHOTO_3_UPLOAD_STATE, photoUploadState3)
+        photoImgId1?.let { outState.putString(KEY_PHOTO_1_IMG_ID, it.toString()) }
+        photoImgId2?.let { outState.putString(KEY_PHOTO_2_IMG_ID, it.toString()) }
+        photoImgId3?.let { outState.putString(KEY_PHOTO_3_IMG_ID, it.toString()) }
+        photoUploadError1?.let { outState.putString(KEY_PHOTO_1_UPLOAD_ERROR, it) }
+        photoUploadError2?.let { outState.putString(KEY_PHOTO_2_UPLOAD_ERROR, it) }
+        photoUploadError3?.let { outState.putString(KEY_PHOTO_3_UPLOAD_ERROR, it) }
         outState.putInt(KEY_PENDING_SLOT, pendingSlot)
         pendingOutputPath?.let { outState.putString(KEY_PENDING_PATH, it) }
         selectedGutterType?.let { outState.putString(KEY_SELECTED_GUTTER_TYPE, it) }
@@ -461,8 +518,11 @@ class GutterBasicInfoFragment : Fragment() {
             spiNum, nodeTyp, matTyp, nodeX, nodeY, nodeLe,
             xyNum, coverDep, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote,
             isPendingDeploy, isVirtualArg, isImportedArg,
-            photo1, photo2, photo3, photo1CapturedAt, photo2CapturedAt, photo3CapturedAt
-        ).any { it.isNotEmpty() && it != "0" && it != "false" }
+            photo1, photo2, photo3, photo1CapturedAt, photo2CapturedAt, photo3CapturedAt,
+            args.getString(ARG_PHOTO_1_UPLOAD_STATE), args.getString(ARG_PHOTO_2_UPLOAD_STATE), args.getString(ARG_PHOTO_3_UPLOAD_STATE),
+            args.getString(ARG_PHOTO_1_IMG_ID), args.getString(ARG_PHOTO_2_IMG_ID), args.getString(ARG_PHOTO_3_IMG_ID),
+            args.getString(ARG_PHOTO_1_UPLOAD_ERROR), args.getString(ARG_PHOTO_2_UPLOAD_ERROR), args.getString(ARG_PHOTO_3_UPLOAD_ERROR)
+        ).any { !it.isNullOrEmpty() && it != "0" && it != "false" }
 
         if (hasAnyData) {
             setVirtualMode(parseLooseBoolean(isVirtualArg))
