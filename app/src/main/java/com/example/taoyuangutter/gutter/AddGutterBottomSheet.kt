@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.gutter
 
+import com.example.taoyuangutter.BuildConfig
 import com.example.taoyuangutter.R
 import android.os.Bundle
 import android.text.Spannable
@@ -96,6 +97,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         fun onGutterRetry()
         /** 編輯模式：照片補傳完成後，切回既有 submitting blocking UI。 */
         fun onGutterSubmitting()
+        /**
+         * 網路層失敗 Alert 關閉後的收尾動作。
+         * 由 Host 存草稿，若有 SPI_NUM 則嘗試重新載入檢視資料。
+         */
+        fun onStoreDitchNetworkClosed(spiNum: String?, waypoints: List<Waypoint>)
     }
 
     /**
@@ -665,6 +671,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     }
 
     // ── 按鈕 ─────────────────────────────────────────────────────────────
+    /**
+    Debug 版：送出按鈕上長按，就會直接跳出網路連線逾時 Alert，用來驗證關閉後的存草稿與回檢視機制。
+     */
     private fun setupButtons() {
         // Avoid keeping stale listeners when switching modes / recreating view
         binding.rgGutterKind.setOnCheckedChangeListener(null)
@@ -725,6 +734,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
                 // 編輯模式：呼叫 performEditSubmit 處理更新流程 (帶 SPI_NUM)
                 performEditSubmit()
+            }
+            binding.btnSubmitGutter.setOnLongClickListener {
+                if (!BuildConfig.DEBUG) return@setOnLongClickListener false
+                triggerNetworkTimeoutTest()
+                true
             }
         } else {
             if (isOfflineMode) {
@@ -803,6 +817,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     // 呼叫 storeDitch（不帶 SPI_NUM，由後端分配）
                     submitNewGutterRequest(activity, submittedWaypoints, token)
                 }
+            }
+            binding.btnSubmitGutter.setOnLongClickListener {
+                if (!BuildConfig.DEBUG) return@setOnLongClickListener false
+                triggerNetworkTimeoutTest()
+                true
             }
         }
     }
@@ -890,13 +909,28 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         )
                         showSelf()
                         updateSubmitButtonState()
-                        val errorUi = UploadFailureClassifier.forStoreDitchError(result)
-                        showStoreDitchFailureDialog(
-                            activity = requireActivity(),
-                            message = errorUi.buildDialogMessage(),
-                            onRetry = { performEditSubmit() },
-                            onSaveDraft = { dismissAllowingStateLoss() }
-                        )
+                if (UploadFailureClassifier.isNetworkFailureMessage(result.message)) {
+                    val errorUi = UploadFailureClassifier.forStoreDitchNetworkTimeout(result)
+                    showStoreDitchNetworkTimeoutDialog(
+                        activity = requireActivity(),
+                        message = buildStoreDitchNetworkTimeoutMessage(errorUi),
+                        onClose = {
+                            (requireActivity() as? LocationPickerHost)
+                                ?.onStoreDitchNetworkClosed(
+                                            editSpiNum.takeIf { it.isNotBlank() },
+                                            waypoints.toList()
+                                        )
+                                }
+                            )
+                        } else {
+                            val errorUi = UploadFailureClassifier.forStoreDitchError(result)
+                            showStoreDitchFailureDialog(
+                                activity = requireActivity(),
+                                message = errorUi.buildDialogMessage(),
+                                onRetry = { performEditSubmit() },
+                                onSaveDraft = { dismissAllowingStateLoss() }
+                            )
+                        }
                     }
                 }
             } catch (e: CancellationException) {
@@ -905,13 +939,28 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 android.util.Log.e("StoreDitch", "edit exception: ${e.message}", e)
                 showSelf()
                 updateSubmitButtonState()
-                val errorUi = UploadFailureClassifier.forStoreDitchException(e.localizedMessage)
-                showStoreDitchFailureDialog(
-                    activity = requireActivity(),
-                    message = errorUi.buildDialogMessage(),
-                    onRetry = { performEditSubmit() },
-                    onSaveDraft = { dismissAllowingStateLoss() }
-                )
+                if (UploadFailureClassifier.isNetworkFailureMessage(e.localizedMessage)) {
+                    val errorUi = UploadFailureClassifier.forStoreDitchNetworkTimeout(e.localizedMessage)
+                    showStoreDitchNetworkTimeoutDialog(
+                        activity = requireActivity(),
+                        message = buildStoreDitchNetworkTimeoutMessage(errorUi),
+                        onClose = {
+                            (requireActivity() as? LocationPickerHost)
+                                ?.onStoreDitchNetworkClosed(
+                                    editSpiNum.takeIf { it.isNotBlank() },
+                                    waypoints.toList()
+                                )
+                        }
+                    )
+                } else {
+                    val errorUi = UploadFailureClassifier.forStoreDitchException(e.localizedMessage)
+                    showStoreDitchFailureDialog(
+                        activity = requireActivity(),
+                        message = errorUi.buildDialogMessage(),
+                        onRetry = { performEditSubmit() },
+                        onSaveDraft = { dismissAllowingStateLoss() }
+                    )
+                }
             }
         }
     }
@@ -939,16 +988,32 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         )
                         setSubmitLoading(false)
                         (activity as? LocationPickerHost)?.onGutterSubmitFailed()
-                        val errorUi = UploadFailureClassifier.forStoreDitchError(result)
-                        showStoreDitchFailureDialog(
-                            activity = activity,
-                            message = errorUi.buildDialogMessage(),
-                            onRetry = {
-                                (activity as? LocationPickerHost)?.onGutterRetry()
-                                submitNewGutterRequest(activity, validWaypoints, token)
-                            },
-                            onSaveDraft = { dismissAllowingStateLoss() }
-                        )
+                        if (UploadFailureClassifier.isNetworkFailureMessage(result.message)) {
+                            val errorUi = UploadFailureClassifier.forStoreDitchNetworkTimeout(result)
+                            showStoreDitchNetworkTimeoutDialog(
+                                activity = activity,
+                                message = buildStoreDitchNetworkTimeoutMessage(errorUi),
+                                onClose = {
+                                    (activity as? LocationPickerHost)?.onStoreDitchNetworkClosed(
+                                        validWaypoints.firstOrNull { it.type == WaypointType.START }
+                                            ?.basicData?.get("SPI_NUM")
+                                            ?.takeIf { it.isNotBlank() },
+                                        validWaypoints
+                                    )
+                                }
+                            )
+                        } else {
+                            val errorUi = UploadFailureClassifier.forStoreDitchError(result)
+                            showStoreDitchFailureDialog(
+                                activity = activity,
+                                message = errorUi.buildDialogMessage(),
+                                onRetry = {
+                                    (activity as? LocationPickerHost)?.onGutterRetry()
+                                    submitNewGutterRequest(activity, validWaypoints, token)
+                                },
+                                onSaveDraft = { dismissAllowingStateLoss() }
+                            )
+                        }
                     }
                 }
             } catch (e: CancellationException) {
@@ -957,13 +1022,29 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 android.util.Log.e("StoreDitch", "add exception: ${e.message}", e)
                 setSubmitLoading(false)
                 (activity as? LocationPickerHost)?.onGutterSubmitFailed()
-                val errorUi = UploadFailureClassifier.forStoreDitchException(e.localizedMessage)
-                showStoreDitchFailureDialog(
-                    activity = activity,
-                    message = errorUi.buildDialogMessage(),
-                    onRetry = { submitNewGutterRequest(activity, validWaypoints, token) },
-                    onSaveDraft = { dismissAllowingStateLoss() }
-                )
+                if (UploadFailureClassifier.isNetworkFailureMessage(e.localizedMessage)) {
+                    val errorUi = UploadFailureClassifier.forStoreDitchNetworkTimeout(e.localizedMessage)
+                    showStoreDitchNetworkTimeoutDialog(
+                        activity = activity,
+                        message = buildStoreDitchNetworkTimeoutMessage(errorUi),
+                        onClose = {
+                            (activity as? LocationPickerHost)?.onStoreDitchNetworkClosed(
+                                validWaypoints.firstOrNull { it.type == WaypointType.START }
+                                    ?.basicData?.get("SPI_NUM")
+                                    ?.takeIf { it.isNotBlank() },
+                                validWaypoints
+                            )
+                        }
+                    )
+                } else {
+                    val errorUi = UploadFailureClassifier.forStoreDitchException(e.localizedMessage)
+                    showStoreDitchFailureDialog(
+                        activity = activity,
+                        message = errorUi.buildDialogMessage(),
+                        onRetry = { submitNewGutterRequest(activity, validWaypoints, token) },
+                        onSaveDraft = { dismissAllowingStateLoss() }
+                    )
+                }
             }
         }
     }
@@ -982,6 +1063,55 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             .setPositiveButton("重傳") { _, _ -> onRetry() }
             .setCancelable(false)
             .show()
+    }
+
+    private fun showStoreDitchNetworkTimeoutDialog(
+        activity: FragmentActivity,
+        message: String,
+        onClose: () -> Unit
+    ) {
+        if (activity.isFinishing || activity.isDestroyed) return
+        MaterialAlertDialogBuilder(activity)
+            .setTitle("網路連線逾時")
+            .setMessage(message)
+            .setPositiveButton("關閉") { _, _ -> onClose() }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun buildStoreDitchNetworkTimeoutMessage(errorUi: com.example.taoyuangutter.common.UploadFailureUiModel): String {
+        val parts = mutableListOf(
+            "說明：${errorUi.userMessage}",
+            "參考代碼：${errorUi.referenceCode}"
+        )
+        errorUi.detailSummary?.takeIf { it.isNotBlank() }?.let { parts += it }
+        return parts.joinToString(separator = "\n")
+    }
+
+    private fun triggerNetworkTimeoutTest() {
+        val host = activity as? LocationPickerHost ?: return
+        val spiNum = currentStartSpiNum()
+        showStoreDitchNetworkTimeoutDialog(
+            activity = requireActivity(),
+            message = buildStoreDitchNetworkTimeoutMessage(
+                UploadFailureClassifier.forStoreDitchNetworkTimeout(
+                com.example.taoyuangutter.api.ApiResult.Error(
+                    message = "模擬網路逾時",
+                    code = null
+                )
+                )
+            ),
+            onClose = {
+                host.onStoreDitchNetworkClosed(spiNum, waypoints.toList())
+            }
+        )
+    }
+
+    private fun currentStartSpiNum(): String? {
+        return editSpiNum.takeIf { it.isNotBlank() }
+            ?: waypoints.firstOrNull { it.type == WaypointType.START }
+                ?.basicData?.get("SPI_NUM")
+                ?.takeIf { it.isNotBlank() }
     }
 
     // ── 調轉：整條側溝方向翻轉 ────────────────────────────────────────────

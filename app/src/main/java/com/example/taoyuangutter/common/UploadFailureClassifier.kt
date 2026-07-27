@@ -26,6 +26,28 @@ data class UploadFailureUiModel(
 
 object UploadFailureClassifier {
 
+    fun forStoreDitchNetworkTimeout(error: ApiResult.Error): UploadFailureUiModel {
+        return build(
+            categoryLabel = "網路連線逾時",
+            userMessage = "目前網路不穩或無法連線，請確認側溝資料是否有完整上傳成功，若有缺漏請至草稿重新嘗試上傳。",
+            referenceCode = "NETWORK_ERROR",
+            detailSummary = buildApiDetail(error)
+        )
+    }
+
+    fun forStoreDitchNetworkTimeout(message: String?): UploadFailureUiModel {
+        return build(
+            categoryLabel = "網路連線逾時",
+            userMessage = "目前網路不穩或無法連線，請確認側溝資料是否有完整上傳成功，若有缺漏請至草稿重新嘗試上傳。",
+            referenceCode = "NETWORK_ERROR",
+            detailSummary = normalizeExceptionDetail(message)
+        )
+    }
+
+    fun isNetworkFailureMessage(message: String?): Boolean {
+        return message?.let { isNetworkMessage(it) } == true
+    }
+
     fun forStoreDitchError(error: ApiResult.Error): UploadFailureUiModel {
         return when {
             error.code == 401 -> build(

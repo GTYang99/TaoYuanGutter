@@ -279,7 +279,7 @@ object GutterApiClient {
      * 是否開啟長按登出按鈕切換 Group ID 的模擬功能（開發測試用）。
      * 若要發布正式版，請將此改為 false。
      */
-    const val ENABLE_GROUP_SIMULATION = false
+    val ENABLE_GROUP_SIMULATION = BuildConfig.DEBUG
 
     /**
      * 後端 API 的 Base URL。
@@ -292,11 +292,11 @@ object GutterApiClient {
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
         Log.d("OkHttp", message)
     }.apply {
-        // Debug 才印完整 request/response，避免 release 外洩資訊與效能問題
-        level = if (BuildConfig.DEBUG) {
-            HttpLoggingInterceptor.Level.BODY
-        } else {
+        // 只在 debug 模式印完整 request/response，release 模式關閉 log
+        level = if (!BuildConfig.DEBUG) {
             HttpLoggingInterceptor.Level.NONE
+        } else {
+            HttpLoggingInterceptor.Level.BODY
         }
         // 避免把 token 印出來；若你真的要看 token，可以暫時註解這行
         redactHeader("Authorization")
@@ -316,7 +316,7 @@ object GutterApiClient {
 
     val instance: GutterApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(DEMO_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()

@@ -912,6 +912,39 @@ class MainActivity : AppCompatActivity(),
         mainBlockingUiController.setInspectLoading(true, getString(R.string.msg_gutter_submitting))
     }
 
+    override fun onStoreDitchNetworkClosed(spiNum: String?, waypoints: List<Waypoint>) {
+        mainBlockingUiController.setInspectLoading(false)
+        saveWaypointsAsPendingDraft(waypoints)
+        activeSheet?.onWaypointsChanged = null
+        activeSheet?.dismissAllowingStateLoss()
+        activeSheet = null
+
+        val resolvedSpiNum = spiNum?.takeIf { it.isNotBlank() }
+            ?: waypoints.firstOrNull { it.type == WaypointType.START }
+                ?.basicData?.get("SPI_NUM")
+                ?.takeIf { it.isNotBlank() }
+
+        if (resolvedSpiNum.isNullOrBlank()) {
+            shouldReturnToInspectPreview = false
+            inspectPreviewIntent = null
+            inspectSheet?.onWaypointsChanged = null
+            inspectSheet?.dismissAllowingStateLoss()
+            inspectSheet = null
+            isInEditingMode = false
+            clearReferenceRoute()
+            gutterMapController.clearPreviewLayer()
+            clearWorkingMarkers()
+            mapCameraController.setPersistentBottomInset(0)
+            restoreMainUiAfterSheetClosed()
+            loadGuttersByViewport(showFeedback = true)
+            return
+        }
+
+        val token = LoginActivity.getSavedToken(this) ?: return
+        restoreMainUiAfterSheetClosed()
+        reopenInspectPreviewAfterUpdate(resolvedSpiNum, waypoints, token)
+    }
+
     /**
      * 上傳所有點位的本機照片，回傳批次結果。
      * 委派給 [PhotoUploadManager] 處理並行上傳、重試與暫存清理，
