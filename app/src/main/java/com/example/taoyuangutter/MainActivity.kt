@@ -515,12 +515,12 @@ class MainActivity : AppCompatActivity(),
                 currentSessionResumedFromDraft = false
                 shouldReturnToInspectPreview = true
 
-                // ── 進入編輯模式時：隱藏所有其他已存在的線段，只顯示正在編輯的側溝 ──
+                // ── 進入編輯模式時：先顯示紫色主線，真的變動後再把原始路徑轉為灰色 ──
                 isInEditingMode = true  // 禁止自動加載 polylines
                 scopeGutterPolylineController.clear()
                 submittedPolylines.forEach { it.remove() }
                 submittedPolylines.clear()
-                // 進入編輯時保留檢視期間的灰色參考線；紫色工作線延後到座標順序或內容真的變更才出現
+                // 保留原始路徑資料，但先不顯示灰色參考線
                 editLatLngSnapshot = buildLatLngSnapshot(wps)
                 hasShownEditPolyline = false
 
@@ -566,16 +566,14 @@ class MainActivity : AppCompatActivity(),
                             val before = editLatLngSnapshot
                             val latLngChanged = before == null || after != before
                             if (latLngChanged) {
+                                if (!isReferenceRouteActive && referenceRoutePoints.size >= 2) {
+                                    setReferenceRoute(referenceRoutePoints)
+                                }
                                 hasShownEditPolyline = true
-                                editLatLngSnapshot = after
-                                refreshWorkingLayer(updated)
-                            } else {
-                                refreshWorkingMarkers(updated)
                             }
-                        } else {
-                            editLatLngSnapshot = after
-                            refreshWorkingLayer(updated)
                         }
+                        editLatLngSnapshot = after
+                        refreshWorkingLayer(updated)
                         autoSaveSessionDraft(updated)
                         if (shouldRefit) {
                             mapCameraController.fitCameraToWaypoints(
@@ -753,7 +751,7 @@ class MainActivity : AppCompatActivity(),
         outState.putString("saved_inspect_waypoints_json", Gson().toJson(inspectWpsSnapshots))
 
         outState.putBoolean("saved_is_reference_route_active", isReferenceRouteActive)
-        if (isReferenceRouteActive) {
+        if (referenceRoutePoints.isNotEmpty()) {
             outState.putDoubleArray("saved_reference_route_lats", referenceRoutePoints.map { it.latitude }.toDoubleArray())
             outState.putDoubleArray("saved_reference_route_lngs", referenceRoutePoints.map { it.longitude }.toDoubleArray())
         }
@@ -872,7 +870,7 @@ class MainActivity : AppCompatActivity(),
                 refreshWorkingLayer(currentWaypoints)
                 mainBlockingUiController.setMainButtonsEnabled(false)
             } else if (inspectSheet != null) {
-                refreshWorkingMarkers(inspectWaypoints)
+                refreshWorkingLayer(inspectWaypoints, inspectSheet?.isCurveMode() == true)
                 mainBlockingUiController.setMainButtonsEnabled(false)
             }
         }
@@ -1336,10 +1334,10 @@ class MainActivity : AppCompatActivity(),
                         currentWaypoints = inspectWaypoints
                         val isCurve = result.data.ditch.isCurve?.trim() == "1" ||
                             result.data.ditch.isCurve?.trim()?.equals("true", true) == true
-                        // 檢視模式：顯示灰色參考線（使用 scopeSearch 線段點位），不畫紫色工作線
                         val referencePoints = start.routeWaypoints.mapNotNull { it.latLng }
-                        setReferenceRoute(referencePoints)
-                        refreshWorkingMarkers(inspectWaypoints)
+                        referenceRoutePoints = referencePoints
+                        isReferenceRouteActive = false
+                        refreshWorkingLayer(inspectWaypoints, isCurve)
                         lockInspectUi()
                         val launched = launchInspectSafely(result.data.intent)
                         if (!launched) {
@@ -1631,10 +1629,11 @@ class MainActivity : AppCompatActivity(),
                         currentWaypoints = inspectWaypoints
                         val isCurve = result.data.ditch.isCurve?.trim() == "1" ||
                             result.data.ditch.isCurve?.trim()?.equals("true", true) == true
-                        // 檢視模式：顯示灰色參考線（使用 scopeSearch 線段點位），不畫紫色工作線
+                        // 檢視模式：先顯示紫色主線；等使用者真的變更座標後，再把原始路徑轉為灰色參考線
                         val referencePoints = start.routeWaypoints.mapNotNull { it.latLng }
-                        setReferenceRoute(referencePoints)
-                        refreshWorkingMarkers(inspectWaypoints)
+                        referenceRoutePoints = referencePoints
+                        isReferenceRouteActive = false
+                        refreshWorkingLayer(inspectWaypoints, isCurve)
 
                         // 若有進行中的新增流程 sheet，先隱藏它（不 dismiss，
                         // 讓使用者按返回時仍可繼續；若最終進入編輯模式則由 inspectLauncher 清除）
@@ -1928,10 +1927,10 @@ class MainActivity : AppCompatActivity(),
         )
     }
 
-    private fun refreshWorkingLayer(waypoints: List<Waypoint>) {
+    private fun refreshWorkingLayer(waypoints: List<Waypoint>, isCurve: Boolean? = null) {
         gutterMapController.refreshWorkingLayer(
             waypoints = waypoints,
-            isCurve = activeSheet?.isCurveMode() == true
+            isCurve = isCurve ?: activeSheet?.isCurveMode() == true
         )
     }
 
@@ -1956,16 +1955,14 @@ class MainActivity : AppCompatActivity(),
             val before = editLatLngSnapshot
             val latLngChanged = before == null || after != before
             if (latLngChanged) {
+                if (!isReferenceRouteActive && referenceRoutePoints.size >= 2) {
+                    setReferenceRoute(referenceRoutePoints)
+                }
                 hasShownEditPolyline = true
-                editLatLngSnapshot = after
-                refreshWorkingLayer(waypoints)
-            } else {
-                refreshWorkingMarkers(waypoints)
             }
-        } else {
-            editLatLngSnapshot = after
-            refreshWorkingLayer(waypoints)
         }
+        editLatLngSnapshot = after
+        refreshWorkingLayer(waypoints)
     }
 
     private fun buildLatLngSnapshot(waypoints: List<Waypoint>): List<Pair<Long, Long>> {

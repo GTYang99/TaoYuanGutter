@@ -1481,7 +1481,18 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun renderSessionPreview(map: GoogleMap) {
-        renderReferencePolyline(map)
+        val currentSnapshot = buildLatLngSnapshot(sessionWaypoints)
+        if (currentSnapshot != initialLatLngSnapshot) {
+            hasShownEditPolyline = true
+        }
+
+        if (referencePoints.size >= 2 && !isViewMode && hasShownEditPolyline) {
+            renderReferencePolyline(map)
+        } else {
+            referencePolyline?.remove()
+            referencePolyline = null
+        }
+
         sessionMarkers.forEach { it.remove() }
         sessionMarkers.clear()
         sessionPolyline?.remove()
@@ -1514,8 +1525,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             pointsForLine.add(pos)
         }
 
-        val shouldShowPurple = shouldShowEditPolyline()
-        if (pointsForLine.size >= 2 && shouldShowPurple) {
+        if (pointsForLine.size >= 2) {
             sessionPolyline = map.addPolyline(
                 PolylineOptions()
                     .addAll(pointsForLine)
@@ -1564,17 +1574,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         }.sortedWith(compareBy({ it.first }, { it.second }))
     }
 
-    private fun shouldShowEditPolyline(): Boolean {
-        // 若沒有參考線資料（一般線段/非弧線流程），沿用既有行為：永遠顯示紫色線段
-        if (referencePoints.size < 2) return true
-        // 檢視模式不允許改座標，不顯示紫色線段
-        if (isViewMode) return false
-        if (hasShownEditPolyline) return true
-        val current = buildLatLngSnapshot(sessionWaypoints)
-        val changed = current != initialLatLngSnapshot
-        if (changed) hasShownEditPolyline = true
-        return hasShownEditPolyline
-    }
+    private fun shouldShowEditPolyline(): Boolean = true
 
     private fun setWmtsTiles(layer: String) {
         formMapTileOverlay?.remove()
