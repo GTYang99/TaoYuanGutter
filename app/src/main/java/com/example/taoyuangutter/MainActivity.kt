@@ -250,6 +250,12 @@ class MainActivity : AppCompatActivity(),
     private var inspectWaypoints: List<Waypoint> = emptyList()
     private var inspectPreviewIntent: Intent? = null
     private var shouldReturnToInspectPreview = false
+    private data class PendingInspectPreviewReload(
+        val spiNum: String,
+        val waypoints: List<Waypoint>,
+        val token: String
+    )
+    private var pendingInspectPreviewReload: PendingInspectPreviewReload? = null
     /** 防止連點側溝 Polyline 重複觸發 openInspectBottomSheet */
     private var isInspecting = false
     /** 檢視流程鎖：從開啟檢視到真正關閉前，主畫面按鈕都保持不可用。 */
@@ -927,6 +933,7 @@ class MainActivity : AppCompatActivity(),
         if (resolvedSpiNum.isNullOrBlank()) {
             shouldReturnToInspectPreview = false
             inspectPreviewIntent = null
+            pendingInspectPreviewReload = null
             inspectSheet?.onWaypointsChanged = null
             inspectSheet?.dismissAllowingStateLoss()
             inspectSheet = null
@@ -940,9 +947,23 @@ class MainActivity : AppCompatActivity(),
             return
         }
 
-        val token = LoginActivity.getSavedToken(this) ?: return
+        val token = LoginActivity.getSavedToken(this)
+        pendingInspectPreviewReload = token?.let {
+            PendingInspectPreviewReload(
+                spiNum = resolvedSpiNum,
+                waypoints = waypoints.toList(),
+                token = it
+            )
+        }
+        shouldReturnToInspectPreview = false
+        inspectPreviewIntent = null
+        isInEditingMode = false
+        clearReferenceRoute()
+        gutterMapController.clearPreviewLayer()
+        clearWorkingMarkers()
+        mapCameraController.setPersistentBottomInset(0)
         restoreMainUiAfterSheetClosed()
-        reopenInspectPreviewAfterUpdate(resolvedSpiNum, waypoints, token)
+        loadGuttersByViewport(showFeedback = true)
     }
 
     /**
@@ -2094,6 +2115,14 @@ class MainActivity : AppCompatActivity(),
             },
             onLoadingFinished = {
                 Toast.makeText(this, getString(R.string.msg_loading_gutters_done), Toast.LENGTH_SHORT).show()
+                pendingInspectPreviewReload?.let { pending ->
+                    pendingInspectPreviewReload = null
+                    reopenInspectPreviewAfterUpdate(
+                        spiNum = pending.spiNum,
+                        persistedWaypoints = pending.waypoints,
+                        token = pending.token
+                    )
+                }
             },
             onLoadingFailed = {
                 Toast.makeText(this, getString(R.string.msg_loading_gutters_failed), Toast.LENGTH_SHORT).show()
