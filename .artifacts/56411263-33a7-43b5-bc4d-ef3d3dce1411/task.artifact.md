@@ -1,0 +1,3 @@
+- [x] 修改 `GutterApiService.kt` 中的 `ENABLE_GROUP_SIMULATION`
+- [x] 修改 `AddGutterBottomSheet.kt` 中的長按判斷
+- [x] 驗證全域引用一致性

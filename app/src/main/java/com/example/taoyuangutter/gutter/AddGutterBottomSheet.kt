@@ -736,7 +736,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 performEditSubmit()
             }
             binding.btnSubmitGutter.setOnLongClickListener {
-                if (!BuildConfig.DEBUG) return@setOnLongClickListener false
+                if (!com.example.taoyuangutter.api.GutterApiClient.ENABLE_GROUP_SIMULATION) return@setOnLongClickListener false
                 triggerNetworkTimeoutTest()
                 true
             }
@@ -819,7 +819,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
             }
             binding.btnSubmitGutter.setOnLongClickListener {
-                if (!BuildConfig.DEBUG) return@setOnLongClickListener false
+                if (!com.example.taoyuangutter.api.GutterApiClient.ENABLE_GROUP_SIMULATION) return@setOnLongClickListener false
                 triggerNetworkTimeoutTest()
                 true
             }

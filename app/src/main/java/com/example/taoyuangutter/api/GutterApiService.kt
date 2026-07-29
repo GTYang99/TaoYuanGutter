@@ -277,9 +277,9 @@ object GutterApiClient {
 
     /**
      * 是否開啟長按登出按鈕切換 Group ID 的模擬功能（開發測試用）。
-     * 若要發布正式版，請將此改為 false。
+     * 手動控制開關：true = 開啟模擬功能 / false = 關閉（正式版建議關閉）。
      */
-    val ENABLE_GROUP_SIMULATION = BuildConfig.DEBUG
+    val ENABLE_GROUP_SIMULATION = false
 
     /**
      * 後端 API 的 Base URL。
