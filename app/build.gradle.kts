@@ -1,5 +1,5 @@
-import java.io.FileInputStream
 import java.util.Properties
+import java.io.FileInputStream
 import kotlin.toString
 
 plugins {
@@ -42,7 +42,15 @@ android {
         versionCode = getVersionCode()
         versionName = getVersionName()
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        val localProperties = Properties()
+        val localPropertiesFile = File("${project.rootDir}/local.properties")
+        if (localPropertiesFile.canRead()) {
+            localProperties.load(localPropertiesFile.inputStream())
+        }
+        val apiKey = localProperties["MAPS_API_KEY"]?.toString() ?: ""
+
+        manifestPlaceholders["MAPS_API_KEY"] = apiKey
+
     }
 
     buildTypes {
