@@ -314,7 +314,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     ?: WaypointType.NODE
                 val latLng = if (snap.latitude != null && snap.longitude != null)
                     LatLng(snap.latitude, snap.longitude) else null
+                PhotoImgIdTraceDebugger.logPhotoUriState(
+                    owner = TAG,
+                    stage = "restoreDraftJson.input",
+                    data = snap.basicData,
+                    label = snap.label.ifBlank { snap.type }
+                )
                 waypoints.add(Waypoint(type, snap.label, latLng, snap.basicData, snapshotUid(snap)))
+                logPhotoImgIdTrace("restoreDraftJson.output", snap.basicData, snap.label)
             }
             pendingPhotoUriNormalization = true
             if (editSpiNum.isBlank()) {
@@ -787,7 +794,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     dismiss()
                     return@setOnClickListener
                 }
-                if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) return@setOnClickListener
                 // 弧線上傳限制：僅允許起點/終點兩點
                 if (!validateCurvePointCountOrAlert()) return@setOnClickListener
                 // ① 起點與終點必須已設定座標
@@ -808,6 +814,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
                 lifecycleScope.launch {
                     syncLatestDraftStateIntoWaypoints()
+                    repairWaypointPhotosFromPendingIfNeeded(waypoints)
                     restoreUnchangedPhotoMetadataIntoWaypoints(waypoints)
                     if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
                         showSelf()
@@ -879,6 +886,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     return@launch
                 }
                 syncLatestDraftStateIntoWaypoints()
+                repairWaypointPhotosFromPendingIfNeeded(waypoints)
                 restoreUnchangedPhotoMetadataIntoWaypoints(waypoints)
                 if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
                     showSelf()
@@ -1297,6 +1305,17 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         }
     }
 
+    private fun repairWaypointPhotosFromPendingIfNeeded(candidateWaypoints: List<Waypoint>) {
+        val ctx = context ?: return
+        candidateWaypoints.forEachIndexed { index, waypoint ->
+            val repairedBasicData = PendingPhotoDraftState.promotePendingFilesToPhotos(ctx, waypoint.basicData)
+            if (repairedBasicData != waypoint.basicData) {
+                waypoints[index] = waypoint.copy(basicData = repairedBasicData)
+                logPhotoImgIdTrace("repairPendingPhoto.after", repairedBasicData, waypoint.label)
+            }
+        }
+    }
+
     /**
      * 比較目前 waypoints 與初始快照，判斷是否有任何變更：
      * - 點位數量增減
@@ -1560,7 +1579,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 if (isCantOpen && slot in 2..3) return@forEach
                 if (isUnchangedPhotoSlot(slot, waypoint)) return@forEach
                 val photoPath = waypoint.basicData["photo$slot"]
-                if (!PhotoUploadValidator.isUsableForUpload(ctx, photoPath)) return@forEach
+                val pendingPath = waypoint.basicData["_pending_photo_${slot}_path"]
+                val usable = PhotoUploadValidator.isUsableForUpload(ctx, photoPath)
+                PhotoImgIdTraceDebugger.logPhotoSubmitSourceState(
+                    owner = TAG,
+                    stage = "countPending.slot$slot",
+                    label = waypoint.label,
+                    slot = slot,
+                    photoValue = photoPath,
+                    pendingValue = pendingPath,
+                    usable = usable
+                )
+                if (!usable) return@forEach
                 val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
                 if (imgId != null) return@forEach
                 count++
@@ -1597,7 +1627,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     logPhotoImgIdTrace("ensurePhotos.beforeSlot$slot", waypoint.basicData, waypoint.label)
                     if (isUnchangedPhotoSlot(slot, waypoint)) return@forEach
                     val photoPath = waypoint.basicData["photo$slot"]
-                    if (!PhotoUploadValidator.isUsableForUpload(ctx, photoPath)) return@forEach
+                    val pendingPath = waypoint.basicData["_pending_photo_${slot}_path"]
+                    val usable = PhotoUploadValidator.isUsableForUpload(ctx, photoPath)
+                    PhotoImgIdTraceDebugger.logPhotoSubmitSourceState(
+                        owner = TAG,
+                        stage = "ensurePhotos.slot$slot",
+                        label = waypoint.label,
+                        slot = slot,
+                        photoValue = photoPath,
+                        pendingValue = pendingPath,
+                        usable = usable
+                    )
+                    if (!usable) return@forEach
                     val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
                     if (imgId != null) return@forEach
 

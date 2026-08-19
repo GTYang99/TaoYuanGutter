@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.gutter
 
+import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.google.android.gms.maps.model.LatLng
 
@@ -43,6 +44,14 @@ class GutterSessionFlowCoordinator {
         draft: GutterSessionDraft,
         isOfflineMainMode: Boolean
     ): ResumeAction {
+        draft.waypoints.forEachIndexed { index, snap ->
+            PhotoImgIdTraceDebugger.logPhotoUriState(
+                owner = "GutterSessionFlow",
+                stage = "resumeDraft.input[$index]",
+                data = snap.basicData,
+                label = snap.label.ifBlank { snap.type }
+            )
+        }
         return ResumeAction.ResumeMapSheet(
             draftId = draft.id,
             isOffline = isOfflineMainMode,
