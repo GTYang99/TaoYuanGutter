@@ -11,8 +11,12 @@
 .DS_Store
 /build
 /captures
+/scripts
+/trace_logs
 .externalNativeBuild
 .cxx
+.log
+.sh
 local.properties
 # API 金鑰檔案，請勿上傳至版本控制
 new.properties

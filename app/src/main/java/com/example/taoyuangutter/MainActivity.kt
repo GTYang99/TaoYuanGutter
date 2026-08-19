@@ -24,6 +24,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.lifecycle.lifecycleScope
 import android.net.Uri
 import com.example.taoyuangutter.common.LocationPickEvents
+import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.UploadFailureClassifier
 import com.example.taoyuangutter.api.ApiResult
@@ -89,6 +90,18 @@ class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
     AddGutterBottomSheet.LocationPickerHost,
     LayersBottomSheet.Host {
+
+    private fun logPhotoImgIdTrace(stage: String, data: Map<String, String>) {
+        val summary = (1..3).joinToString(" | ") { slot ->
+            "p$slot(photo=${!data["photo$slot"].isNullOrBlank()},imgId=${data["photo${slot}ImgId"] ?: "-"},state=${data["photo${slot}UploadState"] ?: "-"})"
+        }
+        PhotoImgIdTraceDebugger.record(
+            owner = "MainActivity",
+            stage = stage,
+            imgIds = listOf(data["photo1ImgId"], data["photo2ImgId"], data["photo3ImgId"]),
+            summary = summary
+        )
+    }
 
     companion object {
         private const val KEY_PENDING_WP_INDEX = "pending_wp_index"
@@ -400,12 +413,14 @@ class MainActivity : AppCompatActivity(),
 	                            // ── 更新表單填寫的基本資料 ──────────────────────────
 	                            // 先做照片 URI 正規化（避免多節點上傳照片卡住），再回寫 basicData，並立刻刷新工作層 marker
 	                            val rawData = GutterFormContract.readResultData(result.data)
+                                logPhotoImgIdTrace("gutterFormLauncher.rawResult", rawData)
 		                            lifecycleScope.launch {
                                 val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
                                     context = this@MainActivity,
                                     basicData = rawData,
                                     prefix = "GUTTER_EXT_"
                                 )
+                                logPhotoImgIdTrace("gutterFormLauncher.normalizedResult", newData)
                                 liveSheet?.updateWaypointBasicData(pendingWaypointFormIndex, newData)
                                 // Ensure map markers reflect the latest flags (e.g., IS_PENDING_DEPLOY) immediately.
                                 currentWaypoints = liveSheet?.getWaypoints() ?: currentWaypoints
@@ -453,12 +468,14 @@ class MainActivity : AppCompatActivity(),
                         val idx  = data?.getIntExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, -1) ?: -1
 		                        if (idx >= 0) {
 		                            val rawData = GutterFormContract.readResultData(data)
+                                logPhotoImgIdTrace("inspectBranch.rawResult", rawData)
                             lifecycleScope.launch {
                                 val newData = PhotoUriStore.normalizeBasicDataPhotoUris(
                                     context = this@MainActivity,
                                     basicData = rawData,
                                     prefix = "GUTTER_EXT_"
                                 )
+                                logPhotoImgIdTrace("inspectBranch.normalizedResult", newData)
                                 inspectWaypoints.getOrNull(idx)?.basicData = newData
                             }
                         }
@@ -913,6 +930,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onGutterSubmitting() {
+        activeSheet?.hideSelf()
         mainBlockingUiController.setInspectLoading(true, getString(R.string.msg_gutter_submitting))
     }
 

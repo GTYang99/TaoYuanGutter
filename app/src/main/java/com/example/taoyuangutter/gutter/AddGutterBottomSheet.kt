@@ -27,6 +27,7 @@ import com.example.taoyuangutter.api.StoreDitchRequest
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PendingPhotoDraftState
+import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 import com.example.taoyuangutter.common.PhotoSlotUploadCoordinator
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.common.PhotoUploadSlotState
@@ -50,6 +51,18 @@ import java.io.File
 import java.util.UUID
 
 class AddGutterBottomSheet : BottomSheetDialogFragment() {
+
+    private fun logPhotoImgIdTrace(stage: String, data: Map<String, String>, label: String? = null) {
+        val summary = (1..3).joinToString(" | ") { slot ->
+            "p$slot(photo=${!data["photo$slot"].isNullOrBlank()},imgId=${data["photo${slot}ImgId"] ?: "-"},state=${data["photo${slot}UploadState"] ?: "-"})"
+        }
+        PhotoImgIdTraceDebugger.record(
+            owner = TAG,
+            stage = stage,
+            imgIds = listOf(data["photo1ImgId"], data["photo2ImgId"], data["photo3ImgId"]),
+            summary = "waypoint=${label ?: "-"} $summary"
+        )
+    }
 
     // ── 與 MainActivity 通訊的介面 ──────────────────────────────────────
     interface LocationPickerHost {
@@ -793,20 +806,19 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     return@setOnClickListener
                 }
 
-                syncLatestDraftStateIntoWaypoints()
-                val uploadingLabel = findUploadingWaypointLabel(waypoints.toList())
-                if (!uploadingLabel.isNullOrBlank()) {
-                    showPhotosUploadingAlert(uploadingLabel)
-                    return@setOnClickListener
-                }
-                if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) return@setOnClickListener
-                if (!validateCurvePointCountOrAlert()) return@setOnClickListener
-
                 lifecycleScope.launch {
+                    syncLatestDraftStateIntoWaypoints()
+                    restoreUnchangedPhotoMetadataIntoWaypoints(waypoints)
                     if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
                         showSelf()
+                        updateSubmitButtonState()
                         return@launch
                     }
+                    if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) {
+                        updateSubmitButtonState()
+                        return@launch
+                    }
+                    if (!validateCurvePointCountOrAlert()) return@launch
                     val submittedWaypoints = waypoints.toList()
 
                     // 立即清除地圖暫存資料（新增模式不可回頭）
@@ -868,6 +880,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
                 syncLatestDraftStateIntoWaypoints()
                 restoreUnchangedPhotoMetadataIntoWaypoints(waypoints)
+                if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
+                    showSelf()
+                    updateSubmitButtonState()
+                    return@launch
+                }
                 val uploadingLabel = findUploadingWaypointLabel(waypoints.toList())
                 if (!uploadingLabel.isNullOrBlank()) {
                     showPhotosUploadingAlert(uploadingLabel)
@@ -880,11 +897,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 }
                 // 弧線上傳限制：僅允許起點/終點兩點
                 if (!validateCurvePointCountOrAlert()) {
-                    updateSubmitButtonState()
-                    return@launch
-                }
-                if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
-                    showSelf()
                     updateSubmitButtonState()
                     return@launch
                 }
@@ -1205,14 +1217,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun isUnchangedPhotoSlot(slot: Int, waypoint: Waypoint): Boolean {
         if (editSpiNum.isEmpty()) return false
         val original = originalSnapshotFor(waypoint) ?: return false
+        val originalImgId = PhotoUploadSlotState.readImgId(original.basicData, slot) ?: return false
+        val currentImgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot) ?: return false
         val photoKey = "photo$slot"
-        return normalizedString(waypoint.basicData[photoKey]) == normalizedString(original.basicData[photoKey])
+        val currentPhoto = normalizedString(waypoint.basicData[photoKey])
+        return currentPhoto != null && currentImgId == originalImgId
     }
 
     private fun restoreUnchangedPhotoMetadataIntoWaypoints(targetWaypoints: MutableList<Waypoint>) {
         if (editSpiNum.isEmpty() || originalWaypointsSnapshot.isEmpty()) return
         targetWaypoints.forEachIndexed { index, waypoint ->
             val original = originalSnapshotFor(waypoint) ?: return@forEachIndexed
+            logPhotoImgIdTrace("restoreUnchanged.before", waypoint.basicData, waypoint.label)
             val merged = HashMap(waypoint.basicData)
             var changed = false
             (1..3).forEach { slot ->
@@ -1228,15 +1244,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     photoUploadStateKey to original.basicData[photoUploadStateKey],
                     photoUploadErrorKey to original.basicData[photoUploadErrorKey]
                 ).forEach { (key, value) ->
-                    if (value.isNullOrBlank()) {
-                        if (merged.remove(key) != null) changed = true
-                    } else if (merged[key] != value) {
+                    if (waypoint.basicData["photo$slot"].isNullOrBlank()) return@forEach
+                    if (!value.isNullOrBlank() && merged[key] != value) {
                         merged[key] = value
                         changed = true
                     }
                 }
             }
             if (changed) {
+                logPhotoImgIdTrace("restoreUnchanged.after", merged, waypoint.label)
                 targetWaypoints[index] = waypoint.copy(basicData = merged)
             }
         }
@@ -1422,8 +1438,17 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
             if (!wp.isVirtual) {
                 val requiredPhotos = if (isCantOpen) listOf("photo1") else requiredPhotoKeys
-                val missingPhotos = requiredPhotos.filter { key ->
-                    !PhotoUploadValidator.isUsableForUpload(ctx, wp.basicData[key])
+                val photosToCheck = if (isCantOpen) listOf("photo1") else requiredPhotoKeys
+
+                val missingPhotos = photosToCheck.filter { key ->
+                    val photoPath = wp.basicData[key]
+                    val slot = key.removePrefix("photo").toInt()
+                    val imgId = PhotoUploadSlotState.readImgId(wp.basicData, slot)
+
+                    // 照片「未準備好」的條件：
+                    // 1. 本地照片檔案不可用 (PhotoUploadValidator.isUsableForUpload == false)
+                    // 2. 或者，沒有 img_id (imgId == null)
+                    !PhotoUploadValidator.isUsableForUpload(ctx, photoPath) || imgId == null
                 }
                 if (missingPhotos.isNotEmpty()) {
                     val pretty = missingPhotos.mapNotNull { it.removePrefix("photo").toIntOrNull() }.sorted()
@@ -1452,13 +1477,53 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (latestWaypoints.size != waypoints.size) return
         latestWaypoints.forEachIndexed { index, snapshot ->
             val existing = waypoints.getOrNull(index) ?: return@forEachIndexed
+            val mergedBasicData = HashMap(existing.basicData).apply {
+                putAll(snapshot.basicData)
+                (1..3).forEach { slot ->
+                    val imgIdKey = "photo${slot}ImgId"
+                    val captureKey = "photo${slot}CapturedAt"
+                    val stateKey = "photo${slot}UploadState"
+                    val errorKey = "photo${slot}UploadError"
+                    preserveNonBlankPhotoMetadata(
+                        target = this,
+                        source = existing.basicData,
+                        key = imgIdKey
+                    )
+                    preserveNonBlankPhotoMetadata(
+                        target = this,
+                        source = existing.basicData,
+                        key = captureKey
+                    )
+                    preserveNonBlankPhotoMetadata(
+                        target = this,
+                        source = existing.basicData,
+                        key = stateKey
+                    )
+                    preserveNonBlankPhotoMetadata(
+                        target = this,
+                        source = existing.basicData,
+                        key = errorKey
+                    )
+                }
+            }
             waypoints[index] = existing.copy(
                 latLng = existing.latLng ?: snapshot.toLatLng(),
-                basicData = HashMap(existing.basicData).apply { putAll(snapshot.basicData) }
+                basicData = mergedBasicData
             )
         }
         adapter.notifyDataSetChanged()
         onWaypointsChanged?.invoke(waypoints.toList())
+    }
+
+    private fun preserveNonBlankPhotoMetadata(
+        target: MutableMap<String, String>,
+        source: Map<String, String>,
+        key: String
+    ) {
+        val sourceValue = source[key]?.trim()?.takeIf { it.isNotEmpty() } ?: return
+        if (target[key].isNullOrBlank()) {
+            target[key] = sourceValue
+        }
     }
 
     private fun WaypointSnapshot.toLatLng(): LatLng? {
@@ -1529,6 +1594,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         PhotoUploadSlotState.clear(waypoint.basicData, slot)
                         return@forEach
                     }
+                    logPhotoImgIdTrace("ensurePhotos.beforeSlot$slot", waypoint.basicData, waypoint.label)
                     if (isUnchangedPhotoSlot(slot, waypoint)) return@forEach
                     val photoPath = waypoint.basicData["photo$slot"]
                     if (!PhotoUploadValidator.isUsableForUpload(ctx, photoPath)) return@forEach
@@ -1552,6 +1618,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 imgId = result.data.data?.imgId,
                                 error = null
                             )
+                            logPhotoImgIdTrace("ensurePhotos.uploadedSlot$slot", waypoint.basicData, waypoint.label)
                         }
                         is ApiResult.Error -> {
                             host?.onPendingPhotoUploadProgress(false)
@@ -1614,8 +1681,27 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     /** 將表單填寫的基本資料存回對應的 waypoint（供新增流程返回後呼叫） */
     fun updateWaypointBasicData(index: Int, data: HashMap<String, String>) {
         if (index in waypoints.indices) {
-            val merged = HashMap(waypoints[index].basicData)
+            val existing = waypoints[index].basicData
+            logPhotoImgIdTrace("updateWaypointBasicData.existing", existing, waypoints[index].label)
+            logPhotoImgIdTrace("updateWaypointBasicData.incoming", data, waypoints[index].label)
+            val merged = HashMap(existing)
             merged.putAll(data)
+            (1..3).forEach { slot ->
+                val photoKey = "photo$slot"
+                if (merged[photoKey].isNullOrBlank()) return@forEach
+                listOf(
+                    "photo${slot}CapturedAt",
+                    "photo${slot}ImgId",
+                    "photo${slot}UploadState",
+                    "photo${slot}UploadError"
+                ).forEach { key ->
+                    val existingValue = existing[key]
+                    if (!existingValue.isNullOrBlank() && merged[key].isNullOrBlank()) {
+                        merged[key] = existingValue
+                    }
+                }
+            }
+            logPhotoImgIdTrace("updateWaypointBasicData.merged", merged, waypoints[index].label)
             waypoints[index].basicData = merged
             adapter.notifyItemChanged(index)
             // 表單填寫完成後同樣通知 onWaypointsChanged，讓 MainActivity 觸發自動存檔

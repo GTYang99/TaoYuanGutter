@@ -25,6 +25,8 @@ import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.NodeDetails
 import com.example.taoyuangutter.api.safeCapturedAt
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
+import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
+import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.databinding.ActivityGutterInspectBinding
 import com.example.taoyuangutter.login.LoginActivity
 import com.google.android.material.button.MaterialButton
@@ -51,6 +53,18 @@ import kotlinx.coroutines.launch
  * 標題格式：「側溝編號 \n {SPI_NUM}」，後者字體較小。
  */
 class GutterInspectActivity : AppCompatActivity() {
+
+    private fun logPhotoImgIdTrace(stage: String, data: Map<String, String>, label: String? = null) {
+        val summary = (1..3).joinToString(" | ") { slot ->
+            "p$slot(photo=${!data["photo$slot"].isNullOrBlank()},imgId=${data["photo${slot}ImgId"] ?: "-"},state=${data["photo${slot}UploadState"] ?: "-"})"
+        }
+        PhotoImgIdTraceDebugger.record(
+            owner = TAG,
+            stage = stage,
+            imgIds = listOf(data["photo1ImgId"], data["photo2ImgId"], data["photo3ImgId"]),
+            summary = "waypoint=${label ?: "-"} $summary"
+        )
+    }
 
     private data class EditPreloadResult(
         val waypoints: List<Waypoint>,
@@ -244,6 +258,9 @@ class GutterInspectActivity : AppCompatActivity() {
     private fun openEditForm() {
         val d = ditch ?: return
         val waypoints = ditchToWaypoints(d)
+        waypoints.forEach { waypoint ->
+            logPhotoImgIdTrace("openEditForm.waypoint", waypoint.basicData, waypoint.label)
+        }
         val snapshots = waypoints.map { wp ->
             WaypointSnapshot(
                 type      = wp.type.name,
@@ -442,8 +459,21 @@ class GutterInspectActivity : AppCompatActivity() {
                 "NODE_NOTE" to (nodeDetails.note ?: ""),
                 "photo1" to photo1,
                 "photo2" to photo2,
-                "photo3" to photo3
+                "photo3" to photo3,
+                "photo1ImgId" to (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.id?.toString()
+                    ?: node.url.firstOrNull { it.fileCategory == "1" }?.id?.toString()
+                    ?: ""),
+                "photo2ImgId" to (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.id?.toString()
+                    ?: node.url.firstOrNull { it.fileCategory == "2" }?.id?.toString()
+                    ?: ""),
+                "photo3ImgId" to (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id?.toString()
+                    ?: node.url.firstOrNull { it.fileCategory == "3" }?.id?.toString()
+                    ?: ""),
+                "photo1UploadState" to (if (photo1.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE),
+                "photo2UploadState" to (if (photo2.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE),
+                "photo3UploadState" to (if (photo3.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE)
             )
+            logPhotoImgIdTrace("preloadEditableWaypoints.mapped", basicData, target.label)
             PhotoCapturedAtResolver.writeBasicData(
                 basicData,
                 1,
@@ -598,7 +628,14 @@ class GutterInspectActivity : AppCompatActivity() {
                 "photo1UploadState" to (if (node.url.any { it.fileCategory == "1" && it.id != null }) "success" else "idle"),
                 "photo2UploadState" to (if (node.url.any { it.fileCategory == "2" && it.id != null }) "success" else "idle"),
                 "photo3UploadState" to (if (node.url.any { it.fileCategory == "3" && it.id != null }) "success" else "idle")
-            )
+            ).also { data ->
+                val label = when (node.nodeAtt) {
+                    "1" -> "起點"
+                    "3" -> "終點"
+                    else -> "節點${node.nodeNum ?: "?"}"
+                }
+                logPhotoImgIdTrace("ditchToWaypoints.baseData", data, label)
+            }
 
             when (node.nodeAtt) {
                 "1" -> result.add(Waypoint(
