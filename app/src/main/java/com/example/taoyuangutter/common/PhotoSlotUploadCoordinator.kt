@@ -140,7 +140,12 @@ object PhotoSlotUploadCoordinator {
 
         val updatedWaypoints = draft.waypoints.toMutableList()
         val updatedBasicData = HashMap(target.basicData)
-        PhotoUploadSlotState.writeState(updatedBasicData, slot, state = state, imgId = imgId, error = error)
+        val resolvedImgId = if (state == PhotoUploadSlotState.STATE_UPLOADING && imgId == null) {
+            PhotoUploadSlotState.readImgId(target.basicData, slot)
+        } else {
+            imgId
+        }
+        PhotoUploadSlotState.writeState(updatedBasicData, slot, state = state, imgId = resolvedImgId, error = error)
         updatedWaypoints[waypointIndex] = target.copy(basicData = updatedBasicData)
         repository.save(draft.copy(savedAt = System.currentTimeMillis(), waypoints = updatedWaypoints))
 
@@ -149,7 +154,7 @@ object PhotoSlotUploadCoordinator {
             waypointIndex = waypointIndex,
             slot = slot,
             state = state,
-            imgId = imgId,
+            imgId = resolvedImgId,
             error = error
         )
         listeners[taskKey(draftId, waypointIndex, slot)]?.toList()?.forEach { it(snapshot) }

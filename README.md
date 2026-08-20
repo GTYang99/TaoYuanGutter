@@ -1,101 +1,166 @@
 # 桃園側溝 - Android GutterForm 應用程式
 
-這是基於 Android Kotlin 開發的側溝管理系統，旨在提供現場巡查人員一個高效、直覺的工具，用於收集側溝基本資訊、拍攝現場照片，並透過地圖進行精確的位置標記與管理。
+這是一個以 Android Kotlin 開發的側溝巡查與管理應用，供現場人員在地圖上標記側溝位置、填寫基本資料、拍攝照片，並把結構化資料與影像送往後端。
 
----
+如果你是 Codex 或 Gemini，先看這份 README 取得全貌，再看 [開發日誌.md](/Users/a10362/AndroidStudioProjects/TaoYuanGutter/開發日誌.md) 了解最近的修改紀錄與設計決策。
 
-## 🏗️ 專案架構 (Project Architecture)
+## 專案重點
 
-本專案採用 **Repository 模式** 與 **MVVM 近似架構**，並結合 **Google Maps SDK** 進行空間資料處理。
+- 地圖選點與側溝標記
+- 分頁式表單填寫
+- CameraX 拍照與方向處理
+- 結構化資料上傳與照片上傳
+- 草稿暫存與恢復編輯
+- 檢視模式與編輯模式切換
 
-### 1. 核心模組架構
-- **UI 層 (MainActivity, GutterFormActivity)**: 處理地圖呈現、表單導航及用戶交互。
-- **表單層 (gutter/ 模組)**: 包含 `ViewPager2` 分頁表單 (`GutterBasicInfoFragment` & `GutterPhotosFragment`)。
-- **倉儲層 (api/ & offline/ & pending/)**:
-    - `GutterRepository`: 處理遠端 API 通訊。
-    - `OfflineDraftRepository`: 處理本地 SQLite (Room) 離線存檔。
-    - `GutterSessionRepository`: 管理當前會話的臨時草稿（不持久化）。
-- **API 層 (api/)**: 使用 `Retrofit` + `OkHttp` + `Gson` 進行 JSON 資料交換。
+## 技術棧
 
-### 2. 主要檔案職責
-- `MainActivity.kt`: 應用的入口，管理地圖視圖、位置追蹤、以及點位標記的渲染。
-- `GutterFormActivity.kt`: 表單容器，負責驗證資料並呼叫 API 提交。
-- `AddGutterBottomSheet.kt`: 地圖上的浮動表單，用於新增/編輯路點 (Waypoint)。
-- `GutterInspectActivity.kt`: 查看已提交側溝的詳細資訊，並支援進入編輯模式。
+- Android Kotlin
+- Google Maps SDK
+- CameraX
+- Retrofit + OkHttp + Gson
+- Room SQLite
+- ViewPager2
+- ViewBinding
 
----
+## 核心流程
 
-## 📊 數據結構 (Data Structure)
+1. 在地圖上選點或開啟既有側溝
+2. 進入 `AddGutterBottomSheet` 或 `GutterFormActivity`
+3. 在 `GutterBasicInfoFragment` 填寫基本資料
+4. 在 `GutterPhotosFragment` 拍攝或補拍照片
+5. 送出 `storeDitch()` 或 `submitGutter()`
+6. 再逐張上傳照片
+7. 必要時把 `nodeId`、`spiNum` 等識別資訊回寫到本地狀態
 
-### 1. UI 數據模型: `Waypoint`
-路點是地圖與表單之間的橋樑數據結構：
-```kotlin
-data class Waypoint(
-    var id: Long = 0,
-    var nodeId: String = "",      // API 返回的識別 ID
-    var index: Int = 0,           // 序號
-    var name: String = "",        // 標記名稱
-    var latLng: LatLng,           // 經緯度座標
-    var waypointType: WaypointType, // START(起點), NODE(節點), END(終點)
-    var basicData: Map<String, String> = emptyMap(), // 存儲表單欄位 (如 NODE_TYP, MAT_TYP)
-    var photoUris: List<Uri> = emptyList()           // 照片路徑
-)
+## 核心資料
+
+### `Waypoint`
+
+`Waypoint` 是地圖與表單之間的橋接資料結構，會同時承載：
+
+- `latLng`：經緯度座標
+- `waypointType`：起點、節點、終點
+- `basicData`：表單欄位
+- `photoUris`：照片 URI
+- `nodeId`：API 回傳的節點識別
+
+### 常見 `basicData` 欄位
+
+- `NODE_TYP`：側溝類型
+- `MAT_TYP`：材質
+- `XY_NUM`：測量座標編號
+- `IS_CANTOPEN`：是否無法開蓋
+- `NODE_DEP`：深度
+- `NODE_WID`：寬度
+- `IS_BROKEN`：破損
+- `IS_HANGING`：懸掛
+- `IS_SILT`：淤積
+
+## 模組職責
+
+- `MainActivity`：地圖入口、位置追蹤、線段與模式管理
+- `AddGutterBottomSheet`：新增與編輯路點的浮動表單
+- `GutterFormActivity`：表單容器與驗證中心
+- `GutterBasicInfoFragment`：基本資料頁
+- `GutterPhotosFragment`：照片頁
+- `GutterInspectActivity`：既有側溝的唯讀檢視
+- `GutterRepository`：遠端 API 通訊
+- `GutterSessionRepository`：草稿暫存與 Room 持久化
+- `DistanceMeasureManager`：測距虛線與粗度控制
+- `CameraOverlayFragment`：表單內相機拍攝流程
+
+## 模式說明
+
+### 新增模式
+
+- 側溝編號欄位可見
+- 必填驗證完整啟用
+- 送出後建立新的 `spiNum`
+
+### 編輯模式
+
+- 側溝編號欄位隱藏
+- `XY_NUM` 會自動帶入
+- `gutterId` 驗證會跳過
+- 完成後會重新整理地圖線段
+
+### 檢視模式
+
+- 只讀顯示既有資料
+- 可進一步進入編輯
+- 會優先載入最新的點位詳情，而不是只依賴地圖上現有座標
+
+## 上傳流程
+
+### 1. 結構化資料
+
+主要 API：
+
+```text
+POST /api/v1/ditch/storeDitch
 ```
 
-### 2. 側溝基本資料 (`basicData`) 關鍵欄位
-- `XY_NUM`: 測量座標編號 (必填)
-- `NODE_TYP`: 側溝類型 (1=U型溝明溝, 2=U型溝加蓋...)
-- `MAT_TYP`: 材質 (1=混凝土, 2=卵礫石...)
-- `IS_CANTOPEN`: 無法開蓋旗標 (Boolean 字符串)
-- `IS_BROKEN`, `IS_HANGING`, `IS_SILT`: 狀態旗標 (0=無, 1=有/輕微...)
+這一步會把 `List<Waypoint>` 轉成 `StoreDitchRequest`。
 
----
+- `NODE_ATT = 1`：起點
+- `NODE_ATT = 2`：節點
+- `NODE_ATT = 3`：終點
 
-## 🛠️ 核心功能 (Functionalities)
+如果 `IS_CANTOPEN = true`，深度與寬度等欄位會自動清空。
 
-- **地圖管理**: 支援 EMAP/PHOTO2 切換、WMS/WMTS 圖層疊加、以及路徑 (Polyline) 繪製。
-- **分頁表單**:
-    - **第 0 頁 (基本資料)**: 收集側溝規格與損壞狀態。
-    - **第 1 頁 (現場照片)**: 支援拍攝最多 3 張照片，並進行持久化 URI 管理。
-- **編輯模式 (Edit Mode)**:
-    - 進入編輯時自動隱藏「側溝 ID」欄位。
-    - 自動帶入 API 返回的 `XY_NUM` 資料。
-- **驗證機制**: 提交前嚴格檢查必填欄位與照片數量 (需拍攝 3 張)。
-- **草稿管理**: 支援手動/自動保存草稿，並能從列表快速恢復編輯。
+### 2. 照片上傳
 
----
+照片會再逐張上傳，使用 `node_id` 和 `fileCategory` 關聯到對應點位。
 
-## 📤 數據上傳流程 (Data & Upload Workflow)
+## 相機重點
 
-數據上傳分為兩個階段：**結構化數據上傳** 與 **照片上傳**。
+- 使用 CameraX
+- 預覽與最終 JPEG 分開看待
+- 透過 `OrientationEventListener` 與 `targetRotation` 處理方向
+- 不重新編碼照片，以保留 EXIF 方向資訊
+- 橫向拍攝相關調整已整理完成
 
-### 階段 1: 結構化數據上傳 (`storeDitch`)
-1. **觸發**: 用戶在 `AddGutterBottomSheet` 點擊「提交」。
-2. **轉換**: 呼叫 `buildStoreDitchRequest()` 將 `List<Waypoint>` 轉換為 `StoreDitchRequest` (JSON)。
-    - 若為**無法開蓋** (`IS_CANTOPEN=true`)，自動將深度、寬度等欄位設為 `null`。
-3. **API 調用**: `POST /api/v1/ditch/storeDitch`
-4. **回應處理**: 
-    - 成功時取得 `spiNum` (側溝編號) 及各節點的 `nodeId`。
-    - 將 `nodeId` 保存回 `Waypoint.basicData["_nodeId"]` 以供未來編輯使用。
+## 介面調整
 
-### 階段 2: 照片上傳 (`uploadPhotos`)
-1. **觸發**: 數據上傳成功後，自動檢查 `Waypoint` 中的 `photoUris`。
-2. **處理**: 將本地 `Uri` 轉換為 `MultipartBody.Part`。
-3. **API 調用**: `POST /api/v1/ditch/uploadPhotos`
-4. **鏈結**: 照片會透過 `nodeId` 或 `spiNum` 與側溝資料進行鏈結。
+目前已整理的互動優化包含：
 
----
+- `IS_BROKEN`、`IS_HANGING`、`IS_SILT` 的選項表現改得更直觀
+- 二選項優先採水平 `RadioGroup`
+- 三到四選項採垂直排列
+- 目標是減少下拉選單的額外點擊與判讀成本
 
-## 📸 照片管理細節
-- **儲存**: 使用 `FileProvider` 取得持久化 `Uri`，避免 Android 11+ 的權限問題。
-- **顯示**: 採用 `Glide` 庫優化圖片載入性能。
-- **驗證**: `FragmentGutterPhotos.validateAllPhotos()` 確保上傳前三張照片皆已就緒。
+## 錯誤提示
 
----
+上傳失敗已整理成可讀的分類，避免把原始 log 直接丟給使用者。
 
-## 🚀 開發者快速入門
+常見分類包含：
 
-### 環境需求
-- Min SDK: 26
-- ViewBinding: Enabled
-- Google Maps API Key: 需設定於 `local.properties` 或 `secrets.properties`
+- 網路連線失敗
+- 側溝資料上傳失敗
+- 照片處理失敗
+- 照片上傳失敗
+- 伺服器回應逾時
+- 未知錯誤
+
+## 開發環境
+
+- Min SDK: 24
+- Target SDK: 36
+- Compile SDK: 36
+- ViewBinding: 已啟用
+- Google Maps API Key：請設定在 `local.properties` 或 `secrets.properties`
+
+## 建議閱讀順序
+
+1. [開發日誌.md](/Users/a10362/AndroidStudioProjects/TaoYuanGutter/開發日誌.md)
+2. `MainActivity.kt`
+3. `GutterFormActivity.kt`
+4. `AddGutterBottomSheet.kt`
+5. `GutterRepository.kt`
+6. `CameraOverlayFragment.kt`
+
+## 備註
+
+- `README.md` 保留作為快速入口
+- 所有修改紀錄、架構說明與流程細節請以 [開發日誌.md](/Users/a10362/AndroidStudioProjects/TaoYuanGutter/開發日誌.md) 為準

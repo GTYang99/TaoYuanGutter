@@ -1,6 +1,7 @@
 package com.example.taoyuangutter.gutter
 
 import android.content.Intent
+import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 
 /**
  * 集中 GutterFormActivity 的表單資料打包/解包邏輯，
@@ -8,7 +9,43 @@ import android.content.Intent
  */
 object GutterFormContract {
 
+    private fun logPhotoImgIdTrace(stage: String, data: Map<String, String>) {
+        val summary = (1..3).joinToString(" | ") { slot ->
+            "p$slot(photo=${!data["photo$slot"].isNullOrBlank()},imgId=${data["photo${slot}ImgId"] ?: "-"},state=${data["photo${slot}UploadState"] ?: "-"})"
+        }
+        PhotoImgIdTraceDebugger.record(
+            owner = "GutterFormContract",
+            stage = stage,
+            imgIds = listOf(data["photo1ImgId"], data["photo2ImgId"], data["photo3ImgId"]),
+            summary = summary
+        )
+    }
+
+    private fun logIntentExtraTrace(stage: String, intent: Intent?, extraPrefix: String) {
+        val summary = (1..3).joinToString(" | ") { slot ->
+            val photoKey = "${extraPrefix}photo$slot"
+            val imgIdKey = "${extraPrefix}photo${slot}_img_id"
+            val hasPhotoExtra = intent?.hasExtra(photoKey) == true
+            val hasImgIdExtra = intent?.hasExtra(imgIdKey) == true
+            val imgId = intent?.getStringExtra(imgIdKey) ?: "-"
+            val photo = intent?.getStringExtra(photoKey).orEmpty().isNotBlank()
+            "p$slot(photo=$photo,photoExtra=$hasPhotoExtra,imgId=$imgId,imgIdExtra=$hasImgIdExtra)"
+        }
+        android.util.Log.d("GutterFormContract", "imgId-trace[$stage] $summary")
+    }
+
+    private fun putStringExtraIfPresent(
+        target: HashMap<String, String>,
+        intent: Intent?,
+        key: String,
+        extraName: String
+    ) {
+        if (intent == null || !intent.hasExtra(extraName)) return
+        target[key] = intent.getStringExtra(extraName) ?: ""
+    }
+
     fun putFormDataExtras(intent: Intent, data: Map<String, String>) {
+        logPhotoImgIdTrace("putFormDataExtras.input", data)
         intent.putExtra(GutterFormActivity.EXTRA_DATA_GUTTER_ID, data["SPI_NUM"] ?: data["gutterId"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_GUTTER_TYPE, data["NODE_TYP"] ?: data["gutterType"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_MAT_TYP, data["MAT_TYP"] ?: data["matTyp"] ?: "")
@@ -51,6 +88,7 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_UPLOAD_ERROR, data["photo3UploadError"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_XY_NUM, data["XY_NUM"] ?: data["xyNum"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_NODE_ID, data["_nodeId"] ?: "")
+        logIntentExtraTrace("putFormDataExtras.intent", intent, "ex_")
     }
 
     fun readFormData(intent: Intent): HashMap<String, String> {
@@ -74,23 +112,26 @@ object GutterFormContract {
             "IS_PENDING_DEPLOY" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_PENDING_DEPLOY) ?: ""),
             "is_virtual" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_VIRTUAL) ?: ""),
             "_isImported" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_IMPORTED) ?: ""),
-            "NODE_NOTE" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_REMARKS) ?: ""),
-            "photo1" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1) ?: ""),
-            "photo2" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2) ?: ""),
-            "photo3" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3) ?: ""),
-            "photo1CapturedAt" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_CAPTURED_AT) ?: ""),
-            "photo2CapturedAt" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_CAPTURED_AT) ?: ""),
-            "photo3CapturedAt" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_CAPTURED_AT) ?: ""),
-            "photo1ImgId" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_IMG_ID) ?: ""),
-            "photo2ImgId" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_IMG_ID) ?: ""),
-            "photo3ImgId" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_IMG_ID) ?: ""),
-            "photo1UploadState" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_UPLOAD_STATE) ?: ""),
-            "photo2UploadState" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_UPLOAD_STATE) ?: ""),
-            "photo3UploadState" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_UPLOAD_STATE) ?: ""),
-            "photo1UploadError" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_1_UPLOAD_ERROR) ?: ""),
-            "photo2UploadError" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_2_UPLOAD_ERROR) ?: ""),
-            "photo3UploadError" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_PHOTO_3_UPLOAD_ERROR) ?: "")
-        )
+            "NODE_NOTE" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_REMARKS) ?: "")
+        ).apply {
+            putStringExtraIfPresent(this, intent, "photo1", GutterFormActivity.EXTRA_DATA_PHOTO_1)
+            putStringExtraIfPresent(this, intent, "photo2", GutterFormActivity.EXTRA_DATA_PHOTO_2)
+            putStringExtraIfPresent(this, intent, "photo3", GutterFormActivity.EXTRA_DATA_PHOTO_3)
+            putStringExtraIfPresent(this, intent, "photo1CapturedAt", GutterFormActivity.EXTRA_DATA_PHOTO_1_CAPTURED_AT)
+            putStringExtraIfPresent(this, intent, "photo2CapturedAt", GutterFormActivity.EXTRA_DATA_PHOTO_2_CAPTURED_AT)
+            putStringExtraIfPresent(this, intent, "photo3CapturedAt", GutterFormActivity.EXTRA_DATA_PHOTO_3_CAPTURED_AT)
+            putStringExtraIfPresent(this, intent, "photo1ImgId", GutterFormActivity.EXTRA_DATA_PHOTO_1_IMG_ID)
+            putStringExtraIfPresent(this, intent, "photo2ImgId", GutterFormActivity.EXTRA_DATA_PHOTO_2_IMG_ID)
+            putStringExtraIfPresent(this, intent, "photo3ImgId", GutterFormActivity.EXTRA_DATA_PHOTO_3_IMG_ID)
+            putStringExtraIfPresent(this, intent, "photo1UploadState", GutterFormActivity.EXTRA_DATA_PHOTO_1_UPLOAD_STATE)
+            putStringExtraIfPresent(this, intent, "photo2UploadState", GutterFormActivity.EXTRA_DATA_PHOTO_2_UPLOAD_STATE)
+            putStringExtraIfPresent(this, intent, "photo3UploadState", GutterFormActivity.EXTRA_DATA_PHOTO_3_UPLOAD_STATE)
+            putStringExtraIfPresent(this, intent, "photo1UploadError", GutterFormActivity.EXTRA_DATA_PHOTO_1_UPLOAD_ERROR)
+            putStringExtraIfPresent(this, intent, "photo2UploadError", GutterFormActivity.EXTRA_DATA_PHOTO_2_UPLOAD_ERROR)
+            putStringExtraIfPresent(this, intent, "photo3UploadError", GutterFormActivity.EXTRA_DATA_PHOTO_3_UPLOAD_ERROR)
+        }.also {
+            logPhotoImgIdTrace("readFormData.output", it)
+        }
     }
 
     fun putResultData(
@@ -104,6 +145,7 @@ object GutterFormContract {
         photo3: String?,
         includeSpiNum: Boolean
     ) {
+        logPhotoImgIdTrace("putResultData.input", basicData)
         latitude?.let { intent.putExtra(GutterFormActivity.RESULT_LATITUDE, it) }
         longitude?.let { intent.putExtra(GutterFormActivity.RESULT_LONGITUDE, it) }
         intent.putExtra(GutterFormActivity.RESULT_WAYPOINT_INDEX, waypointIndex)
@@ -146,6 +188,7 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_UPLOAD_ERROR, basicData["photo1UploadError"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_UPLOAD_ERROR, basicData["photo2UploadError"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_UPLOAD_ERROR, basicData["photo3UploadError"] ?: "")
+        logIntentExtraTrace("putResultData.intent", intent, "r_")
     }
 
     fun readResultData(intent: Intent?): HashMap<String, String> {
@@ -167,22 +210,25 @@ object GutterFormContract {
             "IS_PENDING_DEPLOY" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_PENDING_DEPLOY) ?: ""),
             "is_virtual" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_VIRTUAL) ?: ""),
             "_isImported" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_IMPORTED) ?: ""),
-            "NODE_NOTE" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS) ?: ""),
-            "photo1" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1) ?: ""),
-            "photo2" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2) ?: ""),
-            "photo3" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3) ?: ""),
-            "photo1CapturedAt" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_CAPTURED_AT) ?: ""),
-            "photo2CapturedAt" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_CAPTURED_AT) ?: ""),
-            "photo3CapturedAt" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_CAPTURED_AT) ?: ""),
-            "photo1ImgId" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_IMG_ID) ?: ""),
-            "photo2ImgId" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_IMG_ID) ?: ""),
-            "photo3ImgId" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_IMG_ID) ?: ""),
-            "photo1UploadState" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_UPLOAD_STATE) ?: ""),
-            "photo2UploadState" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_UPLOAD_STATE) ?: ""),
-            "photo3UploadState" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_UPLOAD_STATE) ?: ""),
-            "photo1UploadError" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_1_UPLOAD_ERROR) ?: ""),
-            "photo2UploadError" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_2_UPLOAD_ERROR) ?: ""),
-            "photo3UploadError" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_PHOTO_3_UPLOAD_ERROR) ?: "")
-        )
+            "NODE_NOTE" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_REMARKS) ?: "")
+        ).apply {
+            putStringExtraIfPresent(this, intent, "photo1", GutterFormActivity.RESULT_DATA_PHOTO_1)
+            putStringExtraIfPresent(this, intent, "photo2", GutterFormActivity.RESULT_DATA_PHOTO_2)
+            putStringExtraIfPresent(this, intent, "photo3", GutterFormActivity.RESULT_DATA_PHOTO_3)
+            putStringExtraIfPresent(this, intent, "photo1CapturedAt", GutterFormActivity.RESULT_DATA_PHOTO_1_CAPTURED_AT)
+            putStringExtraIfPresent(this, intent, "photo2CapturedAt", GutterFormActivity.RESULT_DATA_PHOTO_2_CAPTURED_AT)
+            putStringExtraIfPresent(this, intent, "photo3CapturedAt", GutterFormActivity.RESULT_DATA_PHOTO_3_CAPTURED_AT)
+            putStringExtraIfPresent(this, intent, "photo1ImgId", GutterFormActivity.RESULT_DATA_PHOTO_1_IMG_ID)
+            putStringExtraIfPresent(this, intent, "photo2ImgId", GutterFormActivity.RESULT_DATA_PHOTO_2_IMG_ID)
+            putStringExtraIfPresent(this, intent, "photo3ImgId", GutterFormActivity.RESULT_DATA_PHOTO_3_IMG_ID)
+            putStringExtraIfPresent(this, intent, "photo1UploadState", GutterFormActivity.RESULT_DATA_PHOTO_1_UPLOAD_STATE)
+            putStringExtraIfPresent(this, intent, "photo2UploadState", GutterFormActivity.RESULT_DATA_PHOTO_2_UPLOAD_STATE)
+            putStringExtraIfPresent(this, intent, "photo3UploadState", GutterFormActivity.RESULT_DATA_PHOTO_3_UPLOAD_STATE)
+            putStringExtraIfPresent(this, intent, "photo1UploadError", GutterFormActivity.RESULT_DATA_PHOTO_1_UPLOAD_ERROR)
+            putStringExtraIfPresent(this, intent, "photo2UploadError", GutterFormActivity.RESULT_DATA_PHOTO_2_UPLOAD_ERROR)
+            putStringExtraIfPresent(this, intent, "photo3UploadError", GutterFormActivity.RESULT_DATA_PHOTO_3_UPLOAD_ERROR)
+        }.also {
+            logPhotoImgIdTrace("readResultData.output", it)
+        }
     }
 }

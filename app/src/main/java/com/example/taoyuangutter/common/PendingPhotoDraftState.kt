@@ -31,26 +31,35 @@ object PendingPhotoDraftState {
         val out = HashMap(source)
         (1..3).forEach { slot ->
             val photoKey = "photo$slot"
-            val hasPhoto = out[photoKey]?.isNotBlank() == true
-            if (hasPhoto) return@forEach
+            val currentPhoto = out[photoKey]
+            val hasPhoto = currentPhoto?.isNotBlank() == true
+            if (hasPhoto && PhotoUploadValidator.isUsableForUpload(context, currentPhoto)) {
+                return@forEach
+            }
             val pendingPath = readPath(out, slot) ?: return@forEach
             val file = File(pendingPath)
             if (!file.exists() || file.length() <= 0L) {
                 writePath(out, slot, null)
                 return@forEach
             }
-            val uri = try {
-                FileProvider.getUriForFile(
-                    context,
-                    "${context.packageName}.fileprovider",
-                    file
-                )
-            } catch (_: Exception) {
-                Uri.fromFile(file)
-            }
+            val uri = buildUriForFile(context, file)
             out[photoKey] = uri.toString()
-            writePath(out, slot, null)
+            if (!hasPhoto) {
+                writePath(out, slot, null)
+            }
         }
         return out
+    }
+
+    private fun buildUriForFile(context: Context, file: File): Uri {
+        return try {
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file
+            )
+        } catch (_: Exception) {
+            Uri.fromFile(file)
+        }
     }
 }

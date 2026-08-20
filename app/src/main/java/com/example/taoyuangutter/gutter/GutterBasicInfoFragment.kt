@@ -33,6 +33,7 @@ import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.target.Target
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
+import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.FragmentGutterBasicInfoBinding
@@ -44,6 +45,24 @@ import java.util.Date
 import java.util.Locale
 
 class GutterBasicInfoFragment : Fragment() {
+
+    private fun logPhotoImgIdTrace(stage: String) {
+        val summary = listOf(
+            "p1(photo=${photoUriSlot1 != null},imgId=${photoImgId1 ?: "-"},state=$photoUploadState1)",
+            "p2(photo=${photoUriSlot2 != null},imgId=${photoImgId2 ?: "-"},state=$photoUploadState2)",
+            "p3(photo=${photoUriSlot3 != null},imgId=${photoImgId3 ?: "-"},state=$photoUploadState3)"
+        ).joinToString(" | ")
+        PhotoImgIdTraceDebugger.record(
+            owner = "GutterBasicInfoFragment",
+            stage = stage,
+            imgIds = listOf(
+                photoImgId1?.toString(),
+                photoImgId2?.toString(),
+                photoImgId3?.toString()
+            ),
+            summary = summary
+        )
+    }
 
     interface DraftChangeHost {
         fun onBasicInfoDraftChanged(data: Map<String, String>)
@@ -282,6 +301,7 @@ class GutterBasicInfoFragment : Fragment() {
             pendingOutputPath = savedInstanceState.getString(KEY_PENDING_PATH)
             selectedGutterType = savedInstanceState.getString(KEY_SELECTED_GUTTER_TYPE)
                 ?.takeIf { it in GUTTER_TYPES }
+            logPhotoImgIdTrace("onCreate.savedState")
         } else {
             photoUriSlot1 = parseUriString(arguments?.getString(ARG_PHOTO_1))
             photoUriSlot2 = parseUriString(arguments?.getString(ARG_PHOTO_2))
@@ -301,6 +321,7 @@ class GutterBasicInfoFragment : Fragment() {
             photoUploadError1 = arguments?.getString(ARG_PHOTO_1_UPLOAD_ERROR)?.takeIf { it.isNotBlank() }
             photoUploadError2 = arguments?.getString(ARG_PHOTO_2_UPLOAD_ERROR)?.takeIf { it.isNotBlank() }
             photoUploadError3 = arguments?.getString(ARG_PHOTO_3_UPLOAD_ERROR)?.takeIf { it.isNotBlank() }
+            logPhotoImgIdTrace("onCreate.arguments")
         }
     }
 
@@ -761,6 +782,7 @@ class GutterBasicInfoFragment : Fragment() {
     fun setEditable(enabled: Boolean) {
         isFormEditable = enabled
         val actualEnabled = enabled && !isImportLocked
+        logPhotoImgIdTrace("setEditable.enabled=$enabled.actual=$actualEnabled")
         val textFields = listOf(
             binding.etGutterId,
             binding.etMeasureId,
@@ -961,7 +983,8 @@ class GutterBasicInfoFragment : Fragment() {
     fun collectData(): Map<String, String> {
         val gutterTypeText = selectedGutterTypeText()
         val isUOpen = gutterTypeText == GUTTER_TYPES[0]
-        
+        logPhotoImgIdTrace("collectData")
+
         return mapOf(
             "is_virtual"  to (if (isVirtualMode) "1" else "0"),
             "_isImported" to (if (isImportLocked) "1" else "0"),
@@ -1146,6 +1169,7 @@ class GutterBasicInfoFragment : Fragment() {
             photoUploadError1 = uploadError1
             photoUploadError2 = uploadError2
             photoUploadError3 = uploadError3
+            logPhotoImgIdTrace("syncPersistedPhotoState")
             if (_binding != null) {
                 renderStoredPhotoSlots()
                 setPhotoEditable(isFormEditable && !isImportLocked, isViewMode = !isFormEditable)
@@ -1202,6 +1226,7 @@ class GutterBasicInfoFragment : Fragment() {
         } else {
             Log.d("PhotoUpload", "WARNING: Binding is null, cannot render indicators")
         }
+        logPhotoImgIdTrace("updatePhotoUploadStatus.slot$slot")
     }
 
     private fun setPhotoEditable(enabled: Boolean, isViewMode: Boolean) {
@@ -1404,6 +1429,7 @@ class GutterBasicInfoFragment : Fragment() {
     private fun clearPhotoSlot(slot: Int, notifyDraftChanged: Boolean) {
         (activity as? GutterFormActivity)?.beginPhotoDraftBatch()
         try {
+            logPhotoImgIdTrace("clearPhotoSlot.before.slot$slot")
             when (slot) {
                 1 -> {
                     photoUriSlot1 = null
@@ -1430,6 +1456,7 @@ class GutterBasicInfoFragment : Fragment() {
                     showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
                 }
             }
+            logPhotoImgIdTrace("clearPhotoSlot.after.slot$slot")
             renderPhotoSectionState(slot, isFormEditable && !isImportLocked, isViewMode = !isFormEditable)
             renderCapturedAtLabels()
             renderPhotoUploadIndicators()
@@ -1449,8 +1476,10 @@ class GutterBasicInfoFragment : Fragment() {
         if (_binding == null) return
         (activity as? GutterFormActivity)?.beginPhotoDraftBatch()
         try {
+            logPhotoImgIdTrace("clearMeasurementPhotosForCantOpen.before")
             clearPhotoSlot(2, notifyDraftChanged = false)
             clearPhotoSlot(3, notifyDraftChanged = false)
+            logPhotoImgIdTrace("clearMeasurementPhotosForCantOpen.after")
             if (notifyDraftChanged) notifyPhotoDraftChanged()
         } finally {
             (activity as? GutterFormActivity)?.endPhotoDraftBatch()

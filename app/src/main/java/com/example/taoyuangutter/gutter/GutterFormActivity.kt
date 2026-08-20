@@ -58,6 +58,7 @@ import com.example.taoyuangutter.api.NodeDetails
 import com.example.taoyuangutter.api.safeCapturedAt
 import com.example.taoyuangutter.common.PendingPhotoDraftState
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
+import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 import com.example.taoyuangutter.common.PhotoSlotUploadCoordinator
 import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.common.PhotoUriStore
@@ -81,6 +82,18 @@ import java.net.URL
 class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadingHost,
     GutterBasicInfoFragment.DraftChangeHost,
     GutterPhotosFragment.DraftChangeHost {
+
+    private fun logPhotoImgIdTrace(stage: String, data: Map<String, String>) {
+        val summary = (1..3).joinToString(" | ") { slot ->
+            "p$slot(photo=${!data["photo$slot"].isNullOrBlank()},imgId=${data["photo${slot}ImgId"] ?: "-"},state=${data["photo${slot}UploadState"] ?: "-"})"
+        }
+        PhotoImgIdTraceDebugger.record(
+            owner = TAG,
+            stage = stage,
+            imgIds = listOf(data["photo1ImgId"], data["photo2ImgId"], data["photo3ImgId"]),
+            summary = "index=$currentIndex $summary"
+        )
+    }
 
     private lateinit var binding: ActivityGutterFormBinding
     private lateinit var pagerAdapter: GutterFormPagerAdapter
@@ -1426,7 +1439,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (showPossibleOverlay) {
             if (planWmsOverlay == null) {
                 val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/roadServey/wms",
+                    baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
                     layers = "roadServey",
                     styles = "TY_RSGDBIP_道路調查",
                     format = "image/png"
@@ -1441,7 +1454,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (showWaterOldOverlay) {
             if (waterOldWmsOverlay == null) {
                 val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
                     layers = "legacyDitch",
                     styles = "TY_RSGDBIP_水務局既有資料",
                     format = "image/png8"
@@ -1456,7 +1469,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (showRegionOverlay) {
             if (regionWmsOverlay == null) {
                 val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
                     layers = "regions",
                     styles = "TY_RSGDBIP_桃園行政區",
                     format = "image/png8"
@@ -1620,6 +1633,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun enterEditMode() {
+        logPhotoImgIdTrace("enterEditMode.before", currentFormData)
         isViewMode = false
         isEditMode = true // 進入編輯模式
         binding.btnEdit.visibility   = View.GONE
@@ -1628,6 +1642,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.btnDone.setOnClickListener { saveAndFinish() }
         pagerAdapter.getBasicInfoFragment()?.setEditable(true)
         binding.cbIsVirtual.isEnabled = true
+        logPhotoImgIdTrace("enterEditMode.after", currentFormData)
     }
 
     private fun setImportedWaypointLocked(locked: Boolean) {
@@ -1657,6 +1672,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         currentFormData.putAll(PendingPhotoDraftState.promotePendingFilesToPhotos(this, initialData))
         enrichMissingPhotoCapturedAt(currentFormData)
         ensureCurrentFormCoordinates()
+        logPhotoImgIdTrace("initializeCurrentFormData.beforeSync", currentFormData)
         syncCurrentWaypointFromCurrentFormData()
     }
 
@@ -1666,31 +1682,30 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             val (photo1, photo2, photo3) = photosFragment.getPhotoPaths()
             updateCurrentFormPhotos(photo1, photo2, photo3)
         }
+        logPhotoImgIdTrace("refreshCurrentFormDataFromFragments.after", currentFormData)
     }
 
     private fun mergeCurrentFormData(data: Map<String, String>) {
+        val previous = HashMap(currentFormData)
         currentFormData.putAll(data)
+        preservePhotoMetadataIfPhotoPresent(currentFormData, previous, 1)
+        preservePhotoMetadataIfPhotoPresent(currentFormData, previous, 2)
+        preservePhotoMetadataIfPhotoPresent(currentFormData, previous, 3)
         ensureCurrentFormCoordinates()
+        logPhotoImgIdTrace("mergeCurrentFormData.beforeSync", currentFormData)
         syncCurrentWaypointFromCurrentFormData()
     }
 
     private fun updateCurrentFormPhotos(photo1: String?, photo2: String?, photo3: String?) {
+        val previous = HashMap(currentFormData)
         currentFormData["photo1"] = photo1 ?: ""
         currentFormData["photo2"] = photo2 ?: ""
         currentFormData["photo3"] = photo3 ?: ""
-        if (photo1.isNullOrBlank()) {
-            currentFormData["photo1CapturedAt"] = ""
-            clearPhotoUploadState(1)
-        }
-        if (photo2.isNullOrBlank()) {
-            currentFormData["photo2CapturedAt"] = ""
-            clearPhotoUploadState(2)
-        }
-        if (photo3.isNullOrBlank()) {
-            currentFormData["photo3CapturedAt"] = ""
-            clearPhotoUploadState(3)
-        }
+        preservePhotoMetadataIfPhotoPresent(currentFormData, previous, 1)
+        preservePhotoMetadataIfPhotoPresent(currentFormData, previous, 2)
+        preservePhotoMetadataIfPhotoPresent(currentFormData, previous, 3)
         enrichMissingPhotoCapturedAt(currentFormData)
+        logPhotoImgIdTrace("updateCurrentFormPhotos.beforeSync", currentFormData)
         syncCurrentWaypointFromCurrentFormData()
     }
 
@@ -1708,14 +1723,20 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private fun updatePhotoUploadState(slot: Int, state: String, imgId: Int? = null, error: String? = null) {
         if (slot !in 1..3) return
-        PhotoUploadSlotState.writeState(currentFormData, slot, state = state, imgId = imgId, error = error)
+        val resolvedImgId = if (state == PhotoUploadSlotState.STATE_UPLOADING && imgId == null) {
+            currentFormPhotoImgId(slot)
+        } else {
+            imgId
+        }
+        PhotoUploadSlotState.writeState(currentFormData, slot, state = state, imgId = resolvedImgId, error = error)
         syncCurrentWaypointFromCurrentFormData()
-        pagerAdapter.getBasicInfoFragment()?.updatePhotoUploadStatus(slot, state, imgId, error)
+        pagerAdapter.getBasicInfoFragment()?.updatePhotoUploadStatus(slot, state, resolvedImgId, error)
     }
 
     private fun clearPhotoUploadState(slot: Int) {
         if (slot !in 1..3) return
         PhotoUploadSlotState.clear(currentFormData, slot)
+        currentFormData["photo$slot"] = ""
         syncCurrentWaypointFromCurrentFormData()
         pagerAdapter.getBasicInfoFragment()?.updatePhotoUploadStatus(
             slot = slot,
@@ -1811,11 +1832,42 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         val longitude = currentFormData["NODE_X"]?.toDoubleOrNull()
             ?: existing.longitude
             ?: currentLng.takeIf { it != 0.0 }
+        val mergedBasicData = HashMap(existing.basicData).apply {
+            putAll(currentFormData)
+        }
+        preservePhotoMetadataForPresentPhotos(mergedBasicData, existing.basicData)
         sessionWaypoints[currentIndex] = existing.copy(
             latitude = latitude,
             longitude = longitude,
-            basicData = HashMap(existing.basicData).apply { putAll(currentFormData) }
+            basicData = mergedBasicData
         )
+    }
+
+    private fun preservePhotoMetadataIfPhotoPresent(
+        target: MutableMap<String, String>,
+        source: Map<String, String>,
+        slot: Int
+    ) {
+        if (target["photo$slot"].isNullOrBlank()) return
+        listOf(
+            PhotoCapturedAtResolver.basicDataKey(slot) to PhotoCapturedAtResolver.readBasicData(source, slot),
+            PhotoUploadSlotState.imgIdKey(slot) to source[PhotoUploadSlotState.imgIdKey(slot)],
+            PhotoUploadSlotState.stateKey(slot) to source[PhotoUploadSlotState.stateKey(slot)],
+            PhotoUploadSlotState.errorKey(slot) to source[PhotoUploadSlotState.errorKey(slot)]
+        ).forEach { (key, value) ->
+            if (!value.isNullOrBlank() && target[key].isNullOrBlank()) {
+                target[key] = value
+            }
+        }
+    }
+
+    private fun preservePhotoMetadataForPresentPhotos(
+        target: MutableMap<String, String>,
+        source: Map<String, String>
+    ) {
+        (1..3).forEach { slot ->
+            preservePhotoMetadataIfPhotoPresent(target, source, slot)
+        }
     }
 
     private fun resolveEffectiveCoordinates(data: Map<String, String>): Pair<Double?, Double?> {
@@ -1857,6 +1909,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun saveAndFinish() {
         syncSessionDraftNowBlocking()
         val data = currentFormSnapshot()
+        logPhotoImgIdTrace("saveAndFinish.snapshot", data)
         val (photo1, photo2, photo3) = currentFormPhotos()
         dispatchEditResult(data, photo1, photo2, photo3)
     }
@@ -1865,6 +1918,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun dispatchEditResult(
         data: Map<String, String>, photo1: String?, photo2: String?, photo3: String?
     ) {
+            logPhotoImgIdTrace("dispatchEditResult.input", data)
             val resultIntent = Intent().apply {
                 GutterFormContract.putResultData(
                     intent = this,
@@ -1994,6 +2048,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun buildAndFinishWithResult() {
         syncSessionDraftNowBlocking()
         val basicData = currentFormSnapshot()
+        logPhotoImgIdTrace("buildAndFinishWithResult.snapshot", basicData)
         val (photo1, photo2, photo3) = currentFormPhotos()
         val (effectiveLat, effectiveLng) = resolveEffectiveCoordinates(basicData)
 
@@ -2084,14 +2139,19 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         ensureCurrentFormCoordinates()
         val existing = sessionWaypoints[currentIndex]
+        logPhotoImgIdTrace("syncSessionDraftNow.existing", existing.basicData)
         val mergedBasicData = HashMap(existing.basicData).apply { putAll(currentFormSnapshot()) }
+        preservePhotoMetadataForPresentPhotos(mergedBasicData, existing.basicData)
         enrichMissingPhotoCapturedAt(mergedBasicData)
+        logPhotoImgIdTrace("syncSessionDraftNow.merged", mergedBasicData)
         val normalizedBasicData = PhotoUriStore.normalizeBasicDataPhotoUris(
             context = this,
             basicData = mergedBasicData,
             prefix = "GUTTER_EXT_"
         )
+        preservePhotoMetadataForPresentPhotos(normalizedBasicData, existing.basicData)
         enrichMissingPhotoCapturedAt(normalizedBasicData)
+        logPhotoImgIdTrace("syncSessionDraftNow.normalized", normalizedBasicData)
 
         syncNormalizedPhotosBackToUiIfNeeded(
             photo1 = normalizedBasicData["photo1"]?.takeIf { it.isNotBlank() },
@@ -2114,7 +2174,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         )
         sessionWaypoints.clear()
         sessionWaypoints.addAll(normalizedWaypoints)
-        currentFormData.putAll(sessionWaypoints[currentIndex].basicData)
+        val refreshedBasicData = sessionWaypoints[currentIndex].basicData
+        currentFormData.putAll(refreshedBasicData)
+        preservePhotoMetadataForPresentPhotos(currentFormData, refreshedBasicData)
+        logPhotoImgIdTrace("syncSessionDraftNow.refreshedCurrentFormData", currentFormData)
 
         val resolvedDraftId = sessionDraftId.takeIf { it > 0L } ?: run {
             android.util.Log.w(
