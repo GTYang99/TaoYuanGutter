@@ -499,6 +499,7 @@ class MainActivity : AppCompatActivity(),
                 // 這裡會接著開啟 AddGutterBottomSheet，由其 binding 邏輯維持按鈕禁用狀態
                 val json   = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_WAYPOINTS_JSON) ?: return@registerForActivityResult
                 val spiNum = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_SPI_NUM) ?: ""
+                val spiTyp = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_SPI_TYP) ?: ""
                 val spiState = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_SPI_STATE) ?: ""
                 initialSpiState = spiState
                 val isCurveRaw = result.data?.getStringExtra(GutterInspectActivity.EXTRA_RESULT_IS_CURVE) ?: "0"
@@ -541,7 +542,7 @@ class MainActivity : AppCompatActivity(),
                 editLatLngSnapshot = buildLatLngSnapshot(wps)
                 hasShownEditPolyline = false
 
-                val sheet = AddGutterBottomSheet.newInstanceForEdit(wps, spiNum, isCurve)
+                val sheet = AddGutterBottomSheet.newInstanceForEdit(wps, spiNum, isCurve, spiTyp)
                 var lastWaypointsSize = wps.size
                 sheet.onWaypointsChanged = { updated ->
                     if (updated == null) {
@@ -1065,6 +1066,7 @@ class MainActivity : AppCompatActivity(),
         val saveResult = draftCoordinator.autoSaveSessionDraft(
             waypoints = updatedWaypoints,
             currentSessionDraftId = currentSessionDraftId,
+            spiTyp = resolveCurrentSessionSpiTyp(updatedWaypoints),
             isOffline = currentSessionIsOffline,
             isCurve = activeSheet?.isCurveMode() ?: false
         )
@@ -1497,6 +1499,12 @@ class MainActivity : AppCompatActivity(),
         autoSaveSessionDraft(waypoints)
     }
 
+    private fun resolveCurrentSessionSpiTyp(waypoints: List<Waypoint>): String? {
+        return activeSheet?.getSelectedSpiTypCode()
+            ?: waypoints.firstOrNull { it.type == WaypointType.START }?.basicData?.get("SPI_TYP")
+            ?: waypoints.firstOrNull { it.type == WaypointType.START }?.basicData?.get("NODE_TYP")
+    }
+
     /**
      * 自動將目前進行中的 session waypoints 儲存（或更新）成 [GutterSessionDraft]。
      *
@@ -1511,6 +1519,7 @@ class MainActivity : AppCompatActivity(),
         val result = draftCoordinator.autoSaveSessionDraft(
             waypoints = waypoints,
             currentSessionDraftId = currentSessionDraftId,
+            spiTyp = resolveCurrentSessionSpiTyp(waypoints),
             isOffline = currentSessionIsOffline,
             isCurve = activeSheet?.isCurveMode() ?: false
         ) ?: return
@@ -1878,6 +1887,7 @@ class MainActivity : AppCompatActivity(),
                 draftCoordinator.ensureDraftExists(
                     draftId = draftId,
                     waypoints = sheet.getWaypoints(),
+                    spiTyp = sheet.getSelectedSpiTypCode(),
                     isOffline = isOffline,
                     isCurve = sheet.isCurveMode()
                 )

@@ -12,6 +12,11 @@ data class GutterSessionDraft(
     /** 建立／更新時間（毫秒），供列表排序與時間顯示 */
     val savedAt: Long = System.currentTimeMillis(),
     /**
+     * 側溝類型（側溝層級）。
+     * 以字串保存，值對應 1~4；舊草稿可能為 null。
+     */
+    val spiTyp: String? = null,
+    /**
      * 草稿類型：
      * - "gutter"：一般側溝（AddGutterBottomSheet 地圖流程）
      * - "curve"：弧線側溝（AddCurveActivity）

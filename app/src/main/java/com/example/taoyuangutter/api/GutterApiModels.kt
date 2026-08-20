@@ -537,6 +537,8 @@ data class StoreDitchNodeRequest(
 data class StoreDitchRequest(
     /** 僅更新時帶入；新增時省略 */
     @SerializedName("SPI_NUM") val spiNum: String?                  = null,
+    /** 側溝類型：1=U形溝（明溝）、2=U形溝（加蓋）、3=L形溝與暗溝渠併用、4=其他 */
+    @SerializedName("SPI_TYP") val spiTyp: Int,
     /** 是否為弧線側溝：0=false、1=true（預設 0） */
     @SerializedName("is_curve") val isCurve: Int                    = 0,
     @SerializedName("nodes")   val nodes: List<StoreDitchNodeRequest>

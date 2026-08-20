@@ -138,6 +138,69 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="6dp">
+
+            <TextView
+                android:id="@+id/tvGutterTypeTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/field_gutter_type"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary" />
+
+            <TextView
+                android:id="@+id/tvGutterTypeRequired"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="4dp"
+                android:text="*"
+                android:textColor="#7B4FFF"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/layoutGutterTypeSelector"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:foreground="?attr/selectableItemBackground">
+
+            <TextView
+                android:id="@+id/tvGutterTypeSelector"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_inspect_field"
+                android:gravity="center_vertical|start"
+                android:paddingStart="12dp"
+                android:paddingEnd="40dp"
+                android:text="請選擇"
+                android:textColor="@color/inputFieldHint"
+                android:textSize="14sp" />
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="end|center_vertical"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/ic_dropdown_arrow"
+                android:contentDescription="@null" />
+
+        </FrameLayout>
+    </LinearLayout>
+
     <!-- 節點清單（佔剩餘空間） -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvWaypoints"

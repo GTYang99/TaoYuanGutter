@@ -10,6 +10,8 @@ data class DraftEntity(
     val id: Long,
     @ColumnInfo(name = "saved_at")
     val savedAt: Long,
+    @ColumnInfo(name = "spi_typ")
+    val spiTyp: String? = null,
     val kind: String,
     @ColumnInfo(name = "is_offline")
     val isOffline: Boolean,

@@ -2196,6 +2196,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             GutterSessionDraft(
                 id = resolvedDraftId,
                 savedAt = System.currentTimeMillis(),
+                spiTyp = existingDraft?.spiTyp
+                    ?: sessionWaypoints.firstOrNull { it.type == WaypointType.START.name }?.basicData?.get("SPI_TYP")
+                    ?: sessionWaypoints.firstOrNull { it.type == WaypointType.START.name }?.basicData?.get("NODE_TYP"),
                 isOffline = isOfflineMode || preservedIsOffline,
                 isSinglePoint = false,
                 waypoints = sessionWaypoints.toList()

@@ -15,6 +15,7 @@ import android.view.WindowManager
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import androidx.fragment.app.FragmentActivity
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -140,6 +141,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private var isCurve: Boolean = false
     /** 編輯模式：初始弧線狀態（用於判斷是否有修改）。 */
     private var originalIsCurve: Boolean = false
+    /** 側溝層級的暫存類型（1~4）。 */
+    private var selectedSpiTyp: String? = null
+    /** 編輯/草稿初始的側溝類型（用於變更偵測）。 */
+    private var originalSpiTyp: String? = null
+    /** 舊草稿首次恢復時，需將推導出的 SPI_TYP 寫回草稿頂層。 */
+    private var needsSpiTypDraftSync: Boolean = false
 
     /** 草稿/快照恢復後，是否需要把照片路徑補成 app 可穩定讀取的副本。 */
     private var pendingPhotoUriNormalization: Boolean = false
@@ -165,12 +172,76 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     /** 編輯模式預載 node details 中，阻擋再次抓取與提交流程。 */
     private var isPreloadingEditDetails: Boolean = false
 
+    private val spiTypeTexts = listOf(
+        "U形溝（明溝）",
+        "U形溝（加蓋）",
+        "L形溝與暗溝渠併用",
+        "其他"
+    )
+
     private fun parseLooseBoolean(raw: String?): Boolean {
         val v = raw?.trim()?.lowercase()
         return when (v) {
             "1", "true", "t", "y", "yes" -> true
             else -> false
         }
+    }
+
+    private fun spiTypCodeToText(code: String?): String = when (code) {
+        "1" -> spiTypeTexts[0]
+        "2" -> spiTypeTexts[1]
+        "3" -> spiTypeTexts[2]
+        "4" -> spiTypeTexts[3]
+        else -> code.orEmpty()
+    }
+
+    private fun spiTypTextToCode(text: String?): String? = when (text) {
+        spiTypeTexts[0] -> "1"
+        spiTypeTexts[1] -> "2"
+        spiTypeTexts[2] -> "3"
+        spiTypeTexts[3] -> "4"
+        else -> text?.takeIf { it.isNotBlank() }
+    }
+
+    private fun normalizeSpiTyp(code: String?): String? = code?.trim()?.takeIf { it in setOf("1", "2", "3", "4") }
+
+    private fun resolveSpiTypFromWaypoints(sourceWaypoints: List<Waypoint> = waypoints): String? {
+        val start = sourceWaypoints.firstOrNull { it.type == WaypointType.START } ?: sourceWaypoints.firstOrNull()
+        val candidates = listOfNotNull(
+            start?.basicData?.get("SPI_TYP"),
+            start?.basicData?.get("NODE_TYP")
+        )
+        return candidates.mapNotNull { normalizeSpiTyp(it) }.firstOrNull()
+    }
+
+    private fun resolveCurrentSpiTypCode(sourceWaypoints: List<Waypoint> = waypoints): String? {
+        return normalizeSpiTyp(selectedSpiTyp)
+            ?: resolveSpiTypFromWaypoints(sourceWaypoints)
+            ?: normalizeSpiTyp(originalSpiTyp)
+            ?: normalizeSpiTyp(arguments?.getString(ARG_SPI_TYP))
+    }
+
+    private fun applySpiTypSelection(code: String?, notifyDraftChanged: Boolean) {
+        selectedSpiTyp = normalizeSpiTyp(code)
+        renderSpiTypDisplay()
+        if (notifyDraftChanged) {
+            onWaypointsChanged?.invoke(waypoints.toList())
+        }
+    }
+
+    private fun captureOriginalSpiTypIfNeeded() {
+        if (originalSpiTyp.isNullOrBlank()) {
+            originalSpiTyp = resolveCurrentSpiTypCode()
+        }
+    }
+
+    private fun renderSpiTypDisplay() {
+        if (_binding == null) return
+        val code = resolveCurrentSpiTypCode()
+        val text = spiTypCodeToText(code)
+        binding.tvGutterTypeSelector.text = text.ifBlank { "請選擇" }
+        val colorRes = if (code.isNullOrBlank()) R.color.inputFieldHint else R.color.textColorPrimary
+        binding.tvGutterTypeSelector.setTextColor(ContextCompat.getColor(requireContext(), colorRes))
     }
 
     // ── Lifecycle ────────────────────────────────────────────────────────
@@ -194,6 +265,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             isCurve = savedInstanceState.getBoolean("saved_is_curve", isCurve)
             editSpiNum = savedInstanceState.getString("saved_edit_spi_num", editSpiNum) ?: editSpiNum
             originalIsCurve = savedInstanceState.getBoolean("saved_original_is_curve", originalIsCurve)
+            selectedSpiTyp = normalizeSpiTyp(savedInstanceState.getString(KEY_SELECTED_SPI_TYP))
+            originalSpiTyp = normalizeSpiTyp(savedInstanceState.getString(KEY_ORIGINAL_SPI_TYP))
+            needsSpiTypDraftSync = savedInstanceState.getBoolean("saved_needs_spi_typ_draft_sync", false)
             val origJson = savedInstanceState.getString("saved_original_waypoints_json")
             if (!origJson.isNullOrEmpty()) {
                 originalWaypointsSnapshot = try {
@@ -225,6 +299,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         outState.putBoolean("saved_is_curve", isCurve)
         outState.putString("saved_edit_spi_num", editSpiNum)
         outState.putBoolean("saved_original_is_curve", originalIsCurve)
+        outState.putString(KEY_SELECTED_SPI_TYP, selectedSpiTyp)
+        outState.putString(KEY_ORIGINAL_SPI_TYP, originalSpiTyp)
+        outState.putBoolean("saved_needs_spi_typ_draft_sync", needsSpiTypDraftSync)
         if (originalWaypointsSnapshot.isNotEmpty()) {
             outState.putString("saved_original_waypoints_json", Gson().toJson(originalWaypointsSnapshot))
         }
@@ -265,6 +342,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
             waypoints.add(Waypoint(type, label, latLng, data, uid))
         }
+        if (selectedSpiTyp.isNullOrBlank()) {
+            selectedSpiTyp = normalizeSpiTyp(state.getString(KEY_SELECTED_SPI_TYP))
+                ?: resolveSpiTypFromWaypoints()
+        }
+        if (originalSpiTyp.isNullOrBlank()) {
+            originalSpiTyp = normalizeSpiTyp(state.getString(KEY_ORIGINAL_SPI_TYP))
+                ?: selectedSpiTyp
+        }
+        renderSpiTypDisplay()
     }
 
     /**
@@ -291,6 +377,13 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 waypoints.add(Waypoint(wpType, snap.label, latLng, snap.basicData, snapshotUid(snap)))
             }
             pendingPhotoUriNormalization = true
+            selectedSpiTyp = normalizeSpiTyp(arguments?.getString(ARG_SPI_TYP))
+                ?: resolveSpiTypFromWaypoints()
+            if (originalSpiTyp.isNullOrBlank()) {
+                originalSpiTyp = selectedSpiTyp
+            }
+            needsSpiTypDraftSync = false
+            renderSpiTypDisplay()
             android.util.Log.d("AddGutterSheet", "restoreFromSnapshot: loaded ${waypoints.size} waypoints")
         } catch (e: Exception) {
             android.util.Log.e("AddGutterSheet", "restoreFromSnapshot failed: ${e.message}", e)
@@ -324,12 +417,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 logPhotoImgIdTrace("restoreDraftJson.output", snap.basicData, snap.label)
             }
             pendingPhotoUriNormalization = true
+            selectedSpiTyp = normalizeSpiTyp(draft.spiTyp) ?: resolveSpiTypFromWaypoints()
+            if (originalSpiTyp.isNullOrBlank()) {
+                originalSpiTyp = selectedSpiTyp
+            }
+            needsSpiTypDraftSync = draft.spiTyp.isNullOrBlank() && selectedSpiTyp != null
             if (editSpiNum.isBlank()) {
                 editSpiNum = waypoints.firstOrNull { it.type == WaypointType.START }
                     ?.basicData
                     ?.get("SPI_NUM")
                     .orEmpty()
             }
+            renderSpiTypDisplay()
         } catch (e: Exception) {
             // 解析失敗：保留預設 [起點, 終點]
         }
@@ -358,6 +457,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         setupRecyclerView()
         setupButtons()
         setupTitle()
+        setupGutterTypeSelector()
         normalizeRestoredPhotoUrisIfNeeded()
 
         if (editSpiNum.isNotEmpty()) {
@@ -371,6 +471,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 } else if (hasEmbeddedEditDetails()) {
                     originalWaypointsSnapshot = takeWaypointSnapshot()
                     originalIsCurve = isCurve
+                    originalSpiTyp = resolveCurrentSpiTypCode()
                     updateSubmitButtonState()
                 } else {
                     preloadEditWaypointDetails()
@@ -427,6 +528,49 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             Spannable.SPAN_EXCLUSIVE_EXCLUSIVE
         )
         binding.tvSheetTitle.text = spannable
+    }
+
+    private fun setupGutterTypeSelector() {
+        if (_binding == null) return
+        if (isInspectMode) {
+            binding.layoutGutterTypeSelector.visibility = View.GONE
+            return
+        }
+        binding.layoutGutterTypeSelector.visibility = View.VISIBLE
+        binding.layoutGutterTypeSelector.setOnClickListener {
+            if (!binding.layoutGutterTypeSelector.isEnabled) return@setOnClickListener
+            MaterialAlertDialogBuilder(requireContext())
+                .setItems(spiTypeTexts.toTypedArray()) { _, which ->
+                    applySpiTypSelection((which + 1).toString(), notifyDraftChanged = true)
+                    updateSubmitButtonState()
+                }
+                .show()
+        }
+        if (selectedSpiTyp.isNullOrBlank()) {
+            selectedSpiTyp = resolveSpiTypFromWaypoints()
+        }
+        if (originalSpiTyp.isNullOrBlank()) {
+            originalSpiTyp = selectedSpiTyp
+        }
+        renderSpiTypDisplay()
+        persistResolvedSpiTypIfNeeded()
+    }
+
+    private fun persistResolvedSpiTypIfNeeded() {
+        if (draftId <= 0L) return
+        if (selectedSpiTyp.isNullOrBlank()) return
+        if (!needsSpiTypDraftSync && originalSpiTyp == selectedSpiTyp) return
+        onWaypointsChanged?.invoke(waypoints.toList())
+        originalSpiTyp = selectedSpiTyp
+        needsSpiTypDraftSync = false
+    }
+
+    private fun showSpiTypRequiredAlert() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("請選擇側溝類型")
+            .setMessage("請先選擇側溝類型後再送出。")
+            .setPositiveButton("確定", null)
+            .show()
     }
 
     // ── 設定 BottomSheet 行為 ────────────────────────────────────────────
@@ -715,6 +859,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             // 檢視模式：隱藏新增節點、提交與刪除按鈕
             binding.btnAddNode.visibility       = View.GONE
             binding.layoutGutterType.visibility = View.GONE
+            binding.layoutGutterTypeSelector.visibility = View.GONE
             binding.btnSubmitGutter.visibility  = View.GONE
             binding.btnDeleteGutter.visibility  = View.GONE
         } else if (editSpiNum.isNotEmpty()) {
@@ -807,6 +952,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     Toast.makeText(requireContext(), getString(R.string.msg_end_point_required), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
                 }
+                if (resolveCurrentSpiTypCode(waypoints) == null) {
+                    showSpiTypRequiredAlert()
+                    return@setOnClickListener
+                }
                 val token = LoginActivity.getSavedToken(requireContext()) ?: run {
                     Toast.makeText(requireContext(), getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
                     return@setOnClickListener
@@ -860,6 +1009,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     /** 若此 sheet 是從待上傳草稿恢復，回傳其 id；否則回傳 0。 */
     fun getRestoredDraftId(): Long = draftId
 
+    /** 取得目前側溝類型代碼（1~4）；未選擇時回傳 null。 */
+    fun getSelectedSpiTypCode(): String? = resolveCurrentSpiTypCode()
+
     /**
      * 執行編輯模式的更新流程（storeDitch with SPI_NUM）。
      * 可由 btnSubmitGutter 點擊觸發，也可由 MainActivity 在節點表單完成後自動觸發。
@@ -903,6 +1055,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     updateSubmitButtonState()
                     return@launch
                 }
+                if (resolveCurrentSpiTypCode(waypoints) == null) {
+                    showSpiTypRequiredAlert()
+                    updateSubmitButtonState()
+                    return@launch
+                }
                 // 弧線上傳限制：僅允許起點/終點兩點
                 if (!validateCurvePointCountOrAlert()) {
                     updateSubmitButtonState()
@@ -929,14 +1086,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         )
                         showSelf()
                         updateSubmitButtonState()
-                if (UploadFailureClassifier.isNetworkFailureMessage(result.message)) {
-                    val errorUi = UploadFailureClassifier.forStoreDitchNetworkTimeout(result)
-                    showStoreDitchNetworkTimeoutDialog(
-                        activity = requireActivity(),
-                        message = buildStoreDitchNetworkTimeoutMessage(errorUi),
-                        onClose = {
-                            (requireActivity() as? LocationPickerHost)
-                                ?.onStoreDitchNetworkClosed(
+                        if (UploadFailureClassifier.isNetworkFailureMessage(result.message)) {
+                            val errorUi = UploadFailureClassifier.forStoreDitchNetworkTimeout(result)
+                            showStoreDitchNetworkTimeoutDialog(
+                                activity = requireActivity(),
+                                message = buildStoreDitchNetworkTimeoutMessage(errorUi),
+                                onClose = {
+                                    (requireActivity() as? LocationPickerHost)
+                                        ?.onStoreDitchNetworkClosed(
                                             editSpiNum.takeIf { it.isNotBlank() },
                                             waypoints.toList()
                                         )
@@ -1297,6 +1454,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 if (editSpiNum.isNotEmpty()) {
                     originalWaypointsSnapshot = takeWaypointSnapshot()
                     originalIsCurve = isCurve
+                    originalSpiTyp = resolveCurrentSpiTypCode()
                 }
             } finally {
                 pendingPhotoUriNormalization = false
@@ -1326,6 +1484,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (editSpiNum.isEmpty()) return false
         if (isPreloadingEditDetails) return false
         if (isCurve != originalIsCurve) return true
+        if (normalizeSpiTyp(resolveCurrentSpiTypCode()) != normalizeSpiTyp(originalSpiTyp)) return true
         if (waypoints.size != originalWaypointsSnapshot.size) return true
         waypoints.forEachIndexed { i, wp ->
             val orig = originalWaypointsSnapshot[i]
@@ -1859,6 +2018,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         binding.rgGutterKind.isEnabled = !show
         binding.btnDeleteGutter.isEnabled = !show
         binding.rvWaypoints.isEnabled = !show
+        binding.layoutGutterTypeSelector.isEnabled = !show
+        binding.tvGutterTypeSelector.isEnabled = !show
     }
 
     private fun setSubmitLoading(show: Boolean, buttonLabel: String = "新增側溝") {
@@ -1870,6 +2031,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         binding.rgGutterKind.isEnabled = !show
         binding.btnDeleteGutter.isEnabled = !show
         binding.rvWaypoints.isEnabled = !show
+        binding.layoutGutterTypeSelector.isEnabled = !show
+        binding.tvGutterTypeSelector.isEnabled = !show
         binding.btnSubmitGutter.text = if (show) buttonLabel else getString(R.string.btn_add_gutter)
     }
 
@@ -1894,9 +2057,13 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         spiNum: String? = null
     ): StoreDitchRequest {
         var nodeSequence = 1
+        val spiTypCode = requireNotNull(resolveCurrentSpiTypCode(waypoints)) {
+            "SPI_TYP is required"
+        }
 
         return StoreDitchRequest(
             spiNum = spiNum,
+            spiTyp = spiTypCode.toInt(),
             isCurve = if (isCurve) 1 else 0,
             nodes = waypoints.map { wp ->
                 // 新增模式（spiNum=null）不得帶 node_id，否則後端會視為「更新既有點位」而失敗
@@ -1994,7 +2161,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
         private const val ARG_EDIT_WAYPOINTS_JSON = "edit_waypoints_json"
         private const val ARG_SPI_NUM             = "spi_num"
+        private const val ARG_SPI_TYP             = "spi_typ"
         private const val ARG_IS_CURVE            = "is_curve"
+        private const val KEY_SELECTED_SPI_TYP     = "selected_spi_typ"
+        private const val KEY_ORIGINAL_SPI_TYP     = "original_spi_typ"
 
         /** 新增模式（一般地圖流程） */
         fun newInstance(draftId: Long = 0L) = AddGutterBottomSheet().apply {
@@ -2023,7 +2193,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
          * @param waypoints 由 DitchDetails 轉換而來的點位列表
          * @param spiNum    DitchDetails.spiNum，用於顯示標題（空字串則顯示預設「新增側溝」）
          */
-        fun newInstanceForEdit(waypoints: List<Waypoint>, spiNum: String = "", isCurve: Boolean = false): AddGutterBottomSheet {
+        fun newInstanceForEdit(
+            waypoints: List<Waypoint>,
+            spiNum: String = "",
+            isCurve: Boolean = false,
+            spiTyp: String? = null
+        ): AddGutterBottomSheet {
             val snapshots = waypoints.map { wp ->
                 WaypointSnapshot(
                     type      = wp.type.name,
@@ -2039,6 +2214,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 arguments = Bundle().apply {
                     putString(ARG_EDIT_WAYPOINTS_JSON, json)
                     if (spiNum.isNotEmpty()) putString(ARG_SPI_NUM, spiNum)
+                    spiTyp?.trim()?.takeIf { it in setOf("1", "2", "3", "4") }?.let { putString(ARG_SPI_TYP, it) }
                     putBoolean(ARG_IS_CURVE, isCurve)
                 }
             }
@@ -2057,6 +2233,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 arguments = Bundle().apply {
                     putLong(ARG_DRAFT_ID,   draft.id)
                     putString(ARG_DRAFT_JSON, Gson().toJson(draft))
+                    draft.spiTyp?.trim()?.takeIf { it in setOf("1", "2", "3", "4") }?.let { putString(ARG_SPI_TYP, it) }
                     // 只有「目前處於離線主模式」才強制離線 UI；
                     // draft.isOffline 代表草稿來源，回到線上時仍應允許上傳。
                     if (forceOffline) putBoolean(ARG_OFFLINE_MODE, true)

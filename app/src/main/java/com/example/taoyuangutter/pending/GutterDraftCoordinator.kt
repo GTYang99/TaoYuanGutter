@@ -31,6 +31,7 @@ class GutterDraftCoordinator(
     fun ensureDraftExists(
         draftId: Long,
         waypoints: List<Waypoint>,
+        spiTyp: String? = null,
         isOffline: Boolean,
         isCurve: Boolean = false
     ) {
@@ -49,6 +50,7 @@ class GutterDraftCoordinator(
             GutterSessionDraft(
                 id = draftId,
                 savedAt = System.currentTimeMillis(),
+                spiTyp = spiTyp,
                 kind = if (isCurve) KIND_CURVE else KIND_GUTTER,
                 isOffline = isOffline,
                 waypoints = snapshots
@@ -59,6 +61,7 @@ class GutterDraftCoordinator(
     fun autoSaveSessionDraft(
         waypoints: List<Waypoint>,
         currentSessionDraftId: Long?,
+        spiTyp: String? = null,
         isOffline: Boolean,
         isCurve: Boolean = false
     ): SaveResult? {
@@ -66,7 +69,8 @@ class GutterDraftCoordinator(
 
         val hasAnyLatLng = waypoints.any { it.latLng != null }
         val hasAnyBasicData = waypoints.any { wp -> hasMeaningfulBasicData(wp.basicData) }
-        if (!hasAnyLatLng && !hasAnyBasicData) {
+        val hasSpiTyp = spiTyp.isNullOrBlank().not()
+        if (!hasAnyLatLng && !hasAnyBasicData && !hasSpiTyp) {
             currentSessionDraftId?.let {
                 deleteDraftAndLocalPhotos(appContext, it, waypoints)
             }
@@ -133,6 +137,7 @@ class GutterDraftCoordinator(
             GutterSessionDraft(
                 id = draftId,
                 savedAt = System.currentTimeMillis(),
+                spiTyp = spiTyp,
                 kind = if (isCurve) KIND_CURVE else KIND_GUTTER,
                 isOffline = isOffline,
                 waypoints = snapshots
@@ -176,7 +181,7 @@ class GutterDraftCoordinator(
     }
 
     private fun hasRetainableContent(draft: GutterSessionDraft): Boolean {
-        return draft.waypoints.any { snapshot ->
+        return draft.spiTyp.isNullOrBlank().not() || draft.waypoints.any { snapshot ->
             (snapshot.latitude != null && snapshot.longitude != null) ||
                 hasRetainableBasicData(snapshot.basicData)
         }

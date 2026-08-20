@@ -1,11 +1,11 @@
 # featGutterType - Test Requirement
 
 ## 1. 測試目標
-確認 `SPI_TYP_TEMPORARY` 從 UI、草稿、離線入口到 API 上傳與回傳顯示都能完整運作，且舊資料可相容。
+確認 `SPI_TYP` 從 UI、草稿、離線入口到 API 上傳與回傳顯示都能完整運作，且舊資料可相容。
 
 ## 2. 測試前提
 - 已完成 `tvGutterTypeSelector` UI 加入
-- 已完成 `SPI_TYP_TEMPORARY` 的資料模型更新
+- 已完成 `SPI_TYP` 的資料模型更新
 - 已完成草稿與離線入口串接
 
 ## 3. 核心驗證點
@@ -51,13 +51,13 @@
 3. 檢查 `storeDitch` request
 
 **預期結果**
-- `SPI_TYP_TEMPORARY` 以 `Int` 送出
+- `SPI_TYP` 以 `Int` 送出
 - 不可為空
 - API 成功後流程正常結束
 
 ### 4.4 編輯回填驗證
 **前置條件**
-- 既有資料含 `SPI_TYP_TEMPORARY`
+- 既有資料含 `SPI_TYP`
 
 **步驟**
 1. 開啟編輯模式
@@ -70,14 +70,14 @@
 
 ### 4.5 檢視頁驗證
 **前置條件**
-- API 回傳包含 `SPI_TYP_TEMPORARY`
+- API 回傳包含 `SPI_TYP`
 
 **步驟**
 1. 開啟檢視頁
 2. 檢查 `tvSpiTyp`
 
 **預期結果**
-- `tvSpiTyp` 顯示 API 回傳的 `SPI_TYP_TEMPORARY`
+- `tvSpiTyp` 顯示 API 回傳的 `SPI_TYP`
 - 顯示文字正確
 
 ### 4.6 草稿保存與恢復
@@ -87,7 +87,7 @@
 3. 關閉並重新打開草稿
 
 **預期結果**
-- 草稿保留 `SPI_TYP_TEMPORARY`
+- 草稿保留 `SPI_TYP`
 - 恢復後 UI 顯示一致
 - 再次送出時仍可帶入
 
@@ -104,7 +104,7 @@
 
 ### 4.8 舊草稿相容性
 **前置條件**
-- 草稿沒有 `SPI_TYP_TEMPORARY`
+- 草稿沒有 `SPI_TYP`
 
 **步驟**
 1. 開啟舊草稿
@@ -117,7 +117,7 @@
 
 ### 4.9 缺值資料相容性
 **前置條件**
-- API 回傳缺少 `SPI_TYP_TEMPORARY`
+- API 回傳缺少 `SPI_TYP`
 
 **步驟**
 1. 開啟檢視頁或編輯頁
@@ -130,7 +130,7 @@
 每次修改後，AI 應逐項確認：
 
 1. `tvGutterTypeSelector` 是否已加入正確位置？
-2. `SPI_TYP_TEMPORARY` 是否只在側溝層級保存？
+2. `SPI_TYP` 是否只在側溝層級保存？
 3. 上傳是否確實是 `Int`？
 4. 回傳是否確實以 `String` 接收？
 5. 檢視頁是否使用回傳值填入 `tvSpiTyp`？
@@ -145,4 +145,3 @@
 - 上傳 request 與 response 型別規格符合需求
 - 草稿與離線流程都可保存與恢復
 - 舊資料與缺值可正確 fallback
-

@@ -97,6 +97,7 @@ class GutterSessionRepository(context: Context) {
         return GutterSessionDraft(
             id = entity.id,
             savedAt = entity.savedAt,
+            spiTyp = entity.spiTyp,
             kind = entity.kind,
             isOffline = entity.isOffline,
             isSinglePoint = entity.isSinglePoint,
@@ -108,6 +109,7 @@ class GutterSessionRepository(context: Context) {
         return DraftEntity(
             id = id,
             savedAt = savedAt,
+            spiTyp = spiTyp,
             kind = kind,
             isOffline = isOffline,
             isSinglePoint = isSinglePoint,

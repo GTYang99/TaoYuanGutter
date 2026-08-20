@@ -103,6 +103,8 @@ class GutterInspectActivity : AppCompatActivity() {
         const val EXTRA_RESULT_WAYPOINTS_JSON     = "result_waypoints_json"
         /** result Intent 攜帶的 SPI_NUM */
         const val EXTRA_RESULT_SPI_NUM            = "result_spi_num"
+        /** result Intent 攜帶的 SPI_TYP */
+        const val EXTRA_RESULT_SPI_TYP            = "result_spi_typ"
         /** result Intent 攜帶的 is_curve（"0"/"1"） */
         const val EXTRA_RESULT_IS_CURVE           = "result_is_curve"
         /** result Intent 攜帶的 SPI_STATE */
@@ -275,6 +277,7 @@ class GutterInspectActivity : AppCompatActivity() {
         val resultIntent = Intent().apply {
             putExtra(EXTRA_RESULT_WAYPOINTS_JSON, Gson().toJson(snapshots))
             putExtra(EXTRA_RESULT_SPI_NUM, d.spiNum)
+            putExtra(EXTRA_RESULT_SPI_TYP, d.spiTyp ?: "")
             putExtra(EXTRA_RESULT_IS_CURVE, d.isCurve ?: "0")
             putExtra(EXTRA_RESULT_SPI_STATE, d.spiState ?: "")
         }
@@ -556,6 +559,7 @@ class GutterInspectActivity : AppCompatActivity() {
         val resultIntent = Intent().apply {
             putExtra(EXTRA_RESULT_WAYPOINTS_JSON, Gson().toJson(snapshots))
             putExtra(EXTRA_RESULT_SPI_NUM, d.spiNum)
+            putExtra(EXTRA_RESULT_SPI_TYP, d.spiTyp ?: "")
             putExtra(EXTRA_RESULT_IS_CURVE, d.isCurve ?: "0")
             putExtra(EXTRA_RESULT_SPI_STATE, d.spiState ?: "")
         }
