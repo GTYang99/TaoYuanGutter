@@ -28,6 +28,36 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # 確保有完整 commit 歷史
+#添加需求開發測試約束文件
+#      - name: Load Constraints
+#        run: |
+#          echo "📖 載入 docs/ 內的約束文件..."
+#          cat docs/developConstraints.md > constraints.txt
+#          cat docs/uiRequirements.md >> constraints.txt
+#          cat docs/functionalRequirements.md >> constraints.txt
+#          cat docs/testConstraints.md >> constraints.txt
+#          
+#      - name: Update Requirements
+#        run: |
+#          COMMIT_MSG=$(git log -1 --pretty=%B)
+#          DATE=$(date +%Y%m%d)
+#          if echo "$COMMIT_MSG" | grep -q "feat"; then
+#            echo "include docs/requirements/feat_${DATE}.md" >> requirements.txt
+#            echo "## ${DATE}\n- ${COMMIT_MSG}\n  - 需求文件: docs/requirements/feat_${DATE}.md\n  - Commit: $(git rev-parse HEAD)\n  - 狀態: ⏳ 待檢查" >> docs/devlog.md
+#          elif echo "$COMMIT_MSG" | grep -q "fix"; then
+#            echo "include docs/requirements/fix_${DATE}.md" >> requirements.txt
+#            echo "## ${DATE}\n- ${COMMIT_MSG}\n  - 需求文件: docs/requirements/fix_${DATE}.md\n  - Commit: $(git rev-parse HEAD)\n  - 狀態: ⏳ 待檢查" >> docs/devlog.md
+#          fi
+#          
+#      - name: Load Feature/Fix Requirements
+#        run: |
+#          COMMIT_MSG=$(git log -1 --pretty=%B)
+#          if echo "$COMMIT_MSG" | grep -q "feat"; then
+#            cat docs/featureRequests.md > requirements.txt
+#          elif echo "$COMMIT_MSG" | grep -q "fix"; then
+#            cat docs/bugFixes.md > requirements.txt
+#          fi
+# AI API 檢查
       - name: GPT Review (OpenAI 5.4 mini)
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -53,36 +83,36 @@ jobs:
           fi
 
 
-    #      - name: Claude Review (fallback)
-    #        if: failure()  # 只有 GPT 判斷不通過時才執行
-    #        env:
-    #          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
-    #        run: |
-    #          DIFF=$(git diff HEAD~1 HEAD)
-    #          curl -X POST https://api.anthropic.com/v1/messages \
-    #          -H "Authorization: Bearer $CLAUDE_API_KEY" \
-    #          -d '{
-    #            "model": "claude-3-opus",
-    #            "messages": [
-    #              {"role":"system","content":"你是程式碼審查助手"},
-    #              {"role":"user","content":"請檢查以下 commit 是否符合規範: '"$DIFF"'"}
-    #            ]
-    #          }'
+#      - name: Claude Review (fallback)
+#        if: failure()  # 只有 GPT 判斷不通過時才執行
+#        env:
+#          CLAUDE_API_KEY: ${{ secrets.CLAUDE_API_KEY }}
+#        run: |
+#          DIFF=$(git diff HEAD~1 HEAD)
+#          curl -X POST https://api.anthropic.com/v1/messages \
+#          -H "Authorization: Bearer $CLAUDE_API_KEY" \
+#          -d '{
+#            "model": "claude-3-opus",
+#            "messages": [
+#              {"role":"system","content":"你是程式碼審查助手"},
+#              {"role":"user","content":"請檢查以下 commit 是否符合規範: '"$DIFF"'"}
+#            ]
+#          }'
+
+#  deploy:
+#    runs-on: ubuntu-latest
+#    needs: ai-review
+#    steps:
+#      - run: echo "Deploying..."
+      
 
 #發布包版
-#  deploy:
-#    android-build:
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: actions/checkout@v3
-#      - name: Build Android App
-#        run: ./gradlew assembleRelease
-#      - name: Upload to Firebase
-#        run: fastlane firebase_app_distribution
-
-
   deploy:
+    android-build:
     runs-on: ubuntu-latest
-    needs: ai-review
     steps:
-      - run: echo "Deploying..."
+      - uses: actions/checkout@v3
+      - name: Build Android App
+        run: ./gradlew assembleRelease
+      - name: Upload to Firebase
+        run: fastlane firebase_app_distribution
