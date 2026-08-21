@@ -102,6 +102,7 @@
     <!-- 基本資料欄位 -->
     <string name="field_gutter_id">側溝編號</string>
     <string name="field_gutter_type">側溝形式</string>
+    <string name="field_section_type">截面形式</string>
     <string name="field_coord_x">側溝X（E）座標</string>
     <string name="field_coord_y">側溝Y（N）座標</string>
     <string name="field_coord_z">側溝Z座標</string>

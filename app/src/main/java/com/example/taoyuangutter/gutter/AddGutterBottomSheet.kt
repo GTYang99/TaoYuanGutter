@@ -965,12 +965,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     syncLatestDraftStateIntoWaypoints()
                     repairWaypointPhotosFromPendingIfNeeded(waypoints)
                     restoreUnchangedPhotoMetadataIntoWaypoints(waypoints)
-                    if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
-                        showSelf()
+                    if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) {
                         updateSubmitButtonState()
                         return@launch
                     }
-                    if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) {
+                    if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
+                        showSelf()
                         updateSubmitButtonState()
                         return@launch
                     }
@@ -1040,11 +1040,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 syncLatestDraftStateIntoWaypoints()
                 repairWaypointPhotosFromPendingIfNeeded(waypoints)
                 restoreUnchangedPhotoMetadataIntoWaypoints(waypoints)
-                if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
-                    showSelf()
-                    updateSubmitButtonState()
-                    return@launch
-                }
                 val uploadingLabel = findUploadingWaypointLabel(waypoints.toList())
                 if (!uploadingLabel.isNullOrBlank()) {
                     showPhotosUploadingAlert(uploadingLabel)
@@ -1052,6 +1047,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     return@launch
                 }
                 if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) {
+                    updateSubmitButtonState()
+                    return@launch
+                }
+                if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
+                    showSelf()
                     updateSubmitButtonState()
                     return@launch
                 }
