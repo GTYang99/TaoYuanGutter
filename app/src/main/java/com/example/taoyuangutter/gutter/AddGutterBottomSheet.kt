@@ -902,7 +902,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
             binding.btnSubmitGutter.setOnLongClickListener {
                 if (!com.example.taoyuangutter.api.GutterApiClient.ENABLE_GROUP_SIMULATION) return@setOnLongClickListener false
-                triggerNetworkTimeoutTest()
+                showStoreDitchSimulationMenu()
                 true
             }
         } else {
@@ -988,7 +988,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
             binding.btnSubmitGutter.setOnLongClickListener {
                 if (!com.example.taoyuangutter.api.GutterApiClient.ENABLE_GROUP_SIMULATION) return@setOnLongClickListener false
-                triggerNetworkTimeoutTest()
+                showStoreDitchSimulationMenu()
                 true
             }
         }
@@ -1086,6 +1086,19 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         )
                         showSelf()
                         updateSubmitButtonState()
+                        if (isStoreDitchPhotoClaimConflict(result)) {
+                            showStoreDitchPhotoClaimDialog(
+                                activity = requireActivity(),
+                                onClose = {
+                                    (requireActivity() as? LocationPickerHost)
+                                        ?.onStoreDitchNetworkClosed(
+                                            editSpiNum.takeIf { it.isNotBlank() },
+                                            waypoints.toList()
+                                        )
+                                }
+                            )
+                            return@launch
+                        }
                         if (UploadFailureClassifier.isNetworkFailureMessage(result.message)) {
                             val errorUi = UploadFailureClassifier.forStoreDitchNetworkTimeout(result)
                             showStoreDitchNetworkTimeoutDialog(
@@ -1165,6 +1178,20 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         )
                         setSubmitLoading(false)
                         (activity as? LocationPickerHost)?.onGutterSubmitFailed()
+                        if (isStoreDitchPhotoClaimConflict(result)) {
+                            showStoreDitchPhotoClaimDialog(
+                                activity = activity,
+                                onClose = {
+                                    (activity as? LocationPickerHost)?.onStoreDitchNetworkClosed(
+                                        validWaypoints.firstOrNull { it.type == WaypointType.START }
+                                            ?.basicData?.get("SPI_NUM")
+                                            ?.takeIf { it.isNotBlank() },
+                                        validWaypoints
+                                    )
+                                }
+                            )
+                            return@launch
+                        }
                         if (UploadFailureClassifier.isNetworkFailureMessage(result.message)) {
                             val errorUi = UploadFailureClassifier.forStoreDitchNetworkTimeout(result)
                             showStoreDitchNetworkTimeoutDialog(
@@ -1256,6 +1283,23 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             .show()
     }
 
+    private fun showStoreDitchPhotoClaimDialog(
+        activity: FragmentActivity,
+        onClose: () -> Unit
+    ) {
+        if (activity.isFinishing || activity.isDestroyed) return
+        MaterialAlertDialogBuilder(activity)
+            .setTitle("網路連線逾時")
+            .setMessage("因網路異常導致伺服器回應時間過長，請點擊側溝確認資料是否成功上傳，若有檢視到完整資料可無視此錯誤訊息接續作業")
+            .setPositiveButton("關閉") { _, _ -> onClose() }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun isStoreDitchPhotoClaimConflict(error: ApiResult.Error): Boolean {
+        return error.code == 409
+    }
+
     private fun buildStoreDitchNetworkTimeoutMessage(errorUi: com.example.taoyuangutter.common.UploadFailureUiModel): String {
         val parts = mutableListOf(
             "說明：${errorUi.userMessage}",
@@ -1284,11 +1328,41 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         )
     }
 
+    private fun triggerStoreDitchConflictTest() {
+        val host = activity as? LocationPickerHost ?: return
+        val spiNum = currentStoreDitchCloseSpiNum()
+        showStoreDitchPhotoClaimDialog(
+            activity = requireActivity(),
+            onClose = {
+                host.onStoreDitchNetworkClosed(spiNum, waypoints.toList())
+            }
+        )
+    }
+
+    private fun showStoreDitchSimulationMenu() {
+        if (_binding == null) return
+        val options = arrayOf("模擬網路逾時", "模擬照片認領失敗(409)")
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle("測試選單")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> triggerNetworkTimeoutTest()
+                    1 -> triggerStoreDitchConflictTest()
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     private fun currentStartSpiNum(): String? {
         return editSpiNum.takeIf { it.isNotBlank() }
             ?: waypoints.firstOrNull { it.type == WaypointType.START }
                 ?.basicData?.get("SPI_NUM")
                 ?.takeIf { it.isNotBlank() }
+    }
+
+    private fun currentStoreDitchCloseSpiNum(): String? {
+        return editSpiNum.takeIf { it.isNotBlank() } ?: currentStartSpiNum()
     }
 
     // ── 調轉：整條側溝方向翻轉 ────────────────────────────────────────────

@@ -164,7 +164,7 @@ class GutterInspectPhotosFragment : Fragment() {
         binding.layoutFields.removeAllViews()
         binding.layoutFields.addView(createFieldRow("待架站", normalizeDisplayValue(mapBooleanCode(details?.isPendingDeploy))))
         if (!isVirtual) {
-            binding.layoutFields.addView(createFieldRow("側溝型式", normalizeDisplayValue(mapNodeType(details?.nodeTyP))))
+            binding.layoutFields.addView(createFieldRow("截面型式", normalizeDisplayValue(mapNodeType(details?.nodeTyP))))
         }
         binding.layoutFields.addView(createFieldRow("側溝X(E)座標", normalizeDisplayValue(details?.nodeX)))
         binding.layoutFields.addView(createFieldRow("側溝Y(N)座標", normalizeDisplayValue(details?.nodeY)))
