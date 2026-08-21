@@ -1615,18 +1615,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             }
 
             if (!wp.isVirtual) {
-                val requiredPhotos = if (isCantOpen) listOf("photo1") else requiredPhotoKeys
                 val photosToCheck = if (isCantOpen) listOf("photo1") else requiredPhotoKeys
 
                 val missingPhotos = photosToCheck.filter { key ->
                     val photoPath = wp.basicData[key]
-                    val slot = key.removePrefix("photo").toInt()
-                    val imgId = PhotoUploadSlotState.readImgId(wp.basicData, slot)
 
-                    // 照片「未準備好」的條件：
-                    // 1. 本地照片檔案不可用 (PhotoUploadValidator.isUsableForUpload == false)
-                    // 2. 或者，沒有 img_id (imgId == null)
-                    !PhotoUploadValidator.isUsableForUpload(ctx, photoPath) || imgId == null
+                    // 只有「照片來源不可用」才視為缺少照片。
+                    // 可用路徑但尚未取得 img_id 的情況，會留給送出前補傳流程處理。
+                    !PhotoUploadValidator.isUsableForUpload(ctx, photoPath)
                 }
                 if (missingPhotos.isNotEmpty()) {
                     val pretty = missingPhotos.mapNotNull { it.removePrefix("photo").toIntOrNull() }.sorted()
