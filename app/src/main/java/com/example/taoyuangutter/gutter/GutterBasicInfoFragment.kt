@@ -678,6 +678,18 @@ class GutterBasicInfoFragment : Fragment() {
             hideKeyboard()
             // 明溝時強制填入 0
             binding.etCoverThickness.setText("0")
+        } else { // --- 修改點：處理非明溝情況 ---
+            // 移除 "0" 的強制填寫
+            // 檢查目前 etCoverThickness 的值，如果是 "0"，則清空
+            val currentCoverThickness = binding.etCoverThickness.text.toString()
+            if (currentCoverThickness == "0") {
+                binding.etCoverThickness.setText("") // 清空輸入框
+            }
+
+            // 恢復輸入框可用性，若 "無法開蓋" 則由 applyCantOpenUi 處理禁用
+            binding.etCoverThickness.isFocusable = true
+            binding.etCoverThickness.isFocusableInTouchMode = true
+            binding.etCoverThickness.isCursorVisible = true
         }
 
         // 重新評估下方細節欄位與厚度遮罩
