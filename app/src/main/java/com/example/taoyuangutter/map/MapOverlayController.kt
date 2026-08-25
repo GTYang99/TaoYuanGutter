@@ -94,7 +94,7 @@ class MapOverlayController(
         val map = mapProvider() ?: return
         if (measureLabelsWmsOverlay != null) return
         val provider = Wms3857TileProvider(
-            baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
+            baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
             layers = "map_ditch_nodes_labels",
             styles = "TY_RSGDBIP_測量座標編號",
             format = "image/png8"
@@ -110,7 +110,7 @@ class MapOverlayController(
         if (showPossibleOverlay) {
             if (planWmsOverlay == null) {
                 val provider = Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
                     layers = "roadServey",
                     styles = "TY_RSGDBIP_道路調查",
                     format = "image/png"
@@ -127,7 +127,7 @@ class MapOverlayController(
         if (showWaterOldOverlay) {
             if (waterOldWmsOverlay == null) {
                 val provider = Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
                     layers = "legacyDitch",
                     styles = "TY_RSGDBIP_水務局既有資料",
                     format = "image/png8"
@@ -144,7 +144,7 @@ class MapOverlayController(
         if (showRegionOverlay) {
             if (regionWmsOverlay == null) {
                 val provider = Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
                     layers = "regions",
                     styles = "TY_RSGDBIP_桃園行政區",
                     format = "image/png8"
@@ -161,7 +161,7 @@ class MapOverlayController(
         if (showNoDitchPointsOverlay) {
             if (noDitchPointsWmsOverlay == null) {
                 val provider = Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
                     layers = "map_no_ditch_points",
                     styles = "",
                     format = "image/png8"

@@ -1439,7 +1439,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (showPossibleOverlay) {
             if (planWmsOverlay == null) {
                 val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
                     layers = "roadServey",
                     styles = "TY_RSGDBIP_道路調查",
                     format = "image/png"
@@ -1454,7 +1454,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (showWaterOldOverlay) {
             if (waterOldWmsOverlay == null) {
                 val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
                     layers = "legacyDitch",
                     styles = "TY_RSGDBIP_水務局既有資料",
                     format = "image/png8"
@@ -1469,7 +1469,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (showRegionOverlay) {
             if (regionWmsOverlay == null) {
                 val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/geoserver/wms",
+                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
                     layers = "regions",
                     styles = "TY_RSGDBIP_桃園行政區",
                     format = "image/png8"
