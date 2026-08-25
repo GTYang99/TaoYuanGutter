@@ -1,0 +1,20 @@
+task: ""
+
+phase: planning
+
+status: in_progress
+
+plan:
+  status: draft
+
+implementation:
+  status: pending
+
+verification:
+  status: pending
+
+ci:
+  build: pending
+  test: pending
+
+next_action: planning
