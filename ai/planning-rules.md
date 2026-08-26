@@ -65,6 +65,111 @@ Planning MUST create or update:
 
 ---
 
+## Task Types
+
+Planning Agent MUST determine the task type before analysis.
+
+Supported task types:
+
+- feature
+- bugfix
+- debug
+
+For debug tasks:
+
+Required outputs:
+
+- root-cause.md
+- fix-plan.md
+
+A full implementation plan is not required unless the fix significantly changes the architecture.
+
+---
+
+### Feature
+
+Purpose:
+
+Implement new functionality.
+
+Required Outputs:
+
+- requirement.md
+- analysis.md
+- plan.md
+- state.yaml :
+
+```yaml
+task:
+  id: TYG-205
+  type: feature
+```
+
+
+Plan Review:
+
+Required
+
+---
+
+### Bug Fix
+
+Purpose:
+
+Correct existing functionality without changing product behavior.
+
+Required Outputs:
+
+- requirement.md
+- analysis.md
+- plan.md (Mini Plan)
+- state.yaml :
+
+```yaml
+task:
+  id: FIX-0831
+  type: bugfix
+```
+
+Repository analysis MAY be simplified.
+
+Plan SHOULD focus on:
+
+- Root Cause
+- Affected Modules
+- Fix Strategy
+- Regression Risk
+
+Plan Review:
+
+Required
+
+---
+
+### Debug
+
+Purpose:
+
+Identify the root cause of an unknown issue.
+
+Required Outputs:
+
+- root-cause.md
+- fix-plan.md
+- state.yaml :
+
+```yaml
+task:
+  id: DBG-010
+  type: debug
+```
+
+Planning focuses on investigation instead of implementation.
+
+Implementation MUST NOT begin until the Root Cause has sufficient evidence.
+
+---
+
 ## Restrictions
 
 Planning MUST NOT:
