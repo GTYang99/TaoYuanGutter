@@ -1,0 +1,18 @@
+task: feat-0825
+phase: verification
+status: verification_passed
+plan:
+  status: approved
+implementation:
+  status: completed
+  build:
+    status: completed
+  unit_test:
+    status: completed
+verification:
+  status: verification_passed
+  result: pass
+ci:
+  build: passed
+  test: passed
+next_action: release

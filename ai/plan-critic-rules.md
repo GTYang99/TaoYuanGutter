@@ -8,11 +8,29 @@ The objective is to discover risks, incorrect assumptions, missing analysis, and
 
 Plan Critic MUST NOT modify production code.
 
+The goal is to determine implementation readiness.
+
 ---
 
 ## File Path
 
 docs/tasks/[開發編號]/
+
+---
+
+## Review Principle
+
+The objective is to determine whether implementation can safely begin.
+
+The objective is NOT to produce the perfect implementation plan.
+
+Plan Critic MUST distinguish:
+
+Blocking Issues
+
+from
+
+Improvement Suggestions.
 
 ---
 
@@ -33,10 +51,49 @@ Plan Critic MUST read:
 
 Plan Critic MUST create or update:
 
-- plan-review.md (optional)
+- plan-review.md
 - state.yaml
 
 Review comments MUST be documented.
+
+---
+## Review comments
+
+### Finding 1
+Severity: Major
+Category: Regression Plan
+Description:
+...
+Recommendation:
+...
+
+### Finding 2
+Severity: Suggestion
+Category: Naming
+Description:
+...
+Recommendation:
+...
+
+## Finding 3
+
+Severity:
+Major
+
+Category:
+Regression Plan
+
+Description:
+Regression tests are incomplete.
+
+Recommendation:
+Add regression tests for upload retry.
+
+Planning Response:
+Added regression tests in plan.md Section 6.
+
+Status:
+Resolved
 
 ---
 
@@ -79,6 +136,8 @@ Plan Critic MUST verify:
 - Open Questions are documented
 - Implementation steps are actionable
 - Scope is appropriate
+- Task size is appropriate
+- Rollback strategy exists (if applicable)
 
 ---
 
@@ -91,6 +150,16 @@ APPROVED
 REQUEST_CHANGES
 
 BLOCKED
+
+---
+
+### REQUEST_CHANGES
+
+Planning Agent can reasonably resolve the identified Blocking Issues.
+
+### BLOCKED
+
+Planning Agent cannot resolve the identified Blocking Issues without external clarification or decision.
 
 ---
 
@@ -126,6 +195,18 @@ status: changes_requested
 next_action: planning
 ```
 
+```yaml
+When blocked:
+
+phase: plan_review
+
+status: blocked
+
+reason: requirement_unclear
+
+next_action: requirement_clarification
+```
+
 ---
 
 ## Restrictions
@@ -141,8 +222,46 @@ Plan Critic MUST NOT:
 
 ## Definition of Done
 
+Blocking Issues documented.
+
+Suggestions documented separately.
+
 Plan Review completes ONLY IF:
 
 - All checklist items reviewed
 - Decision documented
 - state.yaml updated
+
+---
+
+## Issue Severity
+
+Every finding MUST be classified as one of:
+
+Critical
+
+Major
+
+Minor
+
+Suggestion
+
+---
+
+## Review Flow
+
+Planning
+    │
+    ▼
+Plan Review
+    │
+ ┌──┼─────────────┐
+ │  │             │
+ │  │             │
+ ▼  ▼             ▼
+APPROVED    REQUEST_CHANGES   BLOCKED
+ │              │               │
+ ▼              ▼               ▼
+Developer     Planning      Requirement
+                               Clarification
+                            or Human Review

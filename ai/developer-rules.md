@@ -37,6 +37,7 @@ Developer MUST create or update:
 - Unit Tests (if applicable)
 - UI Tests (if applicable)
 - state.yaml
+- Implementation Report (optional) or Execution Report
 
 Developer SHOULD create meaningful Git commits.
 
@@ -93,20 +94,95 @@ Developer MUST:
 
 ---
 
-## Git Rules
+## Git Workflow
 
-Developer SHOULD:
+Developer MUST:
 
 - use a dedicated feature branch
-- write meaningful commit messages
-- keep commits focused
-- separate feat and fix commits
+- create a Git commit after implementation completes
+- complete local validation before commit OR document execution limitations
+- keep one logical change per commit
+- avoid mixing unrelated changes
+- separate feat, fix and refactor commits
+
+Verification MUST verify a committed revision.
+
+---
+
+## Commit Workflow
+
+Developer MUST create a Git commit after implementation and local validation are complete.
+
+Developer MUST ensure:
+
+- Source code changes are complete.
+- Required tests have been updated.
+- Local validation has been executed OR execution limitations documented.
+- state.yaml has been updated.
+
+Developer MUST create a Git commit before Verification begins.
+
+Verification MUST review a committed revision instead of uncommitted local changes.
 
 Example:
 
 feat(TYG-205): add retry upload
 
 fix(TYG-205): prevent duplicate upload
+
+---
+
+## Commit Rules
+
+Developer MUST:
+
+- keep one logical change per commit
+- separate feat, fix and refactor into different commits
+- avoid mixing unrelated changes
+- keep commits reviewable
+- ensure every commit builds or documents execution limitations
+
+---
+
+## Commit Message Convention
+
+Commit message format:
+
+<type>(<task-id>): <summary>
+
+Types:
+
+- feat
+- fix
+- refactor
+- test
+- docs
+- chore
+
+Examples:
+
+feat(TYG-205): add retry upload
+
+fix(TYG-205): prevent duplicate upload
+
+refactor(TYG-205): simplify upload repository
+
+test(TYG-205): add retry unit tests
+
+docs(TYG-205): update implementation report
+
+---
+
+## Commit Evidence
+
+Developer SHOULD document:
+
+- Commit ID
+- Branch Name
+- Files Changed
+- Build Result
+- Unit Test Result
+- Git Diff
 
 ---
 
@@ -135,6 +211,44 @@ implementation:
 next_action: verification
 ```
 
+```yaml
+phase: implementation
+
+status: implementation_complete
+
+implementation:
+
+  build:
+    status: not_executed
+    reason: sandbox_limitation
+
+  unit_test:
+    status: not_executed
+    reason: sandbox_limitation
+
+next_action: verification
+```
+
+```yaml
+phase: implementation
+
+status: implementation_complete
+
+implementation:
+
+  status: completed
+
+validation:
+  status: completed
+
+git:
+  branch: feature/TYG-205
+  commit: abc1234
+  status: committed
+
+next_action: verification
+```
+
 ---
 
 ## Restrictions
@@ -145,6 +259,7 @@ Developer MUST NOT:
 - implement before Plan Review passes
 - bypass CI
 - modify verification results
+- changes have not been committed
 
 ---
 
@@ -154,7 +269,8 @@ Implementation completes ONLY IF:
 
 - Production code implemented
 - Tests updated
-- Build passes locally
+- Local validation completed OR execution limitation documented
+- Git commit created
 - state.yaml updated
 - Ready for Verification
 
@@ -169,3 +285,48 @@ Developer MUST stop implementation if:
 - plan is not approved
 - state.yaml indicates planning is incomplete
 - implementation scope is unclear
+- current branch is incorrect
+
+---
+
+## Execution Report Requirements
+
+Developer MUST document:
+
+- Executed command
+- Result
+- Error message
+- Impact
+- Recommendation
+
+## Environment Constraints
+
+Developer MUST distinguish between:
+
+- Build Passed
+- Build Failed
+- Build Not Executed
+
+Developer MUST NOT report PASS if execution was impossible.
+
+If execution is blocked by environment limitations, the limitation MUST be documented.
+
+Developer MUST include:
+
+- Executed command
+- Result
+- Error message
+- Impact
+- Recommended next action
+
+---
+
+## Execution Evidence
+
+Developer SHOULD provide:
+
+- Build Result
+- Unit Test Result
+- UI Test Result
+- Git Commit
+- Git Diff

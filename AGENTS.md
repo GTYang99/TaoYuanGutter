@@ -20,9 +20,12 @@ Planning
 ↓
 Plan Review
 ↓
-read plan-critic-rules.md
-↓
 Implementation
+↓
+Developer Validation
+(Build / Local Test)
+↓
+Git Commit
 ↓
 Verification
 ↓
@@ -54,8 +57,6 @@ When doing Planning:
     Repository
     Architecture
     Existing Tests
-
-When doing Planning:
 
     Planning Agent MUST create these files.
     at: 
@@ -181,6 +182,10 @@ Plan Review
 ↓
 Implementation
 ↓
+Developer Validation
+↓
+Git Commit
+↓
 Verification
 ↓
 Release
@@ -222,9 +227,11 @@ testing-rules
 ```
 Planning
 ↓
-plan approved
+Plan Approved
 ↓
-Implementation
+Implementation Complete
+↓
+Git Commit
 ↓
 CI PASS
 ↓
