@@ -50,6 +50,7 @@ import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.AuthNavigator
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.main.MainBlockingUiController
+import com.example.taoyuangutter.main.MainMapLoadIndicatorController
 import com.example.taoyuangutter.main.MainViewModel
 import com.example.taoyuangutter.main.MeasureModeUiController
 import com.example.taoyuangutter.main.NoDitchModeUiController
@@ -146,6 +147,7 @@ class MainActivity : AppCompatActivity(),
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationPermissionLauncher: ActivityResultLauncher<Array<String>>
     private lateinit var mainBlockingUiController: MainBlockingUiController
+    private lateinit var mainMapLoadIndicatorController: MainMapLoadIndicatorController
     /** 主地圖最近一次取得的定位（供表單/匯入既有點位快速使用，避免再次等待 GPS fix）。 */
     private var lastKnownLocation: Location? = null
 
@@ -221,8 +223,10 @@ class MainActivity : AppCompatActivity(),
     }
     private val scopeMapCoordinator by lazy {
         ScopeMapCoordinator(
-            viewportLoader = scopeViewportLoader,
-            polylineController = scopeGutterPolylineController,
+            loadViewport = scopeViewportLoader::load,
+            drawFeatures = { features, savedGroupId ->
+                scopeGutterPolylineController.drawFeatures(features, savedGroupId)
+            },
             savedGroupIdProvider = { LoginActivity.getSavedGroupId(this) }
         )
     }
@@ -277,6 +281,16 @@ class MainActivity : AppCompatActivity(),
     // ── 編輯/檢視/新增模式標誌（防止自動加載polylines） ────────────────────
     /** true = 正在編輯/檢視/新增模式，禁止 loadGuttersByViewport 自動加載 */
     private var isInEditingMode = false
+    private var isMainMapGestureActive = false
+    private var pendingUserLocationRecenter = false
+    private var pendingLocationRecenterReload = false
+    private data class PendingForceReload(
+        val id: Long,
+        val reason: String
+    )
+    private var pendingForceReload: PendingForceReload? = null
+    private var forceReloadInFlightId: Long? = null
+    private var nextForceReloadId = 0L
 
     // ── 檢視/編輯流程的灰色參考線（弧線/線段） ─────────────────────────────
     private var isReferenceRouteActive: Boolean = false
@@ -331,6 +345,10 @@ class MainActivity : AppCompatActivity(),
             isMeasuring = { measureManager?.isMeasuring == true },
             isSheetActive = { activeSheet != null || inspectSheet != null || isInspecting || isInspectUiLocked }
         )
+        mainMapLoadIndicatorController = MainMapLoadIndicatorController(
+            context = this,
+            binding = binding
+        )
         measureModeUiController = MeasureModeUiController(
             context = this,
             binding = binding,
@@ -341,6 +359,7 @@ class MainActivity : AppCompatActivity(),
         )
 
         measureModeUiController.setupPanelInsets()
+        mainMapLoadIndicatorController.setBottomInset(currentSheetBottomInsetPx)
 
         noDitchModeUiController = NoDitchModeUiController(
             context = this,
@@ -373,7 +392,13 @@ class MainActivity : AppCompatActivity(),
             if (granted) {
                 myLocationController.enableMyLocationAndMove { location ->
                     lastKnownLocation = location
+                    if (pendingUserLocationRecenter) {
+                        pendingLocationRecenterReload = true
+                        pendingUserLocationRecenter = false
+                    }
                 }
+            } else {
+                pendingUserLocationRecenter = false
             }
         }
 
@@ -826,6 +851,10 @@ class MainActivity : AppCompatActivity(),
             isZoomControlsEnabled = false
         }
 
+        map.setOnCameraMoveStartedListener { reason ->
+            handleMainMapCameraMoveStarted(reason)
+        }
+
         map.setOnMarkerClickListener { marker ->
             // 測距模式：大頭針點擊視為設定測距起點，不開啟表單
             if (measureManager?.isMeasuring == true) {
@@ -865,7 +894,7 @@ class MainActivity : AppCompatActivity(),
         // 地圖停止移動後，依目前可視範圍向後端查詢側溝線段（使用防抖避免高頻調用）
         if (!isOfflineMainMode) {
             map.setOnCameraIdleListener {
-                loadGuttersByViewportDebounced()
+                handleMainMapCameraIdle()
                 if (mapOverlayController.currentState().showNoDitchPoints) {
                     loadNoDitchPointsForVisibleArea()
                 }
@@ -891,6 +920,10 @@ class MainActivity : AppCompatActivity(),
                 refreshWorkingLayer(inspectWaypoints, inspectSheet?.isCurveMode() == true)
                 mainBlockingUiController.setMainButtonsEnabled(false)
             }
+        }
+
+        if (!isOfflineMainMode) {
+            requestBackgroundScopeRefresh()
         }
     }
 
@@ -1531,6 +1564,7 @@ class MainActivity : AppCompatActivity(),
     override fun onSheetViewportInsetChanged(bottomInsetPx: Int) {
         currentSheetBottomInsetPx = bottomInsetPx.coerceAtLeast(0)
         mapCameraController.setPersistentBottomInset(currentSheetBottomInsetPx)
+        mainMapLoadIndicatorController.setBottomInset(currentSheetBottomInsetPx)
     }
 
     override fun openWaypointForEdit(sheet: AddGutterBottomSheet, waypointIndex: Int) {
@@ -1753,12 +1787,17 @@ class MainActivity : AppCompatActivity(),
             ).show(supportFragmentManager, "LayersBottomSheet")
         }
         binding.btnMyLocation.setOnClickListener {
+            pendingUserLocationRecenter = true
             myLocationController.requestLocationAndMove(
                 requestPermission = {
                     locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
                 },
                 onLocationUpdated = { location ->
                     lastKnownLocation = location
+                    if (pendingUserLocationRecenter) {
+                        pendingLocationRecenterReload = true
+                        pendingUserLocationRecenter = false
+                    }
                 }
             )
         }
@@ -1799,6 +1838,7 @@ class MainActivity : AppCompatActivity(),
         }
         isInspectUiLocked = false
         mainBlockingUiController.setMainButtonsEnabled(true)
+        consumePendingForceReloadIfPossible()
     }
 
     private fun setMainButtonsEnabledRespectingInspectLock(enabled: Boolean) {
@@ -1824,6 +1864,7 @@ class MainActivity : AppCompatActivity(),
         }
         isInspectUiLocked = false
         mainBlockingUiController.setMainButtonsEnabled(true)
+        consumePendingForceReloadIfPossible()
     }
 
 
@@ -2095,29 +2136,145 @@ class MainActivity : AppCompatActivity(),
 
     // ── 側溝座標 API（scopeSearch）────────────────────────────────────────
 
+    private fun handleMainMapCameraMoveStarted(reason: Int) {
+        when (reason) {
+            GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE -> {
+                isMainMapGestureActive = true
+                mainMapLoadIndicatorController.prepareForNewOperation(currentMainMapZoom())
+            }
+            GoogleMap.OnCameraMoveStartedListener.REASON_API_ANIMATION,
+            GoogleMap.OnCameraMoveStartedListener.REASON_DEVELOPER_ANIMATION -> {
+                isMainMapGestureActive = false
+            }
+            else -> {
+                isMainMapGestureActive = false
+            }
+        }
+    }
+
+    private fun handleMainMapCameraIdle() {
+        val zoom = currentMainMapZoom()
+        mainMapLoadIndicatorController.syncZoom(zoom)
+
+        if (pendingLocationRecenterReload) {
+            pendingLocationRecenterReload = false
+            requestForceScopeReload("location recenter")
+            return
+        }
+
+        if (isMainMapGestureActive) {
+            isMainMapGestureActive = false
+            requestUserInteractionScopeSearch()
+            return
+        }
+
+        consumePendingForceReloadIfPossible()
+    }
+
+    private fun currentMainMapZoom(): Float {
+        return googleMap?.cameraPosition?.zoom ?: 0f
+    }
+
+    private fun requestUserInteractionScopeSearch() {
+        if (isOfflineMainMode) return
+        val zoom = currentMainMapZoom()
+        mainMapLoadIndicatorController.syncZoom(zoom)
+        if (zoom < 10f) {
+            mainMapLoadIndicatorController.prepareForNewOperation(zoom)
+            return
+        }
+        if (!canRunMainMapScopeQuery()) return
+        scopeMapCoordinator.loadDebounced(
+            scope = lifecycleScope,
+            config = buildScopeLoadConfig(showFeedback = true),
+            hooks = buildScopeLoadHooks(),
+            debounceMs = GUTTER_LOAD_DEBOUNCE_MS
+        )
+    }
+
+    private fun requestBackgroundScopeRefresh() {
+        if (isOfflineMainMode) return
+        val zoom = currentMainMapZoom()
+        mainMapLoadIndicatorController.syncZoom(zoom)
+        if (zoom < 10f) {
+            mainMapLoadIndicatorController.prepareForNewOperation(zoom)
+            return
+        }
+        if (!canRunMainMapScopeQuery()) return
+        scopeMapCoordinator.load(
+            scope = lifecycleScope,
+            config = buildScopeLoadConfig(showFeedback = false),
+            hooks = buildScopeLoadHooks()
+        )
+    }
+
+    private fun requestForceScopeReload(reason: String) {
+        if (isOfflineMainMode) return
+        val token = LoginActivity.getSavedToken(this)
+        if (token.isNullOrBlank()) return
+        val request = PendingForceReload(
+            id = ++nextForceReloadId,
+            reason = reason
+        )
+        if (!canRunMainMapScopeQuery() || forceReloadInFlightId != null) {
+            pendingForceReload = request
+            return
+        }
+        pendingForceReload = null
+        executeForceScopeReload(request)
+    }
+
+    private fun executeForceScopeReload(request: PendingForceReload) {
+        forceReloadInFlightId = request.id
+        val zoom = currentMainMapZoom()
+        mainMapLoadIndicatorController.beginLoading(zoom)
+        scopeMapCoordinator.load(
+            scope = lifecycleScope,
+            config = buildScopeLoadConfig(showFeedback = true),
+            hooks = buildScopeLoadHooks()
+        )
+    }
+
+    private fun consumePendingForceReloadIfPossible() {
+        if (forceReloadInFlightId != null) return
+        val pending = pendingForceReload ?: return
+        if (!canRunMainMapScopeQuery()) return
+        pendingForceReload = null
+        executeForceScopeReload(pending)
+    }
+
+    private fun canRunMainMapScopeQuery(): Boolean {
+        val token = LoginActivity.getSavedToken(this)
+        return lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED) &&
+            googleMap != null &&
+            !token.isNullOrBlank() &&
+            !mainBlockingUiController.isBusyBlocking() &&
+            activeSheet == null &&
+            !isInEditingMode &&
+            inspectSheet == null &&
+            !isInspecting &&
+            !isInspectUiLocked &&
+            !shouldReturnToInspectPreview
+    }
+
     /**
      * 防抖版本的 loadGuttersByViewport
      * 避免短時間內多次調用 API（例如快速拖拽地圖時）
      */
     private fun loadGuttersByViewportDebounced() {
-        scopeMapCoordinator.loadDebounced(
-            scope = lifecycleScope,
-            config = buildScopeLoadConfig(showFeedback = false),
-            hooks = buildScopeLoadHooks(),
-            debounceMs = GUTTER_LOAD_DEBOUNCE_MS
-        )
+        requestUserInteractionScopeSearch()
     }
 
     /**
      * 取得目前地圖可視範圍（LatLngBounds）並呼叫 scopeSearch API，
      * 成功後呼叫 [drawScopePolylines] 更新地圖上的線段。
      */
-    private fun loadGuttersByViewport(showFeedback: Boolean = false) {
-        scopeMapCoordinator.load(
-            scope = lifecycleScope,
-            config = buildScopeLoadConfig(showFeedback = showFeedback),
-            hooks = buildScopeLoadHooks()
-        )
+    private fun loadGuttersByViewport(showFeedback: Boolean = true) {
+        if (showFeedback) {
+            requestForceScopeReload("legacy-visible-load")
+        } else {
+            requestBackgroundScopeRefresh()
+        }
     }
 
     private fun buildScopeLoadConfig(showFeedback: Boolean): ScopeMapCoordinator.Config {
@@ -2131,15 +2288,16 @@ class MainActivity : AppCompatActivity(),
 
     private fun buildScopeLoadHooks(): ScopeMapCoordinator.Hooks {
         return ScopeMapCoordinator.Hooks(
-            onBeforeDraw = {
+            onBeforeDraw = { _ ->
                 submittedPolylines.forEach { it.remove() }
                 submittedPolylines.clear()
             },
-            onLoadingStarted = {
-                Toast.makeText(this, getString(R.string.msg_loading_gutters), Toast.LENGTH_SHORT).show()
+            onLoadingStarted = { _ ->
+                mainMapLoadIndicatorController.beginLoading(currentMainMapZoom())
             },
-            onLoadingFinished = {
-                Toast.makeText(this, getString(R.string.msg_loading_gutters_done), Toast.LENGTH_SHORT).show()
+            onLoadingFinished = { _ ->
+                mainMapLoadIndicatorController.finishLoading(currentMainMapZoom())
+                forceReloadInFlightId = null
                 pendingInspectPreviewReload?.let { pending ->
                     pendingInspectPreviewReload = null
                     reopenInspectPreviewAfterUpdate(
@@ -2148,11 +2306,14 @@ class MainActivity : AppCompatActivity(),
                         token = pending.token
                     )
                 }
+                consumePendingForceReloadIfPossible()
             },
-            onLoadingFailed = {
-                Toast.makeText(this, getString(R.string.msg_loading_gutters_failed), Toast.LENGTH_SHORT).show()
+            onLoadingFailed = { _, _ ->
+                mainMapLoadIndicatorController.failLoading(currentMainMapZoom())
+                forceReloadInFlightId = null
+                consumePendingForceReloadIfPossible()
             },
-            onSilentError = { message ->
+            onSilentError = { _, message ->
                 android.util.Log.w("ScopeSearch", "查詢失敗: $message")
             }
         )
