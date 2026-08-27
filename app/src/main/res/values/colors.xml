@@ -13,6 +13,13 @@
     <color name="border_grey">#E0E0E0</color>
     <color name="map_selector_grey">#F4F4F5</color>
     <color name="map_borders_grey">#DEDFE0</color>
+    <color name="dashboard_total_start">#7B4FFF</color>
+    <color name="dashboard_total_end">#4726A9</color>
+    <color name="dashboard_group_bg">#F5F2FF</color>
+    <color name="dashboard_group_name">#7B4FFF</color>
+    <color name="dashboard_group_value">#562ECB</color>
+    <color name="dashboard_detail_label">#606266</color>
+    <color name="dashboard_detail_unit">#909399</color>
 
     <color name="colorPrimary">#6236FF</color>
     <color name="colorPrimaryVariant">#4B2ACC</color>

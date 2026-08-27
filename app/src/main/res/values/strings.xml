@@ -22,6 +22,7 @@
     <string name="dashboard_title">儀表板</string>
     <string name="dashboard_length_title">調查長度</string>
     <string name="dashboard_progress_title">調查進度與狀態</string>
+    <string name="dashboard_other_tracking_title">其他追蹤項目</string>
     <string name="dashboard_settings">設定</string>
     <string name="dashboard_filter">篩選</string>
     <string name="dashboard_length_detail_hint">點選組別查看帳號明細</string>
@@ -30,6 +31,7 @@
     <string name="dashboard_item_unit">筆</string>
     <string name="dashboard_km_unit">公里</string>
     <string name="dashboard_filter_title">篩選條件</string>
+    <string name="dashboard_filter_hint">請先選擇篩選方式</string>
     <string name="dashboard_filter_clear">清除篩選</string>
     <string name="dashboard_filter_date_range">日期區間（起訖）</string>
     <string name="dashboard_filter_month_range">月份範圍</string>

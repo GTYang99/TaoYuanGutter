@@ -97,6 +97,10 @@ class DashboardViewModel(
         }
     }
 
+    fun setQuery(query: DashboardQuery) {
+        _uiState.update { it.copy(query = query) }
+    }
+
     fun clearFilters() {
         _uiState.update { it.copy(query = DashboardQuery()) }
     }

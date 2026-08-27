@@ -42,4 +42,26 @@ class DashboardViewModelTest {
         assertEquals(setOf("A組", "B組"), viewModel.uiState.value.selectedLengthGroups)
         assertEquals("B組", viewModel.uiState.value.selectedLengthDetailGroup)
     }
+
+    @Test
+    fun setQueryAppliesExclusiveFilterState() {
+        val viewModel = DashboardViewModel()
+
+        viewModel.setQuery(
+            com.example.taoyuangutter.api.DashboardQuery(
+                startDate = "2026-08-01",
+                endDate = "2026-08-31"
+            )
+        )
+        assertEquals("2026-08-01", viewModel.uiState.value.query.startDate)
+        assertEquals("2026-08-31", viewModel.uiState.value.query.endDate)
+        assertEquals(null, viewModel.uiState.value.query.monthYear)
+        assertEquals(null, viewModel.uiState.value.query.month)
+
+        viewModel.clearFilters()
+        assertEquals(null, viewModel.uiState.value.query.startDate)
+        assertEquals(null, viewModel.uiState.value.query.endDate)
+        assertEquals(null, viewModel.uiState.value.query.monthYear)
+        assertEquals(null, viewModel.uiState.value.query.month)
+    }
 }

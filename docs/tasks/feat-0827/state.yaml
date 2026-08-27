@@ -1,10 +1,19 @@
 task:
   id: feat-0827
   type: feature
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_failed
 planning:
   status: approved
 implementation:
   status: completed
-next_action: verification
+verification:
+  result: fail
+cause: implementation
+blocking:
+  - AC-004
+  - AC-008
+  - AC-011
+  - AC-013
+  - AC-014
+next_action: implementation

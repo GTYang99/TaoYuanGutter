@@ -35,30 +35,34 @@
 - `app/src/test/java/com/example/taoyuangutter/api/*`、`app/src/test/java/com/example/taoyuangutter/dashboard/*` - 單元測試。
 - `app/src/androidTest/java/com/example/taoyuangutter/*` - tab 切換、篩選與圓餅圖 UI 驗證。
 
-## Implementation Steps
-1. 先定義 dashboard API 的 response model，讓「調查長度」與「調查進度」可以用穩定資料結構解析。
-2. 在 repository 新增 dashboard 讀取方法，支援日期區間與月份範圍兩種互斥參數組合，並沿用現有 token 與 401 處理。
-3. 建立新的主導覽容器，並把 `LoginActivity` / `AuthNavigator` 的登入成功導向改成 `MainShellActivity`，使其成為唯一入口。
-4. 把既有 map 工作區抽成可重用的 `MapWorkspaceFragment`，將現有地圖、控制器、bottom sheet、overlay 與 FAB 都留在 map tab 內。
-5. 定義 active tab layout state，明確規定 dashboard active 時隱藏 map 專用浮動控制項、底部面板與地圖 overlay；map active 時恢復原本地圖工作區的顯示與 inset，tabbar 本體維持常駐。
-6. 建立儀表板畫面與 view model，完成標題、兩個主要區塊、動態組別切換與 API 狀態管理，並讓組別清單直接由 response keys 動態推導。
-7. 實作「設定」複選清單與「篩選」彈窗，確保日期區間與月份範圍只能擇一送出，且每次開啟都回到空狀態，不保留上次選擇。
-8. 實作圓餅圖元件與卡片/清單版面，讓調查進度、狀態與組別公里數依 API 回傳即時更新，並套用固定色碼（待匯入座標 `#FFC300`、待繪製 `#1962FF`、待修正 `#FF58E0`、已完成 `#000000`）。
-9. 補齊字串、圖示、背景與版面資源，並調整不同螢幕寬度下的排版與 tabbar safe area。
-10. 新增單元測試與 instrumentation 測試，覆蓋 API mapping、互斥篩選、tab 切換、active tab 可見性、登入導向與主要 UI 狀態。
+## Implementation Checklist
+
+### Blocking fix order
+- [ ] Restore the map tab so it preserves the original `MainActivity.kt` behavior instead of opening a separate under-wired map surface.
+- [ ] Reconcile `MapWorkspaceFragment` with the existing map lifecycle, controller, launchers, overlays, bottom sheets, and map-only controls.
+- [ ] Confirm dashboard and map tab visibility rules are truly mutually exclusive, including returning to map after dashboard navigation.
+- [ ] Fix dashboard visual conformance issues called out by verification: total card gradient, group card styling/layout, filter sheet layout, and the `其他追蹤項目` heading.
+- [ ] Make the dashboard filter sheet match the approved interaction model: bottom sheet presentation, centered title, close button, and empty initial state.
+- [ ] Repair the connected instrumentation path so `connectedDebugAndroidTest` passes on the target device configuration.
+
+### Implementation steps
+1. Normalize the map host first, because AC-001 / AC-013 / AC-014 are the core blocker cluster and the current fragment-based map surface is incomplete.
+2. Align the dashboard shell visuals with the approved requirement and Figma reference, keeping the existing data-binding logic intact where possible.
+3. Rework the filter UI into the required bottom sheet flow, with mutually exclusive date/month behavior and reset-on-open behavior.
+4. Tighten the tab switch state handling so dashboard active state hides map-only controls and map active state restores them without residual overlays.
+5. Update or add tests only after the UI/state behavior is stable, then rerun unit and connected instrumentation verification.
 
 ## Test Plan
-- 新增/更新 repository 與 model 的 unit tests，驗證 dashboard JSON mapping 與 query parameter 組裝。
-- 新增 dashboard state 的 unit tests，驗證設定複選、全部組別單選與日期/月篩選互斥。
-- 補一組 instrumentation tests，驗證登入後會進入 shell、預設是 map tab、dashboard tab 可切換、map controls 會隨 tab 顯示/隱藏、篩選彈窗可開啟、圓餅圖與主要卡片可顯示。
-- 跑既有的主要單元測試，確認登入、地圖與草稿流程沒有被新導覽影響，且 401 仍能回到登入邏輯。
+- 先用 unit tests 驗證 dashboard state、query 組裝、百分比/資料格式與篩選互斥邏輯。
+- 再用 instrumentation tests 驗證登入後預設進入 map tab、切換到 dashboard 後 map-only controls 消失、切回 map 後原控制項恢復。
+- 最後跑 `testDebugUnitTest` 與 `connectedDebugAndroidTest`，確認驗證環境中沒有 ActivityScenario / developer option 的額外阻礙。
 
 ## Regression Plan
-- 確認登入後一定先進 shell 並預設停在 map tab，原本的地圖工作區仍可正常進入。
-- 確認切到 dashboard 時，既有地圖按鈕、底部面板、overlay 與 camera / bottom sheet 不會殘留在前景。
-- 確認切回 map tab 時，原本地圖按鈕、底部面板與相機流程恢復正常。
-- 確認 401 仍會回到登入邏輯，不會讓 dashboard 卡在空白或錯誤頁。
-- 確認既有 API、草稿、編輯與檢視流程不受新增 tabbar 影響。
+- 確認登入後的第一個可見工作區仍是原本地圖工作流，而不是一個新的、簡化過的 map surface。
+- 確認 dashboard tab 不會把 map-only bottom sheet、FAB、overlay 或相機控制帶到前景。
+- 確認切回 map tab 時，原本地圖流程可完整回復，不留下殘影或半初始化狀態。
+- 確認 401 邏輯仍導回登入，不會因 shell/tab host 改動而改變 auth 行為。
+- 確認既有草稿、編輯與檢視流程不受主導覽容器影響。
 
 ## Risks
 - 主導覽結構可能比預期更大，因為目前 app 沒有既成 tabbar 框架。
@@ -83,4 +87,5 @@
 - API 回傳後，調查長度、調查進度、組別明細與圓餅圖都會同步更新。
 
 ## Open Questions
-- `MapWorkspaceFragment` 與 `DashboardFragment` 是否需要共用同一個 activity-scoped ViewModel 來保存 tab 切換期間的 UI 狀態，或各自維持獨立 state 即可。
+- `MapWorkspaceFragment` 是否應該直接承接原本 `MainActivity` 的 map 工作流，還是改成更薄的容器後再逐步抽出共享狀態。
+- `DashboardFragment` 的 visual polish 是否要一次對齊 Figma，或先以 blocker 修正為主、細節再分批處理。
