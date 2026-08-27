@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/nav_map"
+        android:icon="@drawable/ic_map_normal"
+        android:title="@string/title_activity_map" />
+    <item
+        android:id="@+id/nav_dashboard"
+        android:icon="@drawable/ic_dashboard_rounded"
+        android:title="@string/dashboard_title" />
+</menu>

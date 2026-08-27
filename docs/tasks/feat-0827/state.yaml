@@ -1,8 +1,10 @@
 task:
   id: feat-0827
   type: feature
-phase: planning
-status: plan_ready
+phase: implementation
+status: implementation_complete
 planning:
-  status: plan_ready
-next_action: plan_review
+  status: approved
+implementation:
+  status: completed
+next_action: verification

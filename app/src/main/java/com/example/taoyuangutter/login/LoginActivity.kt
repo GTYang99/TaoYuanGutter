@@ -16,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.example.taoyuangutter.MainActivity
+import com.example.taoyuangutter.MainShellActivity
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.databinding.ActivityLoginBinding
@@ -151,7 +152,7 @@ class LoginActivity : AppCompatActivity() {
                         }
                         editor.apply()
 
-                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                        startActivity(Intent(this@LoginActivity, MainShellActivity::class.java))
                         finish()
                     }
                     is ApiResult.Error -> {

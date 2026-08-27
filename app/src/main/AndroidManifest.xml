@@ -49,6 +49,13 @@
             </intent-filter>
         </activity>
 
+        <!-- Shell / tab host -->
+        <activity
+            android:name=".MainShellActivity"
+            android:exported="false"
+            android:label="@string/platform_title"
+            android:theme="@style/Theme.TaoYuanGutter" />
+
         <!-- Main Activity -->
         <activity
             android:name=".MainActivity"

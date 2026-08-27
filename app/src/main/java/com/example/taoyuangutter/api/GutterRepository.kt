@@ -144,6 +144,50 @@ class GutterRepository(
         }
     }
 
+    // ── 儀表板 ──────────────────────────────────────────────────────────
+
+    /**
+     * 取得儀表板資料。
+     *
+     * 日期區間與月份範圍只能擇一，若同時存在則視為呼叫端輸入錯誤。
+     */
+    suspend fun getDashboard(
+        token: String,
+        query: DashboardQuery
+    ): ApiResult<DashboardResponse> {
+        if (query.isDateRangeSelected && query.isMonthRangeSelected) {
+            return ApiResult.Error(message = "日期區間與月份範圍只能擇一")
+        }
+
+        return try {
+            val response = api.getDashboard(
+                startDate = query.startDate,
+                endDate = query.endDate,
+                monthYear = query.monthYear,
+                month = query.month,
+                authorization = "Bearer $token"
+            )
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "查詢失敗",
+                        code = response.code()
+                    )
+                }
+                else -> {
+                    val message = parseApiErrorMessage(response.errorBody()?.string())
+                        ?: "查詢失敗（${response.code()}）"
+                    ApiResult.Error(message = message, code = response.code())
+                }
+            }
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
     // ── 上傳側溝 ──────────────────────────────────────────────────────────
 
     /**

@@ -11,6 +11,7 @@ class AuthNavigator(
             .remove("auth_token")
             .remove("user_name")
             .remove("user_company")
+            .remove("group_id")
             .apply()
         goToLogin()
     }

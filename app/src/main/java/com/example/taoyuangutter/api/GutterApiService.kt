@@ -54,6 +54,20 @@ interface GutterApiService {
     ): Response<LogoutResponse>
 
     /**
+     * 儀表板資料。
+     *
+     * GET /api/v1/dashboard/getDashboard
+     */
+    @GET("api/v1/dashboard/getDashboard")
+    suspend fun getDashboard(
+        @Query("date[start_date]") startDate: String?,
+        @Query("date[end_date]") endDate: String?,
+        @Query("monthRange[year]") monthYear: String?,
+        @Query("monthRange[month]") month: String?,
+        @Header("Authorization") authorization: String
+    ): Response<DashboardResponse>
+
+    /**
      * 上傳單條側溝資料。
      *
      * POST /api/gutters
@@ -312,6 +326,8 @@ object GutterApiClient {
     private val gson = GsonBuilder()
         // 後端偶發回傳 Int 欄位為空字串 ""（例如 END_DEP / END_WID），避免 Gson 解析直接炸掉
         .registerTypeAdapter(Int::class.javaObjectType, EmptyStringToNullIntAdapter())
+        .registerTypeAdapter(DashboardLengthGroup::class.java, DashboardLengthGroupDeserializer())
+        .registerTypeAdapter(DashboardProgressGroup::class.java, DashboardProgressGroupDeserializer())
         .create()
 
     val instance: GutterApiService by lazy {
