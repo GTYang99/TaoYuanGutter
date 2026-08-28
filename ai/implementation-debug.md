@@ -28,6 +28,7 @@ Developer MUST create or update:
 - fix-plan.md
 - execution-report.md (if validation is limited)
 - state.yaml
+- related issue record or issue log entry
 
 ---
 
@@ -95,6 +96,7 @@ Developer MUST identify:
 - Why the issue occurred
 - Which files are affected
 - Whether regression risk exists
+- Which issue_id the debug work is resolving, if available
 
 Developer MUST NOT fix symptoms without identifying the root cause.
 
@@ -108,6 +110,7 @@ Developer MUST:
 - preserve unrelated functionality
 - minimize code changes
 - update tests if behavior changes
+- keep the fix scope aligned with the issue priority
 
 ---
 

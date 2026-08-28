@@ -116,6 +116,8 @@ Verification MUST:
 - verify CI results
 - identify missing test coverage
 - identify implementation deviations
+- classify any blocking issue with priority and category
+- reference or create a related issue record when verification fails
 
 ---
 

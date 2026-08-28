@@ -37,6 +37,7 @@ Planning MUST identify:
 - Dependencies
 - Risks
 - Unknown Assumptions
+- Potential issue categories that should be tracked separately
 
 ---
 
@@ -48,6 +49,8 @@ Planning MUST create or update:
 - analysis.md
 - plan.md
 - state.yaml
+
+Planning SHOULD log requirement gaps or early regressions as issues instead of folding them into the task state.
 
 ---
 
