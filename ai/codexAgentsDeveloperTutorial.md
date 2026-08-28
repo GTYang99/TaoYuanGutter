@@ -1,41 +1,110 @@
 # AI Agent Developer Core:
+
+> 本文件以專案 `AGENTS.md` 的流程與檔案結構為準，以下內容保留原本說明方式，並補齊對齊項目。
+
+## Project Summary
+Android Kotlin application.
+
+Architecture:
+MVVM
+
+Primary language:
+Kotlin
+
+Target:
+Android 9+
+
+See:
+ai/architecture.md
+
+## Workflow
+### Success Flow
 ```
-Requirement
-↓
-理解
-↓
-Acceptance Criteria
-↓
-Architecture
-↓
-Plan
+Planning
 ↓
 Plan Review
 ↓
 Implementation
 ↓
-Build
+Developer Validation
+(Build / Local Test)
 ↓
-Test
+Git Commit
 ↓
-CI/PR Gate
-↓
-Code Review
-↓
-Regression
+Verification
 ↓
 Release
 ```
-## WorkFlow, Files Saved Strature, Storage Strategy
+### Fail Flow
+```
+Verification FAIL
+↓
+Failure Classification
+↓
+Requirement -> Planning
+Planning -> Planning
+Implementation -> Debug
+Environment -> Infrastructure
+Unknown -> Investigation
+↓
+Debug
+↓
+Re-Implementation
+↓
+Developer Validation
+↓
+Git Commit
+↓
+Verification
+```
+
+## Role Routing
+```
+Planning
+↓
+ai/planning-rules.md
+Plan Review
+↓
+ai/plan-critic-rules.md
+Developer
+↓
+ai/developer-rules.md
+Verifier
+↓
+ai/verification-rules.md
+Debug
+↓
+ai/implementation-debug.md
+```
+
+## Task Memory
+任務資料請統一放在 `docs/tasks/[開發編號]/`，並維持與 `AGENTS.md` 相同的任務階段檔案。
+
+建議檔案：
+```
+docs/tasks/TYG-001/
+├── requirement.md
+├── analysis.md
+├── plan.md
+├── state.yaml
+└── verification.md
+```
+
+Planning / Verification / Debug 都先讀 `state.yaml`，再根據對應規則檔執行。
+
+## Workflow, Files Saved Strature, Storage Strategy
+```
 + Artifacts / Files
    1) requirement.md
-   2) plan.md
-   3) state.yaml
-   4) Codex Developer
-   5) Git branch + commit
-   6) GitHub Actions build/test
-   7) 新 Codex Thread 做 Verification
-   8) 人工 Merge
+   2) analysis.md
+   3) plan.md
+   4) state.yaml
+   5) verification.md
+   6) Codex Developer
+   7) Git branch + commit
+   8) GitHub Actions build/test
+   9) 新 Codex Thread 做 Verification
+   10) 人工 Merge
 + Storage Strategy
 
    + Task Type
@@ -48,15 +117,15 @@ Release
    │
    ├── docs/tasks/TYG-001/ ← 任務記憶(任務為主導的開發)
    │   │
-   │   ├── TYG-001_requirement.md
+   │   ├── requirement.md
    │   │
-   │   ├── TYG-001_analysis.md
+   │   ├── analysis.md
    │   │
-   │   ├── TYG-001_plan.md
+   │   ├── plan.md
    │   │
-   │   ├── TYG-001_state.yaml
+   │   ├── state.yaml
    │   │
-   │   └── TYG-001_verification.md
+   │   └── verification.md
    │
    │
    ├── Threads A       ← Analyst 工程師
@@ -76,25 +145,31 @@ Release
    │
    ├── AGENTS.md                       ← 強制入口規則：Agent 必須做什麼
    │
-   ├── ai-rules /                      ← artifact type
+   ├── ai/                             ← rules and architecture
    │   ├── architecture.md
    │   ├── planning-rules.md    
+   │   ├── plan-critic-rules.md
    │   ├── coding-rules.md
    │   ├── testing-rules.md
+   │   ├── developer-rules.md
+   │   ├── verification-rules.md
+   │   ├── implementation-debug.md
+   │   ├── git-rules.md
    │   └── release-rules.md
    │   
    │
    └── docs/                           ← artifact type
-      ├── requirements/TYG-001.md     
-      ├── plans/TYG-001.md
-      ├── verification/TYG-001.md
-      ├── releases/TYG-001.md
-      └── tasks/TYG-001.md
+      └── tasks/TYG-001/
+         ├── requirement.md
+         ├── analysis.md
+         ├── plan.md
+         ├── state.yaml
+         └── verification.md
 
    ```
 ## AI Agents For Rules
    + AGENTS.md = Agent 入口 / 全域指令
-   + /docs/tasks/*.md = 詳細規範
+   + /docs/tasks/[開發編號]/ = 詳細規範與任務狀態
 ```
 /AGENTS.md
 /project_rules
@@ -141,8 +216,10 @@ GitHub Actions
 
    Read:
 
-   docs/requirements/TYG-001.md
-   docs/plans/TYG-001-plan.md
+   docs/tasks/TYG-001/requirement.md
+   docs/tasks/TYG-001/analysis.md
+   docs/tasks/TYG-001/plan.md
+   docs/tasks/TYG-001/state.yaml
 
    Review the changes between:
 
@@ -170,7 +247,7 @@ GitHub Actions
    Include evidence.
 
    Create:
-   docs/tasks/TYG-001/verification/verification.md
+   docs/tasks/TYG-001/verification.md
    ```
    + Adversarial Verification
    ```
@@ -191,15 +268,21 @@ GitHub Actions
       ```
       phase: verification
 
+      status: verification_failed
+
       verification:
-      status: failed
+        result: fail
+        category: implementation
+        failed_acceptance_criteria:
+        - AC-002
+        - AC-004
 
       blocking:
       - AC-002
       - AC-004
 
       next_action:
-      developer_fix
+        debug
       ```
       + Developer Agent 重新讀 state.yaml + verification.md，***針對 blocking issues 修正***。。
       + Regression
@@ -261,6 +344,19 @@ Project/
                   ↓
             Same Task State
 ```
+
+## State Alignment
+為了和 `AGENTS.md` 保持一致，建議補上這些狀態概念：
+
+- Planning: `plan_in_progress` -> `plan_ready`
+- Plan Review: `review_in_progress` -> `approved` / `changes_requested` / `blocked`
+- Implementation: `implementation_in_progress` -> `implementation_complete`
+- Verification: `verification_in_progress` -> `verification_passed` / `verification_failed`
+- Verification failure 要依分類切到 `debug`、`planning`、`infrastructure` 或 `investigation`
+
+## Task State
+Task State 不等於開發日誌，它比較像「目前任務狀態表」；開發日誌是過程紀錄。
+任何 Agent 接手前，先讀 `state.yaml`。
 
 |情況 | 建議|
 |----|-----|
