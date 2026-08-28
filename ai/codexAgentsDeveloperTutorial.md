@@ -77,6 +77,24 @@ Debug
 ai/implementation-debug.md
 ```
 
+## Issue Management
+Issue Management is used when a task hits a blocker, regression, or requirement mismatch.
+
+Keep `state.yaml` for the task's main phase and keep issue details in a separate issue log.
+
+Recommended rules:
+- `requirement_gap` returns to `planning`
+- `implementation_regression` returns to `debug`
+- `verification_failure` returns to `debug`
+- `environment` returns to `infrastructure`
+- `unknown` returns to `investigation`
+
+Recommended priorities:
+- `P0` core flow broken or data risk
+- `P1` major flow blocked
+- `P2` local defect or edge case
+- `P3` polish or non-blocking improvement
+
 ## Task Memory
 任務資料請統一放在 `docs/tasks/[開發編號]/`，並維持與 `AGENTS.md` 相同的任務階段檔案。
 
@@ -154,6 +172,7 @@ Planning / Verification / Debug 都先讀 `state.yaml`，再根據對應規則�
    │   ├── developer-rules.md
    │   ├── verification-rules.md
    │   ├── implementation-debug.md
+   │   ├── issue-management.md
    │   ├── git-rules.md
    │   └── release-rules.md
    │   

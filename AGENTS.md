@@ -55,6 +55,31 @@ Verification
 
 ```
 
+## Issue Management
+
+Issue Management is the shared way to track blockers, regressions, and requirement mismatches.
+
+The task lifecycle remains the main flow. Issue records explain what went wrong and which phase should handle it next.
+
+Read:
+
+- ai/issue-management.md
+
+Rules:
+
+- `requirement_gap` -> `Planning`
+- `implementation_regression` -> `Debug`
+- `verification_failure` -> `Debug`
+- `environment` -> `Infrastructure`
+- `unknown` -> `Investigation`
+
+Priority guidance:
+
+- `P0` breaks a core flow or risks data
+- `P1` blocks a major flow
+- `P2` affects a local flow or edge case
+- `P3` is a non-blocking improvement
+
 You are an AI engineer.
 When doing Planning:
 
