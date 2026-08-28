@@ -8,6 +8,10 @@ Verification MUST be evidence-based.
 
 Never trust Developer claims without verification.
 
+Verification MUST route implementation failures to Debug before any new code changes begin.
+
+Developer MUST NOT directly patch a failed implementation without debug evidence.
+
 ---
 
 ## File Path
@@ -139,14 +143,13 @@ FAIL
 
 NOT VERIFIED
 
-If FAIL:
+If FAIL, Verification MUST:
 
-verification.md MUST include:
-
-- Failed Acceptance Criteria
-- Evidence
-- Root Cause
-- Recommended Action
+- classify the failure category
+- identify failed acceptance criteria
+- provide concrete evidence
+- recommend the next action
+- determine whether debug is required before re-implementation
 
 ---
 
@@ -179,30 +182,48 @@ When verification fails because of implementation:
 
 ```yaml
 phase: verification
-
 status: verification_failed
 
 verification:
   result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-003
 
-cause: implementation
-
-next_action: implementation
+next_action: debug
 ```
-
-When verification fails because of planning:
 
 ```yaml
 phase: verification
-
 status: verification_failed
 
 verification:
   result: fail
-
-cause: planning
+  category: planning
 
 next_action: planning
+```
+
+```yaml
+phase: verification
+status: verification_failed
+
+verification:
+  result: fail
+  category: environment
+
+next_action: infrastructure
+```
+
+```yaml
+phase: verification
+status: verification_failed
+
+verification:
+  result: fail
+  category: unknown
+
+next_action: investigation
 ```
 
 ---

@@ -35,15 +35,24 @@ Release
 ```
 Verification FAIL
 ↓
-Evaluate Root Cause
+Failure Classification
 ↓
-Requirement unclear?
+Requirement -> Planning
+Planning -> Planning
+Implementation -> Debug
+Environment -> Infrastructure
+Unknown -> Investigation
 ↓
-Planning
-or
-Implementation
+Debug
 ↓
-Verification Again
+Re-Implementation
+↓
+Developer Validation
+↓
+Git Commit
+↓
+Verification
+
 ```
 
 You are an AI engineer.
@@ -70,12 +79,12 @@ When doing Planning:
         + [0831]state.yaml
         Planning is complete only when plan.md contains an actionable Implementation Plan.
         state.yaml needs write these:
-        ```
+        ```yaml
         phase: planning
         status: plan_in_progress
         ```
         Planning 完：
-        ``` 
+        ```yaml
         phase: planning
         status: plan_ready
         next_action:
@@ -90,7 +99,7 @@ When doing develope:
     state.yaml
     approved plan
     state.yaml needs write these:
-    ```
+    ```yaml
     phase: implementation
 
     status: implementation_complete
@@ -119,7 +128,7 @@ When doing Verification:
         Tests
     state.yaml needs write these:
     + PASS
-    ```
+    ```yaml
     phase: verification
 
     status: verification_passed
@@ -128,12 +137,18 @@ When doing Verification:
     ```
 
     + FAIL：
-    ```
+    ```yaml
     phase: verification
 
     status: verification_failed
 
-    next_action: implementation
+    verification:
+      result: fail
+      category: implementation
+      failed_acceptance_criteria:
+        - AC-003
+
+    next_action: debug
     ```
     + BLOCK:
     ```
@@ -146,7 +161,7 @@ When doing Verification:
         - Missing Retry Test
     ```
 Sample state.yaml:
-    ```
+    ```yaml
     task: TYG-205
 
     phase: verification
@@ -154,23 +169,59 @@ Sample state.yaml:
     status: verification_failed
 
     planning:
-    status: approved
+      status: approved
 
     implementation:
-    status: completed
-    commit: abc1234
+      status: completed
+      commit: abc1234
 
     verification:
-    result: fail
+      result: fail
+      category: implementation
+      failed_acceptance_criteria:
+        - AC-003
 
     blocking:
+      - TEST-014
+      - Missing Retry Test
 
+    next_action: debug
+    ```
+
+## Failure Classification
+
+Verification MUST classify every failure.
+
+Supported categories:
+- requirement
+- planning
+- implementation
+- environment
+- unknown
+
+State transition rules:
+- requirement -> next_action: planning
+- planning -> next_action: planning
+- implementation -> next_action: debug
+- environment -> next_action: infrastructure
+- unknown -> next_action: investigation
+
+```yaml
+phase: verification
+status: verification_failed
+
+verification:
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
     - AC-003
 
-    - TEST-014
+blocking:
+  - TEST-014
+  - Missing retry test
 
-    next_action: implementation
-    ```
+next_action: debug
+```
 
 # Task Lifecycle
 ```
@@ -197,12 +248,18 @@ Done
 Planning
 ↓
 ai/planning-rules.md
+Plan Review
+↓
+ai/plan-critic-rules.md
 Developer
 ↓
 ai/developer-rules.md
 Verifier
 ↓
 ai/verification-rules.md
+Debug
+↓
+ai/implementation-debug.md
 ```
 # Required Reading
 ```
@@ -211,6 +268,9 @@ Planning
 planning-rules
 ↓
 architecture
+Plan Review
+↓
+plan-critic-rules
 Developer
 ↓
 developer-rules
@@ -221,6 +281,9 @@ Verifier
 verification-rules
 ↓
 testing-rules
+Debug
+↓
+implementation-debug
 ```
 
 # Gates

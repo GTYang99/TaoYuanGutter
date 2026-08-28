@@ -249,6 +249,21 @@ git:
 next_action: verification
 ```
 
+```yaml
+phase: implementation
+status: implementation_complete
+
+implementation:
+  status: completed
+  mode: debug_fix
+
+git:
+  commit: abc1234
+  status: committed
+
+next_action: verification
+```
+
 ---
 
 ## Restrictions
@@ -330,3 +345,24 @@ Developer SHOULD provide:
 - UI Test Result
 - Git Commit
 - Git Diff
+
+---
+
+## Re-Implementation After Verification Failure
+
+If state.yaml indicates:
+
+next_action: implementation_debug
+
+Developer MUST read:
+- verification.md
+- root-cause.md
+- fix-plan.md
+- latest committed diff
+
+Developer MUST:
+- implement only the approved debug fix scope
+- avoid unrelated code changes
+- update or add tests for the failed acceptance criteria
+- create a new commit for the debug fix
+- return the task to verification
