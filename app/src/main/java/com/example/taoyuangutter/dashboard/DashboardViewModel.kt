@@ -55,10 +55,9 @@ class DashboardViewModel(
         _uiState.update { current ->
             val filtered = groups.filter { it != TOTAL_GROUP_KEY }.toSet()
             val nextDetail = current.selectedLengthDetailGroup?.takeIf { it in filtered }
-                ?: filtered.firstOrNull()
             current.copy(
                 selectedLengthGroups = filtered,
-                selectedLengthDetailGroup = nextDetail ?: current.selectedLengthDetailGroup
+                selectedLengthDetailGroup = nextDetail
             )
         }
     }
@@ -118,10 +117,7 @@ class DashboardViewModel(
             current.selectedLengthGroups.isNotEmpty() -> current.selectedLengthGroups.intersect(lengthGroups.toSet())
             else -> lengthGroups.toSet()
         }
-        val selectedDetailGroup = current.selectedLengthDetailGroup
-            ?.takeIf { it in lengthGroups }
-            ?: lengthGroups.firstOrNull { it in selectedLengthGroups }
-            ?: lengthGroups.firstOrNull()
+        val selectedDetailGroup = current.selectedLengthDetailGroup?.takeIf { it in lengthGroups }
         val selectedProgressGroup = when {
             current.selectedProgressGroup == TOTAL_GROUP_KEY -> TOTAL_GROUP_KEY
             current.selectedProgressGroup in progressGroups -> current.selectedProgressGroup

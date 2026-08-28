@@ -18,12 +18,17 @@ class DashboardPieChartView @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
 
     private val slicePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        style = Paint.Style.FILL
+        style = Paint.Style.STROKE
+        strokeCap = Paint.Cap.BUTT
     }
     private val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         style = Paint.Style.STROKE
         strokeWidth = resources.displayMetrics.density * 14f
         color = ContextCompat.getColor(context, R.color.map_borders_grey)
+    }
+    private val holePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        style = Paint.Style.FILL
+        color = ContextCompat.getColor(context, R.color.white)
     }
 
     private var slices: List<DashboardSlice> = emptyList()
@@ -49,13 +54,17 @@ class DashboardPieChartView @JvmOverloads constructor(
         canvas.drawOval(rect, ringPaint)
         if (total <= 0) return
 
+        slicePaint.strokeWidth = ringPaint.strokeWidth
         var startAngle = -90f
         slices.forEach { slice ->
             if (slice.value <= 0) return@forEach
             val sweep = 360f * slice.value / total
             slicePaint.color = slice.color
-            canvas.drawArc(rect, startAngle, sweep, true, slicePaint)
+            canvas.drawArc(rect, startAngle, sweep, false, slicePaint)
             startAngle += sweep
         }
+
+        val holeRadius = (rect.width().coerceAtMost(rect.height()) / 2f) - slicePaint.strokeWidth / 2f
+        canvas.drawCircle(width / 2f, height / 2f, holeRadius, holePaint)
     }
 }

@@ -1,10 +1,13 @@
 package com.example.taoyuangutter.dashboard
 
-import android.app.DatePickerDialog
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.app.DatePickerDialog
+import android.widget.LinearLayout
+import android.widget.NumberPicker
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.api.DashboardQuery
 import com.example.taoyuangutter.databinding.SheetDashboardFilterBinding
@@ -43,23 +46,27 @@ class DashboardFilterBottomSheet : BottomSheetDialogFragment() {
         super.onViewCreated(view, savedInstanceState)
         isCancelable = true
         binding.btnClose.setOnClickListener { dismissAllowingStateLoss() }
-        binding.toggleMode.clearChecked()
-        binding.toggleMode.addOnButtonCheckedListener { _, checkedId, isChecked ->
-            if (!isChecked) {
-                mode = null
+        binding.btnStartDate.setOnClickListener {
+            pickDate {
+                startDate = it
+                monthYear = ""
+                month = ""
+                ensureDateMode()
                 renderMode()
-                return@addOnButtonCheckedListener
             }
-            mode = when (checkedId) {
-                binding.btnDateMode.id -> FilterMode.DATE
-                binding.btnMonthMode.id -> FilterMode.MONTH
-                else -> null
-            }
-            renderMode()
         }
-        binding.btnStartDate.setOnClickListener { pickDate { startDate = it; ensureDateMode(); renderMode() } }
-        binding.btnEndDate.setOnClickListener { pickDate { endDate = it; ensureDateMode(); renderMode() } }
+        binding.btnEndDate.setOnClickListener {
+            pickDate {
+                endDate = it
+                monthYear = ""
+                month = ""
+                ensureDateMode()
+                renderMode()
+            }
+        }
         binding.btnMonth.setOnClickListener { pickMonth { year, selectedMonth ->
+            startDate = ""
+            endDate = ""
             monthYear = year
             month = selectedMonth
             ensureMonthMode()
@@ -104,9 +111,10 @@ class DashboardFilterBottomSheet : BottomSheetDialogFragment() {
     override fun onStart() {
         super.onStart()
         (dialog as? BottomSheetDialog)?.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)?.let { sheet ->
-            sheet.layoutParams = sheet.layoutParams.apply { height = ViewGroup.LayoutParams.WRAP_CONTENT }
+            sheet.layoutParams = sheet.layoutParams.apply { height = ViewGroup.LayoutParams.MATCH_PARENT }
+            sheet.requestLayout()
             val behavior = BottomSheetBehavior.from(sheet)
-            behavior.isFitToContents = true
+            behavior.isFitToContents = false
             behavior.skipCollapsed = true
             behavior.state = BottomSheetBehavior.STATE_EXPANDED
         }
@@ -118,9 +126,8 @@ class DashboardFilterBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun renderMode() {
-        binding.tvEmptyHint.visibility = if (mode == null) View.VISIBLE else View.GONE
-        binding.dateSection.visibility = if (mode == FilterMode.DATE) View.VISIBLE else View.GONE
-        binding.monthSection.visibility = if (mode == FilterMode.MONTH) View.VISIBLE else View.GONE
+        binding.dateSection.visibility = View.VISIBLE
+        binding.monthSection.visibility = View.VISIBLE
         binding.btnApply.isEnabled = when (mode) {
             FilterMode.DATE -> startDate.isNotBlank() && endDate.isNotBlank()
             FilterMode.MONTH -> monthYear.isNotBlank() && month.isNotBlank()
@@ -145,22 +152,15 @@ class DashboardFilterBottomSheet : BottomSheetDialogFragment() {
         endDate = ""
         monthYear = ""
         month = ""
-        binding.toggleMode.clearChecked()
         renderMode()
     }
 
     private fun ensureDateMode() {
-        if (mode != FilterMode.DATE) {
-            mode = FilterMode.DATE
-            binding.toggleMode.check(binding.btnDateMode.id)
-        }
+        mode = FilterMode.DATE
     }
 
     private fun ensureMonthMode() {
-        if (mode != FilterMode.MONTH) {
-            mode = FilterMode.MONTH
-            binding.toggleMode.check(binding.btnMonthMode.id)
-        }
+        mode = FilterMode.MONTH
     }
 
     private fun pickDate(onSelected: (String) -> Unit) {
@@ -178,15 +178,31 @@ class DashboardFilterBottomSheet : BottomSheetDialogFragment() {
 
     private fun pickMonth(onSelected: (String, String) -> Unit) {
         val calendar = Calendar.getInstance()
-        DatePickerDialog(
-            requireContext(),
-            { _, year, month, _ ->
-                onSelected(year.toString(), String.format(Locale.getDefault(), "%02d", month + 1))
-            },
-            calendar.get(Calendar.YEAR),
-            calendar.get(Calendar.MONTH),
-            calendar.get(Calendar.DAY_OF_MONTH)
-        ).show()
+        val yearPicker = NumberPicker(requireContext()).apply {
+            minValue = calendar.get(Calendar.YEAR) - 10
+            maxValue = calendar.get(Calendar.YEAR) + 10
+            value = calendar.get(Calendar.YEAR)
+        }
+        val monthPicker = NumberPicker(requireContext()).apply {
+            minValue = 1
+            maxValue = 12
+            value = calendar.get(Calendar.MONTH) + 1
+            displayedValues = Array(12) { index -> String.format(Locale.getDefault(), "%02d", index + 1) }
+        }
+        val pickerContainer = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(32, 24, 32, 8)
+            addView(yearPicker, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(monthPicker, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        }
+        AlertDialog.Builder(requireContext())
+            .setTitle(getString(R.string.dashboard_pick_month))
+            .setView(pickerContainer)
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.confirm) { _, _ ->
+                onSelected(yearPicker.value.toString(), String.format(Locale.getDefault(), "%02d", monthPicker.value))
+            }
+            .show()
     }
 
     companion object {

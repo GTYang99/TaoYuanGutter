@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:background="@color/colorBackground"
+    android:background="@color/white"
     tools:context=".dashboard.DashboardFragment">
 
     <LinearLayout
@@ -65,6 +65,7 @@
                 android:layout_height="40dp"
                 android:text="@string/dashboard_settings"
                 android:textSize="14sp"
+                android:textColor="@color/text_grey"
                 app:backgroundTint="@android:color/white"
                 app:cornerRadius="12dp"
                 app:strokeColor="@color/map_borders_grey"
@@ -80,6 +81,7 @@
                 android:layout_height="40dp"
                 android:text="@string/dashboard_filter"
                 android:textSize="14sp"
+                android:textColor="@color/text_grey"
                 app:backgroundTint="@android:color/white"
                 app:cornerRadius="12dp"
                 app:strokeColor="@color/map_borders_grey"
@@ -90,7 +92,6 @@
             android:layout_width="match_parent"
             android:layout_height="90dp"
             android:layout_marginTop="12dp"
-            android:background="@drawable/bg_dashboard_total_card"
             app:cardCornerRadius="18dp"
             app:cardElevation="0dp"
             app:cardBackgroundColor="@android:color/transparent"
@@ -102,7 +103,8 @@
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
                 android:paddingStart="16dp"
-                android:paddingEnd="16dp">
+                android:paddingEnd="16dp"
+                android:background="@drawable/bg_dashboard_total_card">
 
                 <LinearLayout
                     android:layout_width="0dp"
@@ -154,42 +156,16 @@
             android:text="@string/dashboard_length_detail_hint"
             android:textColor="@color/black"
             android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:visibility="gone" />
 
         <LinearLayout
             android:id="@+id/lengthDetailContainer"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:orientation="vertical" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
-            <TextView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/dashboard_progress_title"
-                android:textColor="#391F87"
-                android:textSize="20sp"
-                android:textStyle="bold" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnProgressGroup"
-                android:layout_width="128dp"
-                android:layout_height="40dp"
-                android:text="@string/dashboard_total_group"
-                android:textSize="14sp"
-                app:backgroundTint="@android:color/white"
-                app:cornerRadius="12dp"
-                app:strokeColor="@color/map_borders_grey"
-                app:strokeWidth="1dp" />
-        </LinearLayout>
+            android:orientation="vertical"
+            android:visibility="gone" />
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -241,221 +217,327 @@
                         android:textSize="16sp"
                         android:textStyle="bold" />
                 </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-                <View
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            app:cardCornerRadius="18dp"
+            app:cardElevation="0dp"
+            app:cardBackgroundColor="@color/white"
+            app:strokeWidth="1dp"
+            app:strokeColor="@color/border_grey">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="12dp"
-                    android:layout_marginBottom="12dp"
-                    android:background="@color/border_grey" />
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/dashboard_progress_title"
+                        android:textColor="#391F87"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnProgressGroup"
+                        android:layout_width="128dp"
+                        android:layout_height="40dp"
+                        android:text="@string/dashboard_total_group"
+                        android:textColor="@color/text_grey"
+                        android:textSize="14sp"
+                        app:backgroundTint="@android:color/white"
+                        app:cornerRadius="12dp"
+                        app:strokeColor="@color/map_borders_grey"
+                        app:strokeWidth="1dp" />
+                </LinearLayout>
 
                 <LinearLayout
                     android:id="@+id/progressRowsContainer"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
                     android:orientation="vertical">
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
+                        android:orientation="vertical"
                         android:paddingTop="4dp"
                         android:paddingBottom="4dp">
 
                         <TextView
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:text="待匯入座標"
                             android:textColor="@color/black"
                             android:textSize="14sp" />
 
-                        <TextView
-                            android:id="@+id/tvPendingImportCount"
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/colorPrimaryVariant"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            tools:text="75" />
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/dashboard_item_unit"
-                            android:textColor="@color/textColorSecondary"
-                            android:textSize="16sp" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="start|center_vertical"
+                                android:orientation="horizontal">
 
-                        <TextView
-                            android:id="@+id/tvPendingImportRate"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:background="@drawable/bg_dashboard_rate_chip"
-                            android:paddingStart="10dp"
-                            android:paddingTop="4dp"
-                            android:paddingEnd="10dp"
-                            android:paddingBottom="4dp"
-                            android:textColor="@color/colorPrimaryVariant"
-                            android:textSize="12sp"
-                            tools:text="94%" />
+                                <TextView
+                                    android:id="@+id/tvPendingImportCount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textColor="@color/colorPrimaryVariant"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    tools:text="75" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="2dp"
+                                    android:text="@string/dashboard_item_unit"
+                                    android:textColor="@color/textColorSecondary"
+                                    android:textSize="16sp" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/tvPendingImportRate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_dashboard_rate_chip"
+                                android:paddingStart="10dp"
+                                android:paddingTop="4dp"
+                                android:paddingEnd="10dp"
+                                android:paddingBottom="4dp"
+                                android:textColor="@color/colorPrimaryVariant"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                tools:text="94%" />
+                        </LinearLayout>
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginBottom="10dp"
                         android:background="@color/border_grey" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
+                        android:orientation="vertical"
                         android:paddingTop="4dp"
                         android:paddingBottom="4dp">
 
                         <TextView
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:text="待繪製"
                             android:textColor="@color/black"
                             android:textSize="14sp" />
 
-                        <TextView
-                            android:id="@+id/tvPendingDrawingCount"
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/colorPrimaryVariant"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            tools:text="0" />
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/dashboard_item_unit"
-                            android:textColor="@color/textColorSecondary"
-                            android:textSize="16sp" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="start|center_vertical"
+                                android:orientation="horizontal">
 
-                        <TextView
-                            android:id="@+id/tvPendingDrawingRate"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:background="@drawable/bg_dashboard_rate_chip"
-                            android:paddingStart="10dp"
-                            android:paddingTop="4dp"
-                            android:paddingEnd="10dp"
-                            android:paddingBottom="4dp"
-                            android:textColor="@color/colorPrimaryVariant"
-                            android:textSize="12sp"
-                            tools:text="0%" />
+                                <TextView
+                                    android:id="@+id/tvPendingDrawingCount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textColor="@color/colorPrimaryVariant"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    tools:text="0" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="2dp"
+                                    android:text="@string/dashboard_item_unit"
+                                    android:textColor="@color/textColorSecondary"
+                                    android:textSize="16sp" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/tvPendingDrawingRate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_dashboard_rate_chip"
+                                android:paddingStart="10dp"
+                                android:paddingTop="4dp"
+                                android:paddingEnd="10dp"
+                                android:paddingBottom="4dp"
+                                android:textColor="@color/colorPrimaryVariant"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                tools:text="0%" />
+                        </LinearLayout>
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginBottom="10dp"
                         android:background="@color/border_grey" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
+                        android:orientation="vertical"
                         android:paddingTop="4dp"
                         android:paddingBottom="4dp">
 
                         <TextView
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:text="待修正"
                             android:textColor="@color/black"
                             android:textSize="14sp" />
 
-                        <TextView
-                            android:id="@+id/tvPendingFixCount"
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/colorPrimaryVariant"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            tools:text="4" />
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/dashboard_item_unit"
-                            android:textColor="@color/textColorSecondary"
-                            android:textSize="16sp" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="start|center_vertical"
+                                android:orientation="horizontal">
 
-                        <TextView
-                            android:id="@+id/tvPendingFixRate"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:background="@drawable/bg_dashboard_rate_chip"
-                            android:paddingStart="10dp"
-                            android:paddingTop="4dp"
-                            android:paddingEnd="10dp"
-                            android:paddingBottom="4dp"
-                            android:textColor="@color/colorPrimaryVariant"
-                            android:textSize="12sp"
-                            tools:text="5%" />
+                                <TextView
+                                    android:id="@+id/tvPendingFixCount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textColor="@color/colorPrimaryVariant"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    tools:text="4" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="2dp"
+                                    android:text="@string/dashboard_item_unit"
+                                    android:textColor="@color/textColorSecondary"
+                                    android:textSize="16sp" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/tvPendingFixRate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_dashboard_rate_chip"
+                                android:paddingStart="10dp"
+                                android:paddingTop="4dp"
+                                android:paddingEnd="10dp"
+                                android:paddingBottom="4dp"
+                                android:textColor="@color/colorPrimaryVariant"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                tools:text="5%" />
+                        </LinearLayout>
                     </LinearLayout>
 
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="1dp"
+                        android:layout_marginTop="10dp"
+                        android:layout_marginBottom="10dp"
                         android:background="@color/border_grey" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
+                        android:orientation="vertical"
                         android:paddingTop="4dp"
                         android:paddingBottom="4dp">
 
                         <TextView
-                            android:layout_width="0dp"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
                             android:text="已完成"
                             android:textColor="@color/black"
                             android:textSize="14sp" />
 
-                        <TextView
-                            android:id="@+id/tvCompletedCount"
-                            android:layout_width="wrap_content"
+                        <LinearLayout
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:textColor="@color/colorPrimaryVariant"
-                            android:textSize="16sp"
-                            android:textStyle="bold"
-                            tools:text="1" />
+                            android:layout_marginTop="4dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
 
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/dashboard_item_unit"
-                            android:textColor="@color/textColorSecondary"
-                            android:textSize="16sp" />
+                            <LinearLayout
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:gravity="start|center_vertical"
+                                android:orientation="horizontal">
 
-                        <TextView
-                            android:id="@+id/tvCompletedRate"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="12dp"
-                            android:background="@drawable/bg_dashboard_rate_chip"
-                            android:paddingStart="10dp"
-                            android:paddingTop="4dp"
-                            android:paddingEnd="10dp"
-                            android:paddingBottom="4dp"
-                            android:textColor="@color/colorPrimaryVariant"
-                            android:textSize="12sp"
-                            tools:text="1%" />
+                                <TextView
+                                    android:id="@+id/tvCompletedCount"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:textColor="@color/colorPrimaryVariant"
+                                    android:textSize="16sp"
+                                    android:textStyle="bold"
+                                    tools:text="1" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="2dp"
+                                    android:text="@string/dashboard_item_unit"
+                                    android:textColor="@color/textColorSecondary"
+                                    android:textSize="16sp" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/tvCompletedRate"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:background="@drawable/bg_dashboard_rate_chip"
+                                android:paddingStart="10dp"
+                                android:paddingTop="4dp"
+                                android:paddingEnd="10dp"
+                                android:paddingBottom="4dp"
+                                android:textColor="@color/colorPrimaryVariant"
+                                android:textSize="12sp"
+                                android:textStyle="bold"
+                                tools:text="1%" />
+                        </LinearLayout>
                     </LinearLayout>
                 </LinearLayout>
 
@@ -464,6 +546,114 @@
                     android:layout_width="match_parent"
                     android:layout_height="180dp"
                     android:layout_marginTop="12dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="vertical">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="10dp"
+                                android:layout_height="10dp"
+                                android:background="@drawable/bg_dashboard_legend_dot"
+                                android:backgroundTint="@color/dashboard_pending_import" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="待匯入座標"
+                                android:textColor="@color/text_grey"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="10dp"
+                                android:layout_height="10dp"
+                                android:background="@drawable/bg_dashboard_legend_dot"
+                                android:backgroundTint="@color/dashboard_pending_drawing" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="待繪製"
+                                android:textColor="@color/text_grey"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="10dp"
+                                android:layout_height="10dp"
+                                android:background="@drawable/bg_dashboard_legend_dot"
+                                android:backgroundTint="@color/dashboard_pending_fix" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="待修正"
+                                android:textColor="@color/text_grey"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+
+                            <View
+                                android:layout_width="10dp"
+                                android:layout_height="10dp"
+                                android:background="@drawable/bg_dashboard_legend_dot"
+                                android:backgroundTint="@color/dashboard_completed" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="已完成"
+                                android:textColor="@color/text_grey"
+                                android:textSize="12sp" />
+                        </LinearLayout>
+                    </LinearLayout>
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

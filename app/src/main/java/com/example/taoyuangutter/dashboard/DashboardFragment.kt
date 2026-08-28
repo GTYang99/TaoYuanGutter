@@ -1,6 +1,7 @@
 package com.example.taoyuangutter.dashboard
 
 import android.os.Bundle
+import android.content.res.ColorStateList
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -21,6 +22,7 @@ import com.example.taoyuangutter.api.DashboardSlice
 import com.example.taoyuangutter.databinding.ActivityDashboardBinding
 import com.example.taoyuangutter.login.AuthNavigator
 import com.example.taoyuangutter.login.LoginActivity
+import com.google.gson.Gson
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
@@ -86,12 +88,9 @@ class DashboardFragment : Fragment() {
         binding.tvError.visibility = if (state.errorMessage.isNullOrBlank()) View.GONE else View.VISIBLE
         binding.tvTitle.text = getString(R.string.dashboard_title)
         binding.btnProgressGroup.text = state.selectedProgressGroup
-        binding.tvLengthDetailTitle.text = state.selectedLengthDetailGroup?.let { "$it 帳號明細" }
-            ?: getString(R.string.dashboard_length_detail_hint)
 
         renderLengthSummary(state)
         renderLengthGroups(state)
-        renderLengthDetails(state)
         renderProgressSummary(state)
         renderProgressIssues(state)
     }
@@ -141,43 +140,6 @@ class DashboardFragment : Fragment() {
                 })
             }
             binding.lengthGroupContainer.addView(row)
-        }
-    }
-
-    private fun renderLengthDetails(state: DashboardUiState) {
-        binding.lengthDetailContainer.removeAllViews()
-        val data = state.response?.surveyLength.orEmpty()
-        val groupName = state.selectedLengthDetailGroup
-        val group = if (groupName.isNullOrBlank()) null else data[groupName]
-        if (group == null) {
-            binding.lengthDetailContainer.addView(createEmptyStateText(getString(R.string.dashboard_no_detail_data)))
-            return
-        }
-        if (group.accounts.isEmpty()) {
-            binding.lengthDetailContainer.addView(createEmptyStateText(getString(R.string.dashboard_no_account_data)))
-            return
-        }
-
-        val entries = group.accounts.entries.sortedBy { it.key }
-        entries.forEachIndexed { index, entry ->
-            val row = LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(dp(4), dp(10), dp(4), dp(10))
-            }
-            row.addView(TextView(requireContext()).apply {
-                text = entry.key
-                setTextColor(ContextCompat.getColor(requireContext(), android.R.color.black))
-                textSize = 16f
-            }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            row.addView(TextView(requireContext()).apply {
-                text = "${entry.value} ${getString(R.string.dashboard_km_unit)}"
-                setTextColor(ContextCompat.getColor(requireContext(), R.color.dashboard_detail_label))
-                textSize = 16f
-            })
-            binding.lengthDetailContainer.addView(row)
-            if (index != entries.lastIndex) {
-                binding.lengthDetailContainer.addView(divider())
-            }
         }
     }
 
@@ -284,7 +246,10 @@ class DashboardFragment : Fragment() {
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
                 marginEnd = dp(8)
             }
-            setOnClickListener { viewModel.selectLengthDetailGroup(name) }
+            setOnClickListener {
+                viewModel.selectLengthDetailGroup(name)
+                showLengthDetailBottomSheet(name, group.accounts)
+            }
         }
         val content = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.VERTICAL
@@ -352,6 +317,10 @@ class DashboardFragment : Fragment() {
                 text = group
                 isChecked = viewModel.uiState.value.selectedLengthGroups.isEmpty() ||
                     group in viewModel.uiState.value.selectedLengthGroups
+                buttonTintList = ColorStateList.valueOf(
+                    ContextCompat.getColor(requireContext(), R.color.dashboard_group_value)
+                )
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.text_grey))
             }
             checks[group] = checkBox
             container.addView(checkBox)
@@ -365,6 +334,13 @@ class DashboardFragment : Fragment() {
                 viewModel.selectLengthGroups(checks.filterValues { it.isChecked }.keys)
             }
             .show()
+    }
+
+    private fun showLengthDetailBottomSheet(groupName: String, accounts: Map<String, String>) {
+        if (accounts.isEmpty()) return
+        DashboardLengthDetailBottomSheet
+            .newInstance(groupName, Gson().toJson(accounts))
+            .show(childFragmentManager, "DashboardLengthDetailBottomSheet")
     }
 
     private fun showProgressGroupDialog() {

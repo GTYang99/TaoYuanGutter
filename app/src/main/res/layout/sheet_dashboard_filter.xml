@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="wrap_content"
+    android:layout_height="match_parent"
     android:background="@drawable/bg_form_sheet"
     android:orientation="vertical">
 
@@ -28,7 +29,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/cancel"
             android:padding="12dp"
-            android:src="@drawable/ic_arrow_back"
+            android:src="@drawable/ic_close"
             app:tint="@color/text_grey" />
 
         <TextView
@@ -54,8 +55,9 @@
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:fillViewport="false"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:fillViewport="true"
         android:overScrollMode="ifContentScrolls">
 
         <LinearLayout
@@ -63,59 +65,15 @@
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingStart="16dp"
-            android:paddingTop="16dp"
+            android:paddingTop="18dp"
             android:paddingEnd="16dp"
             android:paddingBottom="18dp">
-
-            <com.google.android.material.button.MaterialButtonToggleGroup
-                android:id="@+id/toggleMode"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:selectionRequired="false"
-                app:singleSelection="true">
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnDateMode"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="@string/dashboard_filter_date_range"
-                    android:textSize="14sp"
-                    app:backgroundTint="@android:color/white"
-                    app:cornerRadius="12dp"
-                    app:strokeColor="@color/map_borders_grey"
-                    app:strokeWidth="1dp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnMonthMode"
-                    android:layout_width="0dp"
-                    android:layout_height="40dp"
-                    android:layout_weight="1"
-                    android:text="@string/dashboard_filter_month_range"
-                    android:textSize="14sp"
-                    app:backgroundTint="@android:color/white"
-                    app:cornerRadius="12dp"
-                    app:strokeColor="@color/map_borders_grey"
-                    app:strokeWidth="1dp" />
-            </com.google.android.material.button.MaterialButtonToggleGroup>
-
-            <TextView
-                android:id="@+id/tvEmptyHint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:gravity="center"
-                android:text="@string/dashboard_filter_hint"
-                android:textColor="@color/textColorSecondary"
-                android:textSize="14sp" />
 
             <LinearLayout
                 android:id="@+id/dateSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:orientation="vertical"
-                android:visibility="gone">
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -132,6 +90,7 @@
                     android:layout_marginTop="12dp"
                     android:gravity="start|center_vertical"
                     android:text="@string/dashboard_pick_start_date"
+                    android:textColor="@color/text_grey"
                     android:textSize="14sp"
                     app:backgroundTint="@android:color/white"
                     app:cornerRadius="12dp"
@@ -145,6 +104,7 @@
                     android:layout_marginTop="10dp"
                     android:gravity="start|center_vertical"
                     android:text="@string/dashboard_pick_end_date"
+                    android:textColor="@color/text_grey"
                     android:textSize="14sp"
                     app:backgroundTint="@android:color/white"
                     app:cornerRadius="12dp"
@@ -156,9 +116,8 @@
                 android:id="@+id/monthSection"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:orientation="vertical"
-                android:visibility="gone">
+                android:layout_marginTop="20dp"
+                android:orientation="vertical">
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -175,36 +134,48 @@
                     android:layout_marginTop="12dp"
                     android:gravity="start|center_vertical"
                     android:text="@string/dashboard_pick_month"
+                    android:textColor="@color/text_grey"
                     android:textSize="14sp"
                     app:backgroundTint="@android:color/white"
                     app:cornerRadius="12dp"
                     app:strokeColor="@color/map_borders_grey"
                     app:strokeWidth="1dp" />
             </LinearLayout>
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnClear"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="24dp"
-                android:text="@string/dashboard_filter_clear"
-                android:textSize="14sp"
-                app:backgroundTint="@android:color/white"
-                app:cornerRadius="12dp"
-                app:strokeColor="@color/map_borders_grey"
-                app:strokeWidth="1dp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnApply"
-                android:layout_width="match_parent"
-                android:layout_height="44dp"
-                android:layout_marginTop="10dp"
-                android:enabled="false"
-                android:text="@string/confirm"
-                android:textSize="14sp"
-                app:backgroundTint="@color/colorPrimary"
-                app:cornerRadius="12dp"
-                android:textColor="@color/white" />
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="18dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnApply"
+            android:layout_width="340dp"
+            android:layout_height="50dp"
+            android:layout_gravity="center_horizontal"
+            android:enabled="false"
+            android:text="@string/dashboard_filter_apply"
+            android:textSize="14sp"
+            android:textColor="@color/white"
+            app:backgroundTint="@color/colorPrimary"
+            app:cornerRadius="12dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnClear"
+            android:layout_width="340dp"
+            android:layout_height="50dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:text="@string/dashboard_filter_clear"
+            android:textColor="@color/text_grey"
+            android:textSize="14sp"
+            app:backgroundTint="@android:color/white"
+            app:cornerRadius="12dp"
+            app:strokeColor="@color/map_borders_grey"
+            app:strokeWidth="1dp" />
+    </LinearLayout>
 </LinearLayout>

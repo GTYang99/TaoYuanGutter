@@ -1,12 +1,26 @@
 task:
   id: feat-0827
   type: feature
-phase: verification
-status: verification_passed
+phase: debug
+status: debug_complete
 planning:
   status: approved
 implementation:
   status: completed
 verification:
-  result: pass
-next_action: release
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-004
+    - AC-008
+    - AC-011
+    - AC-013
+    - AC-014
+debug:
+  status: completed
+  root_cause: identified
+blocking:
+  - ISS-0828-001
+  - ISS-0828-002
+  - ISS-0828-003
+next_action: verification

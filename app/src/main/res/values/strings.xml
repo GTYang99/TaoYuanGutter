@@ -32,12 +32,14 @@
     <string name="dashboard_km_unit">公里</string>
     <string name="dashboard_filter_title">篩選條件</string>
     <string name="dashboard_filter_hint">請先選擇篩選方式</string>
-    <string name="dashboard_filter_clear">清除篩選</string>
+    <string name="dashboard_filter_clear">清除條件</string>
+    <string name="dashboard_filter_apply">套用篩選</string>
     <string name="dashboard_filter_date_range">日期區間（起訖）</string>
     <string name="dashboard_filter_month_range">月份範圍</string>
     <string name="dashboard_pick_start_date">請選擇開始日期</string>
     <string name="dashboard_pick_end_date">請選擇結束日期</string>
     <string name="dashboard_pick_month">請選擇月份</string>
+    <string name="dashboard_length_detail_group_title">%1$s帳號明細</string>
     <string name="dashboard_length_settings_title">選擇組別</string>
     <string name="dashboard_progress_group_title">選擇組別</string>
     <string name="dashboard_no_group_data">暫無組別資料</string>

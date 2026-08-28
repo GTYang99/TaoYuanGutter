@@ -55,7 +55,7 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
 
         // Overlays (UI only for now; map behavior can be wired later)
         fun dispatchOverlayToggles() {
-            (activity as? Host)?.onOverlayTogglesChanged(
+            host()?.onOverlayTogglesChanged(
                 showPlan = binding.cbPlan.isChecked,
                 showWaterOld = binding.cbWaterOld.isChecked,
                 showPossible = binding.cbPossible.isChecked,
@@ -83,7 +83,11 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
 
     private fun selectBasemap(layer: String) {
         updateBasemapUi(layer)
-        (activity as? Host)?.onLayerSelected(layer)
+        host()?.onLayerSelected(layer)
+    }
+
+    private fun host(): Host? {
+        return parentFragment as? Host ?: activity as? Host
     }
 
     private fun updateBasemapUi(selected: String) {
