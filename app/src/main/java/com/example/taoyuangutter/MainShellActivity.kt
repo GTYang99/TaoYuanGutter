@@ -5,7 +5,8 @@ import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.fragment.app.commit
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.commitNow
 import com.example.taoyuangutter.dashboard.DashboardFragment
 import com.example.taoyuangutter.databinding.ActivityMainShellBinding
 import com.example.taoyuangutter.map.MapWorkspaceFragment
@@ -61,11 +62,11 @@ class MainShellActivity : AppCompatActivity() {
 
     private fun showTab(tabId: Int) {
         currentTabId = tabId
-        val fragment = when (tabId) {
+        val fragment = fragmentFactoryForTests?.invoke(tabId) ?: when (tabId) {
             R.id.nav_dashboard -> DashboardFragment.newInstance()
             else -> MapWorkspaceFragment.newInstance()
         }
-        supportFragmentManager.commit {
+        supportFragmentManager.commitNow {
             setReorderingAllowed(true)
             replace(R.id.shell_container, fragment, tabTag(tabId))
         }
@@ -91,5 +92,7 @@ class MainShellActivity : AppCompatActivity() {
 
     companion object {
         private const val KEY_SELECTED_TAB = "selected_tab"
+        @Volatile
+        var fragmentFactoryForTests: ((Int) -> Fragment)? = null
     }
 }

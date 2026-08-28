@@ -233,12 +233,24 @@ class DashboardFragment : Fragment() {
                 textSize = 14f
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
             }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-            row.addView(TextView(requireContext()).apply {
-                text = "$value ${getString(R.string.dashboard_item_unit)}"
+            val valueGroup = LinearLayout(requireContext()).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.END
+            }
+            valueGroup.addView(TextView(requireContext()).apply {
+                text = value.toString()
                 setTextColor(ContextCompat.getColor(requireContext(), android.R.color.black))
                 textSize = 14f
                 setTypeface(typeface, android.graphics.Typeface.BOLD)
             })
+            valueGroup.addView(TextView(requireContext()).apply {
+                text = getString(R.string.dashboard_item_unit)
+                setTextColor(ContextCompat.getColor(requireContext(), R.color.dashboard_detail_unit))
+                textSize = 14f
+                setTypeface(typeface, android.graphics.Typeface.BOLD)
+                setPadding(dp(4), 0, 0, 0)
+            })
+            row.addView(valueGroup)
             binding.issueContainer.addView(row)
             if (index != rows.lastIndex) {
                 binding.issueContainer.addView(divider())
@@ -268,15 +280,14 @@ class DashboardFragment : Fragment() {
                 if (selected) R.color.dashboard_group_value else R.color.map_borders_grey
             )
             setCardBackgroundColor(ContextCompat.getColor(requireContext(), R.color.dashboard_group_bg))
-            minimumHeight = dp(72)
+            minimumHeight = dp(90)
             layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
                 marginEnd = dp(8)
             }
             setOnClickListener { viewModel.selectLengthDetailGroup(name) }
         }
         val content = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
+            orientation = LinearLayout.VERTICAL
             setPadding(dp(14), dp(14), dp(14), dp(14))
         }
         content.addView(TextView(requireContext()).apply {
@@ -285,24 +296,28 @@ class DashboardFragment : Fragment() {
             textSize = 16f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
             maxLines = 2
-            layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         })
-        val valueColumn = LinearLayout(requireContext()).apply {
-            orientation = LinearLayout.VERTICAL
+        val valueRow = LinearLayout(requireContext()).apply {
+            orientation = LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.END
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(10)
+            }
         }
-        valueColumn.addView(TextView(requireContext()).apply {
+        valueRow.addView(TextView(requireContext()).apply {
             text = group.totalLength
             setTextColor(ContextCompat.getColor(requireContext(), R.color.dashboard_group_value))
-            textSize = 20f
+            textSize = 16f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
         })
-        valueColumn.addView(TextView(requireContext()).apply {
+        valueRow.addView(TextView(requireContext()).apply {
             text = getString(R.string.dashboard_km_unit)
-            setTextColor(ContextCompat.getColor(requireContext(), R.color.dashboard_group_value))
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.dashboard_detail_unit))
             textSize = 12f
+            setPadding(dp(4), 0, 0, 0)
         })
-        content.addView(valueColumn)
+        content.addView(valueRow)
         card.addView(content)
         return card
     }
@@ -358,12 +373,16 @@ class DashboardFragment : Fragment() {
             it == DashboardViewModel.TOTAL_GROUP_KEY
         }
         if (groups.isEmpty()) return
-        val checkedIndex = groups.indexOf(viewModel.uiState.value.selectedProgressGroup).takeIf { it >= 0 } ?: 0
+        var selectedGroup = viewModel.uiState.value.selectedProgressGroup
+        val checkedIndex = groups.indexOf(selectedGroup).takeIf { it >= 0 } ?: 0
         MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.dashboard_progress_group_title))
-            .setSingleChoiceItems(groups.toTypedArray(), checkedIndex) { dialog, which ->
-                viewModel.selectProgressGroup(groups[which])
-                dialog.dismiss()
+            .setSingleChoiceItems(groups.toTypedArray(), checkedIndex) { _, which ->
+                selectedGroup = groups[which]
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.confirm) { _, _ ->
+                viewModel.selectProgressGroup(selectedGroup)
             }
             .show()
     }

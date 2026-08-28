@@ -386,6 +386,19 @@ class MapWorkspaceFragment : Fragment(),
         outState.putString("saved_current_waypoints_json", Gson().toJson(currentWaypoints.map { wp ->
             WaypointSnapshot(type = wp.type.name, label = wp.label, latitude = wp.latLng?.latitude, longitude = wp.latLng?.longitude, basicData = wp.basicData, uid = wp.uid)
         }))
+        val inspectWpsSnapshots = inspectWaypoints.map { wp ->
+            WaypointSnapshot(type = wp.type.name, label = wp.label, latitude = wp.latLng?.latitude, longitude = wp.latLng?.longitude, basicData = wp.basicData, uid = wp.uid)
+        }
+        outState.putString("saved_inspect_waypoints_json", Gson().toJson(inspectWpsSnapshots))
+        outState.putBoolean("saved_is_reference_route_active", isReferenceRouteActive)
+        if (referenceRoutePoints.isNotEmpty()) {
+            outState.putDoubleArray("saved_reference_route_lats", referenceRoutePoints.map { it.latitude }.toDoubleArray())
+            outState.putDoubleArray("saved_reference_route_lngs", referenceRoutePoints.map { it.longitude }.toDoubleArray())
+        }
+        outState.putBoolean("saved_has_shown_edit_polyline", hasShownEditPolyline)
+        if (editLatLngSnapshot != null) {
+            outState.putString("saved_edit_lat_lng_snapshot_json", Gson().toJson(editLatLngSnapshot))
+        }
     }
 
     private fun initializeMap() {
