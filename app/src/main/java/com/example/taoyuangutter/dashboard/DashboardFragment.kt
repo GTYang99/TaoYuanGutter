@@ -300,7 +300,6 @@ class DashboardFragment : Fragment() {
         })
         val valueRow = LinearLayout(requireContext()).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.END
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                 topMargin = dp(10)
             }
@@ -310,11 +309,11 @@ class DashboardFragment : Fragment() {
             setTextColor(ContextCompat.getColor(requireContext(), R.color.dashboard_group_value))
             textSize = 16f
             setTypeface(typeface, android.graphics.Typeface.BOLD)
-        })
+        }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         valueRow.addView(TextView(requireContext()).apply {
             text = getString(R.string.dashboard_km_unit)
-            setTextColor(ContextCompat.getColor(requireContext(), R.color.dashboard_detail_unit))
-            textSize = 12f
+            setTextColor(ContextCompat.getColor(requireContext(), R.color.dashboard_group_value))
+            textSize = 14f
             setPadding(dp(4), 0, 0, 0)
         })
         content.addView(valueRow)
