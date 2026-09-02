@@ -24,6 +24,7 @@ Developer MUST read:
 - plan.md
 - state.yaml
 - developer-rules.md
+- Referenced fixed specifications declared in requirement.md
 
 Repository MUST be synchronized before implementation.
 
@@ -48,6 +49,7 @@ Developer SHOULD create meaningful Git commits.
 Developer MUST:
 
 - Follow the approved implementation plan.
+- Implement only the approved task scope and referenced fixed specifications.
 - Keep functions small and maintainable.
 - Follow MVVM or project architecture.
 - Keep modules loosely coupled.
@@ -56,6 +58,8 @@ Developer MUST:
 - Keep logging and error handling consistent.
 - Maintain backward compatibility unless specified.
 - Use the sample code like OOP.
+
+If implementation requires changing a fixed specification, Developer MUST stop and return the task to Planning.
 
 ---
 
@@ -366,3 +370,21 @@ Developer MUST:
 - update or add tests for the failed acceptance criteria
 - create a new commit for the debug fix
 - return the task to verification
+
+## Refactor Rules
+
+Developer MUST read `ai/refactor_planning.md` before implementing a refactor.
+
+Developer MUST preserve existing behavior.
+
+Developer MUST NOT introduce new features during refactoring.
+
+Developer MUST minimize unrelated code changes.
+
+Developer MUST verify the behavior-preservation test plan before committing.
+
+Developer MUST document any changed public interface, persistence boundary, API boundary, or dependency injection boundary.
+
+If implementation reveals a requirement or behavior change, Developer MUST stop and return the task to Planning instead of silently expanding scope.
+
+Developer SHOULD split large refactors into multiple commits.

@@ -31,6 +31,10 @@ Two blocking issues were identified and must be resolved before implementation.
 | Item | Result | Notes |
 |------|--------|------|
 | Requirement understood | PASS / FAIL | |
+| Specification references resolved | PASS / FAIL | |
+| Referenced specifications are fixed | PASS / FAIL | |
+| Specification versions recorded | PASS / FAIL | |
+| No fixed specification overridden | PASS / FAIL | |
 | Acceptance Criteria complete | PASS / FAIL | |
 | Repository analysis complete | PASS / FAIL | |
 | Architecture impact reasonable | PASS / FAIL | |

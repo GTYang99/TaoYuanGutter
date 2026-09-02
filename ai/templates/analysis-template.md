@@ -1,5 +1,9 @@
 # Repository Analysis
 
+## Specification Impact
+- 列出引用的 PRD、UI、API、AST、CMP ID 與版本
+- 記錄規格缺口或衝突；沒有就寫 `無`
+
 ## Current Behavior
 - 目前實際行為，1~3 點
 
