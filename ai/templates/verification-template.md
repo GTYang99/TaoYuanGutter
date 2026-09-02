@@ -14,6 +14,12 @@
 |----|--------|----------|
 | AC-001 | PASS/FAIL/NOT VERIFIED | 簡短證據 |
 
+## Specification Compliance
+
+| Specification ID | Version | Result | Evidence |
+|---|---|---|---|
+| PRD-001 | 1.0 | PASS/FAIL/NOT VERIFIED | 簡短證據 |
+
 ---
 
 ## Regression

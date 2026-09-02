@@ -13,9 +13,44 @@ Android 9+
 See:
 ai/architecture.md
 
+# Specification Sources
+
+Project specifications are stored in:
+
+- `docs/index.md`
+- `docs/product-spec.md`
+- `docs/design-spec.md`
+- `docs/api-contract.md`
+- `docs/reusable-assets.md`
+
+`docs/index.md` defines specification status and change rules.
+
+Specification status:
+
+- `fixed`: approved source of truth
+- `draft`: not ready for implementation
+- `deprecated`: must not be used by new tasks
+- `TBD`: unresolved and MUST NOT be inferred
+
+Specification precedence:
+
+1. Fixed product specification
+2. Fixed design, API, and reusable asset contracts
+3. Approved task requirement
+4. Approved implementation plan
+5. Implementation
+
+A task MUST NOT override a `fixed` specification. Changing a fixed specification requires a separate `spec_change` task, impact analysis, version update, and re-verification.
+
+Every new or revised task MUST declare applicable specification IDs and versions in `requirement.md`. Empty layers use an empty list.
+
+Before Planning is complete, Planning MUST resolve every referenced ID, confirm it is `fixed`, and stop if a conflict, `draft`, or `TBD` affects implementation.
+
 # Workflow
 ## Success Flow
 ```
+Specification Validation
+↓
 Planning
 ↓
 Plan Review
@@ -55,6 +90,40 @@ Verification
 
 ```
 
+## Refactor Flow
+```
+Refactor Request
+↓
+Refactor Planning
+↓
+Plan Review
+↓
+Implementation
+↓
+Behavior Preservation Validation
+↓
+Developer Validation
+↓
+Git Commit
+↓
+Regression Verification
+↓
+Release
+```
+
+Refactor rules:
+
+- Refactor MUST preserve existing externally observable behavior.
+- Refactor MUST NOT introduce product features or change requirements.
+- Refactor planning MUST define current behavior, affected boundaries, and regression tests before implementation.
+- Refactor MUST NOT begin until the plan is approved.
+- If behavior changes are discovered, stop the refactor and route the work to `feature`, `bugfix`, or `planning`.
+- If a regression is found, create or update an issue with category `implementation_regression` and route it to `Debug`.
+
+Read:
+
+- ai/refactor_planning.md
+
 ## Issue Management
 
 Issue Management is the shared way to track blockers, regressions, and requirement mismatches.
@@ -88,6 +157,7 @@ When doing Planning:
     
     input:
     Task Requirement
+    Specification References
     Repository
     Architecture
     Existing Tests
@@ -285,6 +355,9 @@ ai/verification-rules.md
 Debug
 ↓
 ai/implementation-debug.md
+Refactor
+↓
+ai/refactor_planning.md
 ```
 # Required Reading
 ```
@@ -309,6 +382,9 @@ testing-rules
 Debug
 ↓
 implementation-debug
+Refactor
+↓
+refactor_planning
 ```
 
 # Gates

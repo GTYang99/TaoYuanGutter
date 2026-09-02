@@ -20,6 +20,8 @@ The template structure MUST match the required sections exactly.
 ## Required Inputs
 
 - requirement.md
+- docs/index.md
+- Referenced product, design, API, and reusable asset specifications
 - Repository
 - Existing Architecture
 - Existing Tests
@@ -39,6 +41,19 @@ Planning MUST identify:
 - Unknown Assumptions
 - Potential issue categories that should be tracked separately
 
+## Specification Validation
+
+Planning MUST:
+
+- Read `docs/index.md`.
+- Resolve every specification ID declared in `requirement.md`.
+- Confirm each referenced item exists and has status `fixed`.
+- Record the referenced document version.
+- Check for conflicts across product, design, API, and reusable asset specifications.
+- Record a blocking `requirement_gap` issue when `draft`, `TBD`, missing, or conflicting specifications affect implementation.
+
+Planning MUST NOT infer unresolved specification content.
+
 ---
 
 ## Required Outputs
@@ -56,6 +71,7 @@ Planning SHOULD log requirement gaps or early regressions as issues instead of f
 
 ## plan.md MUST include
 
+- Specification References
 - Goal
 - Current Behavior
 - Expected Behavior
@@ -77,6 +93,7 @@ Supported task types:
 - feature
 - bugfix
 - debug
+- refactor
 
 For debug tasks:
 
@@ -170,6 +187,33 @@ task:
 Planning focuses on investigation instead of implementation.
 
 Implementation MUST NOT begin until the Root Cause has sufficient evidence.
+
+### Refactor
+
+Purpose:
+
+Improve internal structure while preserving externally observable behavior.
+
+Required outputs:
+
+- requirement.md
+- analysis.md
+- plan.md
+- state.yaml
+
+Refactor planning MUST also read `ai/refactor_planning.md` and document:
+
+- Current behavior that MUST remain unchanged
+- Refactor-only scope and explicit non-goals
+- Affected modules, public interfaces, persistence, and API boundaries
+- Existing tests and additional behavior-preservation tests
+- Rollback boundaries and commit split strategy
+
+Refactor planning MUST NOT approve a scope that introduces a new feature, changes an acceptance criterion, or changes an API/data contract without a separate task.
+
+Plan Review:
+
+Required
 
 ---
 

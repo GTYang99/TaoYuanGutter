@@ -1,5 +1,8 @@
 # Implementation Plan
 
+## Specification References
+- 列出本計畫依據的規格 ID 與版本
+
 ## Goal
 - 這次要完成什麼，1 句話
 

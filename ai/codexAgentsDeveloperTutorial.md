@@ -17,9 +17,24 @@ Android 9+
 See:
 ai/architecture.md
 
+## Specification Sources
+
+Fixed project specifications are stored in:
+
+- `docs/product-spec.md`
+- `docs/design-spec.md`
+- `docs/api-contract.md`
+- `docs/reusable-assets.md`
+
+`docs/index.md` defines their status and change rules. Every new or revised Task records applicable specification IDs and versions in `requirement.md`.
+
+Planning resolves the references and blocks `draft`, `TBD`, missing, or conflicting specifications before implementation. Plan Review checks traceability, Developer implements only approved references, and Verification checks both Task Acceptance Criteria and fixed specifications.
+
 ## Workflow
 ### Success Flow
 ```
+Specification Validation
+↓
 Planning
 ↓
 Plan Review
@@ -58,6 +73,29 @@ Git Commit
 Verification
 ```
 
+### Refactor Flow
+```
+Refactor Request
+↓
+Refactor Planning
+↓
+Plan Review
+↓
+Implementation
+↓
+Behavior Preservation Validation
+↓
+Developer Validation
+↓
+Git Commit
+↓
+Regression Verification
+↓
+Release
+```
+
+Refactor MUST preserve existing externally observable behavior, MUST NOT introduce product features, and MUST define regression tests before implementation. If a behavior change is discovered, route it to a separate feature, bugfix, or planning task.
+
 ## Role Routing
 ```
 Planning
@@ -94,6 +132,8 @@ Recommended priorities:
 - `P1` major flow blocked
 - `P2` local defect or edge case
 - `P3` polish or non-blocking improvement
+
+Refactor regressions use category `implementation_regression` and return to `debug`. A requirement or API/data contract change must return to `planning` as a separate task.
 
 ## Task Memory
 任務資料請統一放在 `docs/tasks/[開發編號]/`，並維持與 `AGENTS.md` 相同的任務階段檔案。
@@ -172,12 +212,18 @@ Planning / Verification / Debug 都先讀 `state.yaml`，再根據對應規則�
    │   ├── developer-rules.md
    │   ├── verification-rules.md
    │   ├── implementation-debug.md
+   │   ├── refactor_planning.md
    │   ├── issue-management.md
    │   ├── git-rules.md
    │   └── release-rules.md
    │   
    │
    └── docs/                           ← artifact type
+      ├── index.md
+      ├── product-spec.md
+      ├── design-spec.md
+      ├── api-contract.md
+      ├── reusable-assets.md
       └── tasks/TYG-001/
          ├── requirement.md
          ├── analysis.md

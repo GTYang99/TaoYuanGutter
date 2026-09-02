@@ -44,6 +44,8 @@ Plan Critic MUST read:
 - plan.md
 - state.yaml
 - plan-critic-rules.md
+- docs/index.md
+- Referenced fixed specifications
 
 ---
 
@@ -125,6 +127,11 @@ Decision
 
 Plan Critic MUST verify:
 
+- Every referenced specification ID exists and is `fixed`
+- Specification versions are recorded
+- Implementation steps trace to a requirement or specification ID
+- No fixed specification is overridden
+- No unresolved `draft` or `TBD` content enters Implementation
 - Requirements are fully understood
 - Acceptance Criteria are complete
 - Repository analysis is complete

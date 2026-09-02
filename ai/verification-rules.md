@@ -33,6 +33,8 @@ Verification MUST read:
 - Git Diff
 - CI Results
 - Existing Tests
+- docs/index.md
+- Referenced fixed specifications declared in requirement.md
 
 ---
 
@@ -118,6 +120,22 @@ Verification MUST:
 - identify implementation deviations
 - classify any blocking issue with priority and category
 - reference or create a related issue record when verification fails
+- verify applicable fixed product rules
+- verify referenced design behavior and API contracts
+- verify reusable asset and component constraints
+- record the failed specification ID when a specification check fails
+
+A missing, unclear, or conflicting specification MUST create or update a `requirement_gap` issue. Verification records failure category `requirement` and routes it to Planning.
+
+An implementation that differs from a fixed specification MUST create or update an `implementation_regression` issue. Verification records failure category `implementation` and routes it to Debug.
+
+For refactor tasks, Verification MUST additionally confirm:
+
+- Existing user-visible behavior and entry points are preserved.
+- Existing API requests/responses and persistence behavior are preserved unless explicitly approved in a separate task.
+- Regression tests cover the behavior identified in the refactor plan.
+- The diff contains no unplanned feature or requirement change.
+- Each refactor commit remains logically reviewable and independently reversible where practical.
 
 ---
 
