@@ -40,6 +40,7 @@ Plan Critic MUST read:
 
 - AGENTS.md
 - requirement.md
+- knowledge-resolution.md
 - analysis.md
 - plan.md
 - state.yaml
@@ -128,6 +129,8 @@ Decision
 Plan Critic MUST verify:
 
 - Every referenced specification ID exists and is `fixed`
+- Knowledge Resolution decision is `READY_FOR_PLANNING`
+- Planning constraints match knowledge-resolution.md
 - Specification versions are recorded
 - Implementation steps trace to a requirement or specification ID
 - No fixed specification is overridden
@@ -202,6 +205,15 @@ status: changes_requested
 next_action: planning
 ```
 
+When Knowledge Resolution is missing, stale, or invalid:
+
+```yaml
+phase: plan_review
+status: blocked
+reason: knowledge_resolution_invalid
+next_action: knowledge_resolution
+```
+
 ```yaml
 When blocked:
 
@@ -224,6 +236,7 @@ Plan Critic MUST NOT:
 - modify requirements
 - lower Acceptance Criteria
 - implement features
+- resolve missing specifications on behalf of Knowledge Resolution
 
 ---
 

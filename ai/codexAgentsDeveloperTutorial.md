@@ -28,12 +28,12 @@ Fixed project specifications are stored in:
 
 `docs/index.md` defines their status and change rules. Every new or revised Task records applicable specification IDs and versions in `requirement.md`.
 
-Planning resolves the references and blocks `draft`, `TBD`, missing, or conflicting specifications before implementation. Plan Review checks traceability, Developer implements only approved references, and Verification checks both Task Acceptance Criteria and fixed specifications.
+Knowledge Resolution resolves the references and blocks `draft`, `TBD`, missing, or conflicting specifications before Planning. Plan Review checks traceability, Developer implements only approved references, and Verification checks both Task Acceptance Criteria and fixed specifications.
 
 ## Workflow
 ### Success Flow
 ```
-Specification Validation
+Knowledge Resolution
 ↓
 Planning
 ↓
@@ -55,13 +55,13 @@ Release
 Verification FAIL
 ↓
 Failure Classification
-↓
-Requirement -> Planning
-Planning -> Planning
-Implementation -> Debug
-Environment -> Infrastructure
-Unknown -> Investigation
-↓
+├── Requirement -> Knowledge Resolution
+├── Planning -> Planning
+├── Implementation -> Debug
+├── Environment -> Infrastructure
+└── Unknown -> Investigation
+
+Implementation failure path:
 Debug
 ↓
 Re-Implementation
@@ -73,9 +73,23 @@ Git Commit
 Verification
 ```
 
+### Knowledge Resolution Fail Flow
+```
+Knowledge Resolution BLOCKED
+↓
+Resolution Classification
+├── Missing / Draft / TBD / Conflict -> Requirement Clarification
+├── Fixed specification change -> spec_change Task
+└── Version mismatch -> Specification Source Update
+↓
+Knowledge Resolution
+```
+
 ### Refactor Flow
 ```
 Refactor Request
+↓
+Knowledge Resolution
 ↓
 Refactor Planning
 ↓
@@ -94,10 +108,13 @@ Regression Verification
 Release
 ```
 
-Refactor MUST preserve existing externally observable behavior, MUST NOT introduce product features, and MUST define regression tests before implementation. If a behavior change is discovered, route it to a separate feature, bugfix, or planning task.
+Refactor MUST preserve existing externally observable behavior, MUST NOT introduce product features, and MUST define regression tests before implementation. If a behavior change is discovered, route a separate feature or bugfix task through Knowledge Resolution.
 
 ## Role Routing
 ```
+Knowledge Resolution
+↓
+ai/knowledge-resolution-rules.md
 Planning
 ↓
 ai/planning-rules.md
@@ -121,7 +138,7 @@ Issue Management is used when a task hits a blocker, regression, or requirement 
 Keep `state.yaml` for the task's main phase and keep issue details in a separate issue log.
 
 Recommended rules:
-- `requirement_gap` returns to `planning`
+- `requirement_gap` returns to `knowledge_resolution`
 - `implementation_regression` returns to `debug`
 - `verification_failure` returns to `debug`
 - `environment` returns to `infrastructure`
@@ -133,7 +150,7 @@ Recommended priorities:
 - `P2` local defect or edge case
 - `P3` polish or non-blocking improvement
 
-Refactor regressions use category `implementation_regression` and return to `debug`. A requirement or API/data contract change must return to `planning` as a separate task.
+Refactor regressions use category `implementation_regression` and return to `debug`. A requirement or API/data contract change must return to Knowledge Resolution and may require a separate `spec_change` task.
 
 ## Task Memory
 任務資料請統一放在 `docs/tasks/[開發編號]/`，並維持與 `AGENTS.md` 相同的任務階段檔案。
@@ -142,27 +159,29 @@ Refactor regressions use category `implementation_regression` and return to `deb
 ```
 docs/tasks/TYG-001/
 ├── requirement.md
+├── knowledge-resolution.md
 ├── analysis.md
 ├── plan.md
 ├── state.yaml
 └── verification.md
 ```
 
-Planning / Verification / Debug 都先讀 `state.yaml`，再根據對應規則檔執行。
+Knowledge Resolution / Planning / Verification / Debug 都先讀 `state.yaml`，再根據對應規則檔執行。
 
 ## Workflow, Files Saved Strature, Storage Strategy
 ```
 + Artifacts / Files
    1) requirement.md
-   2) analysis.md
-   3) plan.md
-   4) state.yaml
-   5) verification.md
-   6) Codex Developer
-   7) Git branch + commit
-   8) GitHub Actions build/test
-   9) 新 Codex Thread 做 Verification
-   10) 人工 Merge
+   2) knowledge-resolution.md
+   3) analysis.md
+   4) plan.md
+   5) state.yaml
+   6) verification.md
+   7) Codex Developer
+   8) Git branch + commit
+   9) GitHub Actions build/test
+   10) 新 Codex Thread 做 Verification
+   11) 人工 Merge
 + Storage Strategy
 
    + Task Type
@@ -176,6 +195,8 @@ Planning / Verification / Debug 都先讀 `state.yaml`，再根據對應規則�
    ├── docs/tasks/TYG-001/ ← 任務記憶(任務為主導的開發)
    │   │
    │   ├── requirement.md
+   │   │
+   │   ├── knowledge-resolution.md
    │   │
    │   ├── analysis.md
    │   │
@@ -205,6 +226,7 @@ Planning / Verification / Debug 都先讀 `state.yaml`，再根據對應規則�
    │
    ├── ai/                             ← rules and architecture
    │   ├── architecture.md
+   │   ├── knowledge-resolution-rules.md
    │   ├── planning-rules.md    
    │   ├── plan-critic-rules.md
    │   ├── coding-rules.md
@@ -226,6 +248,7 @@ Planning / Verification / Debug 都先讀 `state.yaml`，再根據對應規則�
       ├── reusable-assets.md
       └── tasks/TYG-001/
          ├── requirement.md
+         ├── knowledge-resolution.md
          ├── analysis.md
          ├── plan.md
          ├── state.yaml
@@ -413,11 +436,12 @@ Project/
 ## State Alignment
 為了和 `AGENTS.md` 保持一致，建議補上這些狀態概念：
 
+- Knowledge Resolution: `resolution_in_progress` -> `resolution_ready` / `resolution_blocked` / `spec_change_required`
 - Planning: `plan_in_progress` -> `plan_ready`
 - Plan Review: `review_in_progress` -> `approved` / `changes_requested` / `blocked`
 - Implementation: `implementation_in_progress` -> `implementation_complete`
 - Verification: `verification_in_progress` -> `verification_passed` / `verification_failed`
-- Verification failure 要依分類切到 `debug`、`planning`、`infrastructure` 或 `investigation`
+- Verification failure 要依分類切到 `debug`、`knowledge_resolution`、`planning`、`infrastructure` 或 `investigation`
 
 ## Task State
 Task State 不等於開發日誌，它比較像「目前任務狀態表」；開發日誌是過程紀錄。

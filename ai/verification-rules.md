@@ -26,6 +26,7 @@ Verification MUST read:
 
 - AGENTS.md
 - requirement.md
+- knowledge-resolution.md
 - analysis.md
 - plan.md
 - state.yaml
@@ -33,8 +34,7 @@ Verification MUST read:
 - Git Diff
 - CI Results
 - Existing Tests
-- docs/index.md
-- Referenced fixed specifications declared in requirement.md
+- Resolved fixed specifications recorded in knowledge-resolution.md
 
 ---
 
@@ -121,11 +121,12 @@ Verification MUST:
 - classify any blocking issue with priority and category
 - reference or create a related issue record when verification fails
 - verify applicable fixed product rules
+- verify implementation against constraints in knowledge-resolution.md
 - verify referenced design behavior and API contracts
 - verify reusable asset and component constraints
 - record the failed specification ID when a specification check fails
 
-A missing, unclear, or conflicting specification MUST create or update a `requirement_gap` issue. Verification records failure category `requirement` and routes it to Planning.
+A missing, unclear, or conflicting specification MUST create or update a `requirement_gap` issue. Verification records failure category `requirement` and routes it to Knowledge Resolution.
 
 An implementation that differs from a fixed specification MUST create or update an `implementation_regression` issue. Verification records failure category `implementation` and routes it to Debug.
 
@@ -222,6 +223,17 @@ verification:
   category: planning
 
 next_action: planning
+```
+
+```yaml
+phase: verification
+status: verification_failed
+
+verification:
+  result: fail
+  category: requirement
+
+next_action: knowledge_resolution
 ```
 
 ```yaml

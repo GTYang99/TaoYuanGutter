@@ -26,6 +26,8 @@ fix/TYG-0831-login-crash
 
 refactor/TYG-301-upload-repository
 
+docs/TYG-401-update-api-contract
+
 hotfix/TYG-999-production-crash
 
 ---
@@ -55,6 +57,8 @@ Developer MUST:
 - commit only one logical change at a time
 
 Verification MUST verify committed revisions only.
+
+A `spec_change` task MUST use a `docs/` branch and `docs(<task-id>): <summary>` commit unless it also contains separately approved implementation work.
 
 ---
 

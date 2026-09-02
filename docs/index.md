@@ -8,7 +8,7 @@
 | Design | `docs/design-spec.md` | 畫面、互動與設計狀態 |
 | API | `docs/api-contract.md` | API request、response 與錯誤契約 |
 | Assets | `docs/reusable-assets.md` | 圖片、圖示與可重用元件 |
-| Tasks | `docs/tasks/[task-id]/` | 單次開發與驗證紀錄 |
+| Tasks | `docs/tasks/[task-id]/` | Knowledge Resolution、開發與驗證紀錄 |
 
 ## Status Rules
 
@@ -50,3 +50,5 @@ specification_versions:
 ```
 
 沒有適用規格的層級使用空陣列。Task 不得直接 override `fixed` 規格；需要變更時先完成 `spec_change` Task。
+
+每個新建或重新規劃的 Task 先產生 `knowledge-resolution.md`。只有 decision 為 `READY_FOR_PLANNING` 且 `state.yaml` 為 `resolution_ready` 時，才能進入 Planning。

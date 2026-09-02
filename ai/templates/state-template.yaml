@@ -1,11 +1,15 @@
 task: ""
 
-phase: planning
+phase: knowledge_resolution
 
-status: in_progress
+status: resolution_in_progress
+
+knowledge_resolution:
+  result: pending
+  document: knowledge-resolution.md
 
 plan:
-  status: draft
+  status: pending
 
 implementation:
   status: pending
@@ -17,4 +21,4 @@ ci:
   build: pending
   test: pending
 
-next_action: planning
+next_action: knowledge_resolution
