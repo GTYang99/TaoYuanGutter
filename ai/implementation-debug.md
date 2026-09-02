@@ -12,6 +12,7 @@ Debugging MUST preserve approved requirements.
 
 - verification.md
 - requirement.md
+- knowledge-resolution.md
 - plan.md
 - Git Diff
 - CI Results

@@ -20,6 +20,7 @@ Developer MUST read:
 
 - AGENTS.md
 - requirement.md
+- knowledge-resolution.md
 - analysis.md
 - plan.md
 - state.yaml
@@ -48,6 +49,7 @@ Developer SHOULD create meaningful Git commits.
 
 Developer MUST:
 
+- Confirm Knowledge Resolution is ready and use its derived constraints.
 - Follow the approved implementation plan.
 - Implement only the approved task scope and referenced fixed specifications.
 - Keep functions small and maintainable.

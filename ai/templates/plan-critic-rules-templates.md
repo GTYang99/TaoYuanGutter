@@ -31,6 +31,8 @@ Two blocking issues were identified and must be resolved before implementation.
 | Item | Result | Notes |
 |------|--------|------|
 | Requirement understood | PASS / FAIL | |
+| Knowledge Resolution ready | PASS / FAIL | |
+| Planning matches resolved constraints | PASS / FAIL | |
 | Specification references resolved | PASS / FAIL | |
 | Referenced specifications are fixed | PASS / FAIL | |
 | Specification versions recorded | PASS / FAIL | |

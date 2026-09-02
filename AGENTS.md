@@ -44,12 +44,12 @@ A task MUST NOT override a `fixed` specification. Changing a fixed specification
 
 Every new or revised task MUST declare applicable specification IDs and versions in `requirement.md`. Empty layers use an empty list.
 
-Before Planning is complete, Planning MUST resolve every referenced ID, confirm it is `fixed`, and stop if a conflict, `draft`, or `TBD` affects implementation.
+Before Planning begins, Knowledge Resolution MUST resolve every referenced ID, confirm it is `fixed`, and stop if a conflict, `draft`, or `TBD` affects implementation.
 
 # Workflow
 ## Success Flow
 ```
-Specification Validation
+Knowledge Resolution
 ↓
 Planning
 ↓
@@ -71,13 +71,13 @@ Release
 Verification FAIL
 ↓
 Failure Classification
-↓
-Requirement -> Planning
-Planning -> Planning
-Implementation -> Debug
-Environment -> Infrastructure
-Unknown -> Investigation
-↓
+├── Requirement -> Knowledge Resolution
+├── Planning -> Planning
+├── Implementation -> Debug
+├── Environment -> Infrastructure
+└── Unknown -> Investigation
+
+Implementation failure path:
 Debug
 ↓
 Re-Implementation
@@ -90,9 +90,23 @@ Verification
 
 ```
 
+## Knowledge Resolution Fail Flow
+```
+Knowledge Resolution BLOCKED
+↓
+Resolution Classification
+├── Missing / Draft / TBD / Conflict -> Requirement Clarification
+├── Fixed specification change -> spec_change Task
+└── Version mismatch -> Specification Source Update
+↓
+Knowledge Resolution
+```
+
 ## Refactor Flow
 ```
 Refactor Request
+↓
+Knowledge Resolution
 ↓
 Refactor Planning
 ↓
@@ -117,7 +131,7 @@ Refactor rules:
 - Refactor MUST NOT introduce product features or change requirements.
 - Refactor planning MUST define current behavior, affected boundaries, and regression tests before implementation.
 - Refactor MUST NOT begin until the plan is approved.
-- If behavior changes are discovered, stop the refactor and route the work to `feature`, `bugfix`, or `planning`.
+- If behavior changes are discovered, stop the refactor and route a separate `feature` or `bugfix` task through `Knowledge Resolution`.
 - If a regression is found, create or update an issue with category `implementation_regression` and route it to `Debug`.
 
 Read:
@@ -136,7 +150,7 @@ Read:
 
 Rules:
 
-- `requirement_gap` -> `Planning`
+- `requirement_gap` -> `Knowledge Resolution`
 - `implementation_regression` -> `Debug`
 - `verification_failure` -> `Debug`
 - `environment` -> `Infrastructure`
@@ -150,6 +164,42 @@ Priority guidance:
 - `P3` is a non-blocking improvement
 
 You are an AI engineer.
+When doing Knowledge Resolution:
+
+    read ai/knowledge-resolution-rules.md
+    Knowledge Resolution MUST NOT modify requirements, fixed specifications, or production code.
+
+    input:
+    Task Requirement
+    Specification Sources
+    Architecture
+
+    Knowledge Resolution Agent MUST create:
+    docs/tasks/[task-id]/knowledge-resolution.md
+
+    READY:
+    ```yaml
+    phase: knowledge_resolution
+    status: resolution_ready
+
+    knowledge_resolution:
+      result: ready
+      document: knowledge-resolution.md
+
+    next_action: planning
+    ```
+
+    BLOCKED:
+    ```yaml
+    phase: knowledge_resolution
+    status: resolution_blocked
+
+    knowledge_resolution:
+      result: blocked
+
+    next_action: requirement_clarification
+    ```
+
 When doing Planning:
 
     read ai/planning-rules.md
@@ -157,7 +207,7 @@ When doing Planning:
     
     input:
     Task Requirement
-    Specification References
+    knowledge-resolution.md
     Repository
     Architecture
     Existing Tests
@@ -186,10 +236,11 @@ When doing Planning:
         plan_review
         ```
 
-When doing develope:
+When doing Development:
 
     read ai/developer-rules.md
     input:
+    knowledge-resolution.md
     plan.md
     state.yaml
     approved plan
@@ -217,6 +268,7 @@ When doing Verification:
         + [0831]verification.md
     input:
         requirement
+        knowledge-resolution
         plan
         CI
         Git Diff
@@ -295,7 +347,7 @@ Supported categories:
 - unknown
 
 State transition rules:
-- requirement -> next_action: planning
+- requirement -> next_action: knowledge_resolution
 - planning -> next_action: planning
 - implementation -> next_action: debug
 - environment -> next_action: infrastructure
@@ -322,6 +374,8 @@ next_action: debug
 ```
 Task
 ↓
+Knowledge Resolution
+↓
 Planning
 ↓
 Plan Review
@@ -340,6 +394,9 @@ Done
 ```
 # Role Routing
 ```
+Knowledge Resolution
+↓
+ai/knowledge-resolution-rules.md
 Planning
 ↓
 ai/planning-rules.md
@@ -361,6 +418,11 @@ ai/refactor_planning.md
 ```
 # Required Reading
 ```
+Knowledge Resolution
+↓
+knowledge-resolution-rules
+↓
+docs/index.md and specification sources
 Planning
 ↓
 planning-rules
@@ -389,6 +451,10 @@ refactor_planning
 
 # Gates
 ```
+Knowledge Resolution
+↓
+Resolution Ready
+↓
 Planning
 ↓
 Plan Approved

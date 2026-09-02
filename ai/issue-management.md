@@ -53,7 +53,7 @@ Closed
 
 ## Phase Routing
 
-- `requirement_gap` -> `planning`
+- `requirement_gap` -> `knowledge_resolution`
 - `implementation_regression` -> `debug`
 - `verification_failure` -> `debug`
 - `environment` -> `infrastructure`

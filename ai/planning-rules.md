@@ -20,8 +20,7 @@ The template structure MUST match the required sections exactly.
 ## Required Inputs
 
 - requirement.md
-- docs/index.md
-- Referenced product, design, API, and reusable asset specifications
+- knowledge-resolution.md
 - Repository
 - Existing Architecture
 - Existing Tests
@@ -41,18 +40,17 @@ Planning MUST identify:
 - Unknown Assumptions
 - Potential issue categories that should be tracked separately
 
-## Specification Validation
+## Knowledge Resolution Gate
 
 Planning MUST:
 
-- Read `docs/index.md`.
-- Resolve every specification ID declared in `requirement.md`.
-- Confirm each referenced item exists and has status `fixed`.
-- Record the referenced document version.
-- Check for conflicts across product, design, API, and reusable asset specifications.
-- Record a blocking `requirement_gap` issue when `draft`, `TBD`, missing, or conflicting specifications affect implementation.
+- Confirm `knowledge-resolution.md` exists.
+- Confirm its decision is `READY_FOR_PLANNING`.
+- Confirm `state.yaml` has `status: resolution_ready` before changing the phase to Planning.
+- Use its resolved references, versions, and derived constraints as planning inputs.
+- Return the task to Knowledge Resolution if Planning discovers a missing, conflicting, or outdated specification.
 
-Planning MUST NOT infer unresolved specification content.
+Planning MUST NOT repeat resolution by inventing or choosing unresolved specification content.
 
 ---
 
@@ -94,6 +92,7 @@ Supported task types:
 - bugfix
 - debug
 - refactor
+- spec_change
 
 For debug tasks:
 
@@ -217,6 +216,34 @@ Required
 
 ---
 
+### Specification Change
+
+Purpose:
+
+Change a fixed specification through an explicit, traceable task before dependent implementation begins.
+
+Required outputs:
+
+- requirement.md
+- knowledge-resolution.md
+- analysis.md
+- plan.md
+- state.yaml
+
+Planning MUST document:
+
+- Target specification IDs and current versions
+- Reason for change
+- Product, design, API, asset, component, and existing implementation impact
+- New version strategy
+- Tasks that require re-resolution or re-verification
+
+Plan Review:
+
+Required
+
+---
+
 ## Restrictions
 
 Planning MUST NOT:
@@ -233,6 +260,7 @@ Planning MUST NOT:
 
 Planning is complete ONLY IF:
 
+- Knowledge Resolution decision is `READY_FOR_PLANNING`
 - analysis.md completed
 - plan.md completed
 - Implementation Plan is actionable

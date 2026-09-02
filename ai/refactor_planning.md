@@ -54,7 +54,7 @@ Verification MUST compare the refactor result with the documented current behavi
 
 If behavior differs, classify the issue as `implementation_regression` and route it to `Debug`.
 
-If the desired behavior was never defined, classify it as `requirement_gap` and route it to `Planning`.
+If the desired behavior was never defined, classify it as `requirement_gap` and route it to `Knowledge Resolution`.
 
 ## Example Scope
 
