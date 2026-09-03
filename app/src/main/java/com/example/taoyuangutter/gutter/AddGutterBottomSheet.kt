@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.AbsoluteSizeSpan
-import android.view.GestureDetector
 import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
@@ -838,7 +837,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             layoutManager = LinearLayoutManager(context)
             adapter = this@AddGutterBottomSheet.adapter
             isNestedScrollingEnabled = true
-            addOnItemTouchListener(createWaypointTapListener())
         }
     }
 
@@ -849,26 +847,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             host.openWaypointForInspect(this, position)
         } else {
             host.openWaypointForEdit(this, position)
-        }
-    }
-
-    private fun createWaypointTapListener(): RecyclerView.SimpleOnItemTouchListener {
-        val detector = GestureDetector(
-            requireContext(),
-            object : GestureDetector.SimpleOnGestureListener() {
-                override fun onSingleTapUp(e: MotionEvent): Boolean {
-                    val child = binding.rvWaypoints.findChildViewUnder(e.x, e.y) ?: return false
-                    val position = binding.rvWaypoints.getChildAdapterPosition(child)
-                    if (position == RecyclerView.NO_POSITION) return false
-                    openWaypointAt(position)
-                    return true
-                }
-            }
-        )
-        return object : RecyclerView.SimpleOnItemTouchListener() {
-            override fun onInterceptTouchEvent(rv: RecyclerView, e: MotionEvent): Boolean {
-                return detector.onTouchEvent(e)
-            }
         }
     }
 

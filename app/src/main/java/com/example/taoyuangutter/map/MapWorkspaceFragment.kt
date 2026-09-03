@@ -262,13 +262,8 @@ class MapWorkspaceFragment : Fragment(),
                 permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
             if (granted) {
                 myLocationController.enableMyLocationAndMove(
-                    onLocationUpdated = { location ->
-                        lastKnownLocation = location
-                        if (pendingUserLocationRecenter) {
-                            pendingLocationRecenterReload = true
-                            pendingUserLocationRecenter = false
-                        }
-                    }
+                    onLocationUpdated = ::handleMainMapLocationUpdated,
+                    onCameraMoveFinished = ::handleMainMapLocationRecenterFinished
                 )
             } else {
                 pendingUserLocationRecenter = false
@@ -520,7 +515,8 @@ class MapWorkspaceFragment : Fragment(),
             requestPermission = {
                 locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
             },
-            onLocationUpdated = { location -> lastKnownLocation = location }
+            onLocationUpdated = ::handleMainMapLocationUpdated,
+            onCameraMoveFinished = ::handleMainMapLocationRecenterFinished
         )
 
         googleMap?.uiSettings?.apply {
@@ -625,12 +621,9 @@ class MapWorkspaceFragment : Fragment(),
                     locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
                 },
                 onLocationUpdated = { location ->
-                    lastKnownLocation = location
-                    if (pendingUserLocationRecenter) {
-                        pendingLocationRecenterReload = true
-                        pendingUserLocationRecenter = false
-                    }
-                }
+                    handleMainMapLocationUpdated(location)
+                },
+                onCameraMoveFinished = ::handleMainMapLocationRecenterFinished
             )
         }
         binding.btnReportNoDitch.setOnClickListener { openNoDitchReport() }
@@ -1635,6 +1628,18 @@ class MapWorkspaceFragment : Fragment(),
             return
         }
         consumePendingForceReloadIfPossible()
+    }
+
+    private fun handleMainMapLocationUpdated(location: Location) {
+        lastKnownLocation = location
+        pendingLocationRecenterReload = true
+        pendingUserLocationRecenter = false
+    }
+
+    private fun handleMainMapLocationRecenterFinished() {
+        if (!pendingLocationRecenterReload) return
+        pendingLocationRecenterReload = false
+        requestForceScopeReload("location recenter finished")
     }
 
     private fun currentMainMapZoom(): Float = googleMap?.cameraPosition?.zoom ?: 0f
