@@ -36,3 +36,9 @@ The implementation compiles, unit tests pass, and a Debug APK was produced. A co
 - The second implementation binds the click callback to `ViewHolder.itemView`, removing dependence on the swipeable `layoutForeground` event path.
 - `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: **PASS**
 - AC-002 remains **NOT VERIFIED** until the real-device touch path reaches the row callback and launches `GutterFormActivity`.
+
+## Confirmed Root Cause Fix
+
+The active BottomSheet is managed by `MapWorkspaceFragment.childFragmentManager`, but the previous code looked for `LocationPickerHost` on `MainShellActivity`. The failed cast caused `openWaypointAt()` to return before navigation. The implementation now resolves `parentFragment` first, with an Activity fallback.
+
+The build and unit-test validation pass, but AC-002 remains **NOT VERIFIED** pending real-device confirmation.

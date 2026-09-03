@@ -72,4 +72,4 @@ Phase: debug
 
 ## Re-marked Debug Cause
 
-`rvWaypoints` 的導航鏈本身存在，但目前只能確認 source-level wiring，尚未確認實機 touch sequence 能穩定抵達 `layoutForeground.setOnClickListener`。剩餘問題定位為 RecyclerView／ItemTouchHelper／BottomSheet Window callback 之間的事件分派阻斷，需先取得實機分段證據，再進行下一次最小修正。
+根因已確認為 BottomSheet 宿主解析錯誤：`AddGutterBottomSheet` 實際由 `MapWorkspaceFragment.childFragmentManager` 管理，但原程式只從 `requireActivity()` 取得 `LocationPickerHost`，導致 `MainShellActivity` cast 失敗並在 `openWaypointAt()` 提前 return。修正優先從 `parentFragment` 解析 callback host，並保留 Activity fallback。

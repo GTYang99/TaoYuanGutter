@@ -39,8 +39,8 @@ Phase: debug
 
 ## Remaining Issue Annotation: rvWaypoints
 
-此問題目前不能標示為已解決。程式碼已確認 `WaypointAdapter` 將點擊綁在 `layoutForeground.setOnClickListener`，並由 `AddGutterBottomSheet.openWaypointAt()` 呼叫宿主的 `openWaypointForEdit()` / `openWaypointForInspect()`；宿主再透過 `GutterFormNavigator` 啟動 `GutterFormActivity`。
+此問題的根因已確認。`AddGutterBottomSheet` 是由 `MapWorkspaceFragment.childFragmentManager` 顯示，但 `openWaypointAt()` 原本只用 `requireActivity() as? LocationPickerHost` 取得宿主；實際 Activity 是 `MainShellActivity`，並未實作 `LocationPickerHost`，因此 cast 失敗後直接 return。
 
-剩餘問題定位為「點擊事件未穩定抵達 row listener」，而不是 `activity_gutter_form.xml` 缺少導航。可能的事件阻斷點為 RecyclerView 子元件觸控分派、`ItemTouchHelper` 滑動／拖曳攔截，以及 BottomSheet Window callback 路由。
+因此點擊事件其實可能已抵達 row listener，但在 `AddGutterBottomSheet.openWaypointAt()` 取宿主時被丟棄；問題不是 `activity_gutter_form.xml` 或 `GutterFormNavigator` 缺少導航。
 
-關閉此問題前，實機需用分段 log 或 debugger 確認 row listener、`openWaypointAt()`、宿主 callback 與 `GutterFormActivity` launch 的實際中斷位置。AC-002 應維持 `NOT VERIFIED`。
+修正方式是優先從 `parentFragment` 取得 `MapWorkspaceFragment` 這個 callback host，並保留 Activity fallback。AC-002 需在真機重新確認。

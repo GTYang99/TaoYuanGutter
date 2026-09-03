@@ -30,3 +30,15 @@ The repository environment does not provide a connected Android device or emulat
 
 - `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: PASS
 - Real-device `rvWaypoints` tap validation: NOT EXECUTED in this environment.
+
+## Confirmed Root Cause Follow-up
+
+- `AddGutterBottomSheet.openWaypointAt()` previously resolved `LocationPickerHost` from the Activity only.
+- The active flow is hosted by `MainShellActivity`, while `MapWorkspaceFragment` owns the `LocationPickerHost` implementation through the child fragment manager.
+- The failed Activity cast caused an early return before `openWaypointForEdit()` or `openWaypointForInspect()`.
+- The fix now resolves the parent fragment first and keeps the Activity fallback for compatibility.
+
+## Follow-up Validation
+
+- `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: PASS
+- Real-device AC-002 validation: NOT EXECUTED.

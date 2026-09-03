@@ -6,7 +6,7 @@ status: verification_in_progress
 
 debug:
   status: completed
-  root_cause: touch_dispatch_before_row_click_unconfirmed
+  root_cause: bottom_sheet_host_cast_to_activity_failed
 
 implementation:
   status: completed

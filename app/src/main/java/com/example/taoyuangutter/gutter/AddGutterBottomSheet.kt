@@ -842,13 +842,20 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     private fun openWaypointAt(position: Int) {
         if (position !in waypoints.indices) return
-        val host = requireActivity() as? LocationPickerHost ?: return
+        val host = locationPickerHost() ?: return
         if (isInspectMode) {
             host.openWaypointForInspect(this, position)
         } else {
             host.openWaypointForEdit(this, position)
         }
     }
+
+    /**
+     * This sheet is normally shown by MapWorkspaceFragment's child manager,
+     * so the Activity is MainShellActivity rather than the callback host.
+     */
+    private fun locationPickerHost(): LocationPickerHost? =
+        (parentFragment as? LocationPickerHost) ?: (activity as? LocationPickerHost)
 
     // ── 按鈕 ─────────────────────────────────────────────────────────────
     /**
