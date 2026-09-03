@@ -1,8 +1,8 @@
 task: DBG-0903
 
-phase: implementation
+phase: verification
 
-status: implementation_complete
+status: verification_in_progress
 
 debug:
   status: completed
@@ -16,3 +16,9 @@ implementation:
     status: passed
 
 next_action: verification
+
+verification:
+  result: not_verified
+  missing:
+    - Real-device initial location gutter load
+    - Real-device rvWaypoints form navigation
