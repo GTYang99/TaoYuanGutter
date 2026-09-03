@@ -18,7 +18,7 @@
 
     <!-- Strings for M圖示說明ain Activity -->
     <string name="title_activity_main">地圖</string>
-    <string name="title_activity_map">地圖</string>
+    <string name="title_activity_map">圖台檢視</string>
     <string name="dashboard_title">儀表板</string>
     <string name="dashboard_length_title">調查長度</string>
     <string name="dashboard_progress_title">調查進度與狀態</string>

@@ -6,6 +6,6 @@
         android:title="@string/title_activity_map" />
     <item
         android:id="@+id/nav_dashboard"
-        android:icon="@drawable/ic_dashboard_rounded"
+        android:icon="@drawable/ic_dashboard"
         android:title="@string/dashboard_title" />
 </menu>

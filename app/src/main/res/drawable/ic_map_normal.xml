@@ -1,44 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- 電子地圖：扁平化線條路網圖示 -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-
-    <!-- 外框矩形（地圖邊界） -->
     <path
-        android:fillColor="#00000000"
-        android:strokeColor="#546E7A"
-        android:strokeWidth="1.5"
-        android:pathData="M3,4 L21,4 L21,20 L3,20 Z"/>
-
-    <!-- 橫向道路 -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#546E7A"
-        android:strokeWidth="1.5"
-        android:pathData="M3,12 L21,12"/>
-
-    <!-- 縱向道路 -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#546E7A"
-        android:strokeWidth="1.5"
-        android:pathData="M12,4 L12,20"/>
-
-    <!-- 斜向小路（左下區） -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#546E7A"
-        android:strokeWidth="1.2"
-        android:pathData="M3,16 L8,12"/>
-
-    <!-- 斜向小路（右上區） -->
-    <path
-        android:fillColor="#00000000"
-        android:strokeColor="#546E7A"
-        android:strokeWidth="1.2"
-        android:pathData="M16,4 L21,9"/>
-
+        android:fillColor="@color/dashboard_group_value"
+        android:pathData="M12,2C8.14,2 5,5.14 5,9c0,5.18 6.74,12.82 6.97,13.08c0.02,0.02 0.04,0.02 0.06,0c0.23,-0.26 6.97,-7.9 6.97,-13.08c0,-3.86-3.14,-7-7,-7zM12,11.2c-1.21,0-2.2,-0.99-2.2,-2.2s0.99,-2.2 2.2,-2.2s2.2,0.99 2.2,2.2S13.21,11.2 12,11.2zM8.7,16.25c-3.02,0.6 -4.95,1.86 -4.95,3.5c0,2.2 3.82,3.95 8.25,3.95s8.25,-1.75 8.25,-3.95c0,-1.64 -1.93,-2.9 -4.95,-3.5c0.46,0.34 0.72,0.72 0.72,1.13c0,1.77 -1.96,3.2 -4.02,3.2s-4.02,-1.43 -4.02,-3.2c0,-0.41 0.26,-0.79 0.72,-1.13z" />
 </vector>

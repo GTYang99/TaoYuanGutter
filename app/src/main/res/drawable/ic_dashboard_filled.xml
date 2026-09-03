@@ -5,9 +5,6 @@
     android:viewportWidth="24"
     android:viewportHeight="24">
     <path
-        android:strokeColor="@color/dashboard_group_value"
-        android:strokeWidth="1.5"
-        android:strokeLineJoin="round"
-        android:strokeLineCap="round"
+        android:fillColor="@color/dashboard_group_value"
         android:pathData="M4.75,4.75h6.5v6.5H4.75zM13.75,4.75h6.5v3.5h-6.5zM13.75,10.75h6.5v8.5h-6.5zM4.75,13.75h6.5v6.5H4.75z" />
 </vector>
