@@ -18,3 +18,22 @@
 - In permission denial, cancel pending location reload ownership.
 - When location is updated, set `pendingLocationRecenterReload` once so the next camera idle uses the existing `requestForceScopeReload("location recenter")` path.
 - Validate with `testDebugUnitTest`.
+
+---
+
+## Issue
+- `ISS-003`
+
+## Goal
+- Make waypoint row taps in `AddGutterBottomSheet` reliably open the waypoint edit form on real devices.
+
+## Scope
+- `AddGutterBottomSheet`
+- `WaypointAdapter`
+
+## Steps
+- Wrap edit preload work with `try/finally` so loading state and `rvWaypoints.isEnabled` are always restored.
+- Preserve partial-failure toast behavior after preload cleanup.
+- Move row click handling from the item root to `layoutForeground`.
+- Resolve click positions with `bindingAdapterPosition`, ignoring `RecyclerView.NO_POSITION`.
+- Validate with `testDebugUnitTest`.

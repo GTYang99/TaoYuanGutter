@@ -23,3 +23,26 @@ evidence:
 next_action: debug
 owner: developer
 ```
+
+## ISS-003
+
+```yaml
+issue_id: ISS-003
+task_id: feat-0825
+phase: implementation
+category: implementation_regression
+priority: P1
+title: AddGutterBottomSheet waypoint row cannot reliably open the edit form on device
+status: resolved
+impact: Users can be blocked from editing waypoint forms from the bottom sheet on real devices.
+repro_steps:
+  - Open AddGutterBottomSheet in add or edit mode on a real device.
+  - Tap a waypoint row.
+expected: Tapping a waypoint row opens the waypoint edit form.
+actual: The tap may not open the form because loading state can leave the list disabled after preload failure, and row click handling is attached to the outer item instead of the visible foreground row.
+evidence:
+  - preloadEditWaypointDetails enabled loading and disabled rvWaypoints without a try/finally recovery path.
+  - WaypointAdapter attached row click handling to binding.root while ItemTouchHelper manipulates layoutForeground.
+next_action: debug
+owner: developer
+```

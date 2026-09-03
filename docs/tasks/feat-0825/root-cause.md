@@ -25,3 +25,28 @@
 - Track location recenter reload ownership separately from the manual button flag.
 - Mark the initial location move as requiring one scope reload after the location animation reaches idle.
 - Reuse the same path for manual my-location recenter.
+
+---
+
+## Issue
+- `ISS-003`
+
+## Classification
+- `implementation_regression`
+- Priority: `P1`
+
+## Failed Behavior
+- On a real device, tapping a waypoint row in `AddGutterBottomSheet` may not open the waypoint edit form.
+
+## Root Cause
+- `preloadEditWaypointDetails()` turned on the blocking loading overlay and disabled `rvWaypoints`, but did not use `try/finally`; an exception could leave the sheet permanently disabled.
+- `WaypointAdapter` attached row click handling to the outer root while the foreground row is the interactive visual surface manipulated by `ItemTouchHelper`.
+- The click handler used deprecated `adapterPosition`, which can return an invalid position during RecyclerView layout/animation windows.
+
+## Affected Acceptance Criteria
+- `AC-005`: other main-map related flows, including add/edit waypoint form entry, must remain usable.
+
+## Minimum Fix
+- Guarantee edit preload always restores loading and list enabled state.
+- Attach row clicks to `layoutForeground`.
+- Use `bindingAdapterPosition` and ignore `NO_POSITION`.

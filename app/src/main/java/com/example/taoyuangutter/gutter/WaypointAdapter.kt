@@ -120,8 +120,10 @@ class WaypointAdapter(
         holder.binding.layoutForeground.translationX = 0f
 
         // 點選整行 → 請求選點
-        holder.binding.root.setOnClickListener {
-            onItemClick(holder.adapterPosition)
+        holder.binding.layoutForeground.setOnClickListener {
+            val position = holder.bindingAdapterPosition
+            if (position == RecyclerView.NO_POSITION) return@setOnClickListener
+            onItemClick(position)
         }
     }
 

@@ -1987,94 +1987,101 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
         lifecycleScope.launch {
             var hasError = false
-            val preloadNodeIds = waypoints.mapNotNull { it.basicData["_nodeId"]?.toIntOrNull() }
-            preloadNodeIds.forEach { nodeId ->
-                when (val result = repository.getNodeDetails(nodeId, token)) {
-                    is ApiResult.Success -> {
-                        val nd = result.data.data?.firstOrNull() ?: return@forEach
-                        val targetIndex = waypoints.indexOfFirst {
-                            it.basicData["_nodeId"]?.toIntOrNull() == nodeId
-                        }
-                        if (targetIndex < 0) return@forEach
-                        val lat = nd.latitude?.toDoubleOrNull()
-                        val lng = nd.longitude?.toDoubleOrNull()
-                        if (lat != null && lng != null) {
-                            waypoints[targetIndex].latLng = LatLng(lat, lng)
-                        }
+            try {
+                val preloadNodeIds = waypoints.mapNotNull { it.basicData["_nodeId"]?.toIntOrNull() }
+                preloadNodeIds.forEach { nodeId ->
+                    when (val result = repository.getNodeDetails(nodeId, token)) {
+                        is ApiResult.Success -> {
+                            val nd = result.data.data?.firstOrNull() ?: return@forEach
+                            val targetIndex = waypoints.indexOfFirst {
+                                it.basicData["_nodeId"]?.toIntOrNull() == nodeId
+                            }
+                            if (targetIndex < 0) return@forEach
+                            val lat = nd.latitude?.toDoubleOrNull()
+                            val lng = nd.longitude?.toDoubleOrNull()
+                            if (lat != null && lng != null) {
+                                waypoints[targetIndex].latLng = LatLng(lat, lng)
+                            }
 
-                        val p1 = nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.url ?: ""
-                        val p2 = nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.url ?: ""
-                        val p3 = nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.url ?: ""
-                        val capturedAt1 = nd.safeCapturedAt(0, "AddGutterSheet", "preload edit waypoint")
-                        val capturedAt2 = nd.safeCapturedAt(1, "AddGutterSheet", "preload edit waypoint")
-                        val capturedAt3 = nd.safeCapturedAt(2, "AddGutterSheet", "preload edit waypoint")
+                            val p1 = nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.url ?: ""
+                            val p2 = nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.url ?: ""
+                            val p3 = nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.url ?: ""
+                            val capturedAt1 = nd.safeCapturedAt(0, "AddGutterSheet", "preload edit waypoint")
+                            val capturedAt2 = nd.safeCapturedAt(1, "AddGutterSheet", "preload edit waypoint")
+                            val capturedAt3 = nd.safeCapturedAt(2, "AddGutterSheet", "preload edit waypoint")
 
-                        val merged = HashMap(waypoints[targetIndex].basicData).apply {
-                            put("_nodeId", nodeId.toString())
-                            put("SPI_NUM", get("SPI_NUM") ?: editSpiNum)
-                            put("NODE_TYP", nd.nodeTyP ?: get("NODE_TYP") ?: "")
-                            put("MAT_TYP", nd.matTyp ?: get("MAT_TYP") ?: "")
-                            put("NODE_X", nd.longitude ?: get("NODE_X") ?: "")
-                            put("NODE_Y", nd.latitude ?: get("NODE_Y") ?: "")
-                            put("NODE_LE", nd.nodeLe ?: get("NODE_LE") ?: "")
-                            put("XY_NUM", nd.xyNum ?: get("XY_NUM") ?: "")
-                            put("COVER_DEP", nd.coverDepAsString.ifEmpty { get("COVER_DEP") ?: "" })
-                            put("NODE_DEP", nd.nodeDepAsString.ifEmpty { get("NODE_DEP") ?: "" })
-                            put("NODE_WID", nd.nodeWidAsString.ifEmpty { get("NODE_WID") ?: "" })
-                            put("IS_CANTOPEN", if (nd.isCantOpenAsBoolean) "1" else "0")
-                            // 保留既有點位的待架站狀態（跟著點位資料走）；
-                            // 僅在舊資料完全沒有此欄位時，才回退使用 nodeDetails。
-                            val existingPending = get("IS_PENDING_DEPLOY")
-                            put(
-                                "IS_PENDING_DEPLOY",
-                                if (!existingPending.isNullOrBlank()) existingPending
-                                else if (parseLooseBoolean(nd.isPendingDeploy)) "1" else "0"
+                            val merged = HashMap(waypoints[targetIndex].basicData).apply {
+                                put("_nodeId", nodeId.toString())
+                                put("SPI_NUM", get("SPI_NUM") ?: editSpiNum)
+                                put("NODE_TYP", nd.nodeTyP ?: get("NODE_TYP") ?: "")
+                                put("MAT_TYP", nd.matTyp ?: get("MAT_TYP") ?: "")
+                                put("NODE_X", nd.longitude ?: get("NODE_X") ?: "")
+                                put("NODE_Y", nd.latitude ?: get("NODE_Y") ?: "")
+                                put("NODE_LE", nd.nodeLe ?: get("NODE_LE") ?: "")
+                                put("XY_NUM", nd.xyNum ?: get("XY_NUM") ?: "")
+                                put("COVER_DEP", nd.coverDepAsString.ifEmpty { get("COVER_DEP") ?: "" })
+                                put("NODE_DEP", nd.nodeDepAsString.ifEmpty { get("NODE_DEP") ?: "" })
+                                put("NODE_WID", nd.nodeWidAsString.ifEmpty { get("NODE_WID") ?: "" })
+                                put("IS_CANTOPEN", if (nd.isCantOpenAsBoolean) "1" else "0")
+                                // 保留既有點位的待架站狀態（跟著點位資料走）；
+                                // 僅在舊資料完全沒有此欄位時，才回退使用 nodeDetails。
+                                val existingPending = get("IS_PENDING_DEPLOY")
+                                put(
+                                    "IS_PENDING_DEPLOY",
+                                    if (!existingPending.isNullOrBlank()) existingPending
+                                    else if (parseLooseBoolean(nd.isPendingDeploy)) "1" else "0"
+                                )
+                                put("IS_BROKEN", nd.isBroken ?: get("IS_BROKEN") ?: "")
+                                put("IS_HANGING", nd.isHanging ?: get("IS_HANGING") ?: "")
+                                put("IS_SILT", nd.isSilt ?: get("IS_SILT") ?: "")
+                                put("NODE_NOTE", nd.note ?: get("NODE_NOTE") ?: "")
+                                if (get("photo1").isNullOrBlank() && p1.isNotEmpty()) put("photo1", p1)
+                                if (get("photo2").isNullOrBlank() && p2.isNotEmpty()) put("photo2", p2)
+                                if (get("photo3").isNullOrBlank() && p3.isNotEmpty()) put("photo3", p3)
+                                if (capturedAt1 != null) put("photo1CapturedAt", capturedAt1)
+                                if (capturedAt2 != null) put("photo2CapturedAt", capturedAt2)
+                                if (capturedAt3 != null) put("photo3CapturedAt", capturedAt3)
+                                nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.id?.let {
+                                    put("photo1ImgId", it.toString())
+                                    put("photo1UploadState", PhotoUploadSlotState.STATE_SUCCESS)
+                                }
+                                nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.id?.let {
+                                    put("photo2ImgId", it.toString())
+                                    put("photo2UploadState", PhotoUploadSlotState.STATE_SUCCESS)
+                                }
+                                nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.id?.let {
+                                    put("photo3ImgId", it.toString())
+                                    put("photo3UploadState", PhotoUploadSlotState.STATE_SUCCESS)
+                                }
+                            }
+                            waypoints[targetIndex].basicData = merged
+                        }
+                        is ApiResult.Error -> {
+                            hasError = true
+                            android.util.Log.e(
+                                "AddGutterSheet",
+                                "preload node details failed: nodeId=$nodeId, message=${result.message}, code=${result.code}"
                             )
-                            put("IS_BROKEN", nd.isBroken ?: get("IS_BROKEN") ?: "")
-                            put("IS_HANGING", nd.isHanging ?: get("IS_HANGING") ?: "")
-                            put("IS_SILT", nd.isSilt ?: get("IS_SILT") ?: "")
-                            put("NODE_NOTE", nd.note ?: get("NODE_NOTE") ?: "")
-                            if (get("photo1").isNullOrBlank() && p1.isNotEmpty()) put("photo1", p1)
-                            if (get("photo2").isNullOrBlank() && p2.isNotEmpty()) put("photo2", p2)
-                            if (get("photo3").isNullOrBlank() && p3.isNotEmpty()) put("photo3", p3)
-                            if (capturedAt1 != null) put("photo1CapturedAt", capturedAt1)
-                            if (capturedAt2 != null) put("photo2CapturedAt", capturedAt2)
-                            if (capturedAt3 != null) put("photo3CapturedAt", capturedAt3)
-                            nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.id?.let {
-                                put("photo1ImgId", it.toString())
-                                put("photo1UploadState", PhotoUploadSlotState.STATE_SUCCESS)
-                            }
-                            nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.id?.let {
-                                put("photo2ImgId", it.toString())
-                                put("photo2UploadState", PhotoUploadSlotState.STATE_SUCCESS)
-                            }
-                            nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.id?.let {
-                                put("photo3ImgId", it.toString())
-                                put("photo3UploadState", PhotoUploadSlotState.STATE_SUCCESS)
-                            }
                         }
-                        waypoints[targetIndex].basicData = merged
-                    }
-                    is ApiResult.Error -> {
-                        hasError = true
-                        android.util.Log.e(
-                            "AddGutterSheet",
-                            "preload node details failed: nodeId=$nodeId, message=${result.message}, code=${result.code}"
-                        )
                     }
                 }
-            }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                hasError = true
+                android.util.Log.e("AddGutterSheet", "preload node details exception: ${e.message}", e)
+            } finally {
+                adapter.notifyDataSetChanged()
+                originalWaypointsSnapshot = takeWaypointSnapshot()
+                originalIsCurve = isCurve
+                isPreloadingEditDetails = false
+                setEditLoading(false)
+                onWaypointsChanged?.invoke(waypoints.toList())
+                updateSubmitButtonState()
 
-            adapter.notifyDataSetChanged()
-            originalWaypointsSnapshot = takeWaypointSnapshot()
-            originalIsCurve = isCurve
-            isPreloadingEditDetails = false
-            setEditLoading(false)
-            onWaypointsChanged?.invoke(waypoints.toList())
-            updateSubmitButtonState()
-
-            if (hasError) {
-                Toast.makeText(requireContext(), getString(R.string.msg_waypoint_load_partial_failed), Toast.LENGTH_SHORT).show()
+                if (hasError && _binding != null) {
+                    Toast.makeText(requireContext(), getString(R.string.msg_waypoint_load_partial_failed), Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }

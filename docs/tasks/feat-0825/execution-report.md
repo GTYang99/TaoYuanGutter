@@ -7,6 +7,8 @@
 - `testDebugUnitTest` completed successfully.
 
 ## Notes
+- `ISS-003` fixed: waypoint row taps now target the visible foreground row and use a valid binding adapter position.
+- `ISS-003` fixed: edit preload now always restores loading and RecyclerView enabled state through cleanup after success, partial failure, or exception.
 - Initial main-map location recenter now marks the following camera idle for one scope reload, so the user's final viewport loads without requiring a manual pan or zoom.
 - Manual my-location recenter uses the same reload ownership path.
 - Main map scopeSearch and the load indicator share `MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM`.
