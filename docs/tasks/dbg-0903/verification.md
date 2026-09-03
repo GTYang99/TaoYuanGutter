@@ -42,3 +42,11 @@ The implementation compiles, unit tests pass, and a Debug APK was produced. A co
 The active BottomSheet is managed by `MapWorkspaceFragment.childFragmentManager`, but the previous code looked for `LocationPickerHost` on `MainShellActivity`. The failed cast caused `openWaypointAt()` to return before navigation. The implementation now resolves `parentFragment` first, with an Activity fallback.
 
 The build and unit-test validation pass, but AC-002 remains **NOT VERIFIED** pending real-device confirmation.
+
+## Latest Validation
+
+- Revision rechecked: `0157768`
+- `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: **PASS**
+- `git show --check HEAD`: **PASS**
+- `adb devices`: no connected device or emulator
+- AC-002: **NOT VERIFIED**
