@@ -18,17 +18,24 @@ class MyLocationController(
     private val fusedLocationClient: FusedLocationProviderClient,
     private val mapProvider: () -> GoogleMap?
 ) {
-    fun requestLocationAndMove(requestPermission: () -> Unit, onLocationUpdated: (Location) -> Unit) {
+    fun requestLocationAndMove(
+        requestPermission: () -> Unit,
+        onLocationUpdated: (Location) -> Unit,
+        onCameraMoveFinished: (() -> Unit)? = null
+    ) {
         val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
         if (fine == PackageManager.PERMISSION_GRANTED) {
-            enableMyLocationAndMove(onLocationUpdated)
+            enableMyLocationAndMove(onLocationUpdated, onCameraMoveFinished)
         } else {
             requestPermission()
         }
     }
 
     @SuppressLint("MissingPermission")
-    fun enableMyLocationAndMove(onLocationUpdated: (Location) -> Unit) {
+    fun enableMyLocationAndMove(
+        onLocationUpdated: (Location) -> Unit,
+        onCameraMoveFinished: (() -> Unit)? = null
+    ) {
         val map = mapProvider() ?: return
         map.isMyLocationEnabled = true
         map.uiSettings?.isMyLocationButtonEnabled = false
@@ -42,7 +49,16 @@ class MyLocationController(
                         CameraUpdateFactory.newLatLngZoom(
                             LatLng(loc.latitude, loc.longitude),
                             18f
-                        )
+                        ),
+                        object : GoogleMap.CancelableCallback {
+                            override fun onFinish() {
+                                onCameraMoveFinished?.invoke()
+                            }
+
+                            override fun onCancel() {
+                                onCameraMoveFinished?.invoke()
+                            }
+                        }
                     )
                 }
             }

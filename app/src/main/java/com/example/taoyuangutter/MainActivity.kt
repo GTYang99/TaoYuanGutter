@@ -393,9 +393,14 @@ class MainActivity : AppCompatActivity(),
             val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                           permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
             if (granted) {
-                myLocationController.enableMyLocationAndMove { location ->
-                    handleMainMapLocationUpdated(location)
-                }
+                myLocationController.enableMyLocationAndMove(
+                    onLocationUpdated = { location ->
+                        handleMainMapLocationUpdated(location)
+                    },
+                    onCameraMoveFinished = {
+                        handleMainMapLocationRecenterFinished()
+                    }
+                )
             } else {
                 pendingUserLocationRecenter = false
                 locationRecenterReloadTracker.cancelPendingLocationMove()
@@ -842,6 +847,9 @@ class MainActivity : AppCompatActivity(),
             },
             onLocationUpdated = { location ->
                 handleMainMapLocationUpdated(location)
+            },
+            onCameraMoveFinished = {
+                handleMainMapLocationRecenterFinished()
             }
         )
 
@@ -1796,6 +1804,9 @@ class MainActivity : AppCompatActivity(),
                 },
                 onLocationUpdated = { location ->
                     handleMainMapLocationUpdated(location)
+                },
+                onCameraMoveFinished = {
+                    handleMainMapLocationRecenterFinished()
                 }
             )
         }
@@ -2179,6 +2190,13 @@ class MainActivity : AppCompatActivity(),
             pendingLocationRecenterReload = true
             pendingUserLocationRecenter = false
         }
+    }
+
+    private fun handleMainMapLocationRecenterFinished() {
+        if (!pendingLocationRecenterReload) return
+        if (currentMainMapZoom() < MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM) return
+        pendingLocationRecenterReload = false
+        requestForceScopeReload("location recenter finished")
     }
 
     private fun requestUserInteractionScopeSearch() {

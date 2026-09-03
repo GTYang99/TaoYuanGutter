@@ -1,6 +1,6 @@
 task: feat-0825
-phase: implementation
-status: implementation_complete
+phase: debug
+status: implementation_debug_complete
 plan:
   status: approved
 implementation:
@@ -18,5 +18,7 @@ ci:
 debug:
   status: completed
   root_cause: identified
-  issue_id: ISS-003
+  issue_id:
+    - ISS-004
+    - ISS-005
 next_action: verification

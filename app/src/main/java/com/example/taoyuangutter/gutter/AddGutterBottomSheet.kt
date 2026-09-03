@@ -613,19 +613,37 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             dialog?.window?.callback = object : Window.Callback by originalCb {
                 override fun dispatchTouchEvent(event: MotionEvent): Boolean {
                     if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                        val loc = IntArray(2)
-                        getSheetView()?.getLocationOnScreen(loc)
-                        val sheetTopOnScreen = loc[1]
-                        routeToActivity = event.rawY < sheetTopOnScreen
+                        routeToActivity = isTouchOutsideSheetContent(event)
                     }
-                    return if (routeToActivity) {
+                    val handled = if (routeToActivity) {
                         requireActivity().dispatchTouchEvent(event)
                     } else {
                         originalCb.dispatchTouchEvent(event)
                     }
+                    if (
+                        event.actionMasked == MotionEvent.ACTION_UP ||
+                        event.actionMasked == MotionEvent.ACTION_CANCEL
+                    ) {
+                        routeToActivity = false
+                    }
+                    return handled
                 }
             }
         }
+    }
+
+    private fun isTouchOutsideSheetContent(event: MotionEvent): Boolean {
+        val content = _binding?.root ?: getSheetView() ?: return false
+        val loc = IntArray(2)
+        content.getLocationOnScreen(loc)
+        val left = loc[0].toFloat()
+        val top = loc[1].toFloat()
+        val right = left + content.width
+        val bottom = top + content.height
+        return event.rawX < left ||
+            event.rawX > right ||
+            event.rawY < top ||
+            event.rawY > bottom
     }
 
     private fun getBehavior(): BottomSheetBehavior<View>? {

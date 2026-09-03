@@ -50,3 +50,64 @@
 - Guarantee edit preload always restores loading and list enabled state.
 - Attach row clicks to `layoutForeground`.
 - Use `bindingAdapterPosition` and ignore `NO_POSITION`.
+
+---
+
+## Issue
+- `ISS-004`
+
+## Classification
+- `verification_failure`
+- Priority: `P1`
+
+## Failed Behavior
+- On a real device, after first login the map may briefly show the default Taoyuan viewport.
+- The camera later recenters to the user's current location.
+- If the user does not manually pan or zoom after that recenter, nearby main-map gutter polylines may not appear.
+
+## Root Cause
+- The current startup flow still has two independent camera/load owners:
+  - `onMapReady()` immediately moves to the default Taoyuan viewport at zoom `16f`.
+  - `requestBackgroundScopeRefresh()` can run for that default viewport.
+- `MyLocationController.enableMyLocationAndMove()` invokes `onLocationUpdated(loc)` before starting `map.animateCamera(...)`.
+- `MainActivity.handleMainMapLocationUpdated()` therefore marks `pendingLocationRecenterReload` before the camera has actually reached the user viewport.
+- The implementation depends on a future `OnCameraIdleListener` callback to consume that flag. On real devices, that callback can be missed, delayed until the app is not eligible to query, or evaluated against a zoom/load threshold mismatch.
+- The latest requested threshold is `18f`, but `MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM` remains `16f`, so startup/background loading and visible layer activation can still disagree with the expected implementation gate.
+
+## Affected Acceptance Criteria
+- `AC-003`: scopeSearch/layer drawing should run for the final user-visible viewport once the map is at the required zoom.
+- `AC-005`: startup behavior should not require manual map movement to show nearby gutters.
+
+## Minimum Fix
+- Make user-location recenter completion an explicit load owner instead of relying only on a pending flag plus generic camera idle.
+- Trigger the forced scope reload from the location camera animation completion path, or add a one-shot camera-idle owner that validates the final camera target/zoom before loading.
+- Align the scope-search minimum zoom constant with the current `18f` requirement.
+- Prevent startup background scope refresh from drawing stale default-viewport gutters after a pending initial location recenter exists.
+
+---
+
+## Issue
+- `ISS-005`
+
+## Classification
+- `verification_failure`
+- Priority: `P1`
+
+## Failed Behavior
+- On a real device, tapping a waypoint row in `AddGutterBottomSheet` still may not open `GutterFormActivity`.
+
+## Root Cause
+- The previous adapter-level fix only changed which row view receives `OnClickListener`.
+- `AddGutterBottomSheet.setupBottomSheetBehavior()` still replaces the dialog window callback and forwards touch events to the Activity whenever `ACTION_DOWN.rawY < design_bottom_sheet.top`.
+- That check only compares against the Material `design_bottom_sheet` container top. It does not verify whether the touch is inside the actual sheet content root, `RecyclerView`, or row foreground.
+- During real-device layout/animation states, `design_bottom_sheet` top and translation can differ from the actual visible/touchable content. A row tap can be misclassified as outside the sheet and forwarded to the main Activity/map, so RecyclerView never receives the click.
+- ItemTouchHelper may also cancel clicks after swipe/drag state, but the primary unhandled risk is the global touch router stealing the event before the adapter can handle it.
+
+## Affected Acceptance Criteria
+- `AC-005`: add/edit waypoint form entry from the bottom sheet must remain usable on device.
+
+## Minimum Fix
+- Replace the global top-only touch routing with a bounds check against the actual sheet content root.
+- Only forward touches to the Activity when the `ACTION_DOWN` is outside the visible sheet content bounds.
+- Reset routing state on `ACTION_UP`/`ACTION_CANCEL` to avoid leaking a forwarded gesture into the next tap.
+- Keep the existing adapter foreground click handling, but add validation coverage for touch routing as the actual failure point.

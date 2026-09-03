@@ -261,13 +261,15 @@ class MapWorkspaceFragment : Fragment(),
             val granted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
                 permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
             if (granted) {
-                myLocationController.enableMyLocationAndMove { location ->
-                    lastKnownLocation = location
-                    if (pendingUserLocationRecenter) {
-                        pendingLocationRecenterReload = true
-                        pendingUserLocationRecenter = false
+                myLocationController.enableMyLocationAndMove(
+                    onLocationUpdated = { location ->
+                        lastKnownLocation = location
+                        if (pendingUserLocationRecenter) {
+                            pendingLocationRecenterReload = true
+                            pendingUserLocationRecenter = false
+                        }
                     }
-                }
+                )
             } else {
                 pendingUserLocationRecenter = false
             }
