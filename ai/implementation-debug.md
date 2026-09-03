@@ -28,7 +28,10 @@ Developer MUST create or update:
 - fix-plan.md
 - execution-report.md (if validation is limited)
 - state.yaml
+<<<<<<< HEAD
 - related issue record or issue log entry
+=======
+>>>>>>> feat/主地圖效能進度條
 
 ---
 

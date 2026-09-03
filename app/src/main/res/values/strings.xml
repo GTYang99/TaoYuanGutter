@@ -94,7 +94,7 @@
     <string name="msg_loading_gutters">載入側溝線段中…</string>
     <string name="msg_loading_gutters_done">側溝線段載入完成</string>
     <string name="msg_loading_gutters_failed">側溝線段載入失敗</string>
-    <string name="msg_main_map_low_zoom">放大地圖加載側溝圖層（%1$s）</string>
+    <string name="msg_main_map_low_zoom">放大至16.0級以加載側溝圖層（目前：%1$s）</string>
     <string name="msg_main_map_loading">側溝圖層載入中（%1$s）</string>
     <string name="msg_main_map_failed">側溝圖層載入失敗（%1$s）</string>
     <string name="msg_zoom_suffix">級</string>
