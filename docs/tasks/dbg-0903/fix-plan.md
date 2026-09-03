@@ -73,3 +73,10 @@ Phase: debug
 ## Re-marked Debug Cause
 
 根因已確認為 BottomSheet 宿主解析錯誤：`AddGutterBottomSheet` 實際由 `MapWorkspaceFragment.childFragmentManager` 管理，但原程式只從 `requireActivity()` 取得 `LocationPickerHost`，導致 `MainShellActivity` cast 失敗並在 `openWaypointAt()` 提前 return。修正優先從 `parentFragment` 解析 callback host，並保留 Activity fallback。
+
+## Follow-up Fix Scope: Submit Long-Press Simulation
+
+- 將 `triggerNetworkTimeoutTest()` 的 host 解析改為共用 `locationPickerHost()`。
+- 將 `triggerStoreDitchConflictTest()` 的 host 解析改為共用 `locationPickerHost()`。
+- 保留 `ENABLE_GROUP_SIMULATION` 開關與現有測試選單文字，不調整送出 API 主流程。
+- 本次只修長按測試 Alert 後續動作，不做其他 callback host 重構。

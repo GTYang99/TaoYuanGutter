@@ -50,3 +50,19 @@ The build and unit-test validation pass, but AC-002 remains **NOT VERIFIED** pen
 - `git show --check HEAD`: **PASS**
 - `adb devices`: no connected device or emulator
 - AC-002: **NOT VERIFIED**
+
+## Submit Long-Press Simulation Validation
+
+- Follow-up fix: `triggerNetworkTimeoutTest()` and `triggerStoreDitchConflictTest()` now resolve `LocationPickerHost` through `locationPickerHost()`, matching the `rvWaypoints` host fix.
+- `ENABLE_GROUP_SIMULATION`: currently enabled in the working tree.
+- Expected behavior: long-press submit opens the first-level test menu, and selecting either option reaches the corresponding network-timeout or 409 Alert instead of returning early.
+- `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: **PASS**
+- Real-device Alert verification: **PASS**
+- Device: `adb-QV710EDR3A-hF5XZF._adb-tls-connect._tcp`
+- Evidence:
+  - Installed `app/build/outputs/apk/debug/app-debug.apk` with `adb install -r`.
+  - Login succeeded and the main map loaded visible gutters.
+  - Tapped the map add button and opened the `AddGutterBottomSheet`.
+  - Long-pressed the submit button and observed the first-level `測試選單`.
+  - Selected `模擬網路逾時` and observed the `網路連線逾時` Alert with `NETWORK_ERROR`.
+  - Reopened the sheet, selected `模擬照片認領失敗(409)`, and observed the 409 simulation Alert.

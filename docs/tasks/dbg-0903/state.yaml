@@ -21,3 +21,5 @@ verification:
   result: not_verified
   missing:
     - Real-device rvWaypoints form navigation
+  passed:
+    - Real-device submit long-press simulation Alert

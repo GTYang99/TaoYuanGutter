@@ -1333,7 +1333,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun triggerNetworkTimeoutTest() {
-        val host = activity as? LocationPickerHost ?: return
+        val host = locationPickerHost() ?: return
         val spiNum = currentStartSpiNum()
         showStoreDitchNetworkTimeoutDialog(
             activity = requireActivity(),
@@ -1352,7 +1352,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun triggerStoreDitchConflictTest() {
-        val host = activity as? LocationPickerHost ?: return
+        val host = locationPickerHost() ?: return
         val spiNum = currentStoreDitchCloseSpiNum()
         showStoreDitchPhotoClaimDialog(
             activity = requireActivity(),

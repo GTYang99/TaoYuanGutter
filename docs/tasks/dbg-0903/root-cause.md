@@ -44,3 +44,11 @@ Phase: debug
 因此點擊事件其實可能已抵達 row listener，但在 `AddGutterBottomSheet.openWaypointAt()` 取宿主時被丟棄；問題不是 `activity_gutter_form.xml` 或 `GutterFormNavigator` 缺少導航。
 
 修正方式是優先從 `parentFragment` 取得 `MapWorkspaceFragment` 這個 callback host，並保留 Activity fallback。AC-002 需在真機重新確認。
+
+## Follow-up Root Cause: Submit Long-Press Simulation Alert
+
+`ENABLE_GROUP_SIMULATION` 開啟時，長按送出按鈕會顯示第一層「測試選單」。但使用者點選「模擬網路逾時」或「模擬照片認領失敗(409)」後，`triggerNetworkTimeoutTest()` 與 `triggerStoreDitchConflictTest()` 仍使用 `activity as? LocationPickerHost` 取得 host。
+
+在目前登入後的主流程中，`LocationPickerHost` 一樣由 `MapWorkspaceFragment` 實作，不是 `MainShellActivity`。因此這兩個測試方法會提前 return，後續網路逾時 Alert / 409 Alert 不會穩定出現。
+
+此問題與 `rvWaypoints` 未導向表單屬於同一類根因：BottomSheet 內部 callback host 解析仍有舊 Activity-only 寫法。
