@@ -36,3 +36,11 @@ Phase: debug
 
 - 這份 root cause 目前是依程式路徑與行為推定，還需要實機 log 佐證。
 - 下一步應先把「首次定位後是否有觸發 scope reload」與「列表 item tap 是否真的進到 host callback」分開驗證。
+
+## Remaining Issue Annotation: rvWaypoints
+
+此問題目前不能標示為已解決。程式碼已確認 `WaypointAdapter` 將點擊綁在 `layoutForeground.setOnClickListener`，並由 `AddGutterBottomSheet.openWaypointAt()` 呼叫宿主的 `openWaypointForEdit()` / `openWaypointForInspect()`；宿主再透過 `GutterFormNavigator` 啟動 `GutterFormActivity`。
+
+剩餘問題定位為「點擊事件未穩定抵達 row listener」，而不是 `activity_gutter_form.xml` 缺少導航。可能的事件阻斷點為 RecyclerView 子元件觸控分派、`ItemTouchHelper` 滑動／拖曳攔截，以及 BottomSheet Window callback 路由。
+
+關閉此問題前，實機需用分段 log 或 debugger 確認 row listener、`openWaypointAt()`、宿主 callback 與 `GutterFormActivity` launch 的實際中斷位置。AC-002 應維持 `NOT VERIFIED`。

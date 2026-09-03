@@ -1,12 +1,12 @@
 task: DBG-0903
 
-phase: verification
+phase: debug
 
-status: verification_in_progress
+status: debug_in_progress
 
 debug:
-  status: completed
-  root_cause: identified
+  status: investigating
+  root_cause: touch_dispatch_before_row_click_unconfirmed
 
 implementation:
   status: completed
@@ -15,10 +15,9 @@ implementation:
   unit_test:
     status: passed
 
-next_action: verification
+next_action: debug
 
 verification:
   result: not_verified
   missing:
-    - Real-device initial location gutter load
     - Real-device rvWaypoints form navigation

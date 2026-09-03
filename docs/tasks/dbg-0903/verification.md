@@ -11,7 +11,8 @@ Revision: `c1a278a`
   - Missing evidence: real-device login flow and network request observation.
 - AC-002: Tapping any `rvWaypoints` row opens the corresponding gutter form. **NOT VERIFIED**
   - Source evidence: the RecyclerView-level gesture interceptor was removed and the adapter row click remains connected to the host navigation callback.
-  - Missing evidence: real-device touch dispatch and `GutterFormActivity` launch.
+  - Re-marked cause: the remaining suspected failure is touch dispatch before `layoutForeground.setOnClickListener`, involving RecyclerView child dispatch, ItemTouchHelper gesture interception, or BottomSheet Window callback routing.
+  - Missing evidence: real-device touch dispatch and `GutterFormActivity` launch, with event-chain logs.
 - AC-003: Existing build and unit-test checks remain green. **PASS**
   - `./gradlew compileDebugKotlin --no-daemon`
   - `./gradlew testDebugUnitTest --no-daemon`

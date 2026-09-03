@@ -69,3 +69,7 @@ Phase: debug
 
 - 目前首次定位後，真正擋住 reload 的條件是 camera idle、busy 狀態，還是 location callback 的順序。
 - `rvWaypoints` 的 tap 被吃掉，是 RecyclerView 事件分派問題，還是 item 內部子元件攔截了點擊。
+
+## Re-marked Debug Cause
+
+`rvWaypoints` 的導航鏈本身存在，但目前只能確認 source-level wiring，尚未確認實機 touch sequence 能穩定抵達 `layoutForeground.setOnClickListener`。剩餘問題定位為 RecyclerView／ItemTouchHelper／BottomSheet Window callback 之間的事件分派阻斷，需先取得實機分段證據，再進行下一次最小修正。
