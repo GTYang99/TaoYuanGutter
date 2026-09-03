@@ -51,6 +51,7 @@ import com.example.taoyuangutter.login.AuthNavigator
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.main.MainBlockingUiController
 import com.example.taoyuangutter.main.MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM
+import com.example.taoyuangutter.main.MainMapLocationRecenterReloadTracker
 import com.example.taoyuangutter.main.MainMapLoadIndicatorController
 import com.example.taoyuangutter.main.MainViewModel
 import com.example.taoyuangutter.main.MeasureModeUiController
@@ -285,6 +286,7 @@ class MainActivity : AppCompatActivity(),
     private var isMainMapGestureActive = false
     private var pendingUserLocationRecenter = false
     private var pendingLocationRecenterReload = false
+    private val locationRecenterReloadTracker = MainMapLocationRecenterReloadTracker()
     private data class PendingForceReload(
         val id: Long,
         val reason: String
@@ -392,14 +394,11 @@ class MainActivity : AppCompatActivity(),
                           permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
             if (granted) {
                 myLocationController.enableMyLocationAndMove { location ->
-                    lastKnownLocation = location
-                    if (pendingUserLocationRecenter) {
-                        pendingLocationRecenterReload = true
-                        pendingUserLocationRecenter = false
-                    }
+                    handleMainMapLocationUpdated(location)
                 }
             } else {
                 pendingUserLocationRecenter = false
+                locationRecenterReloadTracker.cancelPendingLocationMove()
             }
         }
 
@@ -836,12 +835,13 @@ class MainActivity : AppCompatActivity(),
 
         // 避免地圖初始化時短暫跳到 (0,0) 或不合理位置：先以桃園作為初始鏡頭
         map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 16f))
+        locationRecenterReloadTracker.expectReloadAfterLocationMove()
         myLocationController.requestLocationAndMove(
             requestPermission = {
                 locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
             },
             onLocationUpdated = { location ->
-                lastKnownLocation = location
+                handleMainMapLocationUpdated(location)
             }
         )
 
@@ -1789,16 +1789,13 @@ class MainActivity : AppCompatActivity(),
         }
         binding.btnMyLocation.setOnClickListener {
             pendingUserLocationRecenter = true
+            locationRecenterReloadTracker.expectReloadAfterLocationMove()
             myLocationController.requestLocationAndMove(
                 requestPermission = {
                     locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
                 },
                 onLocationUpdated = { location ->
-                    lastKnownLocation = location
-                    if (pendingUserLocationRecenter) {
-                        pendingLocationRecenterReload = true
-                        pendingUserLocationRecenter = false
-                    }
+                    handleMainMapLocationUpdated(location)
                 }
             )
         }
@@ -2174,6 +2171,14 @@ class MainActivity : AppCompatActivity(),
 
     private fun currentMainMapZoom(): Float {
         return googleMap?.cameraPosition?.zoom ?: 0f
+    }
+
+    private fun handleMainMapLocationUpdated(location: Location) {
+        lastKnownLocation = location
+        if (locationRecenterReloadTracker.consumeReloadOnLocationUpdated()) {
+            pendingLocationRecenterReload = true
+            pendingUserLocationRecenter = false
+        }
     }
 
     private fun requestUserInteractionScopeSearch() {

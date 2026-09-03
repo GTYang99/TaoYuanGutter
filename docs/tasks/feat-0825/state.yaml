@@ -5,6 +5,7 @@ plan:
   status: approved
 implementation:
   status: completed
+  mode: debug_fix
   build:
     status: completed
   unit_test:
@@ -14,4 +15,8 @@ verification:
 ci:
   build: passed
   test: passed
+debug:
+  status: completed
+  root_cause: identified
+  issue_id: ISS-002
 next_action: verification

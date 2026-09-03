@@ -7,29 +7,32 @@ class MainMapLoadIndicatorStateMachineTest {
     @Test
     fun prepareLoadingAndFinishFollowZoomRules() {
         val machine = MainMapLoadIndicatorStateMachine()
+        val belowMinZoom = MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM - 0.1f
 
-        assertEquals(MainMapLoadIndicatorMode.LOW_ZOOM, machine.prepareForNewOperation(17.9f).mode)
-        assertEquals(MainMapLoadIndicatorMode.LOADING, machine.beginLoading(17.9f).mode)
-        assertEquals(MainMapLoadIndicatorMode.LOW_ZOOM, machine.finishLoading(17.9f).mode)
-        assertEquals(MainMapLoadIndicatorMode.HIDDEN, machine.syncZoom(18f).mode)
+        assertEquals(MainMapLoadIndicatorMode.LOW_ZOOM, machine.prepareForNewOperation(belowMinZoom).mode)
+        assertEquals(MainMapLoadIndicatorMode.LOADING, machine.beginLoading(belowMinZoom).mode)
+        assertEquals(MainMapLoadIndicatorMode.LOW_ZOOM, machine.finishLoading(belowMinZoom).mode)
+        assertEquals(MainMapLoadIndicatorMode.HIDDEN, machine.syncZoom(MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM).mode)
     }
 
     @Test
     fun errorStatePersistsUntilNextOperation() {
         val machine = MainMapLoadIndicatorStateMachine()
+        val belowMinZoom = MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM - 0.1f
 
-        assertEquals(MainMapLoadIndicatorMode.ERROR, machine.failLoading(17.9f).mode)
-        assertEquals(MainMapLoadIndicatorMode.ERROR, machine.syncZoom(18f).mode)
-        assertEquals(MainMapLoadIndicatorMode.LOW_ZOOM, machine.prepareForNewOperation(17.9f).mode)
-        assertEquals(MainMapLoadIndicatorMode.HIDDEN, machine.prepareForNewOperation(18f).mode)
+        assertEquals(MainMapLoadIndicatorMode.ERROR, machine.failLoading(belowMinZoom).mode)
+        assertEquals(MainMapLoadIndicatorMode.ERROR, machine.syncZoom(MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM).mode)
+        assertEquals(MainMapLoadIndicatorMode.LOW_ZOOM, machine.prepareForNewOperation(belowMinZoom).mode)
+        assertEquals(MainMapLoadIndicatorMode.HIDDEN, machine.prepareForNewOperation(MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM).mode)
     }
 
     @Test
     fun loadingStateKeepsPriorityOverZoomUpdates() {
         val machine = MainMapLoadIndicatorStateMachine()
+        val belowMinZoom = MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM - 0.1f
 
-        assertEquals(MainMapLoadIndicatorMode.LOADING, machine.beginLoading(18f).mode)
-        assertEquals(MainMapLoadIndicatorMode.LOADING, machine.syncZoom(17.9f).mode)
-        assertEquals(MainMapLoadIndicatorMode.LOW_ZOOM, machine.finishLoading(17.9f).mode)
+        assertEquals(MainMapLoadIndicatorMode.LOADING, machine.beginLoading(MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM).mode)
+        assertEquals(MainMapLoadIndicatorMode.LOADING, machine.syncZoom(belowMinZoom).mode)
+        assertEquals(MainMapLoadIndicatorMode.LOW_ZOOM, machine.finishLoading(belowMinZoom).mode)
     }
 }
