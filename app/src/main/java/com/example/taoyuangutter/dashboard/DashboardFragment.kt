@@ -6,8 +6,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.CheckBox
+import android.widget.CheckedTextView
 import android.widget.LinearLayout
+import android.widget.ListView
 import android.widget.TextView
+import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -350,16 +353,39 @@ class DashboardFragment : Fragment() {
         if (groups.isEmpty()) return
         var selectedGroup = viewModel.uiState.value.selectedProgressGroup
         val checkedIndex = groups.indexOf(selectedGroup).takeIf { it >= 0 } ?: 0
-        MaterialAlertDialogBuilder(requireContext())
+        lateinit var dialog: AlertDialog
+        dialog = MaterialAlertDialogBuilder(requireContext())
             .setTitle(getString(R.string.dashboard_progress_group_title))
             .setSingleChoiceItems(groups.toTypedArray(), checkedIndex) { _, which ->
                 selectedGroup = groups[which]
+                tintDialogRadioButtons(dialog.listView)
             }
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.confirm) { _, _ ->
                 viewModel.selectProgressGroup(selectedGroup)
             }
-            .show()
+            .create()
+
+        dialog.setOnShowListener {
+            tintDialogRadioButtons(dialog.listView)
+        }
+        dialog.show()
+    }
+
+    private fun tintDialogRadioButtons(listView: ListView?) {
+        listView ?: return
+        listView.post {
+            for (i in 0 until listView.childCount) {
+                (listView.getChildAt(i) as? CheckedTextView)?.apply {
+                    val drawable = if (isChecked) {
+                        ContextCompat.getDrawable(requireContext(), R.drawable.ic_radio_checked)
+                    } else {
+                        ContextCompat.getDrawable(requireContext(), R.drawable.ic_radio_unchecked)
+                    }
+                    setCompoundDrawablesRelativeWithIntrinsicBounds(drawable, null, null, null)
+                }
+            }
+        }
     }
 
     private fun showFilterDialog() {

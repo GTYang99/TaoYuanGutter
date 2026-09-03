@@ -167,6 +167,7 @@ class DashboardFilterBottomSheet : BottomSheetDialogFragment() {
         val calendar = Calendar.getInstance()
         DatePickerDialog(
             requireContext(),
+            R.style.ThemeOverlay_TaoYuanGutter_DatePicker,
             { _, year, month, day ->
                 onSelected(String.format(Locale.getDefault(), "%04d-%02d-%02d", year, month + 1, day))
             },
