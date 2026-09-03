@@ -1,6 +1,6 @@
 task: feat-0825
-phase: verification
-status: verification_passed
+phase: implementation
+status: implementation_complete
 plan:
   status: approved
 implementation:
@@ -10,9 +10,8 @@ implementation:
   unit_test:
     status: completed
 verification:
-  status: verification_passed
-  result: pass
+  status: pending
 ci:
   build: passed
   test: passed
-next_action: release
+next_action: verification

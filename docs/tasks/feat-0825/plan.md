@@ -44,7 +44,7 @@
 ### 3. 分離 UI 級數同步與 query 資格判定
 
 - 每一次 `onCameraIdle` 都先讀取目前 zoom level 並更新指示器的級數狀態，不論來源是 gesture、API、developer animation、初始鏡頭或定位回正。
-- zoom `< 10` 時，如果目前沒有 loading 或 error，固定顯示 `X` icon 與「放大地圖加載側溝圖層（級數）」；此狀態不自動消失。
+- zoom `< 10` 時，如果目前沒有 loading 或 error，固定顯示 `X` icon 與「放大以加載側溝圖層（級數）」；此狀態不自動消失。
 - zoom `>= 10` 時，若目前沒有 query、loading 或 error，隱藏低縮放提示。
 - UI 級數同步不得直接送 query；是否送 query 必須再依入口來源判定。
 - 指示器狀態優先順序固定為 `loading > error > low zoom > hidden`。

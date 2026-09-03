@@ -1,5 +1,7 @@
 package com.example.taoyuangutter.main
 
+const val MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM = 16f
+
 enum class MainMapLoadIndicatorMode {
     HIDDEN,
     LOW_ZOOM,
@@ -24,7 +26,7 @@ class MainMapLoadIndicatorStateMachine {
             MainMapLoadIndicatorMode.ERROR -> state.copy(zoom = zoom)
             MainMapLoadIndicatorMode.LOW_ZOOM,
             MainMapLoadIndicatorMode.HIDDEN ->
-                if (zoom < 10f) {
+                if (zoom < MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM) {
                     state.copy(mode = MainMapLoadIndicatorMode.LOW_ZOOM, zoom = zoom)
                 } else {
                     state.copy(mode = MainMapLoadIndicatorMode.HIDDEN, zoom = zoom)
@@ -34,7 +36,7 @@ class MainMapLoadIndicatorStateMachine {
     }
 
     fun prepareForNewOperation(zoom: Float): MainMapLoadIndicatorState {
-        state = if (zoom < 10f) {
+        state = if (zoom < MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM) {
             MainMapLoadIndicatorState(MainMapLoadIndicatorMode.LOW_ZOOM, zoom)
         } else {
             MainMapLoadIndicatorState(MainMapLoadIndicatorMode.HIDDEN, zoom)
@@ -48,7 +50,7 @@ class MainMapLoadIndicatorStateMachine {
     }
 
     fun finishLoading(zoom: Float): MainMapLoadIndicatorState {
-        state = if (zoom < 10f) {
+        state = if (zoom < MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM) {
             MainMapLoadIndicatorState(MainMapLoadIndicatorMode.LOW_ZOOM, zoom)
         } else {
             MainMapLoadIndicatorState(MainMapLoadIndicatorMode.HIDDEN, zoom)
