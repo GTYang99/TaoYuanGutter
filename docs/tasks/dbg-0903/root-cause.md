@@ -52,3 +52,21 @@ Phase: debug
 在目前登入後的主流程中，`LocationPickerHost` 一樣由 `MapWorkspaceFragment` 實作，不是 `MainShellActivity`。因此這兩個測試方法會提前 return，後續網路逾時 Alert / 409 Alert 不會穩定出現。
 
 此問題與 `rvWaypoints` 未導向表單屬於同一類根因：BottomSheet 內部 callback host 解析仍有舊 Activity-only 寫法。
+
+## Regression RCA: 2026-09-03 Four-Issue Follow-up
+
+### 1. Main map gutter layer loads below the required zoom
+
+`MapWorkspaceFragment` 的主流程仍用 `zoom < 10f` 決定是否查詢側溝圖層，但主地圖指示器狀態機使用 `MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM`，且 UI 文案要求 16 級。這造成 API 載入門檻、指示器門檻與畫面文案不同步。
+
+### 2. Submit long-press simulation changes the real form flow
+
+長按測試 Alert 原本在關閉後會呼叫 `onStoreDitchNetworkClosed()`，這是正式 storeDitch 失敗後的復原流程，會存草稿、關閉 bottom sheet、清工作圖層並回主地圖。因此測試選項看起來像讓新增/編輯功能失效。
+
+### 3. Delete gutter does not open confirmation
+
+編輯模式的 `btnDeleteGutter` 還使用 `requireActivity() as? LocationPickerHost`。登入後主流程的 callback host 是 `MapWorkspaceFragment`，不是 `MainShellActivity`，所以 cast 失敗後刪除確認流程沒有被呼叫。
+
+### 4. Add gutter shows timeout text for non-timeout failures
+
+新增送出流程把所有 `UploadFailureClassifier.isNetworkFailureMessage()` 命中的錯誤都導向「網路連線逾時」Alert；其中包含 `failed to connect`、`unable to resolve host`、`connection reset` 這類立即連線失敗。409 照片認領衝突的 dialog title 也寫成「網路連線逾時」，造成非 timeout 情境被顯示成 timeout。

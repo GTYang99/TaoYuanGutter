@@ -66,3 +66,23 @@ The build and unit-test validation pass, but AC-002 remains **NOT VERIFIED** pen
   - Long-pressed the submit button and observed the first-level `測試選單`.
   - Selected `模擬網路逾時` and observed the `網路連線逾時` Alert with `NETWORK_ERROR`.
   - Reopened the sheet, selected `模擬照片認領失敗(409)`, and observed the 409 simulation Alert.
+
+## Four-Issue Regression Validation
+
+- Main map zoom gate: source updated so `MapWorkspaceFragment` uses `MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM = 16f` for user, background, and force scope loads.
+- Submit long-press simulation: source updated so simulation dialogs do not call the formal `onStoreDitchNetworkClosed()` failure recovery path.
+- Delete gutter: source updated so edit-mode delete calls `locationPickerHost()?.onDeleteGutter(editSpiNum)`.
+- Add gutter network errors: source updated so timeout and general connection failures use different UI categories, and 409 no longer uses timeout title text.
+- Added unit coverage:
+  - `MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement`
+  - `UploadFailureClassifierTest.failedToConnectIsNetworkFailureButNotTimeout`
+  - `UploadFailureClassifierTest.timeoutMessageIsClassifiedAsTimeout`
+- `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: **PASS**
+- `git diff --check`: **PASS**
+- Real-device validation:
+  - Installed latest `app-debug.apk` on `QV710EDR3A`.
+  - Login succeeded and main map opened.
+  - Add gutter bottom sheet opened from the map add button.
+  - Long-press submit and select simulated timeout: Alert appears; after closing, bottom sheet remains open.
+  - Long-press submit and select simulated 409: Alert title is `資料上傳狀態待確認`, not `網路連線逾時`.
+- Delete gutter real-device destructive action: **NOT EXECUTED**. Source path verified: edit delete button now calls `locationPickerHost()?.onDeleteGutter(editSpiNum)`.

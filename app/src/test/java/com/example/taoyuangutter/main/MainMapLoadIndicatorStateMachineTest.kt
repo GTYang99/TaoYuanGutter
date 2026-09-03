@@ -5,6 +5,11 @@ import org.junit.Test
 
 class MainMapLoadIndicatorStateMachineTest {
     @Test
+    fun minimumZoomMatchesGutterLayerRequirement() {
+        assertEquals(16f, MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM)
+    }
+
+    @Test
     fun prepareLoadingAndFinishFollowZoomRules() {
         val machine = MainMapLoadIndicatorStateMachine()
         val belowMinZoom = MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM - 0.1f

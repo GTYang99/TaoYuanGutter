@@ -80,3 +80,13 @@ Phase: debug
 - 將 `triggerStoreDitchConflictTest()` 的 host 解析改為共用 `locationPickerHost()`。
 - 保留 `ENABLE_GROUP_SIMULATION` 開關與現有測試選單文字，不調整送出 API 主流程。
 - 本次只修長按測試 Alert 後續動作，不做其他 callback host 重構。
+
+## Follow-up Fix Scope: Four-Issue Regression
+
+- 將主地圖側溝圖層載入門檻統一為 `MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM = 16f`。
+- `MapWorkspaceFragment` 的 user interaction / background / force scope load 不再硬寫或繞過門檻，改共用主地圖指示器的門檻常數。
+- `AddGutterBottomSheet` 中所有正式 callback 皆透過 `locationPickerHost()` 解析 `MapWorkspaceFragment` host，保留 Activity fallback。
+- 長按送出測試 Alert 只顯示測試 dialog，不再呼叫正式 `onStoreDitchNetworkClosed()` 復原流程。
+- `storeDitch` 網路錯誤改分辨真正 timeout 與一般連線失敗，只有 timeout 顯示「網路連線逾時」。
+- 409 照片認領衝突改顯示「資料上傳狀態待確認」，避免誤導成等待逾時。
+- 補單元測試鎖定 16 級門檻與連線失敗/逾時分類。

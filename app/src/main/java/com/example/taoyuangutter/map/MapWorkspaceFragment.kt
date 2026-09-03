@@ -49,6 +49,7 @@ import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.AuthNavigator
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.main.MainBlockingUiController
+import com.example.taoyuangutter.main.MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM
 import com.example.taoyuangutter.main.MainMapLoadIndicatorController
 import com.example.taoyuangutter.main.MainViewModel
 import com.example.taoyuangutter.main.MeasureModeUiController
@@ -1648,7 +1649,7 @@ class MapWorkspaceFragment : Fragment(),
         if (isOfflineMainMode) return
         val zoom = currentMainMapZoom()
         mainMapLoadIndicatorController.syncZoom(zoom)
-        if (zoom < 10f) {
+        if (zoom < MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM) {
             mainMapLoadIndicatorController.prepareForNewOperation(zoom)
             return
         }
@@ -1665,7 +1666,7 @@ class MapWorkspaceFragment : Fragment(),
         if (isOfflineMainMode) return
         val zoom = currentMainMapZoom()
         mainMapLoadIndicatorController.syncZoom(zoom)
-        if (zoom < 10f) {
+        if (zoom < MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM) {
             mainMapLoadIndicatorController.prepareForNewOperation(zoom)
             return
         }
@@ -1679,6 +1680,14 @@ class MapWorkspaceFragment : Fragment(),
 
     private fun requestForceScopeReload(reason: String) {
         if (isOfflineMainMode) return
+        val zoom = currentMainMapZoom()
+        mainMapLoadIndicatorController.syncZoom(zoom)
+        if (zoom < MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM) {
+            pendingForceReload = null
+            forceReloadInFlightId = null
+            mainMapLoadIndicatorController.prepareForNewOperation(zoom)
+            return
+        }
         val token = LoginActivity.getSavedToken(requireContext())
         if (token.isNullOrBlank()) return
         val request = PendingForceReload(id = ++nextForceReloadId, reason = reason)
@@ -1693,6 +1702,11 @@ class MapWorkspaceFragment : Fragment(),
     private fun executeForceScopeReload(request: PendingForceReload) {
         forceReloadInFlightId = request.id
         val zoom = currentMainMapZoom()
+        if (zoom < MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM) {
+            forceReloadInFlightId = null
+            mainMapLoadIndicatorController.prepareForNewOperation(zoom)
+            return
+        }
         mainMapLoadIndicatorController.beginLoading(zoom)
         scopeMapCoordinator.load(
             scope = lifecycleScope,
@@ -1704,6 +1718,7 @@ class MapWorkspaceFragment : Fragment(),
     private fun consumePendingForceReloadIfPossible() {
         if (forceReloadInFlightId != null) return
         val pending = pendingForceReload ?: return
+        if (currentMainMapZoom() < MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM) return
         if (!canRunMainMapScopeQuery()) return
         pendingForceReload = null
         executeForceScopeReload(pending)

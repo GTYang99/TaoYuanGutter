@@ -44,8 +44,30 @@ object UploadFailureClassifier {
         )
     }
 
+    fun forStoreDitchNetworkFailure(error: ApiResult.Error): UploadFailureUiModel {
+        return build(
+            categoryLabel = "網路連線失敗",
+            userMessage = "目前無法連線至伺服器，請確認網路或稍後再試。側溝資料尚未確認成功送出，必要時可存入草稿後重新上傳。",
+            referenceCode = "NETWORK_ERROR",
+            detailSummary = buildApiDetail(error)
+        )
+    }
+
+    fun forStoreDitchNetworkFailure(message: String?): UploadFailureUiModel {
+        return build(
+            categoryLabel = "網路連線失敗",
+            userMessage = "目前無法連線至伺服器，請確認網路或稍後再試。側溝資料尚未確認成功送出，必要時可存入草稿後重新上傳。",
+            referenceCode = "NETWORK_ERROR",
+            detailSummary = normalizeExceptionDetail(message)
+        )
+    }
+
     fun isNetworkFailureMessage(message: String?): Boolean {
         return message?.let { isNetworkMessage(it) } == true
+    }
+
+    fun isTimeoutFailureMessage(message: String?): Boolean {
+        return message?.let { isTimeoutMessage(it) } == true
     }
 
     fun forStoreDitchError(error: ApiResult.Error): UploadFailureUiModel {
@@ -199,6 +221,14 @@ object UploadFailureClassifier {
             lowered.contains("unable to resolve host") ||
             lowered.contains("failed to connect") ||
             lowered.contains("connection reset")
+    }
+
+    private fun isTimeoutMessage(message: String): Boolean {
+        val lowered = message.lowercase()
+        return message.contains("逾時") ||
+            lowered.contains("timeout") ||
+            lowered.contains("timed out") ||
+            lowered.contains("sockettimeoutexception")
     }
 
     fun classifyThrowable(throwable: Throwable): String {

@@ -21,5 +21,10 @@ verification:
   result: not_verified
   missing:
     - Real-device rvWaypoints form navigation
+    - Real-device edit delete gutter confirmation
+    - Real-device add gutter non-timeout network error copy
   passed:
     - Real-device submit long-press simulation Alert
+    - Source-level 16 zoom gutter layer gate
+    - Source-level edit delete gutter host routing
+    - Unit-level add gutter non-timeout network error classification
