@@ -109,6 +109,7 @@ class MainActivity : AppCompatActivity(),
     companion object {
         private const val KEY_PENDING_WP_INDEX = "pending_wp_index"
         private const val GUTTER_LOAD_DEBOUNCE_MS = 500L
+        private const val PENDING_FORCE_RELOAD_RETRY_MS = 300L
         const val EXTRA_OFFLINE_MAIN = "extra_offline_main"
     }
 
@@ -293,6 +294,7 @@ class MainActivity : AppCompatActivity(),
     )
     private var pendingForceReload: PendingForceReload? = null
     private var forceReloadInFlightId: Long? = null
+    private var pendingForceReloadRetryScheduled = false
     private var nextForceReloadId = 0L
 
     // ── 檢視/編輯流程的灰色參考線（弧線/線段） ─────────────────────────────
@@ -2242,6 +2244,7 @@ class MainActivity : AppCompatActivity(),
         )
         if (!canRunMainMapScopeQuery() || forceReloadInFlightId != null) {
             pendingForceReload = request
+            schedulePendingForceReloadRetry()
             return
         }
         pendingForceReload = null
@@ -2262,9 +2265,21 @@ class MainActivity : AppCompatActivity(),
     private fun consumePendingForceReloadIfPossible() {
         if (forceReloadInFlightId != null) return
         val pending = pendingForceReload ?: return
-        if (!canRunMainMapScopeQuery()) return
+        if (!canRunMainMapScopeQuery()) {
+            schedulePendingForceReloadRetry()
+            return
+        }
         pendingForceReload = null
         executeForceScopeReload(pending)
+    }
+
+    private fun schedulePendingForceReloadRetry() {
+        if (pendingForceReloadRetryScheduled) return
+        pendingForceReloadRetryScheduled = true
+        binding.root.postDelayed({
+            pendingForceReloadRetryScheduled = false
+            consumePendingForceReloadIfPossible()
+        }, PENDING_FORCE_RELOAD_RETRY_MS)
     }
 
     private fun canRunMainMapScopeQuery(): Boolean {

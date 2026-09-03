@@ -12,6 +12,8 @@
 - `ISS-004` fixed: main-map scope layer/API activation threshold is now aligned to `18f`.
 - `ISS-005` fixed: BottomSheet touch routing now checks the actual sheet content bounds before forwarding events to the Activity/map.
 - `ISS-005` fixed: touch routing state is reset on `ACTION_UP` and `ACTION_CANCEL` so one forwarded gesture cannot leak into the next row tap.
+- `ISS-004` follow-up fixed: pending force reload now schedules its own retry when the map is not query-ready at location animation completion, so API loading no longer depends on the user moving the map again.
+- `ISS-005` follow-up fixed: `rvWaypoints` now has a RecyclerView-level single-tap listener that opens the waypoint form by adapter position, providing a direct path even if child view click dispatch is lost on device.
 - `ISS-003` fixed: waypoint row taps now target the visible foreground row and use a valid binding adapter position.
 - `ISS-003` fixed: edit preload now always restores loading and RecyclerView enabled state through cleanup after success, partial failure, or exception.
 - Initial main-map location recenter now marks the following camera idle for one scope reload, so the user's final viewport loads without requiring a manual pan or zoom.
@@ -22,3 +24,4 @@
 - Indicator state tests use the shared zoom threshold constant instead of a hard-coded boundary.
 - Location recenter reload tracker tests cover one-shot reload consumption and cancellation.
 - Validation command initially failed inside the sandbox with the known Gradle lock/socket restriction, then passed in the approved execution environment.
+- Latest follow-up validation passed with `BUILD SUCCESSFUL in 27s`.
