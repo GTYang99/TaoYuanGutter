@@ -1,11 +1,11 @@
 task: DBG-0903
 
-phase: debug
+phase: verification
 
-status: debug_in_progress
+status: verification_in_progress
 
 debug:
-  status: investigating
+  status: completed
   root_cause: touch_dispatch_before_row_click_unconfirmed
 
 implementation:
@@ -15,7 +15,7 @@ implementation:
   unit_test:
     status: passed
 
-next_action: debug
+next_action: verification
 
 verification:
   result: not_verified

@@ -119,8 +119,8 @@ class WaypointAdapter(
             }
         holder.binding.layoutForeground.translationX = 0f
 
-        // 點選整行 → 請求選點
-        holder.binding.layoutForeground.setOnClickListener {
+        // 點選整個 item → 請求選點；避免只依賴可滑動前景層的事件分派。
+        holder.itemView.setOnClickListener {
             val position = holder.bindingAdapterPosition
             if (position == RecyclerView.NO_POSITION) return@setOnClickListener
             onItemClick(position)

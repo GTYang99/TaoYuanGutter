@@ -21,3 +21,12 @@ Task: DBG-0903
 ## Limitation
 
 The repository environment does not provide a connected Android device or emulator, so the two reported behaviors still require manual real-device confirmation.
+
+## Follow-up Implementation
+
+- Moved the waypoint click listener from `layoutForeground` to `ViewHolder.itemView` so the click path is not dependent on the swipeable foreground layer.
+
+## Follow-up Validation
+
+- `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: PASS
+- Real-device `rvWaypoints` tap validation: NOT EXECUTED in this environment.

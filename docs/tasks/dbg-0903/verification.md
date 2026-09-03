@@ -30,3 +30,9 @@ Revision: `c1a278a`
 **NOT VERIFIED**
 
 The implementation compiles, unit tests pass, and a Debug APK was produced. A connected Android device or emulator is still required to verify the two reported UI behaviors.
+
+## Follow-up Verification
+
+- The second implementation binds the click callback to `ViewHolder.itemView`, removing dependence on the swipeable `layoutForeground` event path.
+- `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: **PASS**
+- AC-002 remains **NOT VERIFIED** until the real-device touch path reaches the row callback and launches `GutterFormActivity`.
