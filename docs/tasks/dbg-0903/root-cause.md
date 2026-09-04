@@ -107,3 +107,36 @@ Phase: debug
 - 將 inspect preview / inspect form return / inspect edit entry 的 viewport fit 改成保留可視區，也就是明確傳入 `resetPaddingAfter = false`。
 - 編輯 bottom sheet 顯示後，當 `onSheetViewportInsetChanged()` 收到實際高度時，若目前仍在 inspect/edit 路線，需以目前 `currentWaypoints` 或 `inspectWaypoints` 再做一次 refit。
 - 建議新增一個集中方法，例如 `fitInspectRouteAboveSheet(waypoints)`，避免同一組參數散落在三個入口，降低下次 regression 風險。
+
+## Confirmed Follow-up RCA: ISS-DBG-0903-005 Samsung Foldable Long Route Fit
+
+### Error
+
+Samsung 折疊手機檢視長線段時，縮放後 Google Maps logo 會被推到畫面約 1/3 高度，長側溝路線仍可能沒有被正確保留在表單上方可視區。
+
+### Debug Analysis
+
+- `AddGutterBottomSheet.setupBottomSheetBehavior()` 使用 `resources.displayMetrics.heightPixels / 2` 設定 sheet 高度與 `peekHeight`。
+- `AddGutterBottomSheet.notifySheetViewportInset()` 回報的是 sheet 目前實際可見高度。
+- `MapWorkspaceFragment.onSheetViewportInsetChanged()` 將該高度存成 `currentSheetBottomInsetPx`，再呼叫 `MapCameraController.setPersistentBottomInset()`，因此 GoogleMap 已經保留了一次 bottom sheet 高度。
+- `MapWorkspaceFragment.fitInspectRouteAboveSheet()` 又以 `viewportHeightFraction = 1.0 / 3.0` 呼叫 camera fit。
+- `MapCameraController.fitCameraToWaypointsWithViewportFraction()` 會把 `1/3` 可視區轉成 `bottomOffsetRatio = 2/3`。
+- `MapCameraController.fitCameraToWaypoints()` 最後套用的 bottom padding 是 `persistentBottomInsetPx + (screenHeight * bottomOffsetRatio)`。
+- Google Maps logo 會遵守 `GoogleMap.setPadding()`；因此 logo 被推到畫面 1/3，是 bottom padding 過大的直接視覺證據。
+
+### Root Cause
+
+Root cause 是高度保留被重複計算：bottom sheet 實際高度已經透過 `persistentBottomInsetPx` 套進 GoogleMap padding，但 inspect route fit 又額外用完整 `displayMetrics.heightPixels * 2/3` 計算第二段 bottom offset。
+
+在一般手機上這可能只是過度上推；在 Samsung foldable 上，`displayMetrics.heightPixels` 更可能不等於實際 map container 高度，因為折疊狀態、工作列/導覽列、多視窗或 app window bounds 都會影響真實可視區，於是錯誤被放大。
+
+### Secondary Cause
+
+展開順序是次因。`sheet.show(...)` 後第一次 fit 可能早於 bottom sheet 完整量測；接著 `onSheetViewportInsetChanged()` 觸發 refit，但 refit 仍使用同一個「persistent inset + screen ratio」公式，所以它會重算出同樣偏大的 bottom padding。
+
+### Fix Strategy
+
+- inspect/edit route fit 不應同時使用 persistent sheet inset 與 full-screen ratio offset。
+- 應改成以實際 map view height 與實際 sheet inset 計算可視區，或直接以明確 top/right/bottom/left padding fit bounds。
+- bottom sheet 實際 inset 尚未回報前，不應以 `displayMetrics.heightPixels` 推估 foldable 的可視高度。
+- inset 變動後可以 refit，但必須避免將 sheet inset 再加上一段 full-screen `2/3` offset。

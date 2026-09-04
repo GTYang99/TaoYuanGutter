@@ -65,3 +65,21 @@ The repository environment does not provide a connected Android device or emulat
 ## 2026-09-04 Limitation
 
 - Manual visual confirmation is still required after login: open an existing gutter and verify the form area leaves the whole route visible above it.
+
+## 2026-09-04 Samsung Foldable Fit Bug-Fix
+
+- Added `MapCameraController.fitCameraToWaypointsWithBottomPadding()` so inspect/edit route fitting can use explicit bottom padding.
+- Updated `MapWorkspaceFragment` inspect/edit route fitting to use actual `currentSheetBottomInsetPx` when available instead of adding `displayMetrics.heightPixels * 2/3`.
+- Updated legacy `MainActivity` inspect/edit route fitting with the same explicit bottom padding strategy.
+- Kept the post-inset refit behavior, but changed the fit calculation so inset changes no longer double-count the bottom reserved area.
+
+## 2026-09-04 Samsung Foldable Fit Validation
+
+- `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: PASS
+- `git diff --check`: PASS
+- Real-device `QV710EDR3A` APK install: PASS
+- Real-device app launch: PASS, foreground activity confirmed as `com.example.taoyuangutter/.login.LoginActivity`
+
+## 2026-09-04 Samsung Foldable Fit Limitation
+
+- Samsung foldable visual validation remains required: inspect a long gutter route and confirm the Google Maps logo no longer jumps to the upper 1/3 due to excessive map padding.

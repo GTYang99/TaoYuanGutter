@@ -93,6 +93,52 @@ class MapCameraController(
         }
     }
 
+    fun fitCameraToWaypointsWithBottomPadding(
+        waypoints: List<Waypoint>,
+        bottomPaddingPx: Int,
+        resetPaddingAfter: Boolean = true,
+        maxZoom: Float? = null,
+        paddingDp: Int = 64
+    ) {
+        val map = mapProvider() ?: return
+        val points = waypoints.mapNotNull { it.latLng }
+        if (points.isEmpty()) return
+
+        val padding = (paddingDp * context.resources.displayMetrics.density).toInt()
+        val bottomPadding = bottomPaddingPx.coerceAtLeast(0) + padding
+        map.setPadding(padding, padding, padding, bottomPadding)
+
+        val boundsBuilder = LatLngBounds.Builder()
+        points.forEach { boundsBuilder.include(it) }
+        try {
+            map.animateCamera(
+                CameraUpdateFactory.newLatLngBounds(boundsBuilder.build(), padding),
+                object : GoogleMap.CancelableCallback {
+                    override fun onFinish() {
+                        applyZoomCap(map, maxZoom)
+                        if (resetPaddingAfter) map.setPadding(0, 0, 0, persistentBottomInsetPx)
+                    }
+
+                    override fun onCancel() {
+                        applyZoomCap(map, maxZoom)
+                        if (resetPaddingAfter) map.setPadding(0, 0, 0, persistentBottomInsetPx)
+                    }
+                }
+            )
+        } catch (_: Exception) {
+            if (resetPaddingAfter) map.setPadding(0, 0, 0, persistentBottomInsetPx)
+            map.setOnMapLoadedCallback {
+                fitCameraToWaypointsWithBottomPadding(
+                    waypoints,
+                    bottomPaddingPx,
+                    resetPaddingAfter,
+                    maxZoom,
+                    paddingDp
+                )
+            }
+        }
+    }
+
     /**
      * 檢視/編輯專用：以實際可視高度比例來 fit。
      * 例如可視區只剩畫面高度 1/3 時，就傳入 1/3。

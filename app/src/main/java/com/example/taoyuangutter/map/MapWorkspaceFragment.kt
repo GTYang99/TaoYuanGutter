@@ -761,11 +761,22 @@ class MapWorkspaceFragment : Fragment(),
 
     private fun fitInspectRouteAboveSheet(waypoints: List<Waypoint>) {
         if (waypoints.none { it.latLng != null }) return
-        mapCameraController.fitCameraToWaypointsWithViewportFraction(
+        mapCameraController.fitCameraToWaypointsWithBottomPadding(
             waypoints,
-            viewportHeightFraction = 1.0 / 3.0,
-            resetPaddingAfter = false
+            bottomPaddingPx = inspectRouteBottomPaddingPx(),
+            resetPaddingAfter = false,
+            paddingDp = 32
         )
+    }
+
+    private fun inspectRouteBottomPaddingPx(): Int {
+        if (currentSheetBottomInsetPx > 0) return currentSheetBottomInsetPx
+        val rootHeight = binding.root.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
+        return if (activeSheet?.isEditMode() == true || inspectSheet != null) {
+            rootHeight / 2
+        } else {
+            rootHeight * 3 / 4
+        }
     }
 
     private fun refitInspectRouteAfterSheetInsetIfNeeded() {

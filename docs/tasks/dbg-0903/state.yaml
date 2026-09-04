@@ -6,7 +6,7 @@ status: implementation_complete
 
 debug:
   status: completed
-  root_cause: inspect_route_fit_padding_resets_before_overlay_visible_area_is_preserved
+  root_cause: inspect_route_fit_double_counts_sheet_inset_and_screen_height_offset
 
 implementation:
   status: completed
@@ -20,6 +20,8 @@ implementation:
   device_launch:
     status: passed
     foreground_activity: com.example.taoyuangutter/.login.LoginActivity
+  pending_device_verification:
+    - ISS-DBG-0903-005 Samsung foldable long-route visual fit
 
 verification:
   result: fail

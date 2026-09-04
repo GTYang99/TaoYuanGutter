@@ -515,10 +515,7 @@ class MainActivity : AppCompatActivity(),
                         }
 		                    }
                     inspectSheet?.showSelf()
-                    mapCameraController.fitCameraToWaypointsWithViewportFraction(
-                        inspectWaypoints,
-                        viewportHeightFraction = 1.0 / 3.0
-                    )
+                    fitInspectRouteAboveSheet(inspectWaypoints)
                 }
                 else -> clearWorkingMarkers()
             }
@@ -643,10 +640,7 @@ class MainActivity : AppCompatActivity(),
                 currentWaypoints = wps.toMutableList()
                 // 進入編輯時先不顯示紫色線段；等座標真的變更後才顯示
                 refreshWorkingMarkers(wps)
-                mapCameraController.fitCameraToWaypointsWithViewportFraction(
-                    wps,
-                    viewportHeightFraction = 1.0 / 3.0
-                )
+                fitInspectRouteAboveSheet(wps)
                 // fitCameraToWaypoints 會觸發 setOnCameraIdleListener → loadGuttersByViewportDebounced()
             } else {
                 // ── 從檢視模式返回（不編輯）時，清除起終點標記並恢復其他線段顯示 ──
@@ -1601,6 +1595,26 @@ class MainActivity : AppCompatActivity(),
         mainMapLoadIndicatorController.setBottomInset(currentSheetBottomInsetPx)
     }
 
+    private fun fitInspectRouteAboveSheet(waypoints: List<Waypoint>) {
+        if (waypoints.none { it.latLng != null }) return
+        mapCameraController.fitCameraToWaypointsWithBottomPadding(
+            waypoints,
+            bottomPaddingPx = inspectRouteBottomPaddingPx(),
+            resetPaddingAfter = false,
+            paddingDp = 32
+        )
+    }
+
+    private fun inspectRouteBottomPaddingPx(): Int {
+        if (currentSheetBottomInsetPx > 0) return currentSheetBottomInsetPx
+        val rootHeight = binding.root.height.takeIf { it > 0 } ?: resources.displayMetrics.heightPixels
+        return if (activeSheet?.isEditMode() == true || inspectSheet != null) {
+            rootHeight / 2
+        } else {
+            rootHeight * 3 / 4
+        }
+    }
+
     override fun openWaypointForEdit(sheet: AddGutterBottomSheet, waypointIndex: Int) {
         currentWaypoints = sheet.getWaypoints()
         val wp = currentWaypoints.getOrNull(waypointIndex) ?: return
@@ -1704,10 +1718,7 @@ class MainActivity : AppCompatActivity(),
         lockInspectUi()
 
         mainBlockingUiController.setInspectLoading(true, "載入側溝資料中…")
-        mapCameraController.fitCameraToWaypointsWithViewportFraction(
-            start.routeWaypoints,
-            viewportHeightFraction = 1.0 / 3.0
-        )
+        fitInspectRouteAboveSheet(start.routeWaypoints)
 
         lifecycleScope.launch {
             try {
