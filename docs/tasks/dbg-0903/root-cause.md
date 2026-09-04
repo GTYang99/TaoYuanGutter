@@ -140,3 +140,33 @@ Root cause 是高度保留被重複計算：bottom sheet 實際高度已經透�
 - 應改成以實際 map view height 與實際 sheet inset 計算可視區，或直接以明確 top/right/bottom/left padding fit bounds。
 - bottom sheet 實際 inset 尚未回報前，不應以 `displayMetrics.heightPixels` 推估 foldable 的可視高度。
 - inset 變動後可以 refit，但必須避免將 sheet inset 再加上一段 full-screen `2/3` offset。
+
+## Regression RCA: ISS-DBG-0903-007 Main Map Stays In Inspect Viewport After Return
+
+### Error
+
+多種實機測試發現，檢視側溝後返回主畫面時，主地圖沒有恢復到正常全螢幕可視範圍，而是仍像檢視表單存在時一樣只剩上方約 1/3 高度可用。使用者回到主地圖後滑動地圖，無法用完整螢幕尺寸查看側溝。
+
+### Root Cause
+
+Root cause 是上一個 `ISS-DBG-0903-005` 修正引入的收尾漏項：檢視路線 fit 改成使用 explicit GoogleMap padding 並設定 `resetPaddingAfter = false`，但從 `GutterInspectActivity` 非編輯返回主地圖的 terminal path 沒有清除這個 padding。
+
+因此檢視畫面關閉後，overlay/form 已經不在，但 GoogleMap 仍保留檢視用的 bottom padding。後續主地圖拖曳、縮放與 viewport 查詢都在錯誤的 1/3 可視區中運作。
+
+### Debug Analysis
+
+- `MapWorkspaceFragment.fitInspectRouteAboveSheet()` 會呼叫 `MapCameraController.fitCameraToWaypointsWithBottomPadding(..., resetPaddingAfter = false)`。
+- `MapCameraController.fitCameraToWaypointsWithBottomPadding()` 會直接呼叫 `GoogleMap.setPadding(...)` 套用 explicit bottom padding。
+- 因為 `resetPaddingAfter = false`，camera 動畫完成後不會自動把 padding 還原。
+- `MapWorkspaceFragment.inspectLauncher` 的非編輯返回分支會清除 `isInEditingMode`、`inspectPreviewIntent`、`shouldReturnToInspectPreview`、reference route、preview layer 與 markers，然後呼叫 `loadGuttersByViewport(showFeedback = true)`。
+- 但該分支沒有呼叫 `mapCameraController.setPersistentBottomInset(0)`，也沒有清 `currentSheetBottomInsetPx` / `lastInspectRouteRefitInsetPx` / indicator inset。
+- 所以主地圖畫面已返回，但 GoogleMap padding 仍停留在檢視 fit 後的狀態。
+- legacy `MainActivity.inspectLauncher` 也有相同型態的非編輯返回分支，需一併 audit，避免離線或舊入口保留同一 bug。
+
+### Fix Strategy
+
+- 新增集中 helper，例如 `restoreMainMapViewport()`。
+- helper 需清除 `currentSheetBottomInsetPx`、`lastInspectRouteRefitInsetPx`，同步 `mainMapLoadIndicatorController.setBottomInset(0)`，並呼叫 `mapCameraController.setPersistentBottomInset(0)` 釋放 GoogleMap padding。
+- 所有離開 inspect/edit/form overlay 回到主地圖的 terminal path 都要呼叫 helper。
+- 保留檢視或編輯 overlay 仍可見時的 explicit inspect padding，不要在返回檢視預覽或切入編輯中途過早清掉。
+- 一併檢查 inspect launch 失敗、inspect API error、delete/update 成功/失敗後返回主圖的 early exit path。

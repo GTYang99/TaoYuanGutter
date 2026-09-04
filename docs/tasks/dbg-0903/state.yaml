@@ -6,7 +6,7 @@ status: implementation_complete
 
 debug:
   status: completed
-  root_cause: inspect_route_fit_double_counts_sheet_inset_and_screen_height_offset
+  root_cause: inspect_route_padding_not_released_on_main_map_return
 
 implementation:
   status: completed
@@ -21,7 +21,7 @@ implementation:
     status: passed
     foreground_activity: com.example.taoyuangutter/.login.LoginActivity
   pending_device_verification:
-    - ISS-DBG-0903-005 Samsung foldable long-route visual fit
+    - ISS-DBG-0903-007 main map full viewport after inspect return
 
 verification:
   result: fail

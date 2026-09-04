@@ -295,6 +295,7 @@ class MapWorkspaceFragment : Fragment(),
                 isInEditingMode = false
                 inspectPreviewIntent = null
                 shouldReturnToInspectPreview = false
+                restoreMainMapViewport()
                 unlockInspectUiIfIdle()
                 clearReferenceRoute()
                 gutterMapController.clearPreviewLayer()
@@ -801,6 +802,13 @@ class MapWorkspaceFragment : Fragment(),
         }
     }
 
+    private fun restoreMainMapViewport() {
+        currentSheetBottomInsetPx = 0
+        lastInspectRouteRefitInsetPx = -1
+        mainMapLoadIndicatorController.setBottomInset(0)
+        mapCameraController.setPersistentBottomInset(0)
+    }
+
     override fun onUpdateGutter(waypoints: List<Waypoint>, spiNum: String) {
         shouldReturnToInspectPreview = false
         inspectPreviewIntent = null
@@ -810,7 +818,7 @@ class MapWorkspaceFragment : Fragment(),
         activeSheet = null
         clearWorkingMarkers()
         binding.btnAddGutter.visibility = View.VISIBLE
-        mapCameraController.setPersistentBottomInset(0)
+        restoreMainMapViewport()
         setMainButtonsEnabledRespectingInspectLock(true)
         isInEditingMode = false
         loadGuttersByViewport(showFeedback = true)
@@ -1124,6 +1132,7 @@ class MapWorkspaceFragment : Fragment(),
                             isInEditingMode = false
                             inspectPreviewIntent = null
                             shouldReturnToInspectPreview = false
+                            restoreMainMapViewport()
                             clearReferenceRoute()
                             gutterMapController.clearPreviewLayer()
                             clearWorkingMarkers()
@@ -1136,6 +1145,7 @@ class MapWorkspaceFragment : Fragment(),
                         isInEditingMode = false
                         inspectPreviewIntent = null
                         shouldReturnToInspectPreview = false
+                        restoreMainMapViewport()
                         unlockInspectUiIfIdle()
                         if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
                         Toast.makeText(requireContext(), if (result.message == "查無側溝資料") getString(R.string.msg_no_line_data) else "查詢失敗(${result.code}): ${result.message}", Toast.LENGTH_SHORT).show()
@@ -1244,7 +1254,7 @@ class MapWorkspaceFragment : Fragment(),
         var lastWaypointsSize = wps.size
         sheet.onWaypointsChanged = { updated ->
             if (updated == null) {
-                mapCameraController.setPersistentBottomInset(0)
+                restoreMainMapViewport()
                 activeSheet = null
                 shouldReturnToInspectPreview = false
                 isInEditingMode = false
@@ -2159,6 +2169,7 @@ class MapWorkspaceFragment : Fragment(),
                         val launched = launchInspectSafely(result.data.intent)
                         if (!launched) {
                             isInEditingMode = false
+                            restoreMainMapViewport()
                             clearReferenceRoute()
                             gutterMapController.clearPreviewLayer()
                             clearWorkingMarkers()
@@ -2170,6 +2181,7 @@ class MapWorkspaceFragment : Fragment(),
                         isInEditingMode = false
                         inspectPreviewIntent = null
                         shouldReturnToInspectPreview = false
+                        restoreMainMapViewport()
                         gutterMapController.clearPreviewLayer()
                         clearWorkingMarkers()
                         unlockInspectUiIfIdle()

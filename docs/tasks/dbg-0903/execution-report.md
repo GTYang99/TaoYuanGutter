@@ -83,3 +83,20 @@ The repository environment does not provide a connected Android device or emulat
 ## 2026-09-04 Samsung Foldable Fit Limitation
 
 - Samsung foldable visual validation remains required: inspect a long gutter route and confirm the Google Maps logo no longer jumps to the upper 1/3 due to excessive map padding.
+
+## 2026-09-04 Main Map Viewport Restore Bug-Fix
+
+- Added a centralized `restoreMainMapViewport()` helper in `MapWorkspaceFragment` to clear the sheet inset state, reset the main-map load indicator inset, and release GoogleMap padding together.
+- Added the same restore helper in legacy `MainActivity` for retained offline/legacy entry points.
+- Called the restore helper when inspection exits back to the main map, including non-edit inspect return, inspect launch failure, inspect API error, edit sheet close, post-update reopen failure, and post-update reload error paths.
+
+## 2026-09-04 Main Map Viewport Restore Validation
+
+- `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: PASS
+- `git diff --check`: PASS
+- Real-device `QV710EDR3A` APK install: PASS
+- Real-device app launch: PASS, foreground activity confirmed as `com.example.taoyuangutter/.login.LoginActivity`
+
+## 2026-09-04 Main Map Viewport Restore Limitation
+
+- Manual visual confirmation is still required after login: inspect a gutter, return to the main map, then confirm the map pans/zooms using the full screen rather than the prior 1/3 inspect viewport.

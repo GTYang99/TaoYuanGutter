@@ -577,7 +577,7 @@ class MainActivity : AppCompatActivity(),
                 var lastWaypointsSize = wps.size
                 sheet.onWaypointsChanged = { updated ->
                     if (updated == null) {
-                        mapCameraController.setPersistentBottomInset(0)
+                        restoreMainMapViewport()
                         activeSheet = null
                         val reopenInspectPreview =
                             shouldReturnToInspectPreview && inspectPreviewIntent != null
@@ -592,6 +592,7 @@ class MainActivity : AppCompatActivity(),
                                 isInEditingMode = false
                                 inspectPreviewIntent = null
                                 shouldReturnToInspectPreview = false
+                                restoreMainMapViewport()
                                 clearReferenceRoute()
                                 gutterMapController.clearPreviewLayer()
                                 unlockInspectUiIfIdle()
@@ -647,6 +648,7 @@ class MainActivity : AppCompatActivity(),
                 isInEditingMode = false  // 允許自動加載 polylines
                 inspectPreviewIntent = null
                 shouldReturnToInspectPreview = false
+                restoreMainMapViewport()
                 unlockInspectUiIfIdle()
                 clearReferenceRoute()
                 gutterMapController.clearPreviewLayer()
@@ -1615,6 +1617,12 @@ class MainActivity : AppCompatActivity(),
         }
     }
 
+    private fun restoreMainMapViewport() {
+        currentSheetBottomInsetPx = 0
+        mainMapLoadIndicatorController.setBottomInset(0)
+        mapCameraController.setPersistentBottomInset(0)
+    }
+
     override fun openWaypointForEdit(sheet: AddGutterBottomSheet, waypointIndex: Int) {
         currentWaypoints = sheet.getWaypoints()
         val wp = currentWaypoints.getOrNull(waypointIndex) ?: return
@@ -1751,6 +1759,7 @@ class MainActivity : AppCompatActivity(),
                             isInEditingMode = false
                             inspectPreviewIntent = null
                             shouldReturnToInspectPreview = false
+                            restoreMainMapViewport()
                             clearReferenceRoute()
                             gutterMapController.clearPreviewLayer()
                             clearWorkingMarkers()
@@ -1764,6 +1773,7 @@ class MainActivity : AppCompatActivity(),
                         isInEditingMode = false  // 允許自動加載 polylines
                         inspectPreviewIntent = null
                         shouldReturnToInspectPreview = false
+                        restoreMainMapViewport()
                         unlockInspectUiIfIdle()
                         if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
                         android.widget.Toast.makeText(

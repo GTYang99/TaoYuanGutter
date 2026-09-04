@@ -98,3 +98,61 @@ next_action: investigation
 owner: developer
 close_reason: Deferred because tile stitching/rendering issues also occur on other platforms and should be tracked separately from DBG-0903 Samsung foldable camera-fit investigation.
 ```
+
+## ISS-DBG-0903-007
+
+```yaml
+issue_id: ISS-DBG-0903-007
+task_id: DBG-0903
+phase: debug
+category: implementation_regression
+priority: P1
+title: Main map remains constrained to inspect viewport after returning from gutter inspection
+status: implemented_pending_device_verification
+impact: After leaving gutter inspection, the main map still behaves as if only the upper 1/3 viewport is usable, so users cannot pan and inspect gutters across the full screen.
+repro_steps:
+  - Open the app on a real device.
+  - Inspect an existing gutter route.
+  - Return from the inspect screen to the main map without staying in edit mode.
+  - Try to pan the main map and observe the usable map area.
+expected: Returning to the main map should restore GoogleMap padding to the normal full-screen main-map state.
+actual: The map remains constrained to the previous inspect/form viewport and behaves like the visible area is still around 1/3 height.
+evidence:
+  - Reported across multiple real devices after the ISS-DBG-0903-005 fix.
+  - The symptom matches leftover GoogleMap padding from inspect route fitting.
+error_source:
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:762
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:767
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:288
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:294
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:302
+  - app/src/main/java/com/example/taoyuangutter/map/MapCameraController.kt:109
+  - app/src/main/java/com/example/taoyuangutter/map/MapCameraController.kt:119
+root_cause:
+  - The ISS-DBG-0903-005 fix intentionally changed inspect route fitting to use explicit GoogleMap bottom padding with resetPaddingAfter = false.
+  - That is correct while the inspect Activity or edit bottom sheet is visible, but the non-edit inspect return path does not reset map padding before restoring the main map.
+  - Because fitCameraToWaypointsWithBottomPadding() leaves the explicit padding active when resetPaddingAfter = false, the main map keeps the inspect viewport padding after the overlay is gone.
+debug_analysis:
+  - MapWorkspaceFragment.fitInspectRouteAboveSheet() calls fitCameraToWaypointsWithBottomPadding(..., resetPaddingAfter = false).
+  - MapCameraController.fitCameraToWaypointsWithBottomPadding() applies explicit GoogleMap padding and only restores persistentBottomInsetPx when resetPaddingAfter is true.
+  - In MapWorkspaceFragment.inspectLauncher, the non-edit return branch clears edit/inspect flags, reference route, preview layer, and markers, then calls loadGuttersByViewport(showFeedback = true).
+  - That branch does not call setPersistentBottomInset(0), does not reset currentSheetBottomInsetPx, and does not otherwise clear GoogleMap padding.
+  - Therefore the following main-map viewport query and user pan/zoom operate under stale inspect padding.
+  - The same pattern should be audited in legacy MainActivity because it has a similar inspect return branch.
+fix_direction:
+  - Add a centralized main-map viewport reset helper that clears currentSheetBottomInsetPx, lastInspectRouteRefitInsetPx, indicator inset, and GoogleMap padding.
+  - Call that helper on every terminal path that leaves inspect/edit/form overlay and returns to the normal main map.
+  - Keep explicit inspect padding only while inspect Activity or edit bottom sheet is still visible.
+  - Audit launch failure and inspect API error paths because they also leave inspect flow early after explicit padding may already have been applied.
+implementation:
+  - Added restoreMainMapViewport() to MapWorkspaceFragment to clear currentSheetBottomInsetPx, lastInspectRouteRefitInsetPx, the main-map indicator inset, and GoogleMap padding together.
+  - Added restoreMainMapViewport() to legacy MainActivity for the same viewport reset contract.
+  - Called the reset helper from non-edit inspect return, inspect launch failure, inspect API error, edit sheet close, update reopen failure, and update reload error paths.
+validation:
+  - compileDebugKotlin, testDebugUnitTest, and assembleDebug passed.
+  - git diff --check passed.
+  - QV710EDR3A install and launch passed.
+  - Manual visual verification is still required after logging in and returning from inspection to the main map.
+next_action: debug
+owner: developer
+```
