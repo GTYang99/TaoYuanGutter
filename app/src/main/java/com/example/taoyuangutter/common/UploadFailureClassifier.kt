@@ -74,7 +74,7 @@ object UploadFailureClassifier {
         return when {
             error.code == 401 -> build(
                 categoryLabel = "側溝資料上傳失敗",
-                userMessage = "登入狀態已失效，請重新登入後再試。",
+                userMessage = "由於系統閒置時間過長或是目前有其他使用者嘗試登入此帳號，本裝置已與伺服器中斷連線，請重新登入。\n未上傳側溝資料已存入草稿中。",
                 referenceCode = "STORE_DITCH_AUTH_FAILED",
                 detailSummary = buildApiDetail(error)
             )
@@ -110,7 +110,11 @@ object UploadFailureClassifier {
 
     fun forPhotoBatchFailures(failures: List<PhotoUploadManager.PhotoUploadFailure>): UploadFailureUiModel {
         val first = failures.firstOrNull()
+        val hasAuthExpiredFailure = failures.any { it.code == 401 }
         val category = when {
+            hasAuthExpiredFailure -> {
+                "照片上傳失敗" to "登入狀態已失效，請重新登入後再試。"
+            }
             failures.any { it.reasonType == PhotoUploadManager.PhotoFailureReasonType.IMAGE_PROCESSING } -> {
                 "照片處理失敗" to "照片檔案無法讀取或處理，請重新拍攝或重新選取照片。"
             }
@@ -121,11 +125,15 @@ object UploadFailureClassifier {
                 "照片上傳失敗" to "照片未全部上傳成功，請重新嘗試或存入草稿稍後再傳。"
             }
         }
-        val code = when (first?.reasonType) {
-            PhotoUploadManager.PhotoFailureReasonType.IMAGE_PROCESSING -> "PHOTO_PROCESS_FAILED"
-            PhotoUploadManager.PhotoFailureReasonType.NETWORK -> "PHOTO_NETWORK_ERROR"
-            PhotoUploadManager.PhotoFailureReasonType.API -> "PHOTO_UPLOAD_FAILED"
-            null -> "PHOTO_UPLOAD_FAILED"
+        val code = if (hasAuthExpiredFailure) {
+            "PHOTO_AUTH_FAILED"
+        } else {
+            when (first?.reasonType) {
+                PhotoUploadManager.PhotoFailureReasonType.IMAGE_PROCESSING -> "PHOTO_PROCESS_FAILED"
+                PhotoUploadManager.PhotoFailureReasonType.NETWORK -> "PHOTO_NETWORK_ERROR"
+                PhotoUploadManager.PhotoFailureReasonType.API -> "PHOTO_UPLOAD_FAILED"
+                null -> "PHOTO_UPLOAD_FAILED"
+            }
         }
         return build(
             categoryLabel = category.first,
@@ -160,6 +168,12 @@ object UploadFailureClassifier {
 
     fun forPhotoApiError(error: ApiResult.Error): UploadFailureUiModel {
         return when {
+            error.code == 401 -> build(
+                categoryLabel = "照片上傳失敗",
+                userMessage = "登入狀態已失效，請重新登入後再試。",
+                referenceCode = "PHOTO_AUTH_FAILED",
+                detailSummary = buildApiDetail(error)
+            )
             isImageProcessingMessage(error.message) -> build(
                 categoryLabel = "照片處理失敗",
                 userMessage = "照片檔案無法讀取或處理，請重新拍攝或重新選取照片。",

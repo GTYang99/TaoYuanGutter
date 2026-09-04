@@ -46,6 +46,7 @@ import com.example.taoyuangutter.gutter.InspectFlowCoordinator
 import com.example.taoyuangutter.gutter.PhotoUploadManager
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
+import com.example.taoyuangutter.login.AuthExpiredHandler
 import com.example.taoyuangutter.login.AuthNavigator
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.main.MainBlockingUiController
@@ -114,6 +115,7 @@ class MapWorkspaceFragment : Fragment(),
         )
     }
     private val authNavigator by lazy { AuthNavigator(requireContext()) }
+    private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(requireActivity()) }
     private val gutterFormNavigator by lazy { GutterFormNavigator(requireContext()) }
     private val markerIconFactory by lazy { MarkerIconFactory(requireContext()) }
     private val inspectFlowCoordinator by lazy {
@@ -363,6 +365,7 @@ class MapWorkspaceFragment : Fragment(),
     }
 
     override fun onDestroyView() {
+        authExpiredHandler.reset()
         super.onDestroyView()
         _binding = null
     }
@@ -596,6 +599,10 @@ class MapWorkspaceFragment : Fragment(),
                 when (val result = gutterRepository.logout(token)) {
                     is ApiResult.Success -> authNavigator.clearAuthAndGoLogin()
                     is ApiResult.Error -> {
+                        if (result.code == 401) {
+                            authNavigator.clearAuthAndGoLogin()
+                            return@launch
+                        }
                         binding.btnLogout.isEnabled = true
                         Toast.makeText(requireContext(), result.message, Toast.LENGTH_LONG).show()
                     }
@@ -796,6 +803,7 @@ class MapWorkspaceFragment : Fragment(),
                             loadGuttersByViewport()
                         }
                         is ApiResult.Error -> {
+                            if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
                             Toast.makeText(requireContext(), String.format(getString(R.string.msg_delete_failed), result.message), Toast.LENGTH_LONG).show()
                         }
                     }
@@ -1085,6 +1093,7 @@ class MapWorkspaceFragment : Fragment(),
                         inspectPreviewIntent = null
                         shouldReturnToInspectPreview = false
                         unlockInspectUiIfIdle()
+                        if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
                         Toast.makeText(requireContext(), if (result.message == "查無側溝資料") getString(R.string.msg_no_line_data) else "查詢失敗(${result.code}): ${result.message}", Toast.LENGTH_SHORT).show()
                     }
                 }
@@ -1276,6 +1285,7 @@ class MapWorkspaceFragment : Fragment(),
                         .show()
                 }
                 is ApiResult.Error -> {
+                    if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
                     MaterialAlertDialogBuilder(requireContext())
                         .setTitle(getString(R.string.no_ditch_mode_title))
                         .setMessage(result.message)
@@ -1773,6 +1783,16 @@ class MapWorkspaceFragment : Fragment(),
                 forceReloadInFlightId = null
                 consumePendingForceReloadIfPossible()
             },
+            onAuthExpired = { _, message ->
+                authExpiredHandler.handleIfAuthExpired(
+                    ApiResult.Error(
+                        message = message,
+                        code = 401
+                    )
+                ) {
+                    saveWaypointsAsPendingDraft(currentWaypoints)
+                }
+            },
             onSilentError = { _, message -> android.util.Log.w("ScopeSearch", "查詢失敗: $message") }
         )
     }
@@ -1872,6 +1892,20 @@ class MapWorkspaceFragment : Fragment(),
                                     .show()
                             }
                         } else {
+                            val authExpiredFailure = result.failures.firstOrNull { it.code == 401 }
+                            if (authExpiredFailure != null) {
+                                if (authExpiredHandler.handleIfAuthExpired(
+                                        ApiResult.Error(
+                                            message = authExpiredFailure.message,
+                                            code = authExpiredFailure.code
+                                        )
+                                    ) {
+                                        saveWaypointsAsPendingDraft(persistedWaypoints)
+                                    }
+                                ) {
+                                    return@launch
+                                }
+                            }
                             val errorUi = UploadFailureClassifier.forPhotoBatchFailures(result.failures)
                             MaterialAlertDialogBuilder(requireContext())
                                 .setTitle("上傳失敗")
@@ -2029,6 +2063,9 @@ class MapWorkspaceFragment : Fragment(),
             when (result) {
                 is ApiResult.Success -> reopenInspectPreviewAfterUpdate(spiNum, persistedWaypoints, token)
                 is ApiResult.Error -> {
+                    if (authExpiredHandler.handleIfAuthExpired(result) { saveWaypointsAsPendingDraft(persistedWaypoints) }) {
+                        return@launch
+                    }
                     MaterialAlertDialogBuilder(requireContext())
                         .setTitle("狀態變更失敗")
                         .setMessage(result.message)
@@ -2092,11 +2129,13 @@ class MapWorkspaceFragment : Fragment(),
                         clearWorkingMarkers()
                         unlockInspectUiIfIdle()
                         loadGuttersByViewport(showFeedback = true)
-                        MaterialAlertDialogBuilder(requireContext())
-                            .setTitle("更新成功")
-                            .setMessage("側溝已更新，但重新載入檢視資料失敗：${result.message}")
-                            .setPositiveButton(getString(R.string.confirm), null)
-                            .show()
+                        if (!authExpiredHandler.handleIfAuthExpired(result) { saveWaypointsAsPendingDraft(persistedWaypoints) }) {
+                            MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("更新成功")
+                                .setMessage("側溝已更新，但重新載入檢視資料失敗：${result.message}")
+                                .setPositiveButton(getString(R.string.confirm), null)
+                                .show()
+                        }
                     }
                 }
             } finally {

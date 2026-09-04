@@ -19,6 +19,7 @@ import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.NodeDetails
 import com.example.taoyuangutter.databinding.ActivityImportExistingWaypointBinding
+import com.example.taoyuangutter.login.AuthExpiredHandler
 import com.example.taoyuangutter.login.LoginActivity
 import com.google.gson.Gson
 import kotlinx.coroutines.Job
@@ -30,6 +31,7 @@ class ImportExistingWaypointActivity : AppCompatActivity() {
     private lateinit var binding: ActivityImportExistingWaypointBinding
     private val gutterRepository = GutterRepository()
     private lateinit var adapter: ImportWaypointAdapter
+    private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(this) }
     private var selectedWaypoint: NodeDetails? = null
     private var searchJob: Job? = null
     private var searchSeq: Int = 0
@@ -52,6 +54,11 @@ class ImportExistingWaypointActivity : AppCompatActivity() {
 
         setupUI()
         showHintState()
+    }
+
+    override fun onDestroy() {
+        authExpiredHandler.reset()
+        super.onDestroy()
     }
 
     private fun applySystemBarInsets() {
@@ -193,6 +200,7 @@ class ImportExistingWaypointActivity : AppCompatActivity() {
                         if (list.isEmpty()) showEmptyState() else updateResultRows(list)
                     }
                     is ApiResult.Error -> {
+                        if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
                         Toast.makeText(
                             this@ImportExistingWaypointActivity,
                             "載入失敗：${result.message}",

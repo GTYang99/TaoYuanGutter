@@ -47,6 +47,7 @@ import com.example.taoyuangutter.gutter.GutterSessionUiCoordinator
 import com.example.taoyuangutter.gutter.InspectFlowCoordinator
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
+import com.example.taoyuangutter.login.AuthExpiredHandler
 import com.example.taoyuangutter.login.AuthNavigator
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.main.MainBlockingUiController
@@ -169,6 +170,7 @@ class MainActivity : AppCompatActivity(),
         )
     }
     private val authNavigator by lazy { AuthNavigator(this) }
+    private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(this) }
     private val gutterFormNavigator by lazy { GutterFormNavigator(this) }
     private val markerIconFactory by lazy { MarkerIconFactory(this) }
     private val inspectFlowCoordinator by lazy {
@@ -673,6 +675,7 @@ class MainActivity : AppCompatActivity(),
 
     override fun onDestroy() {
         runCatching { unregisterReceiver(waypointLocationChangedReceiver) }
+        authExpiredHandler.reset()
         super.onDestroy()
     }
 
@@ -1181,6 +1184,20 @@ class MainActivity : AppCompatActivity(),
                                     .show()
                             }
                         } else if (!isFinishing && !isDestroyed) {
+                            val authExpiredFailure = result.failures.firstOrNull { it.code == 401 }
+                            if (authExpiredFailure != null) {
+                                if (authExpiredHandler.handleIfAuthExpired(
+                                        ApiResult.Error(
+                                            message = authExpiredFailure.message,
+                                            code = authExpiredFailure.code
+                                        )
+                                    ) {
+                                        saveWaypointsAsPendingDraft(persistedWaypoints)
+                                    }
+                                ) {
+                                    return@launch
+                                }
+                            }
                             val errorUi = UploadFailureClassifier.forPhotoBatchFailures(result.failures)
                             MaterialAlertDialogBuilder(this@MainActivity)
                                 .setTitle("上傳失敗")
@@ -1355,6 +1372,9 @@ class MainActivity : AppCompatActivity(),
                     reopenInspectPreviewAfterUpdate(spiNum, persistedWaypoints, token)
                 }
                 is ApiResult.Error -> {
+                    if (authExpiredHandler.handleIfAuthExpired(result) { saveWaypointsAsPendingDraft(persistedWaypoints) }) {
+                        return@launch
+                    }
                     MaterialAlertDialogBuilder(this@MainActivity)
                         .setTitle("狀態變更失敗")
                         .setMessage(result.message)
@@ -1421,11 +1441,13 @@ class MainActivity : AppCompatActivity(),
                         clearWorkingMarkers()
                         unlockInspectUiIfIdle()
                         loadGuttersByViewport(showFeedback = true)
-                        MaterialAlertDialogBuilder(this@MainActivity)
-                            .setTitle("更新成功")
-                            .setMessage("側溝已更新，但重新載入檢視資料失敗：${result.message}")
-                            .setPositiveButton(getString(R.string.confirm), null)
-                            .show()
+                        if (!authExpiredHandler.handleIfAuthExpired(result) { saveWaypointsAsPendingDraft(persistedWaypoints) }) {
+                            MaterialAlertDialogBuilder(this@MainActivity)
+                                .setTitle("更新成功")
+                                .setMessage("側溝已更新，但重新載入檢視資料失敗：${result.message}")
+                                .setPositiveButton(getString(R.string.confirm), null)
+                                .show()
+                        }
                     }
                 }
             } finally {
@@ -1529,6 +1551,7 @@ class MainActivity : AppCompatActivity(),
                             loadGuttersByViewport()
                         }
                         is ApiResult.Error -> {
+                            if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
                             Toast.makeText(this@MainActivity, String.format(getString(R.string.msg_delete_failed), result.message), Toast.LENGTH_LONG).show()
                         }
                     }
@@ -1731,6 +1754,7 @@ class MainActivity : AppCompatActivity(),
                         inspectPreviewIntent = null
                         shouldReturnToInspectPreview = false
                         unlockInspectUiIfIdle()
+                        if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
                         android.widget.Toast.makeText(
                             this@MainActivity,
                             if (result.message == "查無側溝資料") getString(R.string.msg_no_line_data)
@@ -1766,6 +1790,10 @@ class MainActivity : AppCompatActivity(),
                         authNavigator.clearAuthAndGoLogin()
                     }
                     is ApiResult.Error -> {
+                        if (result.code == 401) {
+                            authNavigator.clearAuthAndGoLogin()
+                            return@launch
+                        }
                         binding.btnLogout.isEnabled = true
                         Toast.makeText(
                             this@MainActivity,
@@ -2352,6 +2380,16 @@ class MainActivity : AppCompatActivity(),
                 forceReloadInFlightId = null
                 consumePendingForceReloadIfPossible()
             },
+            onAuthExpired = { _, message ->
+                authExpiredHandler.handleIfAuthExpired(
+                    ApiResult.Error(
+                        message = message,
+                        code = 401
+                    )
+                ) {
+                    saveWaypointsAsPendingDraft(currentWaypoints)
+                }
+            },
             onSilentError = { _, message ->
                 android.util.Log.w("ScopeSearch", "查詢失敗: $message")
             }
@@ -2498,6 +2536,7 @@ class MainActivity : AppCompatActivity(),
                         .show()
                 }
                 is ApiResult.Error -> {
+                    if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
                     MaterialAlertDialogBuilder(this@MainActivity)
                         .setTitle(getString(R.string.no_ditch_mode_title))
                         .setMessage(result.message)

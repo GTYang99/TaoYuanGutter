@@ -28,6 +28,7 @@ import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.databinding.ActivityGutterInspectBinding
+import com.example.taoyuangutter.login.AuthExpiredHandler
 import com.example.taoyuangutter.login.LoginActivity
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -80,6 +81,7 @@ class GutterInspectActivity : AppCompatActivity() {
     private var preloadedNodePhotosJson: String = "[]"
 
     private val repository = GutterRepository()
+    private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(this) }
 
     private fun parseLooseBoolean(raw: String?): Boolean {
         return when (raw?.trim()?.lowercase()) {
@@ -375,6 +377,10 @@ class GutterInspectActivity : AppCompatActivity() {
                 when (nodeResult) {
                     is ApiResult.Success -> nodeResult.data.data?.firstOrNull()
                     is ApiResult.Error -> {
+                        if (authExpiredHandler.handleIfAuthExpired(nodeResult)) {
+                            hasFailure = true
+                            return@forEachIndexed
+                        }
                         Log.w(
                             TAG,
                             "edit preload getNodeDetails failed nodeId=${node.nodeId} code=${nodeResult.code} message=${nodeResult.message}"

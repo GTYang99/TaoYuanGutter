@@ -22,6 +22,7 @@ import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.NodeDetails
 import com.example.taoyuangutter.databinding.BottomSheetImportExistingWaypointBinding
+import com.example.taoyuangutter.login.AuthExpiredHandler
 import com.example.taoyuangutter.login.LoginActivity
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -58,6 +59,9 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
         /** 使用「目前位置」重新載入 Nearby 清單 */
         fun onRequestMyLocation()
+
+        /** 401 強制登出前，請父層保存目前編輯中的草稿。 */
+        fun onAuthExpiredBeforeImportLogout()
     }
 
     var callbacks: Callbacks? = null
@@ -66,6 +70,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     private val binding get() = _binding!!
 
     private val gutterRepository = GutterRepository()
+    private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(requireActivity()) }
     private lateinit var adapter: ImportWaypointAdapter
 
     private var selected: NodeDetails? = null
@@ -222,6 +227,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     }
 
     override fun onDestroyView() {
+        authExpiredHandler.reset()
         super.onDestroyView()
         _binding = null
     }
@@ -473,6 +479,11 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                         }
                     }
                     is ApiResult.Error -> {
+                        if (authExpiredHandler.handleIfAuthExpired(
+                                error = result,
+                                onSaveDraft = { callbacks?.onAuthExpiredBeforeImportLogout() }
+                            )
+                        ) return@launch
                         Toast.makeText(ctx, "載入失敗：${result.message}", Toast.LENGTH_SHORT).show()
                         setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("載入失敗：${result.message}")))
                     }
@@ -523,6 +534,11 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                             setRowsFor(targetPage, list.map { ImportWaypointAdapter.Row.Waypoint(it) })
                     }
                     is ApiResult.Error -> {
+                        if (authExpiredHandler.handleIfAuthExpired(
+                                error = result,
+                                onSaveDraft = { callbacks?.onAuthExpiredBeforeImportLogout() }
+                            )
+                        ) return@launch
                         Toast.makeText(ctx, "載入失敗：${result.message}", Toast.LENGTH_SHORT).show()
                         setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("載入失敗：${result.message}")))
                     }

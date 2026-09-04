@@ -1,0 +1,34 @@
+task:
+  id: feat-0904
+  type: feature
+phase: implementation
+status: implementation_complete
+planning:
+  status: plan_ready
+review:
+  result: approved
+  iteration: 2
+implementation:
+  status: completed
+  validation:
+    unit_test: pass
+    debug_build: pass
+verification:
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-002
+    - AC-004
+    - AC-006
+    - AC-007
+    - AC-013
+    - AC-014
+blocking:
+  - ISS-0904-001
+  - ISS-0904-002
+  - ISS-0904-003
+  - ISS-0904-004
+debug:
+  status: completed
+  root_cause: identified
+next_action: verification

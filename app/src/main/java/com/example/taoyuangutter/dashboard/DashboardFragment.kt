@@ -16,6 +16,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.api.DashboardLengthGroup
 import com.example.taoyuangutter.api.DashboardProgressGroup
@@ -23,6 +24,7 @@ import com.example.taoyuangutter.api.DashboardProgressSummary
 import com.example.taoyuangutter.api.DashboardQuery
 import com.example.taoyuangutter.api.DashboardSlice
 import com.example.taoyuangutter.databinding.ActivityDashboardBinding
+import com.example.taoyuangutter.login.AuthExpiredHandler
 import com.example.taoyuangutter.login.AuthNavigator
 import com.example.taoyuangutter.login.LoginActivity
 import com.google.gson.Gson
@@ -36,7 +38,7 @@ class DashboardFragment : Fragment() {
     private var _binding: ActivityDashboardBinding? = null
     private val binding get() = _binding!!
     private val viewModel: DashboardViewModel by viewModels()
-    private var handledAuthError = false
+    private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(requireActivity()) }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -57,6 +59,7 @@ class DashboardFragment : Fragment() {
 
     override fun onDestroyView() {
         super.onDestroyView()
+        authExpiredHandler.reset()
         _binding = null
     }
 
@@ -72,12 +75,16 @@ class DashboardFragment : Fragment() {
                 launch {
                     viewModel.uiState.collect { state ->
                         render(state)
-                        if (state.errorCode == 401 && !handledAuthError) {
-                            handledAuthError = true
-                            AuthNavigator(requireContext()).clearAuthAndGoLogin()
-                            viewModel.consumeAuthError()
-                        } else if (state.errorCode != 401) {
-                            handledAuthError = false
+                        if (state.errorCode == 401) {
+                            val handled = authExpiredHandler.handleIfAuthExpired(
+                                ApiResult.Error(
+                                    message = state.errorMessage ?: "尚未登入，請重新登入",
+                                    code = state.errorCode
+                                )
+                            )
+                            if (handled) {
+                                viewModel.consumeAuthError()
+                            }
                         }
                     }
                 }

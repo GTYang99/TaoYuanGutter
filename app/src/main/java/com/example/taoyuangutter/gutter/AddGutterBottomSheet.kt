@@ -34,6 +34,7 @@ import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.common.UploadFailureClassifier
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterBinding
+import com.example.taoyuangutter.login.AuthExpiredHandler
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -156,6 +157,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     // ── Repository（storeDitch API） ──────────────────────────────────────
     private val repository by lazy { GutterRepository() }
+    private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(requireActivity()) }
 
     // ── 資料 ─────────────────────────────────────────────────────────────
     private lateinit var adapter: WaypointAdapter
@@ -492,6 +494,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     override fun onDestroyView() {
         locationPickerHost()?.onSheetViewportInsetChanged(0)
+        authExpiredHandler.reset()
         super.onDestroyView()
         _binding = null
     }
@@ -1109,6 +1112,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         )
                         showSelf()
                         updateSubmitButtonState()
+                        if (result.code == 401) {
+                            onWaypointsChanged?.invoke(waypoints.toList())
+                            if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
+                        }
                         if (isStoreDitchPhotoClaimConflict(result)) {
                             showStoreDitchPhotoClaimDialog(
                                 activity = requireActivity(),
@@ -1208,6 +1215,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         )
                         setSubmitLoading(false)
                         locationPickerHost()?.onGutterSubmitFailed()
+                        if (result.code == 401) {
+                            onWaypointsChanged?.invoke(validWaypoints.toList())
+                            if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
+                        }
                         if (isStoreDitchPhotoClaimConflict(result)) {
                             showStoreDitchPhotoClaimDialog(
                                 activity = activity,
@@ -1924,6 +1935,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             logPhotoImgIdTrace("ensurePhotos.uploadedSlot$slot", waypoint.basicData, waypoint.label)
                         }
                         is ApiResult.Error -> {
+                            if (result.code == 401) {
+                                onWaypointsChanged?.invoke(waypoints.toList())
+                                if (authExpiredHandler.handleIfAuthExpired(result)) {
+                                    return false
+                                }
+                            }
                             host?.onPendingPhotoUploadProgress(false)
                             PhotoUploadSlotState.writeState(
                                 waypoint.basicData,
@@ -2090,6 +2107,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             waypoints[targetIndex].basicData = merged
                         }
                         is ApiResult.Error -> {
+                            if (result.code == 401) {
+                                onWaypointsChanged?.invoke(waypoints.toList())
+                                if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
+                            }
                             hasError = true
                             android.util.Log.e(
                                 "AddGutterSheet",

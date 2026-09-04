@@ -1,6 +1,7 @@
 package com.example.taoyuangutter.map
 
 import com.example.taoyuangutter.api.ApiResult
+import com.example.taoyuangutter.api.isAuthExpired
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -21,7 +22,8 @@ class ScopeMapCoordinator(
         val onLoadingStarted: (Long) -> Unit,
         val onLoadingFinished: (Long) -> Unit,
         val onLoadingFailed: (Long, String) -> Unit,
-        val onSilentError: (Long, String) -> Unit
+        val onSilentError: (Long, String) -> Unit,
+        val onAuthExpired: (Long, String) -> Unit = { _, _ -> }
     )
 
     private var lastLoadTime = 0L
@@ -76,6 +78,10 @@ class ScopeMapCoordinator(
                 }
                 is ApiResult.Error -> {
                     if (executionId != latestExecutionId) return@launch
+                    if (result.isAuthExpired()) {
+                        hooks.onAuthExpired(executionId, result.message)
+                        return@launch
+                    }
                     if (isFeedbackPending && latestFeedbackExecutionId == executionId) {
                         isFeedbackPending = false
                         latestFeedbackExecutionId = 0L

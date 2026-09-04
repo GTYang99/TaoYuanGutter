@@ -7,6 +7,7 @@ import com.example.taoyuangutter.api.GeoProperties
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 
@@ -133,6 +134,38 @@ class ScopeMapCoordinatorTest {
         assertEquals(2, loadCount)
         assertEquals(1, loadingStarted)
         assertEquals(1, loadingFinished)
+    }
+
+    @Test
+    fun authExpiredErrorRoutesThroughDedicatedHook() = runBlocking {
+        val authExpired = CompletableDeferred<String>()
+        val loadingFailed = CompletableDeferred<Unit>()
+        val coordinator = buildCoordinator(
+            loader = {
+                ApiResult.Error(
+                    message = "尚未登入，請重新登入",
+                    code = 401
+                )
+            }
+        )
+        val hooks = ScopeMapCoordinator.Hooks(
+            onBeforeDraw = { _ -> },
+            onLoadingStarted = { _ -> },
+            onLoadingFinished = { _ -> },
+            onLoadingFailed = { _, _ -> loadingFailed.complete(Unit) },
+            onSilentError = { _, _ -> },
+            onAuthExpired = { _, message -> authExpired.complete(message) }
+        )
+        val config = ScopeMapCoordinator.Config(
+            isOfflineMode = false,
+            isBlocked = false,
+            token = "token",
+            showFeedback = false
+        )
+
+        coordinator.load(this, config, hooks)
+        assertEquals("尚未登入，請重新登入", authExpired.await())
+        assertFalse(loadingFailed.isCompleted)
     }
 
     private fun buildCoordinator(

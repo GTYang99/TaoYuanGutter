@@ -64,6 +64,7 @@ import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
+import com.example.taoyuangutter.login.AuthExpiredHandler
 import com.example.taoyuangutter.login.LoginActivity
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -103,6 +104,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var photoDraftBatchDepth: Int = 0
     private var pendingPhotoDraftSync: Boolean = false
     private val photoUploadListeners = mutableMapOf<Int, (PhotoSlotUploadCoordinator.Snapshot) -> Unit>()
+    private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(this) }
 
     override fun setPhotoLoading(visible: Boolean) {
         if (!::binding.isInitialized) return
@@ -707,6 +709,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		                    importLocationPermissionAttempts = 0
 		                    ensureImportLocationPermissionAndFetch(s)
 		                }
+
+                        override fun onAuthExpiredBeforeImportLogout() {
+                            syncSessionDraftNowBlocking()
+                        }
 		            }
 		        }
 
@@ -1311,6 +1317,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     override fun onDestroy() {
         unregisterPhotoUploadListeners()
+        authExpiredHandler.reset()
         super.onDestroy()
     }
 
@@ -2273,6 +2280,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                         token        = token
                     )
                     if (result is ApiResult.Error) {
+                        if (authExpiredHandler.handleIfAuthExpired(result) { syncSessionDraftNowBlocking() }) {
+                            return@async
+                        }
                         android.util.Log.w("PhotoUpload", "photo$category 上傳失敗: ${result.message}")
                     } else {
                         android.util.Log.d("PhotoUpload", "photo$category 上傳成功")
