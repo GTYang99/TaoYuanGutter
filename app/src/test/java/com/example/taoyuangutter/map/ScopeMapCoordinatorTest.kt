@@ -168,6 +168,41 @@ class ScopeMapCoordinatorTest {
         assertFalse(loadingFailed.isCompleted)
     }
 
+    @Test
+    fun failedScopeSearchDoesNotInvokeReplacementCallback() = runBlocking {
+        val loadingFailed = CompletableDeferred<String>()
+        var drawCallCount = 0
+        val coordinator = buildCoordinator(
+            loader = {
+                ApiResult.Error(
+                    message = "server error",
+                    code = 500
+                )
+            },
+            drawFeatures = { _, _ ->
+                drawCallCount += 1
+            }
+        )
+        val hooks = ScopeMapCoordinator.Hooks(
+            onBeforeDraw = { _ -> },
+            onLoadingStarted = { _ -> },
+            onLoadingFinished = { _ -> },
+            onLoadingFailed = { _, message -> loadingFailed.complete(message) },
+            onSilentError = { _, _ -> }
+        )
+        val config = ScopeMapCoordinator.Config(
+            isOfflineMode = false,
+            isBlocked = false,
+            token = "token",
+            showFeedback = true
+        )
+
+        coordinator.load(this, config, hooks)
+
+        assertEquals("server error", loadingFailed.await())
+        assertEquals(0, drawCallCount)
+    }
+
     private fun buildCoordinator(
         loader: suspend (String) -> ApiResult<ScopeViewportLoader.ScopeLoadResult>,
         drawFeatures: (List<GeoFeature>, Int) -> Unit = { _, _ -> }

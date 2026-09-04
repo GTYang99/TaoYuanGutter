@@ -174,7 +174,7 @@ class MapWorkspaceFragment : Fragment(),
         ScopeMapCoordinator(
             loadViewport = scopeViewportLoader::load,
             drawFeatures = { features, savedGroupId ->
-                scopeGutterPolylineController.drawFeatures(features, savedGroupId)
+                scopeGutterPolylineController.replaceFeatures(features, savedGroupId)
             },
             savedGroupIdProvider = { LoginActivity.getSavedGroupId(requireContext()) }
         )

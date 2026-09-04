@@ -1,6 +1,5 @@
 package com.example.taoyuangutter.map
 
-import android.graphics.Color
 import android.location.Location
 import com.example.taoyuangutter.api.GeoFeature
 import com.google.android.gms.maps.GoogleMap
@@ -16,6 +15,21 @@ import kotlin.math.ceil
 class ScopeGutterPolylineController(
     private val mapProvider: () -> GoogleMap?
 ) {
+    private companion object {
+        val COLOR_RESTRICTED_GROUP = 0xFFB4B4B4.toInt()
+        val COLOR_STATE_NEW = 0xFF000000.toInt()
+        val COLOR_STATE_INSPECTING = 0xFFFF58E0.toInt()
+        val COLOR_STATE_REPAIRING = 0xFFFFC300.toInt()
+        val COLOR_STATE_DONE = 0xFF1962FF.toInt()
+        val COLOR_PENDING_OUTLINE = 0xFFAD3A36.toInt()
+    }
+
+    internal constructor(
+        renderer: ScopePolylineRenderer
+    ) : this(mapProvider = { null }) {
+        this.renderer = renderer
+    }
+
     private data class LngLat(
         val lng: Double,
         val lat: Double
@@ -24,8 +38,8 @@ class ScopeGutterPolylineController(
     }
 
     data class ScopePolylineSet(
-        val inner: Polyline,
-        val outline: Polyline?
+        val inner: ScopePolylineHandle,
+        val outline: ScopePolylineHandle?
     ) {
         fun remove() {
             inner.remove()
@@ -33,6 +47,54 @@ class ScopeGutterPolylineController(
         }
     }
 
+    interface ScopePolylineHandle {
+        var color: Int
+        var isVisible: Boolean
+        var tag: Any?
+
+        fun remove()
+    }
+
+    internal interface ScopePolylineRenderer {
+        fun isReady(): Boolean
+        fun addPolyline(options: PolylineOptions): ScopePolylineHandle?
+    }
+
+    private class GoogleMapScopePolylineRenderer(
+        private val mapProvider: () -> GoogleMap?
+    ) : ScopePolylineRenderer {
+        override fun isReady(): Boolean = mapProvider() != null
+
+        override fun addPolyline(options: PolylineOptions): ScopePolylineHandle? {
+            return mapProvider()?.addPolyline(options)?.let(::GoogleMapScopePolylineHandle)
+        }
+    }
+
+    private class GoogleMapScopePolylineHandle(
+        private val polyline: Polyline
+    ) : ScopePolylineHandle {
+        override var color: Int
+            get() = polyline.color
+            set(value) {
+                polyline.color = value
+            }
+        override var isVisible: Boolean
+            get() = polyline.isVisible
+            set(value) {
+                polyline.isVisible = value
+            }
+        override var tag: Any?
+            get() = polyline.tag
+            set(value) {
+                polyline.tag = value
+            }
+
+        override fun remove() {
+            polyline.remove()
+        }
+    }
+
+    private var renderer: ScopePolylineRenderer = GoogleMapScopePolylineRenderer(mapProvider)
     private val scopePolylines = mutableMapOf<String, ScopePolylineSet>()
     private var isGlobalVisible = true
 
@@ -59,12 +121,22 @@ class ScopeGutterPolylineController(
         scopePolylines[spiNum]?.inner?.color = color
     }
 
+    fun replaceFeatures(
+        features: List<GeoFeature>,
+        savedGroupId: Int,
+        clickable: Boolean = true
+    ) {
+        if (!renderer.isReady()) return
+        clear()
+        drawFeatures(features, savedGroupId, clickable)
+    }
+
     fun drawFeatures(
         features: List<GeoFeature>,
         savedGroupId: Int,
         clickable: Boolean = true
     ) {
-        val map = mapProvider() ?: return
+        if (!renderer.isReady()) return
         features.forEach { feature ->
             val spiNum = feature.properties?.spiNum ?: return@forEach
             val groupId = feature.properties?.groupId ?: ""
@@ -87,13 +159,13 @@ class ScopeGutterPolylineController(
             val isAdmin = savedGroupId == 1
 
             val color = if (!isAdmin && !isSameGroup) {
-                Color.parseColor("#B4B4B4")
+                COLOR_RESTRICTED_GROUP
             } else {
                 when (spiState) {
-                    1 -> Color.parseColor("#000000")
-                    2 -> Color.parseColor("#FF58E0")
-                    3 -> Color.parseColor("#FFC300")
-                    4 -> Color.parseColor("#1962FF")
+                    1 -> COLOR_STATE_NEW
+                    2 -> COLOR_STATE_INSPECTING
+                    3 -> COLOR_STATE_REPAIRING
+                    4 -> COLOR_STATE_DONE
                     else -> return@forEach
                 }
             }
@@ -102,19 +174,20 @@ class ScopeGutterPolylineController(
                 else -> 8f
             }
             val outline = if (isPendingDeploy && (isAdmin || isSameGroup)) {
-                map.addPolyline(
+                renderer.addPolyline(
                     PolylineOptions()
                         .addAll(points)
-                        .color(Color.parseColor("#AD3A36"))
+                        .color(COLOR_PENDING_OUTLINE)
                         .width(12f)
                         .zIndex(0f)
                         .clickable(false)
+                        .visible(isGlobalVisible)
                 )
             } else {
                 null
             }
 
-            val inner = map.addPolyline(
+            val inner = renderer.addPolyline(
                 PolylineOptions()
                     .addAll(points)
                     .color(color)
@@ -122,7 +195,10 @@ class ScopeGutterPolylineController(
                     .zIndex(1f)
                     .clickable(clickable)
                     .visible(isGlobalVisible)
-            )
+            ) ?: run {
+                outline?.remove()
+                return@forEach
+            }
             inner.tag = Pair(spiNum, groupId)
             scopePolylines[spiNum] = ScopePolylineSet(inner = inner, outline = outline)
         }

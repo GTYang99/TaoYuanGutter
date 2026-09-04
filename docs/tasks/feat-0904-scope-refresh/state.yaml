@@ -1,0 +1,20 @@
+task:
+  id: feat-0904-scope-refresh
+  type: feature
+phase: implementation
+status: implementation_complete
+planning:
+  status: plan_ready
+review:
+  result: approved
+  iteration: 4
+implementation:
+  status: completed
+  validation:
+    focused_map_unit_test: pass
+    unit_test: pass
+    debug_build: pass
+verification:
+  result: pending
+blocking: []
+next_action: verification
