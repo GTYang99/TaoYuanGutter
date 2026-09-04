@@ -41,7 +41,7 @@ class AuthExpiredHandler(
             onHandle = {
                 val builder = MaterialAlertDialogBuilder(activity)
                     .setTitle("登入狀態已失效")
-                    .setMessage("登入狀態已失效，請重新登入。系統即將登出。")
+                    .setMessage("由於系統閒置時間過長或是目前有其他使用者嘗試登入此帳號，本裝置已與伺服器中斷連線，請重新登入。")
                     .setCancelable(false)
                     .setPositiveButton("確定") { _, _ ->
                         try {
