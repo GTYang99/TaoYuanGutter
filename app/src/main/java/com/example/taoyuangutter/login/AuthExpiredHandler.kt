@@ -20,6 +20,12 @@ class AuthExpiredHandler(
         dialog = null
     }
 
+    internal fun isDialogShowingForTests(): Boolean = dialog?.isShowing == true
+
+    internal fun confirmDialogForTests() {
+        dialog?.getButton(AlertDialog.BUTTON_POSITIVE)?.performClick()
+    }
+
     fun handleIfAuthExpired(
         error: ApiResult.Error,
         onSaveDraft: (() -> Unit)? = null

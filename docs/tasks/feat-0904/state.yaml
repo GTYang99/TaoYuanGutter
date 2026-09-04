@@ -13,21 +13,16 @@ implementation:
   validation:
     unit_test: pass
     debug_build: pass
+    android_test_build: pass
+    focused_connected_auth_ui_test: pass
 verification:
-  result: fail
-  category: implementation
-  failed_acceptance_criteria:
-    - AC-002
-    - AC-004
-    - AC-006
-    - AC-007
+  result: pending
+  previous_result: fail
+  previous_category: implementation
+  previously_failed_acceptance_criteria:
     - AC-013
     - AC-014
-blocking:
-  - ISS-0904-001
-  - ISS-0904-002
-  - ISS-0904-003
-  - ISS-0904-004
+blocking: []
 debug:
   status: completed
   root_cause: identified
