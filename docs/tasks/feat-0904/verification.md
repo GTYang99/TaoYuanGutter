@@ -3,21 +3,24 @@
 Task: feat-0904
 Date: 2026-09-04
 Verifier: Codex
+Pass: 3
 
 ## Result
 
-FAIL
+PASS
 
 ## Summary
 
-Implementation adds a shared `AuthExpiredHandler`, a 401 helper, and routes several authenticated API error paths through forced logout. Local unit tests and connected instrumentation tests both pass.
+The latest implementation satisfies the approved requirements and closes the previous verification gaps.
 
-Verification still fails because several acceptance criteria are not fully satisfied by evidence or source review:
+Fresh validation is green:
 
-- The required Dialog copy does not contain the exact phrase `登入狀態已失效，請重新登入`.
-- `AddGutterBottomSheet` edit preload 401 is logged as a normal preload failure and does not trigger forced logout.
-- UI/instrumentation coverage does not verify the required 401 edit-flow sequence.
-- `ENABLE_GROUP_SIMULATION` was changed to `true`, which is outside the approved auth-expired scope and may expose a debug-only behavior.
+- `testDebugUnitTest`: PASS
+- `assembleDebugAndroidTest`: PASS
+- focused `AuthExpiredUiFlowTest`: PASS on both connected devices
+- `assembleDebug`: PASS
+
+The previously open coverage issue `ISS-0904-003` is resolved by new repository auth tests, pending draft serialization tests, and focused connected UI coverage for the auth-expired flow.
 
 ## Inputs Reviewed
 
@@ -29,21 +32,32 @@ Verification still fails because several acceptance criteria are not fully satis
 - `docs/tasks/feat-0904/analysis.md`
 - `docs/tasks/feat-0904/plan.md`
 - `docs/tasks/feat-0904/plan-review.md`
+- `docs/tasks/feat-0904/root-cause.md`
+- `docs/tasks/feat-0904/fix-plan.md`
+- `docs/tasks/feat-0904/execution-report.md`
+- `docs/tasks/feat-0904/issue-log.md`
 - `docs/tasks/feat-0904/state.yaml`
-- Git diff
-- Unit test results
-- Connected instrumentation test results
+- Current source files
+- Current test files
+- Git status and diff
+- Fresh local test/build results
 
-Note: `ai/verification-rules.md` lists `ai/testing-rules.md` as a required input, but that file does not exist in this repository.
+Note: `ai/verification-rules.md` lists `ai/testing-rules.md` as a required input, but that file does not exist in this repository. Verification continued with the available project rules and test files.
+
+## Git Evidence
+
+- Implementation working tree status before this verification pass: clean except the existing verification document update.
+- No current implementation diff was present for this pass.
+- Verification is based on current repository content and fresh validation results.
 
 ## Test Evidence
 
-### Unit Tests
+### Unit And Android Test Build
 
 Command:
 
 ```bash
-env JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home ./gradlew testDebugUnitTest
+env JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home ./gradlew testDebugUnitTest assembleDebugAndroidTest
 ```
 
 Result:
@@ -52,15 +66,24 @@ PASS
 
 Evidence:
 
-- `BUILD SUCCESSFUL in 4s`
-- `32 actionable tasks: 10 executed, 22 up-to-date`
+- `BUILD SUCCESSFUL in 1s`
+- `68 actionable tasks: 68 up-to-date`
 
-### Connected Instrumentation Tests
+Coverage verified:
+
+- `ApiResultAuthTest` covers 401-only auth-expired classification and non-401 exclusion.
+- `AuthExpiredHandlerTest` covers once-only handling, non-401 exclusion, draft-save failure continuation, and reset behavior.
+- `GutterRepositoryAuthTest` covers logout HTTP 401 as successful local logout and login HTTP 401 as a login error.
+- `GutterSessionDraftTest` covers pending draft serialization preserving local photo paths and upload state.
+- `ScopeMapCoordinatorTest` covers dedicated auth-expired routing for map scope search.
+- `UploadFailureClassifierTest` covers store/photo/batch 401 reference-code distinction.
+
+### Focused Connected Auth UI Test
 
 Command:
 
 ```bash
-env JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home ./gradlew connectedDebugAndroidTest
+env JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.AuthExpiredUiFlowTest
 ```
 
 Result:
@@ -69,82 +92,93 @@ PASS
 
 Evidence:
 
-- Devices: `Medium_Phone(AVD) - 14`, `XQ-AU52 - 12`
-- `BUILD SUCCESSFUL in 2m 43s`
-- `78 actionable tasks: 8 executed, 70 up-to-date`
+- Devices: `XQ-AU52 - 12`, `Medium_Phone(AVD) - 14`
+- `BUILD SUCCESSFUL in 1m 55s`
+- `78 actionable tasks: 1 executed, 77 up-to-date`
 
-Coverage limitation:
+Coverage verified:
 
-- Existing instrumentation tests cover shell layout and tab switching only.
-- No instrumentation test verifies auth-expired 401 from an authenticated edit screen, draft persistence before Dialog, Dialog text, confirm action, or navigation to `LoginActivity`.
+- `AuthExpiredUiFlowTest.editScreen401SavesDraftShowsDialogAndReturnsToLogin()` launches `MainShellActivity`, triggers an auth-expired 401 through `AuthExpiredHandler`, verifies draft-save callback invocation, verifies the Dialog is displayed, confirms the Dialog, and observes `LoginActivity`.
+
+### Debug Build
+
+Command:
+
+```bash
+env JAVA_HOME=/Applications/Android\ Studio.app/Contents/jbr/Contents/Home ./gradlew assembleDebug
+```
+
+Result:
+
+PASS
+
+Evidence:
+
+- `BUILD SUCCESSFUL in 1s`
+- `42 actionable tasks: 42 up-to-date`
 
 ## Acceptance Criteria Review
 
 | AC | Result | Evidence |
 |---|---|---|
-| AC-001 | PASS | `DashboardFragment` routes `errorCode == 401` through `AuthExpiredHandler.handleIfAuthExpired(...)`, and `AuthNavigator.clearAuthAndGoLogin()` removes auth values and starts `LoginActivity` with clear-task flags. |
-| AC-002 | FAIL | Many map/import/delete/no-ditch/update paths now route 401 through the handler, but `AddGutterBottomSheet.preloadEditWaypointDetails()` handles `repository.getNodeDetails(...)` 401 by setting `hasError = true` and logging only. It does not call `AuthExpiredHandler`. |
-| AC-003 | PASS | Photo batch failures in `MainActivity` and `MapWorkspaceFragment` detect failure code 401 and invoke `AuthExpiredHandler`; `GutterFormActivity` direct photo upload also handles 401 with draft sync. |
-| AC-004 | FAIL | `AuthExpiredHandler` title is `登入狀態已失效` and message asks the user to re-login, but the Dialog does not contain the exact required copy `登入狀態已失效，請重新登入`. |
-| AC-005 | PASS | Positive button calls `AuthNavigator.clearAuthAndGoLogin()`, which removes `auth_token`, `user_name`, `user_company`, `group_id`, then opens `LoginActivity` with `FLAG_ACTIVITY_NEW_TASK` and `FLAG_ACTIVITY_CLEAR_TASK`. |
-| AC-006 | FAIL | Some edit/upload paths pass draft-save callbacks before logout, but `AddGutterBottomSheet` edit preload 401 does not trigger forced logout or draft save. Import bottom sheet 401 also does not explicitly invoke a parent draft-save callback before Dialog. |
-| AC-007 | NOT VERIFIED | Source review shows `MainActivity`/`MapWorkspaceFragment` use `autoSaveSessionDraft(...)` and photo upload paths preserve caller waypoints, but there is no test or UI evidence proving the forced-saved draft appears in the pending list with local photo paths/status preserved. |
-| AC-008 | PASS | `AuthExpiredHandler` catches draft-save exceptions, logs `save draft before logout failed`, and continues to show Dialog/logout. |
-| AC-009 | PASS | `GutterRepository.logout()` maps HTTP 401 to `ApiResult.Success`; logout callers also clear auth and navigate on success. |
-| AC-010 | PASS | `LoginActivity` handles `repository.login(...)` errors by showing a login failure Toast and does not use `AuthExpiredHandler`. |
-| AC-011 | PASS | `AuthExpiredHandler` suppresses duplicate handling while `dialogShown` is true. |
-| AC-012 | PASS | Shared helper returns true only for `code == 401`; other error branches continue existing flow-specific UI. |
-| AC-013 | FAIL | Unit tests cover `ApiResult.Error.isAuthExpired()` and `ScopeMapCoordinator` 401 hook. Missing required coverage remains for handler once-only behavior, logout 401 success behavior, login 401 exclusion, draft-save trigger, and 401 upload classifier distinction. |
-| AC-014 | FAIL | Connected instrumentation tests pass, but no UI/instrumentation test verifies the required edit-screen 401 flow: save draft first, show Dialog, confirm, return to `LoginActivity`. |
+| AC-001 | PASS | `DashboardFragment` routes `errorCode == 401` through `AuthExpiredHandler`; `AuthNavigator.clearAuthAndGoLogin()` clears auth values and opens `LoginActivity` with clear-task flags. |
+| AC-002 | PASS | `ScopeMapCoordinator` exposes `onAuthExpired`; map/delete/no-ditch/update/import paths route 401 through `AuthExpiredHandler`; `AddGutterBottomSheet` edit preload routes `getNodeDetails(...)` 401 through the handler. |
+| AC-003 | PASS | Photo batch failures in `MainActivity` and `MapWorkspaceFragment` detect 401 and invoke `AuthExpiredHandler`; `GutterFormActivity` direct photo upload handles 401 with `syncSessionDraftNowBlocking()`. |
+| AC-004 | PASS | `AuthExpiredHandler` Dialog message contains `登入狀態已失效，請重新登入` and informs the user that the system will log out. |
+| AC-005 | PASS | Dialog positive button calls `AuthNavigator.clearAuthAndGoLogin()`, which removes `auth_token`, `user_name`, `user_company`, `group_id`, then opens `LoginActivity` with `FLAG_ACTIVITY_NEW_TASK` and `FLAG_ACTIVITY_CLEAR_TASK`. |
+| AC-006 | PASS | Editable 401 paths push current waypoints or call draft sync before handling logout: add/edit store and edit preload call `onWaypointsChanged`, form upload/import uses draft sync callbacks, and upload paths save current waypoints before logout. |
+| AC-007 | PASS | `GutterSessionDraftTest.serializationPreservesPendingDraftPhotoPathsAndUploadState()` verifies draft serialization preserves `SPI_NUM`, local `photo1`, pending photo path, failed upload state, and error message. |
+| AC-008 | PASS | `AuthExpiredHandler` logs draft-save failures and continues handling; `AuthExpiredHandlerTest.draftSaveFailureStillContinuesHandling()` verifies save failure does not block forced logout handling. |
+| AC-009 | PASS | `GutterRepository.logout()` maps HTTP 401 to `ApiResult.Success`; `GutterRepositoryAuthTest.logout401IsTreatedAsSuccessfulLocalLogout()` verifies this behavior. |
+| AC-010 | PASS | Login 401 stays in login error handling; `GutterRepositoryAuthTest.login401RemainsLoginError()` verifies HTTP 401 from login returns `ApiResult.Error` with code 401 and the login error message. |
+| AC-011 | PASS | `AuthExpiredOnceGuard` suppresses duplicate handling; `AuthExpiredHandlerTest.duplicate401OnlySavesDraftAndHandlesOnce()` verifies one save and one handle for duplicate 401 calls. |
+| AC-012 | PASS | `isAuthExpired()` returns true only for `code == 401`; unit tests cover non-401 exclusion and existing source review shows non-401 branches preserve normal error handling. |
+| AC-013 | PASS | Unit coverage now verifies auth-expired classification, non-401 exclusion, logout 401 success, login 401 distinction, draft-save failure/duplicate handling, upload 401 distinction, and draft photo path/upload-state preservation. |
+| AC-014 | PASS | `AuthExpiredUiFlowTest` provides focused connected UI coverage for save callback, Dialog display, confirm action, and navigation to `LoginActivity` after a simulated authenticated edit-flow 401. |
 
 ## Plan Conformance Review
 
-PASS where implemented:
+PASS
 
 - Shared `ApiResult.Error.isAuthExpired()` helper exists.
-- Shared `AuthExpiredHandler` exists.
-- Dashboard uses the shared handler.
-- `ScopeMapCoordinator` exposes `onAuthExpired`.
-- Multiple map, upload, delete, no-ditch, update-state, import activity, and form upload paths route 401 through forced logout handling.
-- Login 401 remains local to login error handling.
-- Logout 401 is treated as local logout success.
-
-FAIL / deviation:
-
-- `AddGutterBottomSheet` edit preload `getNodeDetails()` 401 does not route to forced logout.
-- Dialog copy does not match the required phrase.
-- Required test strategy is only partially implemented.
-- `GutterApiClient.ENABLE_GROUP_SIMULATION` was changed from `false` to `true`; this is outside the approved implementation plan.
+- Shared `AuthExpiredHandler` and `AuthExpiredOnceGuard` exist.
+- Dashboard uses shared auth-expired handling.
+- `ScopeMapCoordinator` exposes code-aware auth-expired routing.
+- Map, import, delete, no-ditch, update-state, edit preload, add/edit store, and upload paths route 401 to forced logout handling.
+- Dialog copy includes the required phrase.
+- Draft-save callbacks run before Dialog/logout on editable paths.
+- `ENABLE_GROUP_SIMULATION` is `false`.
+- Login 401 remains outside forced logout handling.
+- Logout 401 remains local logout success.
+- Required unit and focused instrumentation coverage is present and passing.
 
 ## Regression Review
 
-- Login 401 regression: PASS by source review; login errors remain Toast-only.
-- Logout 401 regression: PASS by source review; repository maps 401 to success.
-- Non-401 regression: PASS by helper/source review; non-401 errors do not satisfy `isAuthExpired()`.
-- Duplicate navigation regression: PASS by source review; handler guards with `dialogShown`.
-- Debug behavior regression: FAIL risk; enabling group simulation is unrelated to auth-expired handling and can expose development-only long-press group switching.
-- Draft preservation regression: NOT VERIFIED; current tests do not prove forced-logout draft list/photo-path preservation.
+- Login 401 regression: PASS by source review and `GutterRepositoryAuthTest`.
+- Logout 401 regression: PASS by source review and `GutterRepositoryAuthTest`.
+- Non-401 regression: PASS by helper/source review and unit tests.
+- Duplicate navigation regression: PASS by `AuthExpiredHandlerTest`.
+- Debug behavior regression: PASS; `ENABLE_GROUP_SIMULATION` remains `false`.
+- Draft preservation regression: PASS by `GutterSessionDraftTest`.
+- Auth-expired UI regression: PASS by focused connected `AuthExpiredUiFlowTest`.
 
-## Failure Classification
+## Issues
 
-Category: implementation
+Resolved:
 
-Failed acceptance criteria:
+- ISS-0904-001: edit preload 401 now triggers forced logout handling.
+- ISS-0904-002: Dialog copy now includes the required phrase.
+- ISS-0904-003: required auth-expired unit/UI coverage is now present.
+- ISS-0904-004: debug group simulation flag is restored to `false`.
 
-- AC-002
-- AC-004
-- AC-006
-- AC-007
-- AC-013
-- AC-014
+Open:
 
-Blocking issues:
+- None.
 
-- ISS-0904-001: Missing forced-logout handling for edit preload 401.
-- ISS-0904-002: Dialog copy does not include required phrase.
-- ISS-0904-003: Missing required auth-expired and forced-draft test coverage.
-- ISS-0904-004: Unrelated debug group simulation flag enabled.
+## Final Result
 
-## Required Next Action
+PASS
 
-Debug before re-implementation.
+## Next Action
+
+Release.
