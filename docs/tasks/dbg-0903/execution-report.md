@@ -48,3 +48,20 @@ The repository environment does not provide a connected Android device or emulat
 - Revision: `0157768`
 - `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: PASS
 - No Android device or emulator was available through `adb devices`.
+
+## 2026-09-04 Inspect Route Fit Implementation
+
+- Added an inspect/edit camera helper in `MapWorkspaceFragment` so inspect route fitting consistently preserves the form-visible viewport with `resetPaddingAfter = false`.
+- Routed inspect entry, inspect form return, inspect edit entry, and post-update inspect reopen through the same helper.
+- Added an inset-change refit hook so the route is recalculated after the bottom sheet reports its real height.
+
+## 2026-09-04 Validation
+
+- `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: PASS
+- `git diff --check`: PASS
+- Real-device `QV710EDR3A` APK install: PASS
+- Real-device app launch: PASS, foreground activity confirmed as `com.example.taoyuangutter/.login.LoginActivity`
+
+## 2026-09-04 Limitation
+
+- Manual visual confirmation is still required after login: open an existing gutter and verify the form area leaves the whole route visible above it.

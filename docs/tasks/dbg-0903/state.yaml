@@ -1,12 +1,12 @@
 task: DBG-0903
 
-phase: verification
+phase: implementation
 
-status: verification_passed
+status: implementation_complete
 
 debug:
   status: completed
-  root_cause: bottom_sheet_host_cast_to_activity_failed
+  root_cause: inspect_route_fit_padding_resets_before_overlay_visible_area_is_preserved
 
 implementation:
   status: completed
@@ -14,10 +14,19 @@ implementation:
     status: passed
   unit_test:
     status: passed
+  device_install:
+    status: passed
+    device: QV710EDR3A
+  device_launch:
+    status: passed
+    foreground_activity: com.example.taoyuangutter/.login.LoginActivity
 
 verification:
-  result: pass
+  result: fail
+  category: implementation
   revision: 8a7cee5
+  failed_acceptance_criteria:
+    - AC-INSPECT-FIT-001
   local_validation:
     unit_test: passed
     compile_debug_kotlin: passed
@@ -37,4 +46,4 @@ verification:
     - Real-device edit delete gutter confirmation
     - Real-device add gutter non-timeout network error copy
 
-next_action: release
+next_action: verification

@@ -70,3 +70,40 @@ Phase: debug
 ### 4. Add gutter shows timeout text for non-timeout failures
 
 新增送出流程把所有 `UploadFailureClassifier.isNetworkFailureMessage()` 命中的錯誤都導向「網路連線逾時」Alert；其中包含 `failed to connect`、`unable to resolve host`、`connection reset` 這類立即連線失敗。409 照片認領衝突的 dialog title 也寫成「網路連線逾時」，造成非 timeout 情境被顯示成 timeout。
+
+## Follow-up RCA: 2026-09-04 Inspect Gutter Route No Longer Fits Above Form
+
+### Issue
+
+檢視側溝時，原本主地圖會自動縮放，讓檢視表單上方能看到整條側溝；目前進入檢視/編輯流程後，路線仍可能被下方表單或檢視頁覆蓋，看起來像自動縮放失效。
+
+### Updated Error Source
+
+- `MapCameraController.fitCameraToWaypointsWithViewportFraction()` 預設 `resetPaddingAfter = true`。
+- `MapCameraController.fitCameraToWaypoints()` 在動畫開始前會用 `bottomOffsetRatio` 暫時加大地圖底部 padding，但動畫完成或取消後，如果 `resetPaddingAfter = true`，會把 padding 還原成 `persistentBottomInsetPx`。
+- `MapWorkspaceFragment.openInspectBottomSheet()` 仍呼叫 `fitCameraToWaypointsWithViewportFraction(start.routeWaypoints, viewportHeightFraction = 1.0 / 3.0)`，沒有覆寫 `resetPaddingAfter`。
+- `MapWorkspaceFragment.handleInspectSheetActivityResult()` 仍用同樣預設值重新 fit `inspectWaypoints`。
+- `MapWorkspaceFragment.handleInspectEditResult()` 在 `sheet.show(...)` 後立刻 fit 編輯路線，但這時 bottom sheet 實際高度可能尚未回報；之後 `onSheetViewportInsetChanged()` 只更新 persistent bottom inset 與指示器位置，沒有針對目前 inspect/edit 路線重新 fit。
+
+### Root Cause
+
+根因不是「沒有呼叫自動縮放」，而是檢視/編輯側溝流程需要保留表單上方的可視區，但目前這三個入口仍使用會自動還原 padding 的預設 camera fit 行為。
+
+也就是說，camera fit 當下可能短暫用 1/3 viewport 計算成功；但動畫結束後 padding 被還原，檢視表單或編輯 bottom sheet 覆蓋地圖下方時，整條側溝不再保證留在表單上方的可視區內。
+
+另外，編輯流程還有時序問題：`handleInspectEditResult()` 先顯示 `AddGutterBottomSheet` 再立即 fit，但 bottom sheet 真實高度通常稍後才由 `onSheetViewportInsetChanged()` 回報。目前 inset 回報後只改 padding，不會再根據真實表單高度重算鏡頭，因此實機上會不穩定。
+
+### Why Recent Code Makes The Source Clearer
+
+目前新增側溝與節點返回流程已有多處改成 `resetPaddingAfter = false`，例如新增/成長 refit 與表單返回 refit；因此問題範圍已縮小到檢視側溝專用路徑：
+
+- 進入檢視：`openInspectBottomSheet()`
+- 檢視表單返回：`handleInspectSheetActivityResult()`
+- 從檢視切到編輯：`handleInspectEditResult()`
+- bottom sheet 高度改變後：`onSheetViewportInsetChanged()`
+
+### Minimum Fix Direction
+
+- 將 inspect preview / inspect form return / inspect edit entry 的 viewport fit 改成保留可視區，也就是明確傳入 `resetPaddingAfter = false`。
+- 編輯 bottom sheet 顯示後，當 `onSheetViewportInsetChanged()` 收到實際高度時，若目前仍在 inspect/edit 路線，需以目前 `currentWaypoints` 或 `inspectWaypoints` 再做一次 refit。
+- 建議新增一個集中方法，例如 `fitInspectRouteAboveSheet(waypoints)`，避免同一組參數散落在三個入口，降低下次 regression 風險。

@@ -88,6 +88,7 @@ class MapWorkspaceFragment : Fragment(),
     private var googleMap: GoogleMap? = null
     private var isOfflineMainMode: Boolean = false
     private var currentSheetBottomInsetPx: Int = 0
+    private var lastInspectRouteRefitInsetPx: Int = -1
     private var addGutterBaseBottomMarginPx: Int? = null
     private var pickerBarBaseBottomMarginPx: Int? = null
 
@@ -755,6 +756,38 @@ class MapWorkspaceFragment : Fragment(),
         currentSheetBottomInsetPx = bottomInsetPx.coerceAtLeast(0)
         mapCameraController.setPersistentBottomInset(currentSheetBottomInsetPx)
         mainMapLoadIndicatorController.setBottomInset(currentSheetBottomInsetPx)
+        refitInspectRouteAfterSheetInsetIfNeeded()
+    }
+
+    private fun fitInspectRouteAboveSheet(waypoints: List<Waypoint>) {
+        if (waypoints.none { it.latLng != null }) return
+        mapCameraController.fitCameraToWaypointsWithViewportFraction(
+            waypoints,
+            viewportHeightFraction = 1.0 / 3.0,
+            resetPaddingAfter = false
+        )
+    }
+
+    private fun refitInspectRouteAfterSheetInsetIfNeeded() {
+        if (currentSheetBottomInsetPx <= 0) {
+            lastInspectRouteRefitInsetPx = -1
+            return
+        }
+        if (lastInspectRouteRefitInsetPx == currentSheetBottomInsetPx) return
+
+        val routeWaypoints = when {
+            activeSheet?.isEditMode() == true -> currentWaypoints
+            inspectSheet != null -> inspectWaypoints
+            shouldReturnToInspectPreview -> currentWaypoints
+            else -> return
+        }.takeIf { waypoints -> waypoints.any { it.latLng != null } } ?: return
+
+        val insetPx = currentSheetBottomInsetPx
+        lastInspectRouteRefitInsetPx = insetPx
+        binding.root.post {
+            if (_binding == null || currentSheetBottomInsetPx != insetPx) return@post
+            fitInspectRouteAboveSheet(routeWaypoints)
+        }
     }
 
     override fun onUpdateGutter(waypoints: List<Waypoint>, spiNum: String) {
@@ -1055,7 +1088,7 @@ class MapWorkspaceFragment : Fragment(),
         isInEditingMode = true
         lockInspectUi()
         mainBlockingUiController.setInspectLoading(true, "載入側溝資料中…")
-        mapCameraController.fitCameraToWaypointsWithViewportFraction(start.routeWaypoints, viewportHeightFraction = 1.0 / 3.0)
+        fitInspectRouteAboveSheet(start.routeWaypoints)
         lifecycleScope.launch {
             try {
                 when (val result = inspectFlowCoordinator.load(start, token)) {
@@ -1164,7 +1197,7 @@ class MapWorkspaceFragment : Fragment(),
             }
         }
         inspectSheet?.showSelf()
-        mapCameraController.fitCameraToWaypointsWithViewportFraction(inspectWaypoints, viewportHeightFraction = 1.0 / 3.0)
+        fitInspectRouteAboveSheet(inspectWaypoints)
     }
 
     private fun handleInspectEditResult(data: Intent?) {
@@ -1224,7 +1257,7 @@ class MapWorkspaceFragment : Fragment(),
         sheet.show(childFragmentManager, AddGutterBottomSheet.TAG)
         currentWaypoints = wps.toMutableList()
         refreshWorkingMarkers(wps)
-        mapCameraController.fitCameraToWaypointsWithViewportFraction(wps, viewportHeightFraction = 1.0 / 3.0)
+        fitInspectRouteAboveSheet(wps)
     }
 
     private fun toggleMeasureMode() {
@@ -2111,6 +2144,7 @@ class MapWorkspaceFragment : Fragment(),
                         isReferenceRouteActive = false
                         refreshWorkingLayer(inspectWaypoints, isCurve)
                         lockInspectUi()
+                        fitInspectRouteAboveSheet(inspectWaypoints)
                         val launched = launchInspectSafely(result.data.intent)
                         if (!launched) {
                             isInEditingMode = false

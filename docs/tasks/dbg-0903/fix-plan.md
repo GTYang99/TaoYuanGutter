@@ -90,3 +90,29 @@ Phase: debug
 - `storeDitch` 網路錯誤改分辨真正 timeout 與一般連線失敗，只有 timeout 顯示「網路連線逾時」。
 - 409 照片認領衝突改顯示「資料上傳狀態待確認」，避免誤導成等待逾時。
 - 補單元測試鎖定 16 級門檻與連線失敗/逾時分類。
+
+## Follow-up Fix Scope: Inspect Route Fit Regression
+
+### Goal
+
+恢復檢視側溝時的自動縮放行為：進入檢視、從節點表單返回檢視、從檢視切到編輯時，主地圖都要能在表單上方看見整條側溝。
+
+### Minimum Implementation Steps
+
+1. 在 `MapWorkspaceFragment` 新增集中 helper，例如 `fitInspectRouteAboveSheet(waypoints)`，統一呼叫 `mapCameraController.fitCameraToWaypointsWithViewportFraction(..., viewportHeightFraction = 1.0 / 3.0, resetPaddingAfter = false)`。
+2. 將 `openInspectBottomSheet()` 的檢視進入 fit 改用該 helper。
+3. 將 `handleInspectSheetActivityResult()` 的檢視返回 fit 改用該 helper。
+4. 將 `handleInspectEditResult()` 的編輯進入 fit 改用該 helper。
+5. 在 `onSheetViewportInsetChanged()` 收到 bottom sheet 實際高度後，如果目前是 inspect/edit 狀態且有路線資料，安排一次延後 refit，避免一開始 `sheet.show(...)` 尚未量測完成就 fit。
+
+### Validation
+
+- 實機檢視一條長側溝，確認檢視表單上方能看到整條側溝。
+- 從檢視頁點任一節點進入表單再返回，確認整條側溝仍保持在表單上方。
+- 從檢視切到編輯 bottom sheet，確認 bottom sheet 展開後路線不被覆蓋。
+- 回歸確認新增側溝、16 級載入門檻、長按送出測試 Alert、刪除側溝確認仍正常。
+
+### Regression Risk
+
+- 若 inset 回報時每次都 refit，可能干擾使用者手動拖曳地圖；implementation 需避免在非 inspect/edit 狀態或無路線資料時重複觸發。
+- 若使用 `resetPaddingAfter = false` 後沒有在離開表單時清掉 persistent inset，可能影響回主地圖視野；離開/關閉流程需維持既有 `setPersistentBottomInset(0)`。
