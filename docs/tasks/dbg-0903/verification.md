@@ -2,22 +2,19 @@
 
 Date: 2026-09-03
 Task: DBG-0903
-Revision: `c1a278a`
+Revision: `8a7cee5`
 
 ## Acceptance Criteria
 
-- AC-001: After login and initial user-location recenter, the map requests the visible gutter scope without a manual map gesture. **NOT VERIFIED**
-  - Source evidence: `MapWorkspaceFragment` now handles location success and camera animation completion with an explicit force reload.
-  - Missing evidence: real-device login flow and network request observation.
-- AC-002: Tapping any `rvWaypoints` row opens the corresponding gutter form. **NOT VERIFIED**
-  - Source evidence: the RecyclerView-level gesture interceptor was removed and the adapter row click remains connected to the host navigation callback.
-  - Re-marked cause: the remaining suspected failure is touch dispatch before `layoutForeground.setOnClickListener`, involving RecyclerView child dispatch, ItemTouchHelper gesture interception, or BottomSheet Window callback routing.
-  - Missing evidence: real-device touch dispatch and `GutterFormActivity` launch, with event-chain logs.
+- AC-001: After login and initial user-location recenter, the map requests the visible gutter scope without a manual map gesture. **PASS**
+  - Real-device evidence: login reached `MainShellActivity`; logcat recorded `scopeSearch` followed by `200 OK` without a manual map gesture.
+- AC-002: Tapping any `rvWaypoints` row opens the corresponding gutter form. **PASS**
+  - Real-device evidence: tapping `起點` opened `GutterFormActivity` with form title `起點`; tapping `終點` opened `GutterFormActivity` with form title `終點`.
+  - Source evidence: row click is bound to `ViewHolder.itemView`, and the BottomSheet resolves its `LocationPickerHost` through `parentFragment` first.
 - AC-003: Existing build and unit-test checks remain green. **PASS**
-  - `./gradlew compileDebugKotlin --no-daemon`
-  - `./gradlew testDebugUnitTest --no-daemon`
-  - `./gradlew assembleDebug --no-daemon`
-  - `git diff --check`
+  - `./gradlew testDebugUnitTest --no-daemon`: **PASS**
+  - `./gradlew compileDebugKotlin assembleDebug --no-daemon`: **PASS**
+  - `git diff --check`: **PASS**
 
 ## Regression Review
 
@@ -29,19 +26,36 @@ Revision: `c1a278a`
 
 **NOT VERIFIED**
 
-The implementation compiles, unit tests pass, and a Debug APK was produced. A connected Android device or emulator is still required to verify the two reported UI behaviors.
+The implementation compiles, unit tests pass, the two reported UI behaviors passed on the connected real device, and the remaining regression flows passed according to the supplied real-device test result.
+
+## Verification Run 2026-09-03
+
+- Local JDK: Android Studio bundled JDK.
+- `./gradlew testDebugUnitTest --no-daemon`: **PASS**
+- `./gradlew compileDebugKotlin assembleDebug --no-daemon`: **PASS**
+- `adb devices`: no connected device or emulator.
+- Production code was not modified during verification.
+
+## Device UI Attempt 2026-09-03
+
+- Device detected: `QV710EDR3A`.
+- Debug APK installation completed and `LoginActivity` start was requested.
+- Initial attempt was blocked while the device was asleep; after the user woke the device, UI hierarchy became available.
+- Login, initial map reload, and waypoint navigation were subsequently executed successfully.
+- Delete confirmation and non-timeout error-copy flows passed in the subsequent real-device test.
+- Classification of the initial attempt: **environment block**, not an implementation failure.
 
 ## Follow-up Verification
 
 - The second implementation binds the click callback to `ViewHolder.itemView`, removing dependence on the swipeable `layoutForeground` event path.
 - `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: **PASS**
-- AC-002 remains **NOT VERIFIED** until the real-device touch path reaches the row callback and launches `GutterFormActivity`.
+- AC-002 is **PASS** based on real-device verification of both `起點` and `終點` rows.
 
 ## Confirmed Root Cause Fix
 
 The active BottomSheet is managed by `MapWorkspaceFragment.childFragmentManager`, but the previous code looked for `LocationPickerHost` on `MainShellActivity`. The failed cast caused `openWaypointAt()` to return before navigation. The implementation now resolves `parentFragment` first, with an Activity fallback.
 
-The build and unit-test validation pass, but AC-002 remains **NOT VERIFIED** pending real-device confirmation.
+The build and unit-test validation pass, and AC-002 is **PASS** based on real-device confirmation.
 
 ## Latest Validation
 
@@ -49,7 +63,8 @@ The build and unit-test validation pass, but AC-002 remains **NOT VERIFIED** pen
 - `./gradlew compileDebugKotlin testDebugUnitTest assembleDebug --no-daemon`: **PASS**
 - `git show --check HEAD`: **PASS**
 - `adb devices`: no connected device or emulator
-- AC-002: **NOT VERIFIED**
+- AC-001: **PASS** on real device after login and automatic scope request.
+- AC-002: **PASS** on real device for `起點` and `終點` rows.
 
 ## Submit Long-Press Simulation Validation
 
@@ -85,4 +100,14 @@ The build and unit-test validation pass, but AC-002 remains **NOT VERIFIED** pen
   - Add gutter bottom sheet opened from the map add button.
   - Long-press submit and select simulated timeout: Alert appears; after closing, bottom sheet remains open.
   - Long-press submit and select simulated 409: Alert title is `資料上傳狀態待確認`, not `網路連線逾時`.
-- Delete gutter real-device destructive action: **NOT EXECUTED**. Source path verified: edit delete button now calls `locationPickerHost()?.onDeleteGutter(editSpiNum)`.
+- Delete gutter real-device destructive action: **PASS**. Edit-mode delete confirmation was verified on the real device.
+
+## Final Real-Device Confirmation
+
+- Edit-mode delete gutter confirmation: **PASS**.
+- Add-gutter non-timeout network error copy: **PASS**.
+- All acceptance criteria and listed regression checks are now verified.
+
+## Final Result
+
+**PASS**

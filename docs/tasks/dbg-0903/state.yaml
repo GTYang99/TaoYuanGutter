@@ -2,7 +2,7 @@ task: DBG-0903
 
 phase: verification
 
-status: verification_in_progress
+status: verification_passed
 
 debug:
   status: completed
@@ -15,16 +15,26 @@ implementation:
   unit_test:
     status: passed
 
-next_action: verification
-
 verification:
-  result: not_verified
-  missing:
-    - Real-device rvWaypoints form navigation
-    - Real-device edit delete gutter confirmation
-    - Real-device add gutter non-timeout network error copy
+  result: pass
+  revision: 8a7cee5
+  local_validation:
+    unit_test: passed
+    compile_debug_kotlin: passed
+    assemble_debug: passed
+    device_available: true
+    device_ui_available: true
+  environment_block:
+    - Initial device UI was unavailable until the device was manually awakened
+  missing: []
   passed:
+    - Real-device login and automatic scopeSearch after initial map load
+    - Real-device rvWaypoints 起點 and 終點 form navigation
     - Real-device submit long-press simulation Alert
     - Source-level 16 zoom gutter layer gate
     - Source-level edit delete gutter host routing
     - Unit-level add gutter non-timeout network error classification
+    - Real-device edit delete gutter confirmation
+    - Real-device add gutter non-timeout network error copy
+
+next_action: release
