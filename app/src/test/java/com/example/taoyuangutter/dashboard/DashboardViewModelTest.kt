@@ -10,20 +10,20 @@ class DashboardViewModelTest {
         val viewModel = DashboardViewModel()
 
         viewModel.setDateRange("2026-08-01", "2026-08-31")
-        viewModel.setMonthRange("2026", "08")
+        viewModel.setMonthRange("2026", "8")
 
         val query = viewModel.uiState.value.query
         assertEquals(null, query.startDate)
         assertEquals(null, query.endDate)
         assertEquals("2026", query.monthYear)
-        assertEquals("08", query.month)
+        assertEquals("8", query.month)
     }
 
     @Test
     fun dateRangeClearsMonthRange() {
         val viewModel = DashboardViewModel()
 
-        viewModel.setMonthRange("2026", "08")
+        viewModel.setMonthRange("2026", "8")
         viewModel.setDateRange("2026-08-01", "2026-08-31")
 
         val query = viewModel.uiState.value.query

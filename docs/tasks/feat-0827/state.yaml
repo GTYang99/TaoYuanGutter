@@ -1,8 +1,8 @@
 task:
   id: feat-0827
   type: feature
-phase: verification
-status: verification_passed
+phase: implementation
+status: implementation_complete
 planning:
   status: approved
 implementation:
@@ -12,4 +12,4 @@ verification:
 debug:
   status: completed
   root_cause: identified
-next_action: release
+next_action: verification

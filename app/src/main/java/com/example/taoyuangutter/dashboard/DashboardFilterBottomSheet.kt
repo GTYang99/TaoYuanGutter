@@ -142,7 +142,7 @@ class DashboardFilterBottomSheet : BottomSheetDialogFragment() {
         binding.btnMonth.text = if (monthYear.isBlank() || month.isBlank()) {
             getString(R.string.dashboard_pick_month)
         } else {
-            String.format(Locale.getDefault(), "%s-%s", monthYear, month)
+            String.format(Locale.getDefault(), "%s-%02d", monthYear, month.toInt())
         }
     }
 
@@ -201,7 +201,7 @@ class DashboardFilterBottomSheet : BottomSheetDialogFragment() {
             .setView(pickerContainer)
             .setNegativeButton(android.R.string.cancel, null)
             .setPositiveButton(R.string.confirm) { _, _ ->
-                onSelected(yearPicker.value.toString(), String.format(Locale.getDefault(), "%02d", monthPicker.value))
+                onSelected(yearPicker.value.toString(), monthPicker.value.toString())
             }
             .show()
     }

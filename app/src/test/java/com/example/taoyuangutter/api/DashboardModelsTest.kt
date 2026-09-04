@@ -59,7 +59,7 @@ class DashboardModelsTest {
     @Test
     fun dashboardQueryKeepsFiltersMutuallyExclusive() {
         val dateQuery = DashboardQuery(startDate = "2026-08-01", endDate = "2026-08-31")
-        val monthQuery = DashboardQuery(monthYear = "2026", month = "08")
+        val monthQuery = DashboardQuery(monthYear = "2026", month = "8")
 
         assertEquals(true, dateQuery.isDateRangeSelected)
         assertEquals(false, dateQuery.isMonthRangeSelected)
