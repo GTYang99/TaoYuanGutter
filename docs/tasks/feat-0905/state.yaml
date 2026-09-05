@@ -13,6 +13,8 @@ planning:
 
 implementation:
   status: completed
+  commit: 18c66c7
+  branch: "feat/退回原因"
   build:
     status: passed
     command: "./gradlew :app:assembleDebug :app:testDebugUnitTest"
