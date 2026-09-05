@@ -256,6 +256,7 @@
     <string name="label_form_title">側溝資料填寫</string>
 
     <!-- 查看模式 (Inspect) 標籤 -->
+    <string name="label_revoke_comment">退回原因</string>
     <string name="label_start_x">起點X（E）座標</string>
     <string name="label_start_y">起點Y（N）座標</string>
     <string name="label_start_z">起點Z座標</string>

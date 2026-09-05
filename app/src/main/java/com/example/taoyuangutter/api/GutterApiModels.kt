@@ -255,7 +255,9 @@ data class DitchDetails(
     @SerializedName("SLOP")     val slop: String?,
     @SerializedName("NOTE")     val note: String?,
     /** 所有點位 */
-    @SerializedName("nodes")    val nodes: List<DitchNode>
+    @SerializedName("nodes")    val nodes: List<DitchNode>,
+    /** 退回原因；待修正狀態才會顯示於檢視基本資料頁 */
+    @SerializedName("revokeComment") val revokeComment: String? = null
 )
 
 /** 側溝座標編號（XY_NUM）分段格式 */

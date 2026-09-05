@@ -43,6 +43,8 @@ class GutterInspectBasicFragment : Fragment() {
         private const val ARG_LENG     = "leng"
         private const val ARG_SLOP     = "slop"
         private const val ARG_NOTE     = "note"
+        private const val ARG_SPI_STATE = "spi_state"
+        private const val ARG_REVOKE_COMMENT = "revoke_comment"
         private const val ARG_NODE_DETAILS_JSON = "node_details_json"
 
         private val VIRTUAL_COLOR = android.graphics.Color.parseColor("#B7B7C2")
@@ -76,6 +78,8 @@ class GutterInspectBasicFragment : Fragment() {
                     putString(ARG_LENG,    ditch?.leng  ?: "")
                     putString(ARG_SLOP,    ditch?.slop  ?: "")
                     putString(ARG_NOTE,    ditch?.note  ?: "")
+                    putString(ARG_SPI_STATE, ditch?.spiState ?: "")
+                    putString(ARG_REVOKE_COMMENT, ditch?.revokeComment ?: "")
                     putString(ARG_NODE_DETAILS_JSON, nodeDetailsJson)
                 }
             }
@@ -140,6 +144,11 @@ class GutterInspectBasicFragment : Fragment() {
         }
 
         fun get(key: String) = a.getString(key, "").takeIf { it.isNotEmpty() } ?: "—"
+
+        val revokeComment = a.getString(ARG_REVOKE_COMMENT, "").orEmpty()
+        val shouldShowRevokeComment = a.getString(ARG_SPI_STATE, "") == "2" && revokeComment.isNotBlank()
+        binding.revokeCommentContainer.visibility = if (shouldShowRevokeComment) View.VISIBLE else View.GONE
+        binding.tvRevokeComment.text = revokeComment
 
         binding.tvSpiNum.text = if (ssb.isEmpty()) "—" else ssb
         binding.tvSpiTyp.text = get(ARG_SPI_TYP)
