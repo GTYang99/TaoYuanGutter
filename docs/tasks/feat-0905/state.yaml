@@ -2,8 +2,8 @@ task:
   id: FEAT-0905
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_passed
 
 plan:
   status: approved
@@ -30,7 +30,17 @@ implementation:
     device: "Medium_Phone(AVD) - 14"
 
 verification:
-  status: pending
+  status: completed
+  result: pass
+  report: verification.md
+  verified_revision: 34bb01e
+  implementation_revision: 18c66c7
+  acceptance_criteria:
+    AC-001: pass
+    AC-002: pass
+    AC-003: pass
+    AC-004: pass
+  manual_test_005: not_executed
 
 ci:
   build: local_passed
@@ -43,4 +53,4 @@ review:
   report: plan-review.md
   blocking_issues: []
 
-next_action: verification
+next_action: release
