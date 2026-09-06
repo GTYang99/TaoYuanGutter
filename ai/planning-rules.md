@@ -24,6 +24,8 @@ The template structure MUST match the required sections exactly.
 - Existing Architecture
 - Existing Tests
 - AGENTS.md
+- knowledge-resolution.md (when Knowledge Resolution was required)
+- applicable files under docs/product/, docs/design/, docs/api/, and docs/assets/
 
 ---
 
@@ -77,6 +79,9 @@ Supported task types:
 - feature
 - bugfix
 - debug
+- refactor
+- hotfix
+- docs
 
 For debug tasks:
 
@@ -173,6 +178,98 @@ Implementation MUST NOT begin until the Root Cause has sufficient evidence.
 
 ---
 
+### Refactor
+
+Purpose:
+
+Improve internal structure without changing observable behavior.
+
+Required Outputs:
+
+- requirement.md
+- analysis.md
+- plan.md
+- state.yaml:
+
+```yaml
+task:
+  id: REF-001
+  type: refactor
+```
+
+Planning MUST identify:
+
+- the behavior boundaries that must remain unchanged
+- baseline tests or evidence
+- structural objective and affected dependencies
+- migration and rollback strategy when applicable
+- reusable components affected by the change
+
+Feature work and unrelated bug fixes MUST NOT be included in a refactor task. Plan Review is required.
+
+---
+
+### Hotfix
+
+Purpose:
+
+Correct an urgent production issue with the smallest safe change.
+
+Required Outputs:
+
+- requirement.md
+- analysis.md
+- plan.md (Mini Plan)
+- state.yaml
+
+Planning MAY be expedited but MUST include acceptance criteria, regression risk, validation, and rollback. Verification is never skipped.
+
+---
+
+### Documentation
+
+Purpose:
+
+Change documentation without changing production behavior.
+
+Required Outputs:
+
+- requirement.md
+- plan.md (Mini Plan)
+- state.yaml
+
+Analysis and validation MAY be proportionate to the affected documentation, links, examples, and workflow contracts.
+
+---
+
+## Update state.yaml
+
+When Planning starts:
+
+```yaml
+phase: planning
+status: plan_in_progress
+
+planning:
+  status: in_progress
+
+next_action: planning
+```
+
+When Planning is ready for review:
+
+```yaml
+phase: planning
+status: plan_ready
+
+planning:
+  status: completed
+
+next_action: plan_review
+```
+
+---
+
 ## Restrictions
 
 Planning MUST NOT:
@@ -182,6 +279,7 @@ Planning MUST NOT:
 - lower acceptance criteria
 - perform unrelated refactoring
 - invent missing requirements
+- bypass Knowledge Resolution when authoritative sources materially conflict
 
 ---
 
@@ -189,7 +287,8 @@ Planning MUST NOT:
 
 Planning is complete ONLY IF:
 
-- analysis.md completed
-- plan.md completed
-- Implementation Plan is actionable
+- all artifacts required by the selected task type are completed
+- the Implementation Plan is actionable when a plan is required
+- the root-cause and fix plan are evidence-based when the task type is debug
 - state.yaml updated
+- every acceptance criterion is traceable to a plan step and validation check

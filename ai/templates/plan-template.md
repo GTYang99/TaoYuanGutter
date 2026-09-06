@@ -30,5 +30,16 @@
 ## Expected Behavior
 - 完成後應該怎樣，1~3 句
 
+## Acceptance Criteria Traceability
+| AC | Implementation Step | Validation |
+|---|---|---|
+| AC-001 | 對應的實作步驟 | 對應的測試或檢查 |
+
+## Failure Behavior
+- 錯誤、逾時、空資料或不可用狀態如何處理；不適用就寫 `無`
+
+## Security and Privacy
+- 資料、權限、憑證或隱私影響；不適用就寫 `無`
+
 ## Open Questions
 - 只列還需要決策的問題；沒有就寫 `無`

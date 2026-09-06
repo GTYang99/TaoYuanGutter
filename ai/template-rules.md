@@ -1,10 +1,13 @@
-# Summary
+# Template Rules
 
 Every task artifact MUST be generated from the corresponding template.
 
-Agents MUST NOT invent new sections unless explicitly required.
+Template structure is the canonical minimum structure.
 
-Template structure is the single source of truth.
+Agents MAY add a section only when an approved requirement or phase rule needs evidence that the template does not already represent. Do not remove required sections.
+
+`ai/templates/state-template.yaml` is the single source of truth for state shape. Phase rules define the allowed values and transitions.
+
+Examples are illustrative and MUST NOT override templates, approved requirements, or `AGENTS.md`.
 
 ---
-

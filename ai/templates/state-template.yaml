@@ -1,20 +1,41 @@
-task: ""
+task:
+  id: ""
+  type: feature
 
 phase: planning
+status: plan_in_progress
 
-status: in_progress
+knowledge_resolution:
+  status: not_required
 
-plan:
-  status: draft
+planning:
+  status: in_progress
+
+plan_review:
+  status: pending
 
 implementation:
   status: pending
 
-verification:
+validation:
   status: pending
+
+git:
+  branch: ""
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
 
 ci:
   build: pending
   test: pending
 
+release:
+  status: pending
+
+blocking: []
 next_action: planning

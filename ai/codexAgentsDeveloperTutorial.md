@@ -54,6 +54,16 @@ See:
 ai/architecture.md
 
 ## Workflow
+### Intake Flow
+
+任務依賴多份產品規格、設計圖、API 或資產文件時，先由 Knowledge Resolution 整理來源、固定決策與衝突，再交給 Planning。單一且清楚的小型需求可直接進 Planning。
+
+```text
+Task Intake
+    +-- clear requirement --> Planning
+    +-- multiple or conflicting sources --> Knowledge Resolution --> Planning
+```
+
 ### Success Flow
 ```
 Planning
@@ -70,6 +80,10 @@ Git Commit
 Verification
 ↓
 Release
+↓
+Authorized Merge or Deployment
+↓
+Done
 ```
 ### Fail Flow
 ```
@@ -77,22 +91,14 @@ Verification FAIL
 ↓
 Failure Classification
 ↓
-Requirement -> Planning
+Requirement -> Knowledge Resolution or Planning
 Planning -> Planning
 Implementation -> Debug
 Environment -> Infrastructure
 Unknown -> Investigation
-↓
-Debug
-↓
-Re-Implementation
-↓
-Developer Validation
-↓
-Git Commit
-↓
-Verification
 ```
+
+只有 Implementation failure 會自動進入 Debug 修正迴圈；其他分類必須由各自角色處理後，再回到被阻擋的階段。
 
 ### Task Lifecycle
 
@@ -100,6 +106,10 @@ Verification
 
 ```text
 Task
+↓
+Task Intake
+↓
+Knowledge Resolution（需要跨規格釐清時）
 ↓
 Planning
 ↓
@@ -115,8 +125,12 @@ Verification
 ↓
 Release
 ↓
+Authorized Merge or Deployment
+↓
 Done
 ```
+
+若需求單一、清楚且沒有規格衝突，可由 Task Intake 直接進入 Planning，略過 Knowledge Resolution。
 
 ### Failure Classification
 
@@ -124,7 +138,7 @@ Verification FAIL 時必須先分類，再決定 `next_action`：
 
 | Category | Meaning | Next Action |
 |---|---|---|
-| `requirement` | 需求缺漏或不清楚 | `planning` |
+| `requirement` | 需求缺漏、來源不清楚或互相衝突 | 規格來源衝突進 `knowledge_resolution`，否則進 `planning` |
 | `planning` | 計畫不完整或錯誤 | `planning` |
 | `implementation` | 實作不符合需求或計畫 | `debug` |
 | `environment` | CI、SDK、裝置或基礎設施問題 | `infrastructure` |
@@ -135,11 +149,13 @@ Verification FAIL 時必須先分類，再決定 `next_action`：
 ### Gates
 
 ```text
-Planning
+Requirements Resolved
 ↓
 Plan Approved
 ↓
 Implementation Complete
+↓
+Developer Validation Complete or Limitations Recorded
 ↓
 Git Commit
 ↓
@@ -147,16 +163,25 @@ CI PASS
 ↓
 Verification PASS
 ↓
+Release Approval
+↓
 Merge
+↓
+Done
 ```
 
 - Plan Review 未核准，不得開始 Implementation。
 - Developer Validation 未完成或限制未記錄，不得宣告 Implementation 完成。
 - Verification 必須檢查已 Commit 的 revision。
-- CI 與 Verification 未 PASS，不得 Merge。
+- `NOT VERIFIED` 不等於 PASS，不得進入 Release。
+- CI、Verification 與 Release Approval 未通過，不得 Merge。
+- Merge 或 Deploy 必須取得明確授權，完成後才能將 Task 設為 Done。
 
 ## Role Routing
 ```
+Knowledge Resolution
+↓
+ai/knowledge-resolution-rules.md
 Planning
 ↓
 ai/planning-rules.md
@@ -165,13 +190,22 @@ Plan Review
 ai/plan-critic-rules.md
 Developer
 ↓
-ai/developer-rules.md
+ai/developer-rules.md + ai/coding-rules.md
 Verifier
 ↓
-ai/verification-rules.md
+ai/verification-rules.md + ai/testing-rules.md
 Debug
 ↓
 ai/implementation-debug.md
+Infrastructure
+↓
+ai/infrastructure-rules.md
+Investigation
+↓
+ai/investigation-rules.md
+Release
+↓
+ai/release-rules.md
 ```
 
 ## Required Reading
@@ -180,13 +214,17 @@ ai/implementation-debug.md
 
 | Role | Required Reading |
 |---|---|
+| Knowledge Resolution | `ai/knowledge-resolution-rules.md`、product/design/API/asset sources、repository evidence |
 | Planning | `ai/planning-rules.md`、`ai/architecture.md`、requirement、repository、existing tests |
 | Plan Review | `ai/plan-critic-rules.md`、requirement、analysis、plan、state |
-| Developer | `ai/developer-rules.md`、approved plan、state |
-| Verifier | `ai/verification-rules.md`、requirement、plan、CI、Git Diff、tests |
+| Developer | `ai/developer-rules.md`、`ai/coding-rules.md`、`ai/testing-rules.md`、approved plan、state |
+| Verifier | `ai/verification-rules.md`、`ai/testing-rules.md`、requirement、plan、CI、Git Diff、tests |
 | Debug | `ai/implementation-debug.md`、verification result、failed AC、evidence |
+| Infrastructure | `ai/infrastructure-rules.md`、failing command、environment evidence、originating phase |
+| Investigation | `ai/investigation-rules.md`、issue、observed evidence、state |
+| Release | `ai/release-rules.md`、CI、verification、release risks、state |
 
-`AGENTS.md` 目前另外引用 `coding-rules` 與 `testing-rules`，但 repository 尚未建立相對應檔案。建立前，Developer 與 Verifier 仍以現有 `developer-rules.md`、`verification-rules.md` 與 Task 文件為準，不得假設不存在的規則內容。
+所有 Required Reading 都已有對應規則檔。若入口引用的規則不存在，該階段必須停止，不得自行推測缺少的規則。
 
 ## Issue Management
 Issue Management is used when a task hits a blocker, regression, or requirement mismatch.
@@ -194,9 +232,10 @@ Issue Management is used when a task hits a blocker, regression, or requirement 
 Keep `state.yaml` for the task's main phase and keep issue details in a separate issue log.
 
 Required routing rules:
-- `requirement_gap` returns to `planning`
+- `requirement_gap` returns to `knowledge_resolution` when sources conflict; otherwise `planning`
+- `planning_gap` returns to `planning`
 - `implementation_regression` returns to `debug`
-- `verification_failure` returns to `debug`
+- `verification_failure` must first be classified by root cause
 - `environment` returns to `infrastructure`
 - `unknown` returns to `investigation`
 
@@ -209,19 +248,52 @@ Priority guidance:
 ## Task Memory
 任務資料請統一放在 `docs/tasks/[開發編號]/`，並維持與 `AGENTS.md` 相同的任務階段檔案。
 
+跨 Task 的固定規格放在下列產品層文件，不要複製成每個 Task 各自維護的版本：
+
+- `docs/product/`：產品目標、範圍、固定決策與 Acceptance Criteria
+- `docs/design/`：畫面、元件、狀態、互動與 accessibility
+- `docs/api/`：request、response、error、相容性與 retry contract
+- `docs/assets/`：資產來源、授權、使用限制與 reuse 範圍
+
+各資料夾已提供最小範本。Task 只引用相關規格；若不同層的內容互相矛盾，先建立 `knowledge-resolution.md`，不得由 Planning 或 Developer 自行猜測。
+
 建議檔案：
 ```
 docs/tasks/TYG-001/
+├── knowledge-resolution.md  ← 需要跨規格釐清時建立
 ├── requirement.md
 ├── analysis.md
 ├── plan.md
+├── plan-review.md
 ├── state.yaml
+├── execution-report.md
+├── issue-log.md             ← 發現 Issue 時建立
+├── root-cause.md            ← Debug 時建立
+├── fix-plan.md              ← Debug 時建立
 └── verification.md
 ```
 
-Planning / Verification / Debug 都先讀 `state.yaml`，再根據對應規則檔執行。
+所有角色都先讀 `state.yaml`，再根據對應規則檔執行。Release decision 記錄在 `state.yaml`；需要獨立發布紀錄時，可依 `release-rules.md` 補充 release artifact。
 
 ## Stage Handoff
+
+### Knowledge Resolution
+
+輸入：使用者需求、產品規格、設計、API、資產文件與 repository evidence。只有多來源、缺漏或衝突會影響實作判斷時才需要這個階段。
+
+Resolved：
+
+```yaml
+phase: knowledge_resolution
+status: knowledge_resolved
+
+knowledge_resolution:
+  status: resolved
+
+next_action: planning
+```
+
+若仍有重大衝突，設為 `status: blocked`、記錄 `blocking`，並使用 `next_action: requirement_clarification`。
 
 ### Planning
 
@@ -248,6 +320,22 @@ phase: planning
 status: plan_ready
 next_action: plan_review
 ```
+
+### Plan Review
+
+輸入：requirement、analysis、plan、state 與 Plan Critic Rules。只有核准後才能進入 Implementation。
+
+```yaml
+phase: plan_review
+status: approved
+
+plan_review:
+  status: approved
+
+next_action: implementation
+```
+
+需要修改時使用 `status: changes_requested` 與 `next_action: planning`；需求本身不清楚時使用 `status: blocked` 與 `next_action: requirement_clarification`。
 
 ### Development
 
@@ -295,20 +383,94 @@ blocking:
 next_action: debug
 ```
 
+NOT VERIFIED：
+
+```yaml
+phase: verification
+status: verification_not_verified
+
+verification:
+  result: not_verified
+  category: environment
+  not_verified_acceptance_criteria:
+    - AC-003
+
+blocking:
+  - Required device test was not available
+
+next_action: infrastructure
+```
+
+若不需要 Infrastructure，只是仍待補充可取得的驗證證據，維持 `next_action: verification`。`NOT VERIFIED` 不得進入 Release。
+
+### Debug and Re-Implementation
+
+Implementation failure 先由 Debug 讀取 verification、failed AC 與 evidence，建立 `root-cause.md` 和 `fix-plan.md`。取得充分根因證據後：
+
+```yaml
+phase: debug
+status: debug_complete
+
+debug:
+  status: completed
+  root_cause: identified
+
+next_action: implementation_debug
+```
+
+Developer 再依核准的 fix plan 進行 Re-Implementation、Developer Validation、建立新 Commit，最後回到 Verification。
+
+### Infrastructure
+
+Environment failure 由 Infrastructure 保存失敗命令、環境與修復證據，不得修改 production code，也不得把未執行檢查標成 PASS。處理後回到原本被阻擋的 Implementation 或 Verification。
+
+### Investigation
+
+Unknown failure 由 Investigation 收集證據並分類為 requirement、planning、implementation 或 environment，再交給 Knowledge Resolution、Planning、Debug 或 Infrastructure。證據不足時保持 blocked，不得猜測分類。
+
+### Release
+
+Release 確認 CI、Verification、Acceptance Criteria、P0/P1 Issue 與 release risk。通過後只表示等待人工授權：
+
+```yaml
+phase: release
+status: release_ready
+
+release:
+  status: approved
+
+next_action: human_release
+```
+
+取得 Authorized Merge 或 Deployment 證據後，才能更新為：
+
+```yaml
+phase: done
+status: done
+
+release:
+  status: completed
+
+next_action: none
+```
+
 ## Workflow, Files Saved Structure, Storage Strategy
 
 ### Artifacts and execution evidence
 
-1. `requirement.md`
-2. `analysis.md`
-3. `plan.md`
-4. `state.yaml`
-5. `verification.md`
-6. Developer implementation
-7. Git branch and commit
-8. GitHub Actions build and tests
-9. Independent Verification Thread
-10. Human merge
+1. `knowledge-resolution.md`，需要跨規格釐清時建立
+2. `requirement.md`
+3. `analysis.md`
+4. `plan.md`
+5. `plan-review.md`
+6. `state.yaml`
+7. `execution-report.md`
+8. `issue-log.md`，發現 Issue 時建立
+9. `root-cause.md` 與 `fix-plan.md`，進入 Debug 時建立
+10. `verification.md`
+11. Developer implementation、Git branch 與 commit
+12. CI build、tests 與獨立 Verification evidence
+13. Release decision 與 Authorized Merge 或 Deployment evidence
 
 ### Task-oriented storage
 
@@ -320,7 +482,10 @@ Project
 │   ├── requirement.md
 │   ├── analysis.md
 │   ├── plan.md
+│   ├── plan-review.md
 │   ├── state.yaml
+│   ├── execution-report.md
+│   ├── issue-log.md
 │   └── verification.md
 ├── Thread A                 ← Planning / Analysis
 ├── Thread B                 ← Developer
@@ -335,24 +500,35 @@ Project/
 ├── gradle/
 ├── build.gradle.kts
 ├── AGENTS.md
+├── docs/
+│   ├── product/
+│   ├── design/
+│   ├── api/
+│   ├── assets/
+│   └── tasks/TYG-001/
+│       ├── requirement.md
+│       ├── analysis.md
+│       ├── plan.md
+│       ├── plan-review.md
+│       ├── state.yaml
+│       ├── execution-report.md
+│       ├── issue-log.md
+│       └── verification.md
 ├── ai/
 │   ├── architecture.md
 │   ├── planning-rules.md
 │   ├── plan-critic-rules.md
-│   ├── coding-rules.md          ← AGENTS 已引用，目前尚未建立
-│   ├── testing-rules.md         ← AGENTS 已引用，目前尚未建立
+│   ├── coding-rules.md
+│   ├── testing-rules.md
 │   ├── developer-rules.md
 │   ├── verification-rules.md
 │   ├── implementation-debug.md
 │   ├── issue-management.md
 │   ├── git-rules.md
-│   └── release-rules.md         ← 規劃中的規則，目前尚未建立
-└── docs/tasks/TYG-001/
-    ├── requirement.md
-    ├── analysis.md
-    ├── plan.md
-    ├── state.yaml
-    └── verification.md
+│   ├── knowledge-resolution-rules.md
+│   ├── infrastructure-rules.md
+│   ├── investigation-rules.md
+│   └── release-rules.md
 ```
 
 ## AI Agents For Rules
@@ -365,34 +541,47 @@ Project/
 AGENTS.md
 ai/
 ├── architecture.md
+├── knowledge-resolution-rules.md
 ├── planning-rules.md
 ├── plan-critic-rules.md
+├── coding-rules.md
+├── testing-rules.md
 ├── developer-rules.md
 ├── verification-rules.md
 ├── implementation-debug.md
+├── infrastructure-rules.md
+├── investigation-rules.md
+├── release-rules.md
 ├── issue-management.md
 └── git-rules.md
 docs/tasks/[開發編號]/
 ├── requirement.md
 ├── analysis.md
 ├── plan.md
+├── plan-review.md
 ├── state.yaml
+├── execution-report.md
+├── issue-log.md
 └── verification.md
 ```
 
 ## AI Agents Developer Procedure
-1) ***Analysis Agent***
+1) ***Knowledge Resolution Agent***（有多份、缺漏或衝突規格時）
+   + Product / Design / API / Asset Source Reader
+   + Source Authority and Conflict Resolution
+   + 輸出 `knowledge-resolution.md`，resolved 後交給 Planning
+2) ***Planning Agent / Analysis Agent***
    + Requirement Reader, 理解 Requirement （Requirement 由開發者提供，不憑空出現）
    + Repository Analyst
    + Impact Analyst
    + Implementation Planner
-2) ***Plan Critic Agent / 反證AI***（Falsification / Negative Testing for Requirements ）
-3) ***Develop Agent***
+3) ***Plan Critic Agent / 反證AI***（Falsification / Negative Testing for Requirements ）
+4) ***Develop Agent***
    + **Implementation**
    + code
    + tests
    + commit
-4) PR and CI / CD
+5) PR and CI / CD
 ```
 Verifier
 ├── Semantic verification
@@ -404,7 +593,7 @@ GitHub Actions
 ├── Lint
 └── Static checks
 ```
-5) ***Verification AI Agent*** (**Adversarial Verification**)
+6) ***Verification AI Agent*** (**Adversarial Verification**)
    + Verifier & validation
    ``` 
    # TYG-001 有沒有正確完成？
@@ -480,15 +669,15 @@ GitHub Actions
       - AC-002
       - AC-004
 
-      next_action:
-        debug
+      next_action: debug
       ```
-      + Developer Agent 重新讀 state.yaml + verification.md，***針對 blocking issues 修正***。。
+      + Debug Agent 先讀 `state.yaml`、`verification.md` 與 evidence，建立 `root-cause.md` 和 `fix-plan.md`。
+      + 根因證據充分且 fix plan 核准後，Developer Agent 才依 `next_action: implementation_debug` 進行修正。
       + Regression
       + Crash Hypothesis
       + 迭代第二次...
       + Acceptance Criteria
-6) Release Risk Analysis
+7) Release Risk Analysis
 ```prompt
 這個版本是否有：
 Database Migration
@@ -501,7 +690,7 @@ Proguard/R8 Risk
 Background Execution Change
 Security Risk
 ```
-7) Tasks State (整理需求文件.md)
+8) Tasks State (整理需求文件.md)
    + Task State 不等於開發日誌，它比較像「目前任務狀態表」；開發日誌是過程紀錄
    + 然後任何 Agent 接手, 先讀 state.yaml
 ## 多平台資源嫁接開發
@@ -518,11 +707,16 @@ Project/
 │
 ├── ai/
 │   ├── architecture.md
+│   ├── knowledge-resolution-rules.md
 │   ├── planning-rules.md
 │   ├── plan-critic-rules.md
 │   ├── coding-rules.md
 │   ├── testing-rules.md
+│   ├── developer-rules.md
 │   ├── verification-rules.md
+│   ├── implementation-debug.md
+│   ├── infrastructure-rules.md
+│   ├── investigation-rules.md
 │   └── release-rules.md
 │
 └── docs/tasks/
@@ -548,10 +742,14 @@ Project/
 為了和 `AGENTS.md` 保持一致，建議補上這些狀態概念：
 
 - Planning: `plan_in_progress` -> `plan_ready`
+- Knowledge Resolution: `not_required`，或執行後進入 `knowledge_resolved` / `blocked`
 - Plan Review: `review_in_progress` -> `approved` / `changes_requested` / `blocked`
 - Implementation: `implementation_in_progress` -> `implementation_complete`
-- Verification: `verification_in_progress` -> `verification_passed` / `verification_failed`
+- Verification: `verification_in_progress` -> `verification_passed` / `verification_failed` / `verification_not_verified`
 - Verification failure 要依分類切到 `debug`、`planning`、`infrastructure` 或 `investigation`
+- Verification `NOT VERIFIED` 不得進入 Release
+- Release: `release_ready` -> `human_release` -> `done`，Merge / Deploy 仍需明確授權
+- Release readiness 使用 `next_action: human_release`；取得授權與執行證據後才更新為 `phase: done`
 
 ## Global Rules
 
@@ -562,7 +760,7 @@ Project/
 - 不跳過必要測試
 - 不執行與 Task 無關的 refactor
 
-若執行過程發現需求需要改變，應停止目前階段並依 Failure Classification 回到 Planning，不得由 Developer 或 Verifier 直接重寫需求。
+若執行過程發現需求需要改變，應停止目前階段並依 Failure Classification 進入 Knowledge Resolution 或 Planning，不得由 Developer 或 Verifier 直接重寫需求。
 
 ## Task State
 Task State 不等於開發日誌，它比較像「目前任務狀態表」；開發日誌是過程紀錄。
@@ -594,8 +792,9 @@ Task State 不等於開發日誌，它比較像「目前任務狀態表」；開
 
 先建立或更新 issue，記錄影響、重現方式、預期、實際結果、priority 與 category，再依分類處理：
 
-- 需求缺漏回 Planning
-- 實作 regression 或 Verification failure 回 Debug
+- 規格來源缺漏或衝突進 Knowledge Resolution；需求本身清楚但 Task requirement 不完整時回 Planning
+- 實作 regression 回 Debug
+- Verification failure 先分類根因，再依 requirement、planning、implementation、environment 或 unknown 路由
 - 環境問題交給 Infrastructure
 - 無法分類時進 Investigation
 
@@ -605,4 +804,4 @@ Task State 不等於開發日誌，它比較像「目前任務狀態表」；開
 
 ### 誰執行 Commit
 
-Developer 在 Implementation 與 Developer Validation 完成後建立 Commit。Verifier 只驗證已 Commit revision，不修改 production code；Merge 則在 CI 與 Verification PASS 後由流程負責人或人工執行。
+Developer 在 Implementation 與 Developer Validation 完成後建立 Commit。Verifier 只驗證已 Commit revision，不修改 production code；CI 與 Verification PASS 後仍須通過 Release Review，取得明確授權才由流程負責人或人工執行 Merge 或 Deploy，最後更新為 Done。

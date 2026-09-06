@@ -34,6 +34,7 @@ Closed
 ## Issue Types
 
 - `requirement_gap`
+- `planning_gap`
 - `implementation_regression`
 - `verification_failure`
 - `environment`
@@ -53,9 +54,10 @@ Closed
 
 ## Phase Routing
 
-- `requirement_gap` -> `planning`
+- `requirement_gap` -> `knowledge_resolution` when authoritative sources conflict; otherwise `planning`
+- `planning_gap` -> `planning`
 - `implementation_regression` -> `debug`
-- `verification_failure` -> `debug`
+- `verification_failure` -> classify the root cause, then use the matching route
 - `environment` -> `infrastructure`
 - `unknown` -> `investigation`
 - `enhancement_request` -> backlog or a separate task
@@ -93,3 +95,5 @@ owner: developer
 - Record issue details in a separate issue log when a problem appears.
 - Always classify before changing code.
 - Do not treat a requirement mismatch as a code fix.
+- `verification_failure` describes where an issue was detected, not its root cause; classify it as requirement, planning, implementation, environment, or unknown before routing.
+- Keep issue priority separate from failure category. Priority expresses impact; category determines ownership.

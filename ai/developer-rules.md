@@ -24,8 +24,10 @@ Developer MUST read:
 - plan.md
 - state.yaml
 - developer-rules.md
+- coding-rules.md
+- testing-rules.md
 
-Repository MUST be synchronized before implementation.
+Developer MUST inspect the current branch and working tree before implementation and preserve unrelated changes.
 
 ---
 
@@ -56,6 +58,9 @@ Developer MUST:
 - Keep logging and error handling consistent.
 - Maintain backward compatibility unless specified.
 - Use the sample code like OOP.
+- Follow `ai/coding-rules.md`.
+- Select and record validation according to `ai/testing-rules.md`.
+- Inspect the repository for an existing equivalent before creating a reusable component or abstraction.
 
 ---
 
@@ -301,6 +306,8 @@ Developer MUST stop implementation if:
 - state.yaml indicates planning is incomplete
 - implementation scope is unclear
 - current branch is incorrect
+- a necessary code change falls outside the approved plan
+- specifications conflict in a way that changes behavior or acceptance criteria
 
 ---
 

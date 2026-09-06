@@ -161,9 +161,9 @@ Planning cannot continue until external clarification or human decision is provi
 ```yaml
 phase: plan_review
 
-status:
+status: review_in_progress
 
-next_action:
+next_action: plan_review
 
 review:
   result:

@@ -33,6 +33,7 @@ Verification MUST read:
 - Git Diff
 - CI Results
 - Existing Tests
+- testing-rules.md
 
 ---
 
@@ -145,6 +146,8 @@ FAIL
 
 NOT VERIFIED
 
+`NOT VERIFIED` is not PASS and MUST NOT advance to Release.
+
 If FAIL, Verification MUST:
 
 - classify the failure category
@@ -152,6 +155,13 @@ If FAIL, Verification MUST:
 - provide concrete evidence
 - recommend the next action
 - determine whether debug is required before re-implementation
+
+If NOT VERIFIED, Verification MUST:
+
+- identify the missing or unavailable evidence
+- record the affected acceptance criteria
+- classify an environmental blocker as `environment` when applicable
+- route to `infrastructure` or keep `next_action: verification` until evidence is available
 
 ---
 
@@ -194,6 +204,44 @@ verification:
 
 next_action: debug
 ```
+
+When verification fails because requirements or authoritative sources are incomplete or conflicting:
+
+```yaml
+phase: verification
+status: verification_failed
+
+verification:
+  result: fail
+  category: requirement
+  failed_acceptance_criteria:
+    - AC-003
+
+next_action: knowledge_resolution
+```
+
+Use `next_action: planning` instead when the requirement is clear and only the task requirement or acceptance criteria need Planning ownership.
+
+When verification cannot be completed because evidence is unavailable:
+
+```yaml
+phase: verification
+status: verification_not_verified
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-003
+
+blocking:
+  - Required device test was not available
+
+next_action: infrastructure
+```
+
+When evidence can be gathered without infrastructure work, keep `next_action: verification` and record the missing evidence.
 
 ```yaml
 phase: verification
@@ -252,3 +300,4 @@ Verification completes ONLY IF:
 - Evidence attached
 - state.yaml updated
 - Final verification result generated
+- no `NOT VERIFIED` result is represented as PASS
