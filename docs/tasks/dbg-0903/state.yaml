@@ -44,8 +44,8 @@ validation:
 
 git:
   branch: feat/退回原因
-  commit: ""
-  status: pending_commit
+  commit: 4d9829d
+  status: committed
 
 verification:
   result: pending
