@@ -1,51 +1,64 @@
-task: DBG-0903
+task:
+  id: DBG-0903
+  type: debug
 
 phase: implementation
-
 status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: completed
 
 debug:
   status: completed
-  root_cause: inspect_route_padding_not_released_on_main_map_return
+  root_cause: layer_visibility_not_gating_polyline_interaction_and_no_ditch_wms_hit_target_has_no_tolerance
+  issues:
+    - ISS-DBG-0903-008
+    - ISS-DBG-0903-009
 
 implementation:
   status: completed
-  build:
-    status: passed
-  unit_test:
-    status: passed
-  device_install:
-    status: passed
-    device: QV710EDR3A
-  device_launch:
-    status: passed
-    foreground_activity: com.example.taoyuangutter/.login.LoginActivity
-  pending_device_verification:
-    - ISS-DBG-0903-007 main map full viewport after inspect return
+  previous_commits:
+    - c4cc8f6
+    - 94e34a7
+  changes:
+    - ISS-DBG-0903-008 gated hidden gutter-layer polyline inspection and synchronized polyline clickability with visibility.
+    - ISS-DBG-0903-009 added no-ditch nearby point hit testing and disabled stale no-ditch marker clicks when the layer is off.
+
+validation:
+  status: completed
+  passed:
+    - git diff --check
+    - targeted debug unit tests for ScopeGutterPolylineControllerTest and NoDitchPointHitTesterTest
+    - full testDebugUnitTest
+    - assembleDebug
+    - emulator install and launch smoke test
+  not_verified:
+    - ISS-DBG-0903-008 Samsung/real-device manual layer-disabled polyline inspection behavior
+    - ISS-DBG-0903-009 Samsung/real-device manual no-ditch WMS tap tolerance
+
+git:
+  branch: feat/退回原因
+  commit: ""
+  status: pending_commit
 
 verification:
-  result: fail
-  category: implementation
-  revision: 8a7cee5
-  failed_acceptance_criteria:
-    - AC-INSPECT-FIT-001
-  local_validation:
-    unit_test: passed
-    compile_debug_kotlin: passed
-    assemble_debug: passed
-    device_available: true
-    device_ui_available: true
-  environment_block:
-    - Initial device UI was unavailable until the device was manually awakened
-  missing: []
-  passed:
-    - Real-device login and automatic scopeSearch after initial map load
-    - Real-device rvWaypoints 起點 and 終點 form navigation
-    - Real-device submit long-press simulation Alert
-    - Source-level 16 zoom gutter layer gate
-    - Source-level edit delete gutter host routing
-    - Unit-level add gutter non-timeout network error classification
-    - Real-device edit delete gutter confirmation
-    - Real-device add gutter non-timeout network error copy
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
 
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking:
+  - Samsung/real-device manual interaction verification is still required.
 next_action: verification

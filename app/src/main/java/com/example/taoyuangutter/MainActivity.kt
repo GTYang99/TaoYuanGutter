@@ -67,6 +67,7 @@ import com.example.taoyuangutter.map.MarkerIconFactory
 import com.example.taoyuangutter.map.MapOverlayController
 import com.example.taoyuangutter.map.MeasureConfig
 import com.example.taoyuangutter.map.MyLocationController
+import com.example.taoyuangutter.map.NoDitchPointHitTester
 import com.example.taoyuangutter.map.ScopeMapCoordinator
 import com.example.taoyuangutter.map.ScopeGutterPolylineController
 import com.example.taoyuangutter.map.ScopeViewportLoader
@@ -874,6 +875,9 @@ class MainActivity : AppCompatActivity(),
 
             // 檢查是否為無側溝點位
             if (marker.tag is NoDitchPoint) {
+                if (!mapOverlayController.currentState().showNoDitchPoints) {
+                    return@setOnMarkerClickListener true
+                }
                 fetchAndShowNoDitchPointNote(marker)
                 return@setOnMarkerClickListener true
             }
@@ -896,6 +900,7 @@ class MainActivity : AppCompatActivity(),
             map.setOnPolylineClickListener { polyline ->
                 // 測距模式：略過側溝線段點擊，避免開啟檢視表單
                 if (measureManager?.isMeasuring == true) return@setOnPolylineClickListener
+                if (!mapOverlayController.currentState().showPlan) return@setOnPolylineClickListener
                 openInspectBottomSheet(polyline)
             }
         }
@@ -2732,6 +2737,16 @@ class MainActivity : AppCompatActivity(),
         targetLatLng: LatLng,
         showNoNoteToast: Boolean
     ) {
+        val nearbyPoint = NoDitchPointHitTester.findNearest(
+            targetLatLng = targetLatLng,
+            candidates = noDitchPoints,
+            radiusMeters = noDitchTapRadiusMeters()
+        )
+        if (nearbyPoint != null) {
+            showNoDitchPointNote(nearbyPoint.note, showNoNoteToast)
+            return
+        }
+
         val map = googleMap ?: return
         val bounds = map.projection.visibleRegion.latLngBounds
         val mapView = binding.map
@@ -2760,19 +2775,32 @@ class MainActivity : AppCompatActivity(),
                     ?.mapNotNull { it.properties.note }
                     ?.firstOrNull()
 
-                if (note.isNullOrBlank()) {
-                    if (!showNoNoteToast) return@launch
-                    Toast.makeText(this@MainActivity, "此點位無備註", Toast.LENGTH_SHORT).show()
-                } else {
-                    AlertDialog.Builder(this@MainActivity)
-                        .setTitle("無側溝點位備註")
-                        .setMessage(note)
-                        .setPositiveButton("確定", null)
-                        .show()
-                }
+                showNoDitchPointNote(note, showNoNoteToast)
             } catch (e: Exception) {
                 android.util.Log.e("MainActivity", "Failed to fetch no ditch point note", e)
             }
         }
+    }
+
+    private fun noDitchTapRadiusMeters(): Float {
+        val zoom = googleMap?.cameraPosition?.zoom ?: 16f
+        return when {
+            zoom >= 19f -> 8f
+            zoom >= 18f -> 12f
+            zoom >= 17f -> 18f
+            else -> 28f
+        }
+    }
+
+    private fun showNoDitchPointNote(note: String?, showNoNoteToast: Boolean) {
+        if (note.isNullOrBlank()) {
+            if (showNoNoteToast) Toast.makeText(this, "此點位無備註", Toast.LENGTH_SHORT).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("無側溝點位備註")
+            .setMessage(note)
+            .setPositiveButton("確定", null)
+            .show()
     }
 }

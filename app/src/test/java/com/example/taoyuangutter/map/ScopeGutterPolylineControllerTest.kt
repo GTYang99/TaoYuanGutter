@@ -44,7 +44,51 @@ class ScopeGutterPolylineControllerTest {
 
         val polylineSet = controller.entries().single().value
         assertFalse(polylineSet.inner.isVisible)
+        assertFalse(polylineSet.inner.isClickable)
         assertFalse(polylineSet.outline?.isVisible ?: true)
+    }
+
+    @Test
+    fun setVisibleDisablesAndRestoresInnerPolylineClickability() {
+        val renderer = FakeRenderer()
+        val controller = ScopeGutterPolylineController(renderer = renderer)
+
+        controller.drawFeatures(
+            features = listOf(feature("A")),
+            savedGroupId = 7
+        )
+        val inner = controller.entries().single().value.inner
+
+        assertTrue(inner.isClickable)
+
+        controller.setVisible(false)
+        assertFalse(inner.isVisible)
+        assertFalse(inner.isClickable)
+
+        controller.setVisible(true)
+        assertTrue(inner.isVisible)
+        assertTrue(inner.isClickable)
+    }
+
+    @Test
+    fun setVisibleDoesNotEnablePolylineCreatedAsNonClickable() {
+        val renderer = FakeRenderer()
+        val controller = ScopeGutterPolylineController(renderer = renderer)
+
+        controller.drawFeatures(
+            features = listOf(feature("A")),
+            savedGroupId = 7,
+            clickable = false
+        )
+        val inner = controller.entries().single().value.inner
+
+        assertFalse(inner.isClickable)
+
+        controller.setVisible(false)
+        controller.setVisible(true)
+
+        assertTrue(inner.isVisible)
+        assertFalse(inner.isClickable)
     }
 
     private class FakeRenderer : ScopeGutterPolylineController.ScopePolylineRenderer {
@@ -55,14 +99,16 @@ class ScopeGutterPolylineControllerTest {
         override fun addPolyline(options: PolylineOptions): ScopeGutterPolylineController.ScopePolylineHandle {
             return FakeHandle(
                 color = options.color,
-                isVisible = options.isVisible
+                isVisible = options.isVisible,
+                isClickable = options.isClickable
             ).also(handles::add)
         }
     }
 
     private class FakeHandle(
         override var color: Int,
-        override var isVisible: Boolean
+        override var isVisible: Boolean,
+        override var isClickable: Boolean
     ) : ScopeGutterPolylineController.ScopePolylineHandle {
         override var tag: Any? = null
         var removed: Boolean = false

@@ -156,3 +156,125 @@ validation:
 next_action: debug
 owner: developer
 ```
+
+## ISS-DBG-0903-008
+
+```yaml
+issue_id: ISS-DBG-0903-008
+task_id: DBG-0903
+phase: debug
+category: implementation_regression
+priority: P1
+title: Main-map gutter inspection remains clickable after the plan investigation layer is disabled
+status: implemented_pending_device_verification
+impact: Users can still open gutter inspection from the main map even after disabling the layer that visually represents the current plan investigation/gutter layer.
+repro_steps:
+  - Open the main map.
+  - Open the layer sheet.
+  - Disable the current plan investigation/gutter layer.
+  - Tap a previously loaded gutter line location on the map.
+expected: When the plan/gutter layer is disabled, its visual geometry and inspection hit target should both be disabled.
+actual: The visible layer can be disabled, but tapping the map can still trigger gutter inspection.
+evidence:
+  - Reported after multi-device testing.
+  - MapWorkspaceFragment.setOnPolylineClickListener() always calls openInspectBottomSheet(polyline) unless measure mode is active.
+  - onOverlayTogglesChanged() only calls scopeGutterPolylineController.setVisible(showPlan) for scope polylines.
+error_source:
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:557
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:559
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:680
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:689
+  - app/src/main/java/com/example/taoyuangutter/map/ScopeGutterPolylineController.kt:93
+  - app/src/main/java/com/example/taoyuangutter/map/ScopeGutterPolylineController.kt:182
+root_cause:
+  - The overlay toggle changes visual visibility through ScopeGutterPolylineController.setVisible(showPlan), but it does not disable the polyline click route.
+  - ScopeGutterPolylineController.drawFeatures() creates inner polylines with clickable=true and setVisible(false) later only updates isVisible.
+  - MapWorkspaceFragment.onPolylineClick does not check mapOverlayController.currentState().showPlan before opening inspection.
+  - Therefore stale clickable polyline objects remain eligible for inspection routing even when the product state says the layer is off.
+debug_analysis:
+  - The code separates visibility from interaction.
+  - Visual state is controlled by the layer sheet toggle.
+  - Interaction state is controlled by GoogleMap's global polyline click listener and each polyline's clickable flag.
+  - The two states are not synchronized when the layer is disabled.
+  - The naming also increases confusion: UI label is "本次計畫調查", while code paths include both showPlan for scope polylines and showPossible for roadServey WMS. The inspectable gutter polyline path currently follows showPlan, not showPossible.
+fix_direction:
+  - Gate MapWorkspaceFragment.onPolylineClick with the same overlay state that controls inspectable gutter polyline visibility.
+  - Prefer also updating ScopeGutterPolylineController.setVisible() to keep clickable aligned with visible if its handle abstraction is extended to support clickable.
+  - Clarify whether the product meaning of "本次計畫調查圖層" maps to showPlan scope polylines or showPossible roadServey WMS before changing labels or broader behavior.
+implementation:
+  - Added an overlay-state gate to MapWorkspaceFragment polyline click handling so hidden plan/scope gutter layers cannot open inspection.
+  - Added the same gate to legacy MainActivity for retained entry points.
+  - Extended ScopeGutterPolylineController handles with clickable state and synchronized clickable=false when the layer is hidden.
+  - Preserved each polyline's original interaction setting when visibility is restored.
+validation:
+  - git diff --check passed.
+  - ScopeGutterPolylineControllerTest passed for hidden-state click disabling and restore behavior.
+  - Full testDebugUnitTest passed.
+  - assembleDebug passed.
+  - Emulator install and launch passed.
+  - Real-device manual layer-off tap verification is still required.
+next_action: verification
+owner: developer
+```
+
+## ISS-DBG-0903-009
+
+```yaml
+issue_id: ISS-DBG-0903-009
+task_id: DBG-0903
+phase: debug
+category: implementation_regression
+priority: P2
+title: No-ditch WMS point layer has a smaller practical tap target than users expect
+status: implemented_pending_device_verification
+impact: Users see no-ditch points on the WMS layer but cannot reliably tap them to open the point note.
+repro_steps:
+  - Open the main map.
+  - Enable the no-ditch point layer.
+  - Tap near a visible no-ditch point on the WMS overlay.
+expected: Tapping the visible no-ditch point should reliably open its note within a practical touch tolerance.
+actual: The hit area is too small, so users often cannot select the point.
+evidence:
+  - Reported during real-device operation.
+  - The app displays no-ditch points as a WMS tile overlay and separately loads WFS markers for interaction.
+  - Map click fallback calls WMS GetFeatureInfo with a single exact screen pixel I/J and no click buffer.
+error_source:
+  - app/src/main/java/com/example/taoyuangutter/map/MapOverlayController.kt:146
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:535
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:540
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:1360
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:1407
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:1432
+  - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:1477
+root_cause:
+  - The visible no-ditch layer is a WMS TileOverlay, which is not itself clickable in Google Maps.
+  - Interaction is implemented separately through WFS-loaded markers and a WMS GetFeatureInfo fallback.
+  - The marker icon is rendered at 20dp and uses the default marker hit behavior, while the map-click fallback queries exactly one screen coordinate without expanding the search area.
+  - Because visual WMS pixels, WFS marker positions, and exact GetFeatureInfo I/J hit testing are not unified, the practical tap target is smaller than the visible point symbol users see.
+debug_analysis:
+  - Enabling showNoDitchPoints creates the WMS overlay and triggers loadNoDitchPointsForVisibleArea().
+  - loadNoDitchPointsForVisibleArea() uses the current visible BBOX to create GoogleMap markers from WFS results, but only points returned by the visible BBOX become marker hit targets.
+  - handleMainMapTap() calls fetchAndShowNoDitchPointNoteAt() when no-ditch layer is enabled and report-pick mode is not active.
+  - fetchAndShowNoDitchPointNoteAt() computes I/J from projection.toScreenLocation(targetLatLng) and sends that single pixel to GetFeatureInfo.
+  - No radius, nearby-marker search, expanded BBOX, or multi-pixel sampling is used.
+  - On high-density screens, small WMS symbols, fractional zoom, or slight WMS/WFS coordinate differences make a normal finger tap miss the exact feature pixel.
+fix_direction:
+  - Add a practical hit tolerance for no-ditch taps, preferably by first searching loaded WFS markers/points near the tapped LatLng within a zoom-aware meter radius.
+  - If no nearby loaded point is found, query GetFeatureInfo with a small pixel grid or server-supported buffer if available.
+  - Increase the interactive marker icon/hit target independently from the WMS visual symbol if necessary.
+  - Keep WMS visibility and WFS marker lifecycle synchronized when showNoDitchPoints is toggled.
+implementation:
+  - Added NoDitchPointHitTester to search loaded WFS points near the tapped LatLng before falling back to WMS GetFeatureInfo.
+  - Added zoom-aware tap radii so high zoom remains precise and lower zoom keeps a practical finger target.
+  - Kept WMS GetFeatureInfo fallback for WMS-visible points that are not present in the currently loaded WFS marker set.
+  - Added no-ditch marker click guards so stale markers cannot show notes after the layer is disabled.
+validation:
+  - git diff --check passed.
+  - NoDitchPointHitTesterTest passed for nearest-point hit and outside-radius miss behavior.
+  - Full testDebugUnitTest passed.
+  - assembleDebug passed.
+  - Emulator install and launch passed.
+  - Real-device manual WMS-nearby tap verification is still required.
+next_action: verification
+owner: developer
+```

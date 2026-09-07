@@ -100,3 +100,24 @@ The repository environment does not provide a connected Android device or emulat
 ## 2026-09-04 Main Map Viewport Restore Limitation
 
 - Manual visual confirmation is still required after login: inspect a gutter, return to the main map, then confirm the map pans/zooms using the full screen rather than the prior 1/3 inspect viewport.
+
+## 2026-09-07 Layer Interaction And No-Ditch Hit Target Bug-Fix
+
+- Added layer-state gates before gutter polyline inspection opens in `MapWorkspaceFragment` and legacy `MainActivity`.
+- Updated `ScopeGutterPolylineController` so hiding the plan/scope gutter layer also disables each polyline hit target, then restores only originally clickable polylines.
+- Added `NoDitchPointHitTester` so no-ditch map taps first search nearby loaded WFS points with a zoom-aware meter radius before using the existing WMS `GetFeatureInfo` fallback.
+- Added no-ditch marker click guards so disabled no-ditch layers cannot show notes through stale marker interaction.
+
+## 2026-09-07 Layer Interaction And No-Ditch Hit Target Validation
+
+- `git diff --check`: PASS
+- `./gradlew testDebugUnitTest --tests 'com.example.taoyuangutter.map.ScopeGutterPolylineControllerTest' --tests 'com.example.taoyuangutter.map.NoDitchPointHitTesterTest' --no-daemon`: PASS
+- `./gradlew testDebugUnitTest --no-daemon`: PASS
+- `./gradlew assembleDebug --no-daemon`: PASS
+- Emulator `emulator-5554` APK install: PASS
+- Emulator launch: PASS, foreground activity confirmed as `com.example.taoyuangutter/.login.LoginActivity`
+
+## 2026-09-07 Layer Interaction And No-Ditch Hit Target Limitation
+
+- Samsung/real-device manual verification is still required: close the plan/scope gutter layer and confirm line taps do not open inspection.
+- Samsung/real-device manual verification is still required: open the no-ditch point layer and confirm nearby taps on visible WMS points reliably open notes.

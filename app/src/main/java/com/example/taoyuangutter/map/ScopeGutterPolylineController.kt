@@ -39,7 +39,8 @@ class ScopeGutterPolylineController(
 
     data class ScopePolylineSet(
         val inner: ScopePolylineHandle,
-        val outline: ScopePolylineHandle?
+        val outline: ScopePolylineHandle?,
+        val isInteractionEnabled: Boolean = true
     ) {
         fun remove() {
             inner.remove()
@@ -50,6 +51,7 @@ class ScopeGutterPolylineController(
     interface ScopePolylineHandle {
         var color: Int
         var isVisible: Boolean
+        var isClickable: Boolean
         var tag: Any?
 
         fun remove()
@@ -83,6 +85,11 @@ class ScopeGutterPolylineController(
             set(value) {
                 polyline.isVisible = value
             }
+        override var isClickable: Boolean
+            get() = polyline.isClickable
+            set(value) {
+                polyline.isClickable = value
+            }
         override var tag: Any?
             get() = polyline.tag
             set(value) {
@@ -102,6 +109,7 @@ class ScopeGutterPolylineController(
         isGlobalVisible = visible
         scopePolylines.values.forEach {
             it.inner.isVisible = visible
+            it.inner.isClickable = visible && it.isInteractionEnabled
             it.outline?.isVisible = visible
         }
     }
@@ -193,14 +201,18 @@ class ScopeGutterPolylineController(
                     .color(color)
                     .width(width)
                     .zIndex(1f)
-                    .clickable(clickable)
+                    .clickable(clickable && isGlobalVisible)
                     .visible(isGlobalVisible)
             ) ?: run {
                 outline?.remove()
                 return@forEach
             }
             inner.tag = Pair(spiNum, groupId)
-            scopePolylines[spiNum] = ScopePolylineSet(inner = inner, outline = outline)
+            scopePolylines[spiNum] = ScopePolylineSet(
+                inner = inner,
+                outline = outline,
+                isInteractionEnabled = clickable
+            )
         }
     }
 

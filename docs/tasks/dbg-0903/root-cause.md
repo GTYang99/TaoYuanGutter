@@ -170,3 +170,64 @@ Root cause 是上一個 `ISS-DBG-0903-005` 修正引入的收尾漏項：檢視�
 - 所有離開 inspect/edit/form overlay 回到主地圖的 terminal path 都要呼叫 helper。
 - 保留檢視或編輯 overlay 仍可見時的 explicit inspect padding，不要在返回檢視預覽或切入編輯中途過早清掉。
 - 一併檢查 inspect launch 失敗、inspect API error、delete/update 成功/失敗後返回主圖的 early exit path。
+
+## RCA: ISS-DBG-0903-008 Layer Disabled But Gutter Inspection Still Opens
+
+### Error
+
+使用者關閉側溝/本次計畫調查相關圖層後，主地圖上仍可點出「檢視側溝」。使用者體感是圖層已關閉，但互動熱區還留著。
+
+### Root Cause
+
+Root cause 是圖層「可見狀態」與 polyline「可點擊狀態」沒有綁在同一個 gate。
+
+`MapWorkspaceFragment.onOverlayTogglesChanged()` 只把 `showPlan` 傳給 `ScopeGutterPolylineController.setVisible(showPlan)`，這會切換已載入 polyline 的 `isVisible`。但 `ScopeGutterPolylineController.drawFeatures()` 建立 polyline 時已設定 `.clickable(true)`，後續 `setVisible(false)` 沒有同步關閉 clickable，也沒有清掉 polyline click listener 的入口判斷。
+
+因此即使視覺圖層關閉，GoogleMap 內既有的 polyline object 仍可能保留互動狀態；`MapWorkspaceFragment.setOnPolylineClickListener` 又只檢查測量模式，沒有檢查目前圖層是否允許檢視，所以仍會呼叫 `openInspectBottomSheet(polyline)`。
+
+### Debug Analysis
+
+- `LayersBottomSheet` 的「本次計畫調查」checkbox 對應 `showPlan`。
+- `MapWorkspaceFragment.onOverlayTogglesChanged()` 將 `showPlan` 套到 `scopeGutterPolylineController.setVisible(showPlan)`。
+- `ScopeGutterPolylineController.setVisible()` 只同步 `isVisible`。
+- `ScopeGutterPolylineController.drawFeatures()` 的 inner polyline 預設 `clickable = true`。
+- `MapWorkspaceFragment.setOnPolylineClickListener` 沒有檢查 `mapOverlayController.currentState().showPlan`。
+- 所以 toggle off 只關閉視覺，不保證關閉 interaction。
+
+### Fix Strategy
+
+- `MapWorkspaceFragment.setOnPolylineClickListener` 應先檢查同一個 overlay state；圖層關閉時直接 return。
+- 若要更完整，`ScopeGutterPolylineController` 的 handle 應擴充 `isClickable`，讓 `setVisible(false)` 可同時關閉 clickable。
+- 需先確認產品語意：「本次計畫調查」到底是 `showPlan` 的可檢視 scope polyline，還是 `showPossible` 的 `roadServey` WMS；目前程式中檢視側溝是 `showPlan` 這條路。
+
+## RCA: ISS-DBG-0903-009 No-Ditch WMS Tap Target Too Small
+
+### Error
+
+無側溝點位圖層開啟後，使用者看得到 WMS 上的無側溝點，但實際點擊不容易命中，體感範圍偏小。
+
+### Root Cause
+
+Root cause 是「顯示」與「互動命中」不是同一層，而且互動命中沒有容錯範圍。
+
+無側溝點位視覺上是 `MapOverlayController` 加上的 WMS `TileOverlay`，但 GoogleMap 的 WMS tile 本身不可點擊。程式另用 WFS 載入 marker 作為可點物件，並在一般地圖點擊時用 WMS `GetFeatureInfo` 查單一 I/J 像素作為 fallback。
+
+這代表使用者看到的是 WMS 圖示，但真正可點的是 WFS marker 或 GetFeatureInfo 的單點 pixel。只要 WMS 符號、WFS 座標、使用者手指落點與 server feature pixel 有一點偏差，就容易點不到。
+
+### Debug Analysis
+
+- `MapOverlayController.applyWmsOverlays()` 開啟 `map_no_ditch_points` WMS tile overlay。
+- `MapWorkspaceFragment.onOverlayTogglesChanged()` 開啟無側溝點位後呼叫 `loadNoDitchPointsForVisibleArea()`。
+- `loadNoDitchPointsForVisibleArea()` 透過 WFS BBOX 建立 GoogleMap markers，但只限目前 visible BBOX 回傳的資料。
+- marker icon 使用 `20dp` bitmap，實際視覺與命中可能偏小。
+- `handleMainMapTap()` 在非回報模式且 showNoDitchPoints 開啟時，呼叫 `fetchAndShowNoDitchPointNoteAt()`。
+- `fetchAndShowNoDitchPointNoteAt()` 以 `projection.toScreenLocation(targetLatLng)` 取得單一點的 `I/J`，對 WMS `GetFeatureInfo` 查詢 `FEATURE_COUNT`，但沒有 radius / buffer / 多點 sampling。
+- 在高 DPI 螢幕、fractional zoom、WMS/WFS 坐標有細微差異，或使用者指腹點擊偏移時，單點查詢很容易 miss。
+
+### Fix Strategy
+
+- 優先以已載入的 WFS no-ditch points 做 nearby search，使用 zoom-aware meter radius 當 touch tolerance。
+- nearby search 沒命中時，再做 WMS GetFeatureInfo fallback。
+- fallback 可改成小範圍 pixel grid sampling，或確認 GeoServer 是否支援 buffer/vendor parameter。
+- marker 視覺大小與互動 hit target 可分離處理，避免 WMS 看起來小但手指命中過難。
+- 關閉無側溝圖層時，WMS overlay 與 WFS marker lifecycle 必須同步清除。

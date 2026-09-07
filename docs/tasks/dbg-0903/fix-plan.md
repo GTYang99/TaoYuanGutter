@@ -116,3 +116,30 @@ Phase: debug
 
 - 若 inset 回報時每次都 refit，可能干擾使用者手動拖曳地圖；implementation 需避免在非 inspect/edit 狀態或無路線資料時重複觸發。
 - 若使用 `resetPaddingAfter = false` 後沒有在離開表單時清掉 persistent inset，可能影響回主地圖視野；離開/關閉流程需維持既有 `setPersistentBottomInset(0)`。
+
+## Follow-up Fix Scope: Layer Interaction And No-Ditch Hit Target
+
+### Goal
+
+修正兩個主地圖圖層互動問題：側溝/本次計畫調查圖層關閉後不可再點出檢視側溝；無側溝點位圖層開啟時，使用者點擊可有合理命中容錯。
+
+### Minimum Implementation Steps
+
+1. 在 `MapWorkspaceFragment.setOnPolylineClickListener` 加入 overlay state gate，當 inspectable gutter layer 關閉時直接忽略 polyline click。
+2. 檢查 `showPlan` 與 `showPossible` 的產品語意，確認「本次計畫調查」是控制 scope gutter polylines 還是 roadServey WMS；若語意不一致，先以目前檢視側溝所使用的 `showPlan` 作為最小修正。
+3. 視需要擴充 `ScopeGutterPolylineController.ScopePolylineHandle` 支援 clickable，讓 `setVisible(false)` 同步關閉 hit target。
+4. 無側溝點位點擊先用已載入 WFS points 做 zoom-aware nearby search，找到最近點再顯示 note。
+5. nearby search 未命中時，再保留目前 WMS `GetFeatureInfo` fallback；若仍不穩，改成小範圍 pixel grid sampling 或確認 GeoServer buffer 支援。
+
+### Validation
+
+- 關閉本次計畫調查/側溝相關圖層後，點擊原本側溝線位置不可開啟檢視頁。
+- 重新開啟圖層後，點擊側溝線可正常開啟檢視頁。
+- 開啟無側溝點位圖層後，點擊 WMS 可見點附近可穩定開啟備註。
+- 關閉無側溝點位圖層後，marker 與 note 點擊 fallback 都不可再觸發。
+
+### Regression Risk
+
+- 若 `showPlan` / `showPossible` 的 UI 語意判斷錯誤，可能關掉錯的圖層互動；implementation 前需以現有 label 與 map behavior 再確認。
+- 無側溝 nearby radius 過大可能點到非預期點位；radius 應隨 zoom 或 meters-per-pixel 控制。
+- 若 WFS 與 WMS 資料不同步，nearby search 可能找不到 WMS 上可見但 WFS 未回傳的點；需保留 GetFeatureInfo fallback。
