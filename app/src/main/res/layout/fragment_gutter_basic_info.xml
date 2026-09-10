@@ -12,6 +12,7 @@
         android:fillViewport="true">
 
     <LinearLayout
+        android:id="@+id/formContent"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
@@ -19,6 +20,48 @@
         android:paddingEnd="16dp"
         android:paddingTop="16dp"
         android:paddingBottom="96dp">
+
+        <LinearLayout
+            android:id="@+id/layoutMeasurementStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/tvMeasurementStatusTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/field_measurement_status"
+                android:textSize="13sp"
+                android:textColor="@color/textColorSecondary"
+                android:layout_marginBottom="4dp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@color/white"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp">
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/btnPendingDeploy"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:buttonTint="?attr/colorPrimary"
+                    android:text="@string/btn_pending_deploy" />
+
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cbCantOpen"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    app:buttonTint="@color/colorPrimary"
+                    android:text="@string/field_cannot_open" />
+
+            </LinearLayout>
+        </LinearLayout>
 
         <!-- 虛擬模式下隱藏的區段 1 -->
         <LinearLayout
@@ -247,7 +290,7 @@
                 android:layout_height="40dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:text="拍攝照片"
+                android:text="@string/btn_take_photo_overview"
                 android:textAllCaps="false"
                 android:textColor="@color/colorPrimary"
                 android:textSize="14sp"
@@ -429,12 +472,6 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <com.google.android.material.checkbox.MaterialCheckBox
-                android:id="@+id/btnPendingDeploy"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:buttonTint="?attr/colorPrimary"
-                android:text="@string/btn_pending_deploy" />
         </LinearLayout>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -497,12 +534,6 @@
                         android:textStyle="bold" />
                 </LinearLayout>
 
-                <com.google.android.material.checkbox.MaterialCheckBox
-                    android:id="@+id/cbCantOpen"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:buttonTint="@color/colorPrimary"
-                    android:text="@string/field_cannot_open" />
             </LinearLayout>
 
             <FrameLayout
@@ -638,7 +669,7 @@
                 android:layout_height="40dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:text="拍攝照片"
+                android:text="@string/btn_take_photo_width"
                 android:textAllCaps="false"
                 android:textColor="@color/colorPrimary"
                 android:textSize="14sp"
@@ -881,7 +912,7 @@
                 android:layout_height="40dp"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
-                android:text="拍攝照片"
+                android:text="@string/btn_take_photo_depth"
                 android:textAllCaps="false"
                 android:textColor="@color/colorPrimary"
                 android:textSize="14sp"
@@ -1324,6 +1355,7 @@
 
         <!-- ⑫ 補充說明 ─────────────────────────────────────────── -->
         <TextView
+            android:id="@+id/tvRemarksTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/label_remarks"

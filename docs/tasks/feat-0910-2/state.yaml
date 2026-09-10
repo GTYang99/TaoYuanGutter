@@ -1,0 +1,43 @@
+task:
+  id: feat-0910-2
+  type: feature
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+  build: not_verified
+  unit_test: not_verified
+
+validation:
+  status: not_verified
+
+git:
+  branch: uiFix/填寫順序
+  commit: 4bf8f7f
+  status: committed
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification

@@ -420,6 +420,7 @@ class GutterBasicInfoFragment : Fragment() {
         // 確保在 View 建立後，立即根據目前的「側溝形式」、「無法開蓋」與「虛擬點」狀態更新 UI
         applyGutterTypeUi()
         applyCantOpenUi(binding.cbCantOpen.isChecked)
+        if (!isViewMode) reorderEditableSections()
         setVirtualMode(isVirtualMode)
         updateRequiredIndicators()
         
@@ -456,6 +457,59 @@ class GutterBasicInfoFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
+    }
+
+    /**
+     * 將可編輯表單的完整欄位依 UI 規格排列；保留每個 View ID 及其資料綁定。
+     * 檢視模式維持原本的系統欄位呈現，避免影響既有檢視流程。
+     */
+    private fun reorderEditableSections() {
+        val content = binding.formContent
+        val typeTitleRow = binding.tvGutterTypeTitle.parent as View
+        val widthSection = binding.layoutWidthPhotoSection
+        val hidden1 = binding.llVirtualHidden1
+        val hidden2 = binding.llVirtualHidden2
+        val hidden3 = binding.llVirtualHidden3
+
+        hidden1.removeView(typeTitleRow)
+        hidden1.removeView(binding.layoutGutterTypeSelector)
+        hidden3.removeView(widthSection)
+
+        val orderedViews = listOf(
+            binding.layoutMeasurementStatus,
+            binding.tvMeasureIdTitle.parent as View,
+            binding.tilMeasureId,
+            binding.tvLocationTitle.parent as View,
+            binding.btnPickLocation,
+            typeTitleRow,
+            binding.layoutGutterTypeSelector,
+            binding.layoutOverviewPhotoSection,
+            binding.layoutDepthPhotoSection,
+            binding.tvDepthTitle.parent as View,
+            binding.tilDepth,
+            binding.llCoverThicknessWrapper,
+            widthSection,
+            binding.tvTopWidthTitle.parent as View,
+            binding.tilTopWidth,
+            binding.tvMatTypeTitle.parent as View,
+            binding.rgMatType,
+            binding.tvBrokenTitle.parent as View,
+            binding.rgIsBroken,
+            binding.tvHangingTitle.parent as View,
+            binding.rgIsHanging,
+            binding.tvSiltTitle.parent as View,
+            binding.rgIsSilt,
+            binding.tvRemarksTitle,
+            binding.tilRemarks,
+            hidden1,
+            hidden2,
+            hidden3
+        )
+
+        orderedViews.forEach { child ->
+            content.removeView(child)
+            content.addView(child)
+        }
     }
 
     // ── RadioGroup 工具函式 ───────────────────────────────────────────────
@@ -581,6 +635,9 @@ class GutterBasicInfoFragment : Fragment() {
             if (nodeX.isEmpty() && nodeY.isEmpty()) prefillCoordinates()
         } else {
             setGutterTypeSelection(null, notifyDraftChanged = false)
+            // 新建表單才套用產品指定的預設值；有資料的流程一律由上方回填原值。
+            binding.rgIsBroken.check(R.id.rbIsBroken0)
+            binding.rgIsSilt.check(R.id.rbIsSilt0)
             prefillCoordinates()
         }
     }
@@ -1090,6 +1147,8 @@ class GutterBasicInfoFragment : Fragment() {
         binding.layoutOverviewPhotoSection.visibility = visibility
         binding.layoutWidthPhotoSection.visibility = visibility
         binding.layoutDepthPhotoSection.visibility = visibility
+        (binding.tvGutterTypeTitle.parent as? View)?.visibility = visibility
+        binding.layoutGutterTypeSelector.visibility = visibility
         updateRequiredIndicators()
         notifyDraftChanged()
     }

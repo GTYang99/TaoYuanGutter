@@ -130,7 +130,11 @@
     <string name="tab_photos">照片上傳</string>
     <string name="fab_submit_gutter">新增側溝</string>
     <!-- 基本資料欄位 -->
+    <string name="field_measurement_status">測量狀態</string>
     <string name="field_gutter_id">側溝編號</string>
+    <string name="btn_take_photo_overview">拍攝照片（概況）</string>
+    <string name="btn_take_photo_depth">拍攝照片（深度）</string>
+    <string name="btn_take_photo_width">拍攝照片（寬度）</string>
     <string name="field_gutter_type">側溝形式</string>
     <string name="field_section_type">截面形式</string>
     <string name="field_coord_x">側溝X（E）座標</string>
