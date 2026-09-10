@@ -34,12 +34,12 @@
 | XML parse of `fragment_gutter_basic_info.xml` | PASS | Layout is well-formed. |
 | `./gradlew compileDebugAndroidTestKotlin --no-daemon` | NOT VERIFIED | Environment has no available Java runtime; Gradle stopped before compilation with `Unable to locate a Java Runtime`. |
 | Android Studio build/install on Sony XQ-AU52 | PASS | Android Studio reported `Install successfully finished`; installed revision includes the corrected field-row mapping. |
-| Real-device form entry after fix | NOT VERIFIED | Waiting for form-page entry interaction on the installed revision. |
+| Real-device form entry and three-photo state after fix | PASS | User confirmed on the installed revision that the initial field mapping and the state after capturing three photos are correct. |
 
 ## Limitations
 
 - Android unit/UI tests and lint remain `NOT VERIFIED` until a JDK/Android build environment is available.
-- The implementation is committed before Verification; Verification must review the committed revision and rerun the affected checks.
+- Automated UI/regression checks remain unavailable; the manual field-order regression is covered by the real-device result above.
 
 ## Acceptance Criteria Evidence
 

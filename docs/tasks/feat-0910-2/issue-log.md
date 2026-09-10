@@ -64,4 +64,5 @@
 - Impact: Width, depth, material, broken, hanging, and silt titles start in the wrong positions.
 - Evidence: The affected title rows are direct children of `llVirtualHidden3`; the previous ancestor helper returned the wrapper itself, so the individual rows were not interleaved with their matching controls.
 - Fix scope: return the direct child row when its parent is a virtual section, then apply the approved field order.
-- Next action: revalidate the initial form order and all three-photo state.
+- Resolution evidence: user completed real-device validation and reported no issue with the initial order or the three-photo state.
+- Next action: retain automated regression coverage as a separate NOT VERIFIED item until the build environment is available.
