@@ -52,3 +52,16 @@
 - Evidence: Real-device report after capturing photo slots 1-3; affected titles are width, depth, material, broken, hanging, and silt.
 - Fix scope: ensure the correct outer title rows are used and explicitly request a form hierarchy remeasure after photo visibility changes.
 - Next action: revalidate after installing the current revision.
+
+## ISS-0910-2-05
+
+- Task: feat-0910-2
+- Phase: implementation
+- Category: `implementation_regression`
+- Priority: P1
+- Status: open
+- Title: Field-title mapping uses virtual wrapper instead of individual rows
+- Impact: Width, depth, material, broken, hanging, and silt titles start in the wrong positions.
+- Evidence: The affected title rows are direct children of `llVirtualHidden3`; the previous ancestor helper returned the wrapper itself, so the individual rows were not interleaved with their matching controls.
+- Fix scope: return the direct child row when its parent is a virtual section, then apply the approved field order.
+- Next action: revalidate the initial form order and all three-photo state.

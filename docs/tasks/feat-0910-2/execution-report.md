@@ -23,6 +23,7 @@
 - Restore the measurement-coordinate title by moving its outer row instead of the inner `0dp` weighted container.
 - Reapply the form-panel IME translation from both window-insets dispatch and animation completion so it returns with the keyboard.
 - Request a form hierarchy remeasure after each photo card changes visibility.
+- Map field title rows to their individual virtual-section children so each title remains adjacent to its matching control.
 - No photo-upload request fields were changed. The reported `xy_num` failure is recorded as a backend schema/API issue.
 
 ## Validation
