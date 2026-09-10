@@ -1,6 +1,6 @@
 package com.example.taoyuangutter.main
 
-const val MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM = 16f
+const val MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM = 13f
 
 enum class MainMapLoadIndicatorMode {
     HIDDEN,
