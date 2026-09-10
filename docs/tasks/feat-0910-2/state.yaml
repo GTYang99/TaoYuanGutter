@@ -2,8 +2,8 @@ task:
   id: feat-0910-2
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -29,8 +29,15 @@ git:
 
 verification:
   result: pending
-  category: null
+  category: unknown
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-003
+    - AC-004
+    - AC-005
+    - AC-006
 
 ci:
   build: pending
@@ -39,5 +46,6 @@ ci:
 release:
   status: pending
 
-blocking: []
-next_action: verification
+blocking:
+  - User-reported real-device crash lacks a crash-time stack trace.
+next_action: investigation
