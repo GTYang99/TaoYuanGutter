@@ -143,3 +143,16 @@
 - Impact: Implementation scope and commit isolation remain ambiguous.
 - Evidence: `plan.md` step 8; user confirmation that `GutterApiService.kt` is manual work outside feat-0910-1.
 - Next action: implementation
+
+## ISS-0910-1-13
+
+- Task: feat-0910-1
+- Phase: verification
+- Category: implementation_regression
+- Priority: P1
+- Status: superseded
+- Title: Cant-open dirty merge and stale camera-result protections are not wired into production mutations
+- Impact: A measurement-photo capture started before confirming cant-open can complete afterward and repopulate a cleared slot. Fields or photo slots changed through production callbacks also have no dirty marker, so restore may overwrite a later value.
+- Evidence: `GutterFormActivity.kt` exposes `markCantOpenFieldChanged`, `markCantOpenPhotoChanged`, and `invalidateCapture`, but repository search finds no production invocations. `GutterBasicInfoFragment.kt` accepts a camera result whenever its still-active token matches; confirming cant-open does not invalidate tokens for slots 2 or 3. The unit tests call marker methods directly, bypassing the missing production integration.
+- Resolution: The user changed the approved product decision on 2026-09-10: cancelling cant-open does not restore cleared data. The snapshot/dirty-merge requirement is removed and the task returns to Planning for revised implementation and plan review.
+- Next action: plan_review
