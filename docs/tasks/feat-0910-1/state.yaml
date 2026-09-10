@@ -2,20 +2,32 @@ task:
   id: feat-0910-1
   type: feature
 
-phase: plan_review
-status: approved
+phase: release
+status: release_ready
 
 planning:
-  status: plan_ready
+  status: completed
 
 implementation:
-  status: pending
+  status: implementation_complete
+  commit: 6bcc5e4
+  git_status: committed
+  build: passed
+  unit_test: passed
 
 verification:
-  status: pending
+  status: passed
+  result: pass
+  category: functional
+  failed_acceptance_criteria: []
 
 ci:
-  build: pending
-  test: pending
+  build: not_verified
+  test: not_verified
 
-next_action: implementation
+release:
+  status: approved
+  decision: ready_for_human_release
+  evidence: real-device-test-passed
+
+next_action: human_release
