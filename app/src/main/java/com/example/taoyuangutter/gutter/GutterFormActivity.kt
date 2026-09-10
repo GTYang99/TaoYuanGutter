@@ -1219,7 +1219,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             val wp = draft?.waypoints?.firstOrNull()
             if (wp != null) HashMap(wp.basicData) else buildEmptyData(currentLat, currentLng)
         } else if (isOfflineMode) {
-            buildEmptyData(currentLat, currentLng)
+            // Offline new/edit intents may still carry existing form data.
+            // Preserve it instead of replacing it with an empty template.
+            buildEmptyData(currentLat, currentLng).apply {
+                putAll(GutterFormContract.readFormData(intent))
+            }
         } else {
             hashMapOf(
                 "SPI_NUM"    to (intent.getStringExtra(EXTRA_DATA_GUTTER_ID)   ?: ""),

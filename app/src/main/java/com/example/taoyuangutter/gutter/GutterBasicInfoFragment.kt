@@ -615,7 +615,6 @@ class GutterBasicInfoFragment : Fragment() {
             xyNum, coverDep, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote,
             isPendingDeploy, isVirtualArg, isImportedArg,
             photo1, photo2, photo3, photo1CapturedAt, photo2CapturedAt, photo3CapturedAt,
-            args.getString(ARG_PHOTO_1_UPLOAD_STATE), args.getString(ARG_PHOTO_2_UPLOAD_STATE), args.getString(ARG_PHOTO_3_UPLOAD_STATE),
             args.getString(ARG_PHOTO_1_IMG_ID), args.getString(ARG_PHOTO_2_IMG_ID), args.getString(ARG_PHOTO_3_IMG_ID),
             args.getString(ARG_PHOTO_1_UPLOAD_ERROR), args.getString(ARG_PHOTO_2_UPLOAD_ERROR), args.getString(ARG_PHOTO_3_UPLOAD_ERROR)
         ).any { !it.isNullOrEmpty() && it != "0" && it != "false" }
@@ -1451,9 +1450,10 @@ class GutterBasicInfoFragment : Fragment() {
         // Photo cards change from GONE to VISIBLE after capture. Re-measure
         // the enclosing sheet so following field titles keep their positions.
         binding.formContent.post {
-            binding.formContent.requestLayout()
-            binding.formContent.invalidate()
-            binding.root.requestLayout()
+            val currentBinding = _binding ?: return@post
+            currentBinding.formContent.requestLayout()
+            currentBinding.formContent.invalidate()
+            currentBinding.root.requestLayout()
         }
     }
 

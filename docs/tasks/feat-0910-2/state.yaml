@@ -2,8 +2,8 @@ task:
   id: feat-0910-2
   type: feature
 
-phase: verification
-status: verification_not_verified
+phase: implementation
+status: implementation_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -16,21 +16,23 @@ plan_review:
 
 implementation:
   status: completed
-  build: not_verified
-  unit_test: not_verified
+  build: passed
+  unit_test: passed
 
 validation:
   status: not_verified
 
 git:
   branch: uiFix/填寫順序
-  commit: 2a350f3
+  commit: 6071cec
   status: committed
 
 verification:
-  result: not_verified
-  category: environment
-  failed_acceptance_criteria: []
+  result: failed
+  category: implementation_regression
+  failed_acceptance_criteria:
+    - AC-004
+    - AC-006
   not_verified_acceptance_criteria:
     - AC-004
     - AC-006
@@ -43,7 +45,7 @@ release:
   status: pending
 
 blocking:
-  - Automated UI/regression validation remains unavailable until a JDK/Android build environment is available.
+  - Corrected connected UI regression validation is pending because the test devices disconnected.
   - No CI build/test result is available.
 
 debug:
@@ -51,4 +53,4 @@ debug:
   issue_id: ISS-0910-2-02
   root_cause: identified
 
-next_action: infrastructure
+next_action: verification

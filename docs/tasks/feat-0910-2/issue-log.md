@@ -81,3 +81,31 @@
 - Evidence: `app/build/outputs/androidTest-results/connected/debug/TEST-Medium_Phone(AVD) - 14.xml`; `cancelDialogKeepsOriginalState` failed while setting `etDepth` because Espresso reported a non-empty global visible rectangle was unavailable.
 - Classification: provisionally `environment`; the test cannot currently be rerun because the CLI environment has no Java Runtime, so implementation regression is not established.
 - Next action: infrastructure
+
+## ISS-0910-2-07
+
+- Task: feat-0910-2
+- Phase: verification
+- Category: `implementation_regression`
+- Priority: P1
+- Status: resolved
+- Title: Photo layout remeasure callback uses destroyed fragment binding
+- Impact: Configuration recreation can crash with a `NullPointerException` after photo state rendering schedules a layout request.
+- Evidence: `GutterCantOpenUiTest.snapshotSurvivesConfigurationRecreation` failed at `GutterBasicInfoFragment.renderPhotoSectionState` after `_binding` was cleared.
+- Fix scope: resolve the current nullable binding inside the posted callback and return when the view lifecycle has ended.
+- Resolution evidence: the subsequent emulator report recorded all four `GutterCantOpenUiTest` cases passing.
+- Next action: retain lifecycle recreation as a regression check.
+
+## ISS-0910-2-08
+
+- Task: feat-0910-2
+- Phase: verification
+- Category: `implementation_regression`
+- Priority: P1
+- Status: resolved
+- Title: Offline form drops existing Intent data before prefill
+- Impact: Existing broken/silt selections were lost in offline edit/test flows, preventing AC-004 preservation.
+- Evidence: `GutterBasicInfoUiTest.existingBrokenAndSiltValuesArePreserved` failed because the offline branch selected `buildEmptyData()` without merging `GutterFormContract.readFormData(intent)`.
+- Fix scope: merge Intent form data over the offline empty-data template while preserving the existing draft branch.
+- Resolution evidence: source fix compiled successfully; connected re-test was blocked by disconnected devices.
+- Next action: rerun `GutterBasicInfoUiTest` on a connected device.

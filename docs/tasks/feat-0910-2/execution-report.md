@@ -3,7 +3,7 @@
 ## Implementation
 
 - Branch: `uiFix/填寫順序`
-- Commit: `e94c166`
+- Commit: pending follow-up fix
 - Scope: 基本資料表單順序、測量狀態群組、拍照按鈕文案、新建 RadioGroup 預設值與 UI 測試
 - Changed source:
   - `app/src/main/res/layout/fragment_gutter_basic_info.xml`
@@ -33,13 +33,15 @@
 | `git diff --check` | PASS | No whitespace errors reported. |
 | XML parse of `fragment_gutter_basic_info.xml` | PASS | Layout is well-formed. |
 | `./gradlew compileDebugAndroidTestKotlin --no-daemon` | NOT VERIFIED | Environment has no available Java runtime; Gradle stopped before compilation with `Unable to locate a Java Runtime`. |
+| `JAVA_HOME=.../Android Studio.app/.../Home ./gradlew assembleDebug testDebugUnitTest --no-daemon` | PASS | Debug APK assembled and unit tests completed successfully with Android Studio's bundled JDK. |
 | Android Studio build/install on Sony XQ-AU52 | PASS | Android Studio reported `Install successfully finished`; installed revision includes the corrected field-row mapping. |
 | Real-device form entry and three-photo state after fix | PASS | User confirmed on the installed revision that the initial field mapping and the state after capturing three photos are correct. |
+| `connectedDebugAndroidTest` after follow-up fixes | NOT VERIFIED | First run exposed two implementation regressions; follow-up run could not start because devices disconnected. |
 
 ## Limitations
 
 - Android unit/UI tests and lint remain `NOT VERIFIED` until a JDK/Android build environment is available.
-- Automated UI/regression checks remain unavailable; the manual field-order regression is covered by the real-device result above.
+- Connected UI regression remains pending after the follow-up fixes; a run was blocked by disconnected devices.
 
 ## Acceptance Criteria Evidence
 
