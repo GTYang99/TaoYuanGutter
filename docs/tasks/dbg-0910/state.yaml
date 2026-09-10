@@ -27,7 +27,7 @@ validation:
 
 git:
   branch: uiFix/審核顯示框
-  commit: 3e1c8d4
+  commit: 6013858
   status: completed
 
 verification:
