@@ -24,7 +24,7 @@ validation:
 
 git:
   branch: uiFix/填寫順序
-  commit: e230f44
+  commit: e94c166
   status: committed
 
 verification:
@@ -47,7 +47,7 @@ release:
   status: pending
 
 blocking:
-  - Form entry crashes during view creation due to unsafe runtime View reparenting.
+  - Real-device revalidation is still required for initial field order and the three-photo state.
 
 debug:
   status: completed
