@@ -22,6 +22,7 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.CompoundButton
 import androidx.fragment.app.Fragment
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -382,8 +383,11 @@ class GutterBasicInfoFragment : Fragment() {
         ) { _, bundle ->
             val code = bundle.getInt(CameraOverlayFragment.RESULT_CODE, Activity.RESULT_CANCELED)
             val slot = bundle.getInt(CameraOverlayFragment.RESULT_SLOT, 0)
+            val token = bundle.getLong(CameraOverlayFragment.RESULT_TOKEN, 0L)
             val path = bundle.getString(CameraOverlayFragment.RESULT_PATH) ?: pendingOutputPath
-            if (code == Activity.RESULT_OK && !path.isNullOrBlank() && slot in 1..3) {
+            val formActivity = activity as? GutterFormActivity
+            val acceptsResult = token == 0L || formActivity?.acceptsCantOpenCapture(slot, token) == true
+            if (code == Activity.RESULT_OK && acceptsResult && !path.isNullOrBlank() && slot in 1..3) {
                 (activity as? PhotoLoadingHost)?.setPhotoLoading(true)
                 val file = File(path)
                 setCapturedAtForSlot(
@@ -608,8 +612,44 @@ class GutterBasicInfoFragment : Fragment() {
         }
 
         // 之後才開始監聽，避免 prefill 時觸發清空
-        binding.cbCantOpen.setOnCheckedChangeListener { _, checked ->
+        binding.cbCantOpen.setOnCheckedChangeListener { button, checked ->
             if (checked) {
+                if (!button.isPressed) return@setOnCheckedChangeListener
+                button.isChecked = false
+                MaterialAlertDialogBuilder(requireContext())
+                    .setMessage("無法開蓋照片與已填寫資訊將被清除")
+                    .setNegativeButton("取消", null)
+                    .setPositiveButton("確認") { _, _ ->
+                        val host = activity as? GutterFormActivity ?: return@setPositiveButton
+                        host.captureCantOpenSnapshot()
+                        button.setOnCheckedChangeListener(null)
+                        button.isChecked = true
+                        button.setOnCheckedChangeListener(this@GutterBasicInfoFragment::onCantOpenCheckedChanged)
+                        clearCantOpenFieldsAndPhotos()
+                        host.markCantOpenSnapshotCleared()
+                        applyCantOpenUi(true)
+                        notifyDraftChanged()
+                    }.show()
+                return@setOnCheckedChangeListener
+            }
+            onCantOpenCheckedChanged(button, checked)
+        }
+    }
+
+    private fun onCantOpenCheckedChanged(button: CompoundButton, checked: Boolean) {
+        if (!checked) {
+            val host = activity as? GutterFormActivity
+            val restored = host?.restoreCantOpenSnapshot()
+            if (restored != null) {
+                host?.replaceCurrentFormDataFromCantOpen(restored)
+                renderStoredPhotoSlots()
+            }
+        }
+        applyCantOpenUi(checked)
+        notifyDraftChanged()
+    }
+
+    private fun clearCantOpenFieldsAndPhotos() {
                 // 不可開蓋：下方欄位不必填，直接清空避免誤送舊值
                 binding.etCoverThickness.setText("")
                 binding.etDepth.setText("")
@@ -622,10 +662,6 @@ class GutterBasicInfoFragment : Fragment() {
                 binding.tilDepth.error = null
                 binding.tilTopWidth.error = null
                 clearMeasurementPhotosForCantOpen(notifyDraftChanged = false)
-            }
-            applyCantOpenUi(checked)
-            notifyDraftChanged()
-        }
     }
 
     private fun isUOpenGutter(): Boolean {
@@ -1191,6 +1227,28 @@ class GutterBasicInfoFragment : Fragment() {
         }
     }
 
+    fun restoreCantOpenSessionState(data: Map<String, String>) {
+        suppressPhotoDraftCallbacks = true
+        try {
+            binding.etCoverThickness.setText(data["COVER_DEP"].orEmpty())
+            binding.etDepth.setText(data["NODE_DEP"].orEmpty())
+            binding.etTopWidth.setText(data["NODE_WID"].orEmpty())
+            binding.rgMatType.setCheckedByText(matTypCodeToText(data["MAT_TYP"].orEmpty()))
+            binding.rgIsBroken.setCheckedByText(isBrokenCodeToText(data["IS_BROKEN"].orEmpty()))
+            binding.rgIsHanging.setCheckedByText(isHangingCodeToText(data["IS_HANGING"].orEmpty()))
+            binding.rgIsSilt.setCheckedByText(isSiltCodeToText(data["IS_SILT"].orEmpty()))
+            syncPersistedPhotoState(
+                data["photo1"], data["photo2"], data["photo3"],
+                data["photo1CapturedAt"], data["photo2CapturedAt"], data["photo3CapturedAt"],
+                data["photo1UploadState"].orEmpty(), data["photo2UploadState"].orEmpty(), data["photo3UploadState"].orEmpty(),
+                data["photo1ImgId"]?.toIntOrNull(), data["photo2ImgId"]?.toIntOrNull(), data["photo3ImgId"]?.toIntOrNull(),
+                data["photo1UploadError"], data["photo2UploadError"], data["photo3UploadError"]
+            )
+        } finally {
+            suppressPhotoDraftCallbacks = false
+        }
+    }
+
     fun prefillPhotos(
         photo1: String?,
         photo2: String?,
@@ -1438,7 +1496,11 @@ class GutterBasicInfoFragment : Fragment() {
         if (notifyDraftChanged) notifyPhotoDraftChanged()
     }
 
-    private fun clearPhotoSlot(slot: Int, notifyDraftChanged: Boolean) {
+    private fun clearPhotoSlot(
+        slot: Int,
+        notifyDraftChanged: Boolean,
+        notifyUploadHost: Boolean = true
+    ) {
         (activity as? GutterFormActivity)?.beginPhotoDraftBatch()
         try {
             logPhotoImgIdTrace("clearPhotoSlot.before.slot$slot")
@@ -1473,7 +1535,7 @@ class GutterBasicInfoFragment : Fragment() {
             renderCapturedAtLabels()
             renderPhotoUploadIndicators()
             (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
-            if (!suppressPhotoDraftCallbacks) {
+            if (!suppressPhotoDraftCallbacks && notifyUploadHost) {
                 photoDraftChangeHost?.onPhotoSlotReadyForUpload(slot, null)
                 photoDraftChangeHost?.onPhotoCapturedAtDraftChanged(slot, null)
                 photoDraftChangeHost?.onPendingPhotoDraftChanged(slot, null)
@@ -1489,8 +1551,8 @@ class GutterBasicInfoFragment : Fragment() {
         (activity as? GutterFormActivity)?.beginPhotoDraftBatch()
         try {
             logPhotoImgIdTrace("clearMeasurementPhotosForCantOpen.before")
-            clearPhotoSlot(2, notifyDraftChanged = false)
-            clearPhotoSlot(3, notifyDraftChanged = false)
+            clearPhotoSlot(2, notifyDraftChanged = false, notifyUploadHost = false)
+            clearPhotoSlot(3, notifyDraftChanged = false, notifyUploadHost = false)
             logPhotoImgIdTrace("clearMeasurementPhotosForCantOpen.after")
             if (notifyDraftChanged) notifyPhotoDraftChanged()
         } finally {

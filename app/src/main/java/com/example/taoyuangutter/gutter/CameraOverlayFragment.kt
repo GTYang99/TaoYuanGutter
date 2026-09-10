@@ -102,17 +102,20 @@ class CameraOverlayFragment : Fragment() {
     companion object {
         private const val ARG_OUTPUT_PATH = "output_path"
         private const val ARG_SLOT = "slot"
+        private const val ARG_TOKEN = "token"
 
         const val RESULT_KEY = "camera_overlay_result"
         const val RESULT_SLOT = "result_slot"
         const val RESULT_PATH = "result_path"
         const val RESULT_CODE = "result_code"
+        const val RESULT_TOKEN = "result_token"
 
-        fun newInstance(slot: Int, outputPath: String): CameraOverlayFragment =
+        fun newInstance(slot: Int, outputPath: String, token: Long = 0L): CameraOverlayFragment =
             CameraOverlayFragment().apply {
                 arguments = Bundle().apply {
                     putInt(ARG_SLOT, slot)
                     putString(ARG_OUTPUT_PATH, outputPath)
+                    putLong(ARG_TOKEN, token)
                 }
             }
     }
@@ -786,6 +789,7 @@ class CameraOverlayFragment : Fragment() {
             Bundle().apply {
                 putInt(RESULT_CODE, resultCode)
                 putInt(RESULT_SLOT, slot)
+                putLong(RESULT_TOKEN, arguments?.getLong(ARG_TOKEN, 0L) ?: 0L)
                 if (!path.isNullOrBlank()) putString(RESULT_PATH, path)
             }
         )

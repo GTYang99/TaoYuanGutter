@@ -26,6 +26,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.ViewModelProvider
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -105,6 +106,23 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var pendingPhotoDraftSync: Boolean = false
     private val photoUploadListeners = mutableMapOf<Int, (PhotoSlotUploadCoordinator.Snapshot) -> Unit>()
     private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(this) }
+    private val cantOpenSession: CantOpenSessionViewModel by lazy(LazyThreadSafetyMode.NONE) {
+        ViewModelProvider(this)[CantOpenSessionViewModel::class.java]
+    }
+
+    fun captureCantOpenSnapshot(): CantOpenSessionViewModel.Snapshot = cantOpenSession.capture(currentFormData)
+    fun markCantOpenSnapshotCleared() = cantOpenSession.markCleared(currentFormData)
+    fun restoreCantOpenSnapshot(): Map<String, String> = cantOpenSession.restore(currentFormData)
+    fun discardCantOpenSnapshot() = cantOpenSession.discard()
+    fun markCantOpenFieldChanged(key: String) = cantOpenSession.markFieldChanged(key)
+    fun markCantOpenPhotoChanged(slot: Int) = cantOpenSession.markPhotoChanged(slot)
+    fun acceptsCantOpenCapture(slot: Int, token: Long): Boolean = cantOpenSession.acceptsCapture(slot, token)
+    fun replaceCurrentFormDataFromCantOpen(data: Map<String, String>) {
+        currentFormData.clear()
+        currentFormData.putAll(data)
+        syncCurrentWaypointFromCurrentFormData()
+        pagerAdapter.getBasicInfoFragment()?.restoreCantOpenSessionState(data)
+    }
 
     override fun setPhotoLoading(visible: Boolean) {
         if (!::binding.isInitialized) return
@@ -179,7 +197,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             .setReorderingAllowed(true)
             .replace(
                 binding.cameraOverlayContainer.id,
-                CameraOverlayFragment.newInstance(slot = slot, outputPath = outputPath),
+                CameraOverlayFragment.newInstance(slot = slot, outputPath = outputPath, token = cantOpenSession.newCaptureToken(slot)),
                 CameraOverlayFragment::class.java.name
             )
             .commitAllowingStateLoss()
@@ -1318,6 +1336,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     override fun onDestroy() {
         unregisterPhotoUploadListeners()
         authExpiredHandler.reset()
+        if (isFinishing) discardCantOpenSnapshot()
         super.onDestroy()
     }
 

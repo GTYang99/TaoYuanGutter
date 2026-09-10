@@ -1,0 +1,21 @@
+task:
+  id: feat-0910-1
+  type: feature
+
+phase: plan_review
+status: approved
+
+planning:
+  status: plan_ready
+
+implementation:
+  status: pending
+
+verification:
+  status: pending
+
+ci:
+  build: pending
+  test: pending
+
+next_action: implementation
