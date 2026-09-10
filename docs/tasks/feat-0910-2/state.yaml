@@ -24,7 +24,7 @@ validation:
 
 git:
   branch: uiFix/填寫順序
-  commit: 4bf8f7f
+  commit: 49deb64
   status: committed
 
 verification:

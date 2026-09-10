@@ -3,6 +3,7 @@
 ## Implementation
 
 - Branch: `uiFix/填寫順序`
+- Commit: `49deb64`
 - Scope: 基本資料表單順序、測量狀態群組、拍照按鈕文案、新建 RadioGroup 預設值與 UI 測試
 - Changed source:
   - `app/src/main/res/layout/fragment_gutter_basic_info.xml`
