@@ -12,6 +12,12 @@
 - Changed tests:
   - `app/src/androidTest/java/com/example/taoyuangutter/GutterBasicInfoUiTest.kt`
 
+## Debug Re-implementation
+
+- Issue: `ISS-0910-2-02`
+- Fix: detach each ordered View from its actual current `ViewGroup` before adding it to `formContent`.
+- Fix commit: pending
+
 ## Validation
 
 | Check | Result | Evidence |
@@ -19,10 +25,12 @@
 | `git diff --check` | PASS | No whitespace errors reported. |
 | XML parse of `fragment_gutter_basic_info.xml` | PASS | Layout is well-formed. |
 | `./gradlew compileDebugAndroidTestKotlin --no-daemon` | NOT VERIFIED | Environment has no available Java runtime; Gradle stopped before compilation with `Unable to locate a Java Runtime`. |
+| Android Studio build/install on Sony XQ-AU52 | PASS | Android Studio reported `Install successfully finished`; installed revision includes the parent-safe fix. |
+| Real-device form entry after fix | NOT VERIFIED | Waiting for form-page entry interaction on the installed revision. |
 
 ## Limitations
 
-- Android unit/UI tests, debug build, and lint remain `NOT VERIFIED` until a JDK/Android build environment is available.
+- Android unit/UI tests and lint remain `NOT VERIFIED` until a JDK/Android build environment is available.
 - The implementation is committed before Verification; Verification must review the committed revision and rerun the affected checks.
 
 ## Acceptance Criteria Evidence

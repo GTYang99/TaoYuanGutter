@@ -507,7 +507,9 @@ class GutterBasicInfoFragment : Fragment() {
         )
 
         orderedViews.forEach { child ->
-            content.removeView(child)
+            // Some ordered entries are nested inside a wrapper, so removing
+            // only from formContent does not detach them from their actual parent.
+            (child.parent as? ViewGroup)?.removeView(child)
             content.addView(child)
         }
     }

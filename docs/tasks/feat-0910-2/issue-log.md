@@ -15,12 +15,13 @@
 ## ISS-0910-2-02
 
 - Task: feat-0910-2
-- Phase: verification
-- Category: unknown
+- Phase: debug
+- Category: `implementation_regression`
 - Priority: P0
 - Status: open
-- Title: User reports real-device crash in the form flow
+- Title: Form entry crashes during runtime View reordering
 - Impact: Core form validation is blocked and release readiness cannot be established.
-- Evidence: User report on 2026-09-10; captured logcat did not include the crash stack trace.
-- Repro steps: Open the form on the affected real device and reproduce the crash; capture logcat immediately.
-- Next action: investigation
+- Evidence: Real-device logcat at 2026-09-10 16:12:01: `IllegalStateException: The specified child already has a parent` at `GutterBasicInfoFragment.reorderEditableSections(GutterBasicInfoFragment.kt:511)`, called from `onViewCreated()`.
+- Root cause: nested Views remain attached to their original parent when `formContent.addView()` is called.
+- Repro steps: Open the feat-0910-2 form on Sony XQ-AU52.
+- Next action: debug

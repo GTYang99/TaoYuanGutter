@@ -2,8 +2,8 @@ task:
   id: feat-0910-2
   type: feature
 
-phase: verification
-status: verification_not_verified
+phase: implementation
+status: implementation_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -28,8 +28,8 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: unknown
+  result: failed
+  category: implementation_regression
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-001
@@ -47,5 +47,11 @@ release:
   status: pending
 
 blocking:
-  - User-reported real-device crash lacks a crash-time stack trace.
-next_action: investigation
+  - Form entry crashes during view creation due to unsafe runtime View reparenting.
+
+debug:
+  status: completed
+  issue_id: ISS-0910-2-02
+  root_cause: identified
+
+next_action: verification

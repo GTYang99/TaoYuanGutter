@@ -27,21 +27,20 @@
 
 ## Issues
 
-- User reports a real-device crash when using the form, but the crash stack trace is not present in the captured logcat.
-- The affected flow cannot be classified as PASS or FAIL from current evidence.
+- Real-device reproduction confirmed a crash when entering the form. The stack trace identifies `reorderEditableSections()` at `GutterBasicInfoFragment.kt:511`.
 
 ## Validation Limitations
 
 - Gradle CLI remains unavailable because the shell environment has no Java runtime.
-- The current installed app session is at LoginActivity and no authenticated form scenario was available.
+- The form-entry scenario fails during view creation, so the acceptance criteria remain unverified until the debug fix is implemented and revalidated.
 
 ## Failure Classification
 
-- `unknown` — reported crash lacks reproducible steps and stack trace.
+- `implementation_regression` — `IllegalStateException: The specified child already has a parent` from `ViewGroup.addView()` at `GutterBasicInfoFragment.reorderEditableSections(GutterBasicInfoFragment.kt:511)` during `onViewCreated()`.
 
 ## Next Action
 
-- `investigation`: capture the crash-time logcat from the affected device, then classify and route before changing production code.
+- `debug`: document the root cause and minimum fix before re-implementation.
 
 ## Final Result
 
