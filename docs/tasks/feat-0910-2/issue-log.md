@@ -18,13 +18,14 @@
 - Phase: debug
 - Category: `implementation_regression`
 - Priority: P0
-- Status: open
+- Status: resolved
 - Title: Form entry crashes during runtime View reordering
 - Impact: Core form validation is blocked and release readiness cannot be established.
 - Evidence: Real-device logcat at 2026-09-10 16:12:01: `IllegalStateException: The specified child already has a parent` at `GutterBasicInfoFragment.reorderEditableSections(GutterBasicInfoFragment.kt:511)`, called from `onViewCreated()`.
 - Root cause: nested Views remain attached to their original parent when `formContent.addView()` is called.
 - Repro steps: Open the feat-0910-2 form on Sony XQ-AU52.
-- Next action: debug
+- Resolution evidence: parent-safe reordering was installed and the user subsequently entered the form without a crash.
+- Next action: retain the original crash log as historical evidence.
 
 ## ISS-0910-2-03
 
@@ -46,12 +47,13 @@
 - Phase: implementation
 - Category: `implementation_regression`
 - Priority: P1
-- Status: open
+- Status: resolved
 - Title: Field titles shift after photo cards become visible
 - Impact: Measurement fields become visually detached from their labels after all three photos are captured.
 - Evidence: Real-device report after capturing photo slots 1-3; affected titles are width, depth, material, broken, hanging, and silt.
 - Fix scope: ensure the correct outer title rows are used and explicitly request a form hierarchy remeasure after photo visibility changes.
-- Next action: revalidate after installing the current revision.
+- Resolution evidence: user confirmed the affected titles remain correctly positioned after capturing three photos.
+- Next action: retain the real-device result as manual regression evidence.
 
 ## ISS-0910-2-05
 
@@ -59,10 +61,23 @@
 - Phase: implementation
 - Category: `implementation_regression`
 - Priority: P1
-- Status: open
+- Status: resolved
 - Title: Field-title mapping uses virtual wrapper instead of individual rows
 - Impact: Width, depth, material, broken, hanging, and silt titles start in the wrong positions.
 - Evidence: The affected title rows are direct children of `llVirtualHidden3`; the previous ancestor helper returned the wrapper itself, so the individual rows were not interleaved with their matching controls.
 - Fix scope: return the direct child row when its parent is a virtual section, then apply the approved field order.
 - Resolution evidence: user completed real-device validation and reported no issue with the initial order or the three-photo state.
 - Next action: retain automated regression coverage as a separate NOT VERIFIED item until the build environment is available.
+
+## ISS-0910-2-06
+
+- Task: feat-0910-2
+- Phase: verification
+- Category: `verification_failure`
+- Priority: P1
+- Status: open
+- Title: Connected regression report has an Espresso visibility failure
+- Impact: AC-006 cannot be verified; the affected `GutterCantOpenUiTest` result is 1 failure out of 2 tests.
+- Evidence: `app/build/outputs/androidTest-results/connected/debug/TEST-Medium_Phone(AVD) - 14.xml`; `cancelDialogKeepsOriginalState` failed while setting `etDepth` because Espresso reported a non-empty global visible rectangle was unavailable.
+- Classification: provisionally `environment`; the test cannot currently be rerun because the CLI environment has no Java Runtime, so implementation regression is not established.
+- Next action: infrastructure

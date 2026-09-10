@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_in_progress
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -24,7 +24,7 @@ validation:
 
 git:
   branch: uiFix/填寫順序
-  commit: e94c166
+  commit: b897de0
   status: committed
 
 verification:
@@ -32,7 +32,6 @@ verification:
   category: environment
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
-    - AC-003
     - AC-004
     - AC-006
 
@@ -45,10 +44,11 @@ release:
 
 blocking:
   - Automated UI/regression validation remains unavailable until a JDK/Android build environment is available.
+  - No CI build/test result is available.
 
 debug:
   status: completed
   issue_id: ISS-0910-2-02
   root_cause: identified
 
-next_action: verification
+next_action: infrastructure
