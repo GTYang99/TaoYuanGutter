@@ -16,7 +16,7 @@
 
 - Issue: `ISS-0910-2-02`
 - Fix: detach each ordered View from its actual current `ViewGroup` before adding it to `formContent`.
-- Fix commit: pending
+- Fix commit: `e230f44`
 
 ## Follow-up Field and Keyboard Fixes
 
