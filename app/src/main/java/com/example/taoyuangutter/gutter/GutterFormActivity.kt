@@ -1400,26 +1400,36 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             val fabParams = binding.fabSubmit.layoutParams as CoordinatorLayout.LayoutParams
             fabParams.bottomMargin = (24 * resources.displayMetrics.density).toInt() + bars.bottom
             binding.fabSubmit.layoutParams = fabParams
-            WindowInsetsCompat.CONSUMED
+            applyFormPanelImeTranslation(insets)
+            insets
         }
 
         // 鍵盤動畫：鍵盤升起時 formPanel 向上平移，鍵盤下收時還原
         ViewCompat.setWindowInsetsAnimationCallback(
             binding.formPanel,
-            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_STOP) {
+            object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
                 override fun onProgress(
                     insets: WindowInsetsCompat,
                     runningAnimations: List<WindowInsetsAnimationCompat>
                 ): WindowInsetsCompat {
-                    val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
-                    val navInsets = insets.getInsets(WindowInsetsCompat.Type.navigationBars())
-                    binding.formPanel.translationY =
-                        -maxOf(0, imeInsets.bottom - navInsets.bottom).toFloat()
+                    applyFormPanelImeTranslation(insets)
                     updateFormMapViewportPadding()
                     return insets
                 }
+
+                override fun onEnd(animation: WindowInsetsAnimationCompat) {
+                    ViewCompat.getRootWindowInsets(binding.formPanel)?.let(::applyFormPanelImeTranslation)
+                    updateFormMapViewportPadding()
+                }
             }
         )
+        ViewCompat.requestApplyInsets(binding.formPanel)
+    }
+
+    private fun applyFormPanelImeTranslation(insets: WindowInsetsCompat) {
+        val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
+        val navBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom
+        binding.formPanel.translationY = -maxOf(0, imeBottom - navBottom).toFloat()
     }
 
     // ── 背景地圖初始化 ────────────────────────────────────────────────────

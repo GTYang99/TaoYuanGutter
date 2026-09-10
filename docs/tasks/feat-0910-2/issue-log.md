@@ -25,3 +25,30 @@
 - Root cause: nested Views remain attached to their original parent when `formContent.addView()` is called.
 - Repro steps: Open the feat-0910-2 form on Sony XQ-AU52.
 - Next action: debug
+
+## ISS-0910-2-03
+
+- Task: feat-0910-2
+- Phase: implementation
+- Category: environment
+- Priority: P1
+- Status: open
+- Title: Photo upload API returns server SQL schema error
+- Impact: Photo upload completion cannot be confirmed.
+- Evidence: Device dialog reports HTTP 500 and SQL Server error `Invalid column name 'xy_num'` while updating `Map_ditch_nodes_images`; SQL includes `node_id`, `xy_num`, `uploaded_by`, and image IDs.
+- Client comparison: the Android photo multipart request sends only `file`, `node_id`, and `fileCategory`; the feat-0910-2 diff did not change the photo upload request.
+- Classification: backend/API schema mismatch, not a client field rename proven by current evidence.
+- Next action: backend owner to align the image table/API query, then rerun photo upload verification.
+
+## ISS-0910-2-04
+
+- Task: feat-0910-2
+- Phase: implementation
+- Category: `implementation_regression`
+- Priority: P1
+- Status: open
+- Title: Field titles shift after photo cards become visible
+- Impact: Measurement fields become visually detached from their labels after all three photos are captured.
+- Evidence: Real-device report after capturing photo slots 1-3; affected titles are width, depth, material, broken, hanging, and silt.
+- Fix scope: ensure the correct outer title rows are used and explicitly request a form hierarchy remeasure after photo visibility changes.
+- Next action: revalidate after installing the current revision.

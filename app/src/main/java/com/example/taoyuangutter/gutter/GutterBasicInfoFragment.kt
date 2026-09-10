@@ -477,27 +477,28 @@ class GutterBasicInfoFragment : Fragment() {
 
         val orderedViews = listOf(
             binding.layoutMeasurementStatus,
-            binding.tvMeasureIdTitle.parent as View,
+            binding.tvMeasureIdTitle.parent?.parent as? View
+                ?: (binding.tvMeasureIdTitle.parent as View),
             binding.tilMeasureId,
-            binding.tvLocationTitle.parent as View,
+            directContentRow(binding.tvLocationTitle, content),
             binding.btnPickLocation,
             typeTitleRow,
             binding.layoutGutterTypeSelector,
             binding.layoutOverviewPhotoSection,
             binding.layoutDepthPhotoSection,
-            binding.tvDepthTitle.parent as View,
+            directContentRow(binding.tvDepthTitle, content),
             binding.tilDepth,
             binding.llCoverThicknessWrapper,
             widthSection,
-            binding.tvTopWidthTitle.parent as View,
+            directContentRow(binding.tvTopWidthTitle, content),
             binding.tilTopWidth,
-            binding.tvMatTypeTitle.parent as View,
+            directContentRow(binding.tvMatTypeTitle, content),
             binding.rgMatType,
-            binding.tvBrokenTitle.parent as View,
+            directContentRow(binding.tvBrokenTitle, content),
             binding.rgIsBroken,
-            binding.tvHangingTitle.parent as View,
+            directContentRow(binding.tvHangingTitle, content),
             binding.rgIsHanging,
-            binding.tvSiltTitle.parent as View,
+            directContentRow(binding.tvSiltTitle, content),
             binding.rgIsSilt,
             binding.tvRemarksTitle,
             binding.tilRemarks,
@@ -512,6 +513,15 @@ class GutterBasicInfoFragment : Fragment() {
             (child.parent as? ViewGroup)?.removeView(child)
             content.addView(child)
         }
+    }
+
+    /** Finds the smallest ancestor that is a direct child of the form container. */
+    private fun directContentRow(view: View, content: ViewGroup): View {
+        var candidate = view.parent as? View ?: return view
+        while (candidate.parent !== content) {
+            candidate = candidate.parent as? View ?: break
+        }
+        return candidate
     }
 
     // ── RadioGroup 工具函式 ───────────────────────────────────────────────
@@ -1433,6 +1443,13 @@ class GutterBasicInfoFragment : Fragment() {
             delete.visibility = View.GONE
         }
         applyTakePhotoButtonStyle(button, enabled = editable && !isCantOpenPhotoSlot, disabledByCantOpen = isCantOpenPhotoSlot)
+        // Photo cards change from GONE to VISIBLE after capture. Re-measure
+        // the enclosing sheet so following field titles keep their positions.
+        binding.formContent.post {
+            binding.formContent.requestLayout()
+            binding.formContent.invalidate()
+            binding.root.requestLayout()
+        }
     }
 
     private fun deletePhoto(slot: Int) {

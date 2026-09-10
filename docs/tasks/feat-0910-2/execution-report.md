@@ -18,6 +18,13 @@
 - Fix: detach each ordered View from its actual current `ViewGroup` before adding it to `formContent`.
 - Fix commit: pending
 
+## Follow-up Field and Keyboard Fixes
+
+- Restore the measurement-coordinate title by moving its outer row instead of the inner `0dp` weighted container.
+- Reapply the form-panel IME translation from both window-insets dispatch and animation completion so it returns with the keyboard.
+- Request a form hierarchy remeasure after each photo card changes visibility.
+- No photo-upload request fields were changed. The reported `xy_num` failure is recorded as a backend schema/API issue.
+
 ## Validation
 
 | Check | Result | Evidence |
