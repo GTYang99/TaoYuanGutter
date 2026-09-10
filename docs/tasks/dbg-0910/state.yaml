@@ -1,0 +1,49 @@
+task:
+  id: dbg-0910
+  type: debug
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: resolved
+
+planning:
+  status: completed
+
+debug:
+  status: completed
+  root_cause: cant_open_first_open_activity_fragment_sync_gap
+  issue_id: ISS-DBG-0910-001
+
+plan_review:
+  status: completed
+
+implementation:
+  status: completed
+
+validation:
+  status: completed_with_limitations
+
+git:
+  branch: uiFix/審核顯示框
+  commit: 3e1c8d4
+  status: completed
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - Authenticated A0910pt52 first-open visual confirmation is NOT VERIFIED because the emulator is at login and no test credentials were supplied.
+  - Full unit suite has an existing unrelated failure: minimum zoom test expects 16f while source is 13f.
+
+next_action: verification

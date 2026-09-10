@@ -632,6 +632,26 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     state = if (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
                     imgId = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id
                 )
+                // Re-apply the Activity's authoritative photo state after all
+                // import callbacks so the first-open Fragment cannot remain
+                // on its initial empty slot state.
+                pagerAdapter.getBasicInfoFragment()?.syncPersistedPhotoState(
+                    photo1 = p1,
+                    photo2 = p2,
+                    photo3 = p3,
+                    capturedAt1 = capturedAt1,
+                    capturedAt2 = capturedAt2,
+                    capturedAt3 = capturedAt3,
+                    uploadState1 = currentFormPhotoUploadState(1),
+                    uploadState2 = currentFormPhotoUploadState(2),
+                    uploadState3 = currentFormPhotoUploadState(3),
+                    imgId1 = currentFormPhotoImgId(1),
+                    imgId2 = currentFormPhotoImgId(2),
+                    imgId3 = currentFormPhotoImgId(3),
+                    uploadError1 = currentFormPhotoUploadError(1),
+                    uploadError2 = currentFormPhotoUploadError(2),
+                    uploadError3 = currentFormPhotoUploadError(3)
+                )
                 showUploadLoading(false)
 
                 val missing = mutableListOf<String>()

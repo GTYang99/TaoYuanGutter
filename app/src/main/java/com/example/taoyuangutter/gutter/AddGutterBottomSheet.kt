@@ -580,14 +580,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun setupBottomSheetBehavior() {
         dialog?.setOnShowListener {
             val sheetView = getSheetView()
-            val halfScreen = resources.displayMetrics.heightPixels / 2
-            sheetView?.layoutParams?.height = halfScreen
+            val sheetHeight = (resources.displayMetrics.heightPixels * 0.6f).toInt()
+            sheetView?.layoutParams?.height = sheetHeight
             sheetView?.requestLayout()
             // 清除 design_bottom_sheet 容器的預設背景，
             // 讓 bottom_sheet_add_gutter.xml 的 bg_form_sheet 圓角可以正常顯示
             sheetView?.setBackgroundColor(android.graphics.Color.TRANSPARENT)
             getBehavior()?.apply {
-                peekHeight     = halfScreen
+                peekHeight     = sheetHeight
                 expandedOffset = 0
                 state          = BottomSheetBehavior.STATE_EXPANDED
                 isHideable     = false
@@ -1729,7 +1729,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             
             val missingFields = requiredKeys.filter { wp.basicData[it].isNullOrBlank() }
             if (missingFields.isNotEmpty()) {
-                issues.add("$pointLabel：缺少欄位 ${missingFields.joinToString("、")}")
+                val missingFieldLabels = missingFields.map { requiredFieldLabel(it) }
+                issues.add("$pointLabel：缺少欄位 ${missingFieldLabels.joinToString("、")}")
             }
 
             if (!wp.isVirtual) {
@@ -1761,6 +1762,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             .setPositiveButton("確定", null)
             .show()
         return false
+    }
+
+    private fun requiredFieldLabel(key: String): String = when (key) {
+        "MAT_TYP" -> "側溝材質"
+        "IS_BROKEN" -> "溝體結構受損"
+        "IS_HANGING" -> "附掛或過路管線"
+        "IS_SILT" -> "淤積程度"
+        else -> key
     }
 
     private fun syncLatestDraftStateIntoWaypoints() {

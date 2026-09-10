@@ -1,0 +1,39 @@
+{
+  "success": true,
+  "message": "查詢成功",
+  "data": [
+    {
+      "ditch_id": "14636",
+      "node_id": 25076,
+      "NODE_NUM": "",
+      "NODE_ATT": "1",
+      "NODE_TYP": "2",
+      "MAT_TYP": "",
+      "NODE_X": "276178.507",
+      "NODE_Y": "2760114.502",
+      "NODE_LE": "",
+      "XY_NUM": "A0910pt52",
+      "IS_CANTOPEN": "1",
+      "COVER_DEP": "",
+      "NODE_DEP": "",
+      "NODE_WID": "",
+      "IS_BROKEN": "",
+      "IS_HANGING": "",
+      "IS_SILT": "",
+      "NOTE": "",
+      "latitude": 24.948646,
+      "longitude": 121.259239,
+      "is_pendingDeploy": "0",
+      "is_virtual": "0",
+      "captured_at": [
+        "2026-09-10 10:06:44"
+      ],
+      "node_img": [
+        {
+          "url": "https://demo.srgeo.com.tw/TY_RSGDBIP_Folder/node_images/25076/7263fc33-9e0d-43c0-b038-f0fbfeb5addb.jpg",
+          "fileCategory": "1"
+        }
+      ]
+    }
+  ]
+}
