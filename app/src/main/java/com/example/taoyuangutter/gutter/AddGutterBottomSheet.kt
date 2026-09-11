@@ -1764,13 +1764,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         return false
     }
 
-    private fun requiredFieldLabel(key: String): String = when (key) {
-        "MAT_TYP" -> "側溝材質"
-        "IS_BROKEN" -> "溝體結構受損"
-        "IS_HANGING" -> "附掛或過路管線"
-        "IS_SILT" -> "淤積程度"
-        else -> key
-    }
+    private fun requiredFieldLabel(key: String): String = GutterRequiredFieldLabels.labelFor(key)
 
     private fun syncLatestDraftStateIntoWaypoints() {
         if (draftId <= 0L || waypoints.isEmpty()) return
