@@ -2,7 +2,7 @@
 
 ## Implementation
 
-- Branch: `uiFix/既有點位不上傳照片`
+- Branch: `feat/既有點位不上傳照片`
 - Scope: `feat-0911-1`
 - Existing unrelated change preserved: `app/src/main/java/com/example/taoyuangutter/api/GutterApiService.kt`
 - Added `StoreDitchNodeRequestMapper` to omit `captured_at` and `img_ids` for existing nodes while preserving new-node behavior.
