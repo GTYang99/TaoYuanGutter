@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_not_verified
+status: verification_passed
 
 knowledge_resolution:
   status: not_required
@@ -20,20 +20,18 @@ implementation:
   unit_test: passed
 
 validation:
-  status: not_verified
+  status: passed
 
 git:
   branch: uiFix/填寫順序
-  commit: 67b7074
+  commit: 7ddb86b
   status: committed
 
 verification:
-  result: not_verified
-  category: environment
+  result: pass
+  category: none
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
-    - AC-004
-    - AC-006
+  not_verified_acceptance_criteria: []
 
 ci:
   build: pending
@@ -43,12 +41,11 @@ release:
   status: pending
 
 blocking:
-  - Corrected connected UI regression validation is pending because the test devices disconnected.
   - No CI build/test result is available.
 
 debug:
-  status: completed
-  issue_id: ISS-0910-2-02
-  root_cause: identified
+  status: resolved
+  issue_id: ISS-0910-2-09
+  root_cause: Android Test EmptyActivity cross-scenario task handoff, aggravated by asleep device state
 
-next_action: infrastructure
+next_action: release

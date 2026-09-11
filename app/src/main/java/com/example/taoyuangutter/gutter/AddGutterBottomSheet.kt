@@ -2214,7 +2214,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 val isVirtualBool = wp.isVirtual
                 val coverDep = wp.basicData["COVER_DEP"]
                 val imgIds = (1..3).mapNotNull { slot ->
-                    if (isCantOpenBool && slot in 2..3) {
+                    if (isVirtualBool || isCantOpenBool && slot in 2..3) {
                         null
                     } else {
                         PhotoUploadSlotState.readImgId(wp.basicData, slot)
@@ -2227,11 +2227,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     nodeTyp   = wp.basicData["NODE_TYP"]?.toIntOrNull() ?: 1,
                     latitude  = wp.latLng?.latitude  ?: 0.0,
                     longitude = wp.latLng?.longitude ?: 0.0,
-                    nodeLe    = wp.basicData["NODE_LE"]?.toDoubleOrNull(),
+                    nodeLe    = if (isVirtualBool) null else wp.basicData["NODE_LE"]?.toDoubleOrNull(),
                     xyNum     = wp.basicData["XY_NUM"] ?: "",
                         isPendingDeploy = isPendingDeployInt,
-                    isCantOpen = isCantOpenInt,
-                        isVirtual = isVirtualBool,
+                    isCantOpen = if (isVirtualBool) 0 else isCantOpenInt,
+                    isVirtual = isVirtualBool,
                     matTyp    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
                     nodeDep   = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),
                     nodeWid   = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0),
@@ -2239,8 +2239,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     isBroken  = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0),
                     isHanging = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
                     isSilt    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
-                    nodeNote  = wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() },
-                        capturedAt = listOfNotNull(
+                    nodeNote  = if (isVirtualBool) null else wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() },
+                        capturedAt = if (isVirtualBool) null else listOfNotNull(
                             PhotoCapturedAtResolver.readBasicData(wp.basicData, 1),
                             PhotoCapturedAtResolver.readBasicData(wp.basicData, 2),
                             PhotoCapturedAtResolver.readBasicData(wp.basicData, 3)

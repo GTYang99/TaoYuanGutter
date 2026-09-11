@@ -6,6 +6,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isChecked
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.isNotChecked
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -22,6 +24,7 @@ class GutterBasicInfoUiTest {
         launchForm(hashMapOf()).use { scenario ->
             onView(withId(R.id.rbIsBroken0)).check(matches(isChecked()))
             onView(withId(R.id.rbIsSilt0)).check(matches(isChecked()))
+            onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             onView(withId(R.id.btnTakePhotoSlot1)).check(matches(withText("拍攝照片（概況）")))
             onView(withId(R.id.btnTakePhotoSlot2)).check(matches(withText("拍攝照片（寬度）")))
             onView(withId(R.id.btnTakePhotoSlot3)).check(matches(withText("拍攝照片（深度）")))
@@ -62,18 +65,66 @@ class GutterBasicInfoUiTest {
         }
     }
 
+    @Test
+    fun turningVirtualPointOffRestoresNormalFormInteraction() {
+        launchForm(hashMapOf("is_virtual" to "1")).use { scenario ->
+            onView(withId(R.id.cbIsVirtual)).check(matches(isChecked()))
+            onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
+            onView(withId(R.id.cbCantOpen)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
+            listOf(
+                R.id.tvGutterTypeTitle,
+                R.id.layoutGutterTypeSelector,
+                R.id.tvOverviewPhotoTitle,
+                R.id.layoutOverviewPhotoSection,
+                R.id.tvDepthPhotoTitle,
+                R.id.layoutDepthPhotoSection,
+                R.id.tvDepthTitle,
+                R.id.tilDepth,
+                R.id.tvCoverThicknessTitle,
+                R.id.llCoverThicknessWrapper,
+                R.id.tvWidthPhotoTitle,
+                R.id.layoutWidthPhotoSection,
+                R.id.tvTopWidthTitle,
+                R.id.tilTopWidth,
+                R.id.tvMatTypeTitle,
+                R.id.rgMatType,
+                R.id.tvBrokenTitle,
+                R.id.rgIsBroken,
+                R.id.tvHangingTitle,
+                R.id.rgIsHanging,
+                R.id.tvSiltTitle,
+                R.id.rgIsSilt,
+                R.id.tvRemarksTitle,
+                R.id.tilRemarks
+            ).forEach { id ->
+                onView(withId(id)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
+            }
+
+            onView(withId(R.id.cbIsVirtual)).perform(androidx.test.espresso.action.ViewActions.click())
+
+            onView(withId(R.id.cbIsVirtual)).check(matches(isNotChecked()))
+            // The current form is intentionally single-page, so the page switch
+            // bar remains hidden in both virtual and normal modes.
+            onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
+            onView(withId(R.id.cbCantOpen)).check(matches(isDisplayed()))
+            scenario.onActivity { activity ->
+                val viewPager = activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
+                assertTrue("turning virtual mode off must restore pager interaction", viewPager.isUserInputEnabled)
+            }
+        }
+    }
+
     private fun launchForm(data: HashMap<String, String>): ActivityScenario<GutterFormActivity> {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        return ActivityScenario.launch(
-            GutterFormActivity.newIntent(
-                context,
-                arrayListOf("test"),
-                doubleArrayOf(0.0),
-                doubleArrayOf(0.0),
-                basicData = data,
-                sessionDraftId = 0L,
-                sessionIsOffline = true
-            )
-        )
+        val intent = GutterFormActivity.newIntent(
+            context,
+            arrayListOf("test"),
+            doubleArrayOf(0.0),
+            doubleArrayOf(0.0),
+            basicData = data,
+            sessionDraftId = 0L,
+            sessionIsOffline = true
+        ).addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        return ActivityScenario.launch(intent)
     }
 }

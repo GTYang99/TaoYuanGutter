@@ -75,12 +75,28 @@
 - Phase: verification
 - Category: `verification_failure`
 - Priority: P1
-- Status: open
+- Status: resolved
 - Title: Connected regression report has an Espresso visibility failure
 - Impact: AC-006 cannot be verified; the affected `GutterCantOpenUiTest` result is 1 failure out of 2 tests.
 - Evidence: `app/build/outputs/androidTest-results/connected/debug/TEST-Medium_Phone(AVD) - 14.xml`; `cancelDialogKeepsOriginalState` failed while setting `etDepth` because Espresso reported a non-empty global visible rectangle was unavailable.
 - Classification: provisionally `environment`; the test cannot currently be rerun because the CLI environment has no Java Runtime, so implementation regression is not established.
-- Next action: infrastructure
+- Resolution evidence (2026-09-11): the independent full connected suite passed `GutterCantOpenUiTest` 4/4 on XQ-AU52, including the dialog cancellation flow. The prior visibility failure did not recur.
+- Next action: retain as historical environment evidence.
+
+## ISS-0910-2-11
+
+- Task: feat-0910-2
+- Phase: debug
+- Category: `implementation_regression`
+- Priority: P1
+- Status: resolved
+- Title: Virtual-point off action no longer restores normal form behavior
+- Impact: Users can enter virtual-point mode but cannot fully return to the original normal interaction state.
+- Evidence: Current `GutterFormActivity.applyVirtualModeUi()` hardcodes `switchPageBar` to `GONE` and `viewPager.isUserInputEnabled` to `false`. Original behavior in the pre-UI-redesign implementation used `if (isVirtual) GONE else VISIBLE` and `!isVirtual`; both changes are visible in commit `cb3b90f`.
+- Root cause: Activity-level virtual-mode UI handling was changed from state-dependent behavior to unconditional hiding/disabling during the UI redesign. The checkbox listener and Fragment field visibility logic still exist, so the defect is specifically the missing Activity-level off-state restoration.
+- Minimum fix: restore the virtual on/off state transition contract, hide the inapplicable `cbCantOpen` while virtual mode is active, and add focused toggle regression coverage. Implemented in the current follow-up.
+- Resolution evidence (2026-09-11): `GutterBasicInfoUiTest.turningVirtualPointOffRestoresNormalFormInteraction` passed on XQ-AU52. It verifies virtual mode hides applicable controls and that turning it off restores the cannot-open control and ViewPager interaction.
+- Next action: retain as regression coverage.
 
 ## ISS-0910-2-07
 
@@ -109,3 +125,73 @@
 - Fix scope: merge Intent form data over the offline empty-data template while preserving the existing draft branch.
 - Resolution evidence: source fix compiled successfully; connected re-test was blocked by disconnected devices.
 - Next action: rerun `GutterBasicInfoUiTest` on a connected device.
+
+## ISS-0910-2-09
+
+- Task: feat-0910-2
+- Phase: verification
+- Category: `implementation_regression`
+- Priority: P1
+- Status: resolved
+- Title: Form Activity is destroyed before new-form and existing-data UI assertions
+- Impact: The new-form path cannot verify AC-001, AC-002, AC-003, or AC-005; the existing-data path cannot verify AC-004. The connected suite fails before the form assertions can complete.
+- Evidence: `TEST-XQ-AU52 - 12.xml` and the targeted rerun report; `GutterBasicInfoUiTest.newFormShowsRequiredOrderLabelsButtonsAndDefaults` fails twice with `NoActivityResumedException` at line 23. Logcat shows `GutterFormActivity` transitions to `DESTROYED` before the assertion completes, without a matching app `FATAL EXCEPTION`.
+- Repro steps: Run `JAVA_HOME=/Applications/Android Studio.app/Contents/jbr/Contents/Home ./gradlew connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterBasicInfoUiTest#newFormShowsRequiredOrderLabelsButtonsAndDefaults` on `XQ-AU52 - 12`.
+- Expected: New-form activity remains resumed long enough for the UI assertions to complete.
+- Actual: Activity is destroyed and Espresso raises `NoActivityResumedException`.
+- Root-cause status: reassessed. The current revision defers `SupportMapFragment` creation until `onPostResume()`, while the latest failure pauses the Activity before `GutterBasicInfoFragment.onCreate`; therefore the previous synchronous-Maps explanation is stale for this recurrence.
+- Historical evidence from an earlier revision: a targeted run passed once and failed once while `SupportMapFragment.onCreateView()` took 203–226 ms. This supported the earlier map-startup hypothesis, but it cannot explain the current recurrence because map creation is now deferred and the latest failure pauses before Fragment setup.
+- Root-cause evidence still confirmed: the system moves `GutterFormActivity` out of the resumed state; no app fatal exception or explicit `finish()` is present. The trigger remains under investigation.
+- Recurrence evidence (2026-09-11): after the follow-up commits through `64ac477`, a real-device `connectedDebugAndroidTest` run failed both `newFormShowsRequiredOrderLabelsButtonsAndDefaults` (127.416 s, line 25) and `existingBrokenAndSiltValuesArePreserved` (143.303 s, line 63) with `NoActivityResumedException`. Logcat shows the Activity being destroyed after each Espresso timeout and no app `FATAL EXCEPTION`. The failure occurs before the later device disconnect, so it is an implementation regression rather than solely an environment limitation.
+- Resolution status: prior implementation is not verified; recurrence requires a new root-cause investigation.
+- Next action: debug
+
+- Current classification: environment/test lifecycle failure is approximately 85% likely; the translucent `FormSheet` theme alone is below 50% likely. The opaque-theme experiment was applied and reverted because the targeted rerun reproduced the same `Activity top resumed state loss timeout`. A production `MainShellActivity` launch comparison is still required before changing Activity window behavior.
+- Final isolation update: XQ-AU52 was asleep during the failing runs (`mWakefulness=Asleep`, `always_finish_activities=0`). After waking, the targeted new-form test passed. The remaining class-run lifecycle failures are associated with Android Test `EmptyActivity` task handoff between scenarios; no production crash was reproduced. No production workaround was retained.
+- Test-task isolation update: `GutterBasicInfoUiTest.launchForm()` now adds `FLAG_ACTIVITY_CLEAR_TASK`. The complete `GutterBasicInfoUiTest` class passed 3/3 and `GutterCantOpenUiTest` passed 4/4 on XQ-AU52. This provides direct evidence that cross-scenario task handoff was the trigger; no application crash was observed.
+- Regression coverage update: `GutterSessionDraftTest` and `UploadFailureClassifierTest` both pass after the test-task isolation change.
+- Independent revalidation (2026-09-11): the full 13-test connected suite passed again after the device was explicitly woken. The lifecycle failure did not recur.
+- Next action: retain as resolved test-harness evidence.
+
+## ISS-0910-2-10
+
+- Task: feat-0910-2
+- Phase: verification
+- Category: `environment`
+- Priority: P1
+- Status: resolved
+- Title: Full connected regression cannot start because no device is connected
+- Impact: AC-006 cannot receive complete post-fix evidence.
+- Evidence: `JAVA_HOME=/Applications/Android Studio.app/Contents/jbr/Contents/Home ./gradlew connectedDebugAndroidTest --no-daemon` after `f723ade` returned `com.android.builder.testing.api.DeviceException: No connected devices!`.
+- Resolution evidence (2026-09-11): `connectedDebugAndroidTest` completed on XQ-AU52 with 13 tests, 0 failures, and 0 errors.
+- Next action: retain as historical environment evidence.
+
+## ISS-0910-2-12
+
+- Task: feat-0910-2
+- Phase: implementation
+- Category: `implementation_regression`
+- Priority: P1
+- Status: resolved
+- Title: Field-row mapping regression reappeared after virtual-point visibility fix
+- Impact: The six fields for depth, width, material, damage, hanging/road-crossing pipes, and silt can be treated as one virtual wrapper during reordering; their titles then detach from their controls and unrelated residual blocks can remain visible.
+- Evidence: User reported recurrence after the prior `ISS-0910-2-05` correction. In `GutterBasicInfoFragment.directContentRow()`, the branch for `llVirtualHidden1/2/3` returned the wrapper instead of the current direct child row. Multiple calls from `reorderEditableSections()` therefore resolved to the same `llVirtualHidden3` instance.
+- Root cause: The helper's ancestor boundary was interpreted as the container to return, rather than the row immediately below that container. This made the ordered view list contain duplicate virtual-wrapper references instead of individual title rows.
+- Resolution: Return the current candidate row when its parent is `formContent` or a virtual wrapper. Implemented in commit `64ac477`.
+- Validation: `git diff --check`, `assembleDebug`, and `compileDebugAndroidTestKotlin` passed. Independent real-device revalidation on 2026-09-11 completed the full 13-test connected suite with 0 failures; `GutterBasicInfoUiTest` passed all order/default/preservation/virtual cases.
+- Next action: retain as regression coverage.
+
+## ISS-0910-2-13
+
+- Task: feat-0910-2
+- Phase: verification
+- Category: `planning_gap`
+- Priority: P1
+- Status: resolved
+- Title: Unplanned main-map zoom change conflicts with its unit-test specification
+- Impact: The full unit suite is red, and the task revision cannot demonstrate behavior preservation or release readiness.
+- Evidence: In committed revision `4aa4d06`, `MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM` changed from `16f` to `13f`. The approved feat-0910-2 requirement and plan do not include main-map behavior. On the independently rerun latest HEAD `9a55154`, `./gradlew testDebugUnitTest --no-daemon` ran 49 tests and failed exactly `MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement`, which expects `16f`.
+- Resolution decision (2026-09-11): user confirmed 13f is the intended product behavior and authorized changing the test expectation. Commit `7ddb86b` updates the assertion to 13f without changing production code.
+- Resolution evidence: `./gradlew testDebugUnitTest --no-daemon` completed successfully with 49/49 tests passing.
+- Reproduction: Run `JAVA_HOME=/Applications/Android Studio.app/Contents/jbr/Contents/Home ./gradlew testDebugUnitTest --no-daemon`.
+- Next action: retain as resolved planning-decision evidence.
