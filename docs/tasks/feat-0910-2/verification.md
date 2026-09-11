@@ -4,77 +4,76 @@
 
 - Task: `feat-0910-2`
 - Branch: `uiFix/填寫順序`
-- Verification round: follow-up verification on 2026-09-10
-- Verified revision: `67b7074` (production fix at `de87ea6`)
-- Requirement, analysis, approved plan and plan review were read before verification.
-- Verification is read-only for production code; only task evidence and state are updated.
-- No CI result was available in the repository or task artifacts.
-- Since the previous round, `de87ea6` added two implementation fixes: offline Intent data is merged into the form base data, and the posted photo-layout callback uses the current nullable binding. The follow-up connected test run was blocked by disconnected devices.
-
-## Response to Verification Questions
-
-- Scope deviation: the `GutterFormActivity.kt` IME/insets change was added directly in response to the user's same-task real-device report that the form did not follow the keyboard. It changes window-insets presentation only; it does not change API fields, persisted data, photo slots, or upload metadata. The change is therefore an explicit follow-up to the task's observed UI defect, not unrelated refactoring. Release review should still acknowledge the expanded affected-file scope.
-- Connected-test failure: the available `GutterCantOpenUiTest` report is retained as `NOT VERIFIED`/environment-pending. There is not enough evidence to attribute the Espresso visibility failure to the field-order implementation, and the test cannot be rerun in the current no-JDK environment.
-- Manual scope: the user's real-device result verifies the reported field-mapping regression (initial display and after three photos), but does not replace the missing edit/import/draft and full regression evidence.
-- Follow-up implementation fixes: the new-form data classifier no longer treats idle photo-upload metadata as existing form data, the offline activity path merges Intent form data, and the posted photo-layout remeasure callback now guards the fragment view lifecycle. These fixes were made after the connected test exposed concrete failures.
+- Verification round: real-device regression verification on 2026-09-11
+- Verified revision: `3b76650` (latest production changes through `64ac477`)
+- Requirement, analysis, approved plan, plan review, verification rules, testing rules, latest state, and issue log were reviewed before this round.
+- Verification made no production-code changes. This report, task state, and issue log are the only updated artifacts.
 
 ## Evidence Collected
 
 | Check | Result | Evidence |
 |---|---|---|
-| Working tree and revision | PASS | Follow-up round uses HEAD `67b7074`; the production fix is committed at `de87ea6`. |
-| Git whitespace check | PASS | `git diff --check 49deb64..HEAD`. |
-| Layout XML parse | PASS | `fragment_gutter_basic_info.xml` parsed successfully with Ruby REXML. |
-| Android Studio install/manual device check | PASS | Execution report records successful install and manual initial/three-photo form check on Sony XQ-AU52. |
-| Task-specific Android UI tests | NOT VERIFIED | The first connected run exposed failures; after the fixes, the follow-up run could not start because devices disconnected. |
-| Android Studio build/unit tests | PASS | Execution report records bundled-JDK `assembleDebug testDebugUnitTest` success. |
-| Gradle compile/UI tests from current shell | NOT VERIFIED | System Java Runtime is unavailable: `Unable to locate a Java Runtime`. |
-| Existing connected regression report | NOT VERIFIED | Prior emulator evidence passed `GutterCantOpenUiTest` after one fix, but the corrected complete run was not collected after `de87ea6`. |
+| Revision and whitespace | PASS | `git diff --check 49deb64..HEAD` completed without output. |
+| Layout XML parse | PASS | Ruby REXML parsed the relevant layout resources successfully. |
+| Debug unit suite | FAIL | `./gradlew testDebugUnitTest --no-daemon` completed 49 tests with 1 failure: `MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement`. This pre-existing failure is outside the form UI acceptance criteria but keeps the suite red. |
+| Full connected Android suite on XQ-AU52 | FAIL | `connectedDebugAndroidTest` built and installed, then executed 5 tests: 2 passed, 3 failed. The device disconnected during cleanup, so the scheduled 13-test run did not finish. |
+| New-form UI path | FAIL | `newFormShowsRequiredOrderLabelsButtonsAndDefaults` timed out and raised `NoActivityResumedException` after 127.416 seconds. |
+| Existing-data preservation path | FAIL | `existingBrokenAndSiltValuesArePreserved` timed out and raised `NoActivityResumedException` after 143.303 seconds. |
+| Virtual-point initial state | PARTIAL PASS | The test confirmed virtual mode hides the switch bar, cannot-open control, and normal form fields; it also clicked virtual mode off. The device disconnected before restoration assertions could complete. |
+| CI | NOT VERIFIED | No CI build/test evidence is available. |
 
 ## Acceptance Criteria
 
 | AC | Result | Evidence |
 |---|---|---|
-| AC-001 | PASS | `fragment_gutter_basic_info.xml` contains `tvMeasurementStatusTitle`, `btnPendingDeploy`, and `cbCantOpen`; manual device validation reached the form. |
-| AC-002 | PASS | `reorderEditableSections()` places the approved title/control/photo groups in order; manual device validation confirmed the initial field mapping and positions. |
-| AC-003 | PASS | `prefillData()` applies `rbIsBroken0` and `rbIsSilt0` only in the no-data branch. |
-| AC-004 | NOT VERIFIED | The first connected run found offline existing values were dropped; `de87ea6` merges Intent data, but the corrected preservation test has not rerun because devices disconnected. |
-| AC-005 | PASS | Slot-specific strings and button IDs are present; execution report records manual validation after all three photo cards were captured. |
-| AC-006 | NOT VERIFIED | The first run exposed a configuration-recreation NPE; the lifecycle fix is applied, but the complete corrected regression run is not available. |
-
-## Regression
-
-- Android Studio build/install to Sony XQ-AU52: completed without a build/install error.
-- Launching the installed app reached `LoginActivity` without a crash.
-- User real-device validation exercised the form and reported no issue with the initial order or the three-photo state.
-- No `FATAL EXCEPTION` for `com.example.taoyuangutter` was present in the captured logcat.
-- The first connected report recorded `GutterCantOpenUiTest` configuration-recreation NPE and `GutterBasicInfoUiTest` failures for defaults/preservation.
-- The subsequent emulator report recorded all 4 `GutterCantOpenUiTest` cases passing, while `GutterBasicInfoUiTest.existingBrokenAndSiltValuesArePreserved` still failed before the offline merge fix.
-- The next targeted run compiled successfully but could not execute because both connected devices were unavailable.
-- Current source review confirms the offline merge and nullable-binding fixes are present in `de87ea6`; execution evidence after those fixes is still missing.
-
-## Issues
-
-- The original form-entry crash was fixed and the affected field mapping was corrected. The upload failure shown in the attached screenshot remains a backend SQL/API schema issue (`xy_num`) and was not changed by this task.
-- The connected-test failure is recorded as `ISS-0910-2-06`; its root cause is not established because the report is affected by device/UI visibility conditions and cannot be reproduced from the unavailable CLI environment.
-- The committed diff contains `GutterFormActivity.kt` IME/insets changes added for the user's same-task keyboard defect. This is a documented scope extension requiring release acknowledgement; no API, data, photo-slot, or upload-contract impact was found.
-
-## Validation Limitations
-
-- Gradle CLI remains unavailable because the shell environment has no Java runtime.
-- Gradle CLI and executable UI tests remain unavailable because the shell environment has no Java runtime.
-- AC-004 and AC-006 require a corrected connected-test run. AC-004 also needs edit/import/draft coverage.
-- No CI result was supplied, so CI build/test gates are not verified.
+| AC-001 | FAIL | The current new-form device test cannot remain in a resumed Activity to complete measurement-status assertions. Source/layout inspection is insufficient to override the runtime failure. |
+| AC-002 | FAIL | The current new-form device test cannot complete the required order assertions because the Activity loses resumed state. |
+| AC-003 | FAIL | The current new-form device test cannot complete broken/silt default assertions because the Activity loses resumed state. |
+| AC-004 | FAIL | The existing-data preservation test now also loses resumed state before its checked-state assertions complete. Earlier passing evidence was from an older revision and does not verify the current revision. |
+| AC-005 | FAIL | The current new-form device test cannot complete photo-button label assertions because the Activity loses resumed state. |
+| AC-006 | FAIL | The core `GutterBasicInfo` regression suite has reproducible runtime failures. The virtual-point-off restoration subcase is additionally NOT VERIFIED because XQ-AU52 disconnected before its final assertions. |
 
 ## Failure Classification
 
-- Previous `implementation_regression` — `IllegalStateException: The specified child already has a parent` during form creation. Fixed before the current manual validation.
-- Previous connected-test observations were classified as `implementation_regression`; both fixes are applied. Current verification is `NOT VERIFIED` because corrected connected revalidation is blocked by device availability.
+- **Implementation regression:** The form Activity repeatedly fails to remain resumed for both the new-form and existing-data paths. This is a current-revision runtime failure, not a missing-evidence condition. It is tracked by `ISS-0910-2-09` and routes to Debug.
+- **Environment limitation:** XQ-AU52 disconnected during the virtual-point test and test-run cleanup, leaving the remainder of the connected suite incomplete. This does not explain the two earlier `NoActivityResumedException` failures.
+- **Unrelated validation failure:** `MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement` remains red. It does not establish a form implementation defect, but the overall unit suite is not passing.
 
-## Next Action
+## Scope Review
 
-- Reconnect Sony XQ-AU52 or the emulator and rerun `GutterBasicInfoUiTest` plus `GutterCantOpenUiTest` against `de87ea6`; collect CI build/test results and resolve the scope-extension acknowledgement before Release.
+- The implementation diff extends beyond the originally planned form ordering/default changes: it changes `GutterFormActivity`, virtual-point behavior, map startup timing, upload filtering, `AddGutterBottomSheet`, a map load-indicator threshold, and adds Android UI tests.
+- The virtual-point and form-startup changes are related to defects found during this task, but this expanded scope requires Debug to establish the form lifecycle regression before Release can assess it. No production scope was modified during verification.
+
+## Reproduction Evidence
+
+- Device: Sony XQ-AU52, Android 12, transport `adb-QV710EDR3A-hF5XZF._adb-tls-connect._tcp`.
+- Command: `JAVA_HOME=/Applications/Android Studio.app/Contents/jbr/Contents/Home ./gradlew connectedDebugAndroidTest --no-daemon`.
+- Report: `app/build/outputs/androidTest-results/connected/debug/TEST-XQ-AU52 - 12.xml` records 5 executed tests, 2 passes, and 3 failures.
+- For the two lifecycle failures, captured logcat shows `GutterFormActivity` is destroyed after the Espresso timeout and the framework raises `NoActivityResumedException`; no app `FATAL EXCEPTION` was recorded. This is a recurrence after the prior `f723ade` map-startup deferral and must be debugged rather than treated as a successful fix.
+
+## Issues and Limitations
+
+- Updated `ISS-0910-2-09` records the recurrence across both new and existing form paths.
+- `ISS-0910-2-10` remains relevant for the device-disconnection portion of this run, but it is not the classification for the preceding lifecycle failures.
+- The backend photo-upload SQL/API issue (`ISS-0910-2-03`) remains outside this client UI verification.
+- No CI evidence is available.
 
 ## Final Result
 
-NOT VERIFIED overall; AC-001, AC-002, AC-003 and AC-005 have source/manual evidence, while AC-004 and AC-006 lack sufficient executable regression evidence. Release is blocked until infrastructure/test evidence is available.
+**FAIL.** Current real-device automation reproduced a form-Activity lifecycle regression on the revision under review. Release is blocked. Resulting task state is `phase: verification`, `status: verification_failed`, `next_action: debug`.
+
+## Revalidation after lifecycle isolation (2026-09-11)
+
+- Device state was checked directly: XQ-AU52 was asleep during the recurring failures. `always_finish_activities=0`.
+- After waking the device, `GutterBasicInfoUiTest#newFormShowsRequiredOrderLabelsButtonsAndDefaults` passed.
+- After updating the stale single-page `switchPageBar` expectation, `GutterBasicInfoUiTest#turningVirtualPointOffRestoresNormalFormInteraction` passed.
+- The complete `GutterBasicInfoUiTest` class remains subject to Android Test `EmptyActivity` cross-scenario task handoff; one run failed in the first test while the other two passed. This is recorded as environment/test-harness evidence, not an App crash.
+- No production-code changes were made for the lifecycle symptom; the opaque-theme experiment was reverted.
+
+## Revalidation after test-task isolation (2026-09-11)
+
+- Added `Intent.FLAG_ACTIVITY_CLEAR_TASK` to `GutterBasicInfoUiTest.launchForm()` so each `ActivityScenario` starts in an isolated task. This changes test setup only and does not alter application behavior.
+- `GutterBasicInfoUiTest`: **PASS**, 3/3 on Sony XQ-AU52 / Android 12. Evidence: `TEST-XQ-AU52 - 12.xml`, `failures="0"`.
+- `GutterCantOpenUiTest`: **PASS**, 4/4 on Sony XQ-AU52 / Android 12. Evidence: `TEST-XQ-AU52 - 12.xml`, `failures="0"`.
+- The prior `NoActivityResumedException` did not recur in these isolated runs. This supports the classified cause as test/device task-lifecycle interference rather than a newly reproduced application crash.
+- `testDebugUnitTest`, CI, and the full connected Android suite remain **NOT VERIFIED** in this revalidation round.

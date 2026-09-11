@@ -1,6 +1,50 @@
 # Root Cause Analysis: ISS-0910-2-09
 
-## Confirmed behavior
+## Reassessment after verification recurrence (2026-09-11)
+
+### Confirmed facts
+
+- Both the new-form and existing-data connected tests fail with `NoActivityResumedException`.
+- In the new-form log, `GutterFormActivity` reaches `RESUMED` at `14:00:54.246` and `PAUSED` at `14:00:54.278`; `GutterBasicInfoFragment.onCreate` starts at `14:00:54.330`, after the pause.
+- The log contains no application `FATAL EXCEPTION` or application-triggered `finish()` before the failure. The later `DESTROYED` event occurs during Espresso timeout/cleanup.
+- The current implementation no longer inflates the Maps fragment from XML. Map creation is queued from `onPostResume()` after the Activity is resumed.
+
+### Root-cause status
+
+The previous conclusion that synchronous `SupportMapFragment` inflation is the direct cause is not sufficient for this revision: the Activity loses resumed state before the Fragment setup and before the deferred map initialization can run. That conclusion must not be used as the confirmed root cause for the current verification failure.
+
+The confirmed failure class is an Activity top-resumed/lifecycle loss. With the latest batch, all three `GutterBasicInfoUiTest` cases enter `PAUSED` within roughly 15–32 ms after `RESUMED`, before their assertions complete; this is not isolated to a specific field value or assertion. The leading mechanism is now approximately **80% likely**: an interaction between the translucent `FormSheet` window and direct `ActivityScenario` launch on Android 12 causes foreground/top-resumed ownership to be lost immediately after resume. The exact trigger still requires one comparison against the production launch path from `MainShellActivity`; the root cause remains **investigating**, not fully identified.
+
+The field ordering, virtual-point visibility, and upload filtering changes are not implicated by this evidence. The device disconnect during the virtual-point test remains a separate environment issue.
+
+### Confidence boundary
+
+- 80% confidence: the verification failure is caused by the form Activity's foreground lifecycle/top-resumed transition, not by the measured form fields.
+- 80% confidence: the translucent `FormSheet` plus direct test launch is the relevant interaction, because the failure repeats across all three form tests and occurs before form assertions.
+- Not yet confirmed: whether production launch from `MainShellActivity` reproduces the same transition, or whether the defect is specific to the test launch environment.
+
+### Targeted rerun evidence (2026-09-11 14:27)
+
+- The targeted new-form test was rerun on the same Sony XQ-AU52 / Android 12 device and failed again with `NoActivityResumedException`.
+- System `ActivityTaskManager` logged `Activity top resumed state loss timeout` and `Activity pause timeout` at `14:27:19.015–14:27:19.016`.
+- `ActivityScenario` reported `RESUMED` at `14:27:18.999`; the app lifecycle then reported `PAUSED` at `14:27:19.059`.
+- The task is explicitly reported as `translucent=true`; no second application Activity or app fatal exception appears in the launch window.
+
+This confirms the device's top-resumed timeout mechanism, but does not prove that the translucent window is the cause. An opaque-theme experiment was applied and the targeted test reproduced the same timeout. Confidence that the failure is caused by the `FormSheet` theme alone is therefore **below 50%**; confidence that the failure is in the device/test ActivityTaskManager lifecycle layer is approximately **85%**.
+
+The opaque-theme experiment was reverted because it did not change the failure and would alter the product window behavior without evidence of benefit.
+
+### Final isolation update (2026-09-11)
+
+- The XQ-AU52 device reported `mWakefulness=Asleep` during the failing runs; `always_finish_activities` was `0`.
+- After waking the device, the targeted new-form test passed.
+- A complete class run exposed the Android Test `InstrumentationActivityInvoker$EmptyActivity` between scenarios; this handoff can pause the next translucent form task. The same run showed the first two form assertions passing and the remaining failure was an outdated `switchPageBar` visibility expectation.
+- After correcting that test expectation to match the intentional single-page form, the virtual-point on→off targeted test passed.
+- After isolating each `ActivityScenario` launch with `FLAG_ACTIVITY_CLEAR_TASK`, the complete `GutterBasicInfoUiTest` class passed 3/3 and the adjacent `GutterCantOpenUiTest` passed 4/4 on XQ-AU52.
+
+The current evidence supports an environment/test-harness classification for `ISS-0910-2-09`, not a production Activity crash. No production workaround was retained; the mitigation is test-task isolation.
+
+## Earlier investigation evidence (superseded for the current revision)
 
 - The failure occurs in `GutterBasicInfoUiTest.newFormShowsRequiredOrderLabelsButtonsAndDefaults` on Sony XQ-AU52.
 - `GutterFormActivity` reaches `RESUMED`, then transitions to `PAUSED` and `STOPPED` about 66 ms later.
@@ -8,9 +52,9 @@
 - Espresso waits for the first assertion until the 46-second timeout, after which `ActivityScenario` reports the activity as `DESTROYED` and raises `NoActivityResumedException`.
 - The same test uses an activity with a full-screen `SupportMapFragment` and a translucent `FormSheet` theme. Existing-value and `GutterCantOpenUiTest` scenarios do not reproduce this exact failure.
 
-## Root-cause status
+## Earlier root-cause conclusion (superseded)
 
-Root cause identified: `GutterFormActivity` does not complete its launch lifecycle before the Sony XQ-AU52 system's top-resumed timeout. The synchronous `setContentView()` path inflates the full form and the XML-declared `SupportMapFragment`; the map's `onCreateView()` blocks the main thread while the Activity is still starting. Android then reports `Activity top resumed state loss timeout` and `Activity pause timeout`, moves the form out of the foreground, and Espresso later reports `NoActivityResumedException`.
+An earlier revision was assessed as exceeding the Sony XQ-AU52 top-resumed deadline while synchronously inflating the form and XML-declared `SupportMapFragment`. That conclusion applied to the earlier implementation and is retained only as historical evidence; it is not the confirmed cause of the current recurrence.
 
 This is an application startup performance/lifecycle regression, not an app `finish()` call or the `onPause()` draft-sync path. The translucent form theme increases the consequence because the form is expected to remain a foreground overlay, but changing that theme is not required by the root-cause evidence.
 
@@ -23,7 +67,7 @@ This is an application startup performance/lifecycle regression, not an app `fin
 - Both runs show `SupportMapFragment.onCreateView()` blocking the main thread for about 203–226 ms. The pass run remained resumed long enough for the assertions; the fail run did not.
 - No app `FATAL EXCEPTION`, explicit `finish()`, or logged second application Activity was captured.
 
-The earlier pass/fail variation is explained by whether the device completed the startup work before the top-resumed deadline. The minimum safe production fix is to keep form UI startup independent from map creation: remove automatic XML map-fragment inflation and schedule `SupportMapFragment` creation/`getMapAsync()` after the form Activity has reached its first resumed frame. The map remains part of the product UI; only its startup timing changes.
+The earlier pass/fail variation motivated deferring map creation. That change is already present in the current revision, but the latest failure still pauses before Fragment setup, so it does not close the current issue.
 
 ## Affected acceptance criteria
 
@@ -34,7 +78,7 @@ The earlier pass/fail variation is explained by whether the device completed the
 
 - `app/build/outputs/androidTest-results/connected/debug/TEST-XQ-AU52 - 12.xml`: one failure in a 12-test connected run.
 - `app/build/outputs/androidTest-results/connected/debug/XQ-AU52 - 12/logcat-com.example.taoyuangutter.GutterBasicInfoUiTest-newFormShowsRequiredOrderLabelsButtonsAndDefaults.txt`: lifecycle sequence and absence of app fatal exception.
-- `GutterFormActivity.onCreate()`: initializes the map fragment and form pager before the first assertion.
+- Earlier `GutterFormActivity.onCreate()` implementation: initialized the map fragment and form pager before the first assertion. The current implementation queues map initialization from `onPostResume()` instead.
 
 # Root Cause Analysis: ISS-0910-2-12
 

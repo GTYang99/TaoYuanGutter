@@ -2,8 +2,8 @@ task:
   id: feat-0910-2
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: debug
+status: debug_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -24,15 +24,20 @@ validation:
 
 git:
   branch: uiFix/填寫順序
-  commit: bff77dd
+  commit: 3b76650
   status: committed
 
 verification:
-  result: not_verified
-  category: environment
-  failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-003
+    - AC-004
+    - AC-005
     - AC-006
+  not_verified_acceptance_criteria: []
 
 ci:
   build: pending
@@ -42,13 +47,14 @@ release:
   status: pending
 
 blocking:
-  - Full connected regression is pending because no Android device is currently connected.
-  - One unrelated unit test remains failing in MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement.
+  - New-form and existing-data device UI tests repeatedly lose the resumed GutterFormActivity before assertions can complete.
+  - XQ-AU52 disconnected during virtual-point restoration assertions and connected-suite cleanup.
+  - The unit suite has one unrelated failure in MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement.
   - No CI build/test result is available.
 
 debug:
-  status: completed
-  issue_id: ISS-0910-2-11
-  root_cause: identified
+  status: investigating
+  issue_id: ISS-0910-2-09
+  root_cause: investigating
 
-next_action: verification
+next_action: debug

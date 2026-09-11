@@ -103,7 +103,9 @@ class GutterBasicInfoUiTest {
             onView(withId(R.id.cbIsVirtual)).perform(androidx.test.espresso.action.ViewActions.click())
 
             onView(withId(R.id.cbIsVirtual)).check(matches(isNotChecked()))
-            onView(withId(R.id.switchPageBar)).check(matches(isDisplayed()))
+            // The current form is intentionally single-page, so the page switch
+            // bar remains hidden in both virtual and normal modes.
+            onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             onView(withId(R.id.cbCantOpen)).check(matches(isDisplayed()))
             scenario.onActivity { activity ->
                 val viewPager = activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
@@ -114,16 +116,15 @@ class GutterBasicInfoUiTest {
 
     private fun launchForm(data: HashMap<String, String>): ActivityScenario<GutterFormActivity> {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        return ActivityScenario.launch(
-            GutterFormActivity.newIntent(
-                context,
-                arrayListOf("test"),
-                doubleArrayOf(0.0),
-                doubleArrayOf(0.0),
-                basicData = data,
-                sessionDraftId = 0L,
-                sessionIsOffline = true
-            )
-        )
+        val intent = GutterFormActivity.newIntent(
+            context,
+            arrayListOf("test"),
+            doubleArrayOf(0.0),
+            doubleArrayOf(0.0),
+            basicData = data,
+            sessionDraftId = 0L,
+            sessionIsOffline = true
+        ).addFlags(android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        return ActivityScenario.launch(intent)
     }
 }

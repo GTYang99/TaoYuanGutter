@@ -2,18 +2,18 @@
 
 ## Current status
 
-Debug complete. Root cause is the form Activity exceeding the device top-resumed startup deadline because the form and XML-declared Maps fragment are created synchronously on the main thread.
+Debug investigation continues. The latest targeted run confirms an Android 12 top-resumed lifecycle failure, but the attempted opaque-theme change did not alter the failure. The exact trigger is not yet established.
 
 ## Minimum next checks
 
-1. Replace the XML `android:name="com.google.android.gms.maps.SupportMapFragment"` declaration with an empty map host container. (Implemented.)
-2. Let the form UI keep its normal `onCreate`/first-frame path, then add the `SupportMapFragment` from the resumed view queue. (Implemented.)
-3. Keep existing map overlays, markers, camera, and transparent form-sheet behavior unchanged. (Implemented.)
-4. Re-run `GutterBasicInfoUiTest` repeatedly on XQ-AU52, then run `GutterCantOpenUiTest` and the full connected suite. (Pending device reconnection.)
+1. Keep the existing empty map host container and deferred `SupportMapFragment` startup. (Implemented.)
+2. Compare ActivityScenario launch with the production MainShell launch and capture ActivityTaskManager/focus ownership. (Pending.)
+3. Preserve the form's full-screen map, panel layout, overlays, markers, camera, and data behavior. (Required.)
+4. Re-run `GutterBasicInfoUiTest` repeatedly on XQ-AU52, then run `GutterCantOpenUiTest` and the full connected suite. (Pending.)
 
 ## Guardrails
 
-- Do not remove the map, change the translucent form theme, or alter activity finish behavior; the fix is limited to deferring map-fragment creation.
+- Do not remove the map, change the form window theme, or alter activity finish behavior until the launch-path comparison identifies the responsible layer.
 - Do not mark the affected acceptance criteria PASS based only on the user's manual field-order result.
 - Keep the offline existing-data fix and photo lifecycle fix separate from this investigation.
 
