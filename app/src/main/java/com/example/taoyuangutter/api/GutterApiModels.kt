@@ -460,7 +460,12 @@ data class NodeImg(
     @SerializedName("url")          val url: String,
     /** 照片類別：1=測量位置及側溝概況、2=側溝內徑寬度尺寸、3=側溝深度尺寸 */
     @SerializedName("fileCategory") val fileCategory: String?,
-    @SerializedName("id")           val id: Int? = null
+    /**
+     * Existing API responses use `id`; accept `img_id` as a compatibility alias
+     * because the upload response uses that name for the same server image ID.
+     */
+    @SerializedName(value = "id", alternate = ["img_id"])
+    val id: Int? = null
 )
 
 // ════════════════════════════════════════════════════════════════

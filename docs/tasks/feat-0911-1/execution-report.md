@@ -46,3 +46,13 @@ Local unit/build validation completed with the Android Studio bundled Java Runti
 - Added an early guard in `GutterFormActivity.onPhotoSlotReadyForUpload()` so an existing photo cannot enqueue `PhotoSlotUploadCoordinator`.
 - Follow-up targeted tests: PASS (`BUILD SUCCESSFUL`).
 - Follow-up debug APK build: PASS (`BUILD SUCCESSFUL`).
+
+## API Contract Follow-up Validation
+
+- Added Gson compatibility mapping so `NodeImg.id` accepts both `id` (ditchDetails contract) and `img_id` (upload-style contract).
+- Added `NodeImgDeserializationTest` covering both response field names.
+- Emulator `ty04` direct-import evidence: the supplied `/v1/node/nodeDetails?XY_NUM=ty04` response contains `node_img` entries with only `url` and `fileCategory`; runtime recorded downloaded photos with `imgId=null` and `UploadState=success`.
+- Emulator observed no `/v1/node/nodeImage` request during the import flow.
+- Targeted mapping/resolver/mapper tests: PASS (`BUILD SUCCESSFUL`).
+- Debug APK build: PASS (`BUILD SUCCESSFUL`).
+- `photo*ImgId` population for the current ty04 direct-import response: NOT VERIFIED / unavailable because that response omits the ID; backend must return `node_img[].id` (or `img_id`) or provide a lookup endpoint.
