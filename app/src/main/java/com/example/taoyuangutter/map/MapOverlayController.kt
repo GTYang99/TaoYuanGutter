@@ -17,7 +17,8 @@ class MapOverlayController(
         val showWaterOld: Boolean,
         val showPossible: Boolean,
         val showRegion: Boolean,
-        val showNoDitchPoints: Boolean
+        val showNoDitchPoints: Boolean,
+        val showDeletedArea: Boolean = true
     )
 
     private var currentTileOverlay: TileOverlay? = null
@@ -25,6 +26,7 @@ class MapOverlayController(
     private var waterOldWmsOverlay: TileOverlay? = null
     private var regionWmsOverlay: TileOverlay? = null
     private var noDitchPointsWmsOverlay: TileOverlay? = null
+    private var deletedAreaWmsOverlay: TileOverlay? = null
     private var measureLabelsWmsOverlay: TileOverlay? = null
     private var noDitchPointsInteractionEnabled: Boolean = false
 
@@ -34,6 +36,7 @@ class MapOverlayController(
     private var showPossibleOverlay = true
     private var showRegionOverlay = true
     private var showNoDitchPointsOverlay = false
+    private var showDeletedAreaOverlay = true
 
     fun currentLayer(): String = currentLayer
 
@@ -43,7 +46,8 @@ class MapOverlayController(
         showWaterOld = showWaterOldOverlay,
         showPossible = showPossibleOverlay,
         showRegion = showRegionOverlay,
-        showNoDitchPoints = showNoDitchPointsOverlay
+        showNoDitchPoints = showNoDitchPointsOverlay,
+        showDeletedArea = showDeletedAreaOverlay
     )
 
     fun applyState(state: OverlayState) {
@@ -53,6 +57,7 @@ class MapOverlayController(
         showPossibleOverlay = state.showPossible
         showRegionOverlay = state.showRegion
         showNoDitchPointsOverlay = state.showNoDitchPoints
+        showDeletedAreaOverlay = state.showDeletedArea
 
         // Re-apply base layer and overlays
         setBaseLayer(currentLayer)
@@ -80,13 +85,15 @@ class MapOverlayController(
         showWaterOld: Boolean,
         showPossible: Boolean,
         showRegion: Boolean,
-        showNoDitchPoints: Boolean
+        showNoDitchPoints: Boolean,
+        showDeletedArea: Boolean
     ) {
         showPlanOverlay = showPlan
         showWaterOldOverlay = showWaterOld
         showPossibleOverlay = showPossible
         showRegionOverlay = showRegion
         showNoDitchPointsOverlay = showNoDitchPoints
+        showDeletedAreaOverlay = showDeletedArea
         applyWmsOverlays()
     }
 
@@ -106,6 +113,17 @@ class MapOverlayController(
 
     fun applyWmsOverlays() {
         val map = mapProvider() ?: return
+
+        if (showDeletedAreaOverlay) {
+            if (deletedAreaWmsOverlay == null) {
+                deletedAreaWmsOverlay = map.addTileOverlay(
+                    TileOverlayOptions().tileProvider(Wms3826TileProvider()).zIndex(0.15f).transparency(0f)
+                )
+            }
+        } else {
+            deletedAreaWmsOverlay?.remove()
+            deletedAreaWmsOverlay = null
+        }
 
         if (showPossibleOverlay) {
             if (planWmsOverlay == null) {

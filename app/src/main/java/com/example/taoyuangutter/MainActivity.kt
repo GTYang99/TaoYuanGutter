@@ -1848,7 +1848,8 @@ class MainActivity : AppCompatActivity(),
                 showWaterOld = state.showWaterOld,
                 showPossible = state.showPossible,
                 showRegion = state.showRegion,
-                showNoDitchPoints = state.showNoDitchPoints
+                showNoDitchPoints = state.showNoDitchPoints,
+                showDeletedArea = state.showDeletedArea
             ).show(supportFragmentManager, "LayersBottomSheet")
         }
         binding.btnMyLocation.setOnClickListener {
@@ -2456,14 +2457,16 @@ class MainActivity : AppCompatActivity(),
         showWaterOld: Boolean,
         showPossible: Boolean,
         showRegion: Boolean,
-        showNoDitchPoints: Boolean
+        showNoDitchPoints: Boolean,
+        showDeletedArea: Boolean
     ) {
         mapOverlayController.updateOverlayToggles(
             showPlan,
             showWaterOld,
             showPossible,
             showRegion,
-            showNoDitchPoints
+            showNoDitchPoints,
+            showDeletedArea
         )
         scopeGutterPolylineController.setVisible(showPlan)
         if (showNoDitchPoints) {

@@ -625,7 +625,8 @@ class MapWorkspaceFragment : Fragment(),
                 showWaterOld = state.showWaterOld,
                 showPossible = state.showPossible,
                 showRegion = state.showRegion,
-                showNoDitchPoints = state.showNoDitchPoints
+                showNoDitchPoints = state.showNoDitchPoints,
+                showDeletedArea = state.showDeletedArea
             ).show(childFragmentManager, "LayersBottomSheet")
         }
         binding.btnMyLocation.setOnClickListener {
@@ -681,14 +682,16 @@ class MapWorkspaceFragment : Fragment(),
         showWaterOld: Boolean,
         showPossible: Boolean,
         showRegion: Boolean,
-        showNoDitchPoints: Boolean
+        showNoDitchPoints: Boolean,
+        showDeletedArea: Boolean
     ) {
         mapOverlayController.updateOverlayToggles(
             showPlan = showPlan,
             showWaterOld = showWaterOld,
             showPossible = showPossible,
             showRegion = showRegion,
-            showNoDitchPoints = showNoDitchPoints
+            showNoDitchPoints = showNoDitchPoints,
+            showDeletedArea = showDeletedArea
         )
         scopeGutterPolylineController.setVisible(showPlan)
         if (showNoDitchPoints) {

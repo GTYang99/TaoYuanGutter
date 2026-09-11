@@ -1,0 +1,44 @@
+task:
+  id: feat-0911-2
+  type: feature
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: resolved
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+  unit_test: pass
+  build: pass
+  smoke_test: not_verified
+
+git:
+  branch: feat/0910圖層
+  commit: 5c20fa18464f2b34739472a649dba19b7a4bf982
+  status: committed
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification
