@@ -1106,7 +1106,7 @@ class GutterBasicInfoFragment : Fragment() {
         val isUOpen = gutterTypeText == GUTTER_TYPES[0]
         logPhotoImgIdTrace("collectData")
 
-        return mapOf(
+        val data = mapOf(
             "is_virtual"  to (if (isVirtualMode) "1" else "0"),
             "_isImported" to (if (isImportLocked) "1" else "0"),
             "SPI_NUM"     to (binding.etGutterId.text?.toString()      ?: ""),
@@ -1144,6 +1144,16 @@ class GutterBasicInfoFragment : Fragment() {
             "photo2UploadError" to (photoUploadError2 ?: ""),
             "photo3UploadError" to (photoUploadError3 ?: "")
         )
+
+        // 虛擬點只允許保留：測量狀態、測量座標編號與欄位、側溝位置。
+        // 其他控制項即使曾經有值，也不得再從表單收集結果帶出。
+        return if (isVirtualMode) {
+            data.filterKeys {
+                it in setOf("is_virtual", "IS_PENDING_DEPLOY", "NODE_X", "NODE_Y", "XY_NUM")
+            }
+        } else {
+            data
+        }
     }
 
     fun updateCoordinates(longitude: Double, latitude: Double) {

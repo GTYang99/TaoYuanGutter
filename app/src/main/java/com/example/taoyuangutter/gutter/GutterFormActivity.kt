@@ -1823,7 +1823,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         )
     }
 
-    private fun currentFormPhotos(): Triple<String?, String?, String?> = Triple(
+    private fun currentFormPhotos(): Triple<String?, String?, String?> {
+        if (parseLooseBoolean(currentFormData["is_virtual"])) {
+            return Triple(null, null, null)
+        }
+        return Triple(
         currentFormData["photo1"]?.takeIf { it.isNotBlank() },
         currentFormData["photo2"]?.takeIf {
             it.isNotBlank() && !parseLooseBoolean(currentFormData["IS_CANTOPEN"])
@@ -1831,7 +1835,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         currentFormData["photo3"]?.takeIf {
             it.isNotBlank() && !parseLooseBoolean(currentFormData["IS_CANTOPEN"])
         }
-    )
+        )
+    }
 
     private fun currentFormSnapshot(): HashMap<String, String> = HashMap(currentFormData).apply {
         preserveEditSpiNum(this)
