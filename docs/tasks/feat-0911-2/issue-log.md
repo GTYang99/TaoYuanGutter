@@ -18,3 +18,22 @@ resolution: "新增專用 EPSG:3826 provider；不改動現有 EPSG:3857 provide
 next_action: planning
 owner: developer
 ```
+
+## ISS-FEAT-0911-2-002
+
+```yaml
+issue_id: ISS-FEAT-0911-2-002
+task_id: feat-0911-2
+phase: verification
+category: environment
+priority: P2
+title: CI evidence is unavailable
+status: open
+impact: All acceptance criteria have verification evidence, but the Release CI gate remains blocked.
+evidence:
+  - "Clean committed-revision testDebugUnitTest produced 18 XML suites with no failure/error; assembleDebug produced app-debug.apk."
+  - "Physical-device smoke test passed on XQ-AU52."
+  - "No CI workflow/configuration or CI result was found for commit cc86ed605b342b45502f685222b159c39a3aa3d0."
+next_action: verification
+owner: verifier
+```

@@ -2,8 +2,8 @@ task:
   id: feat-0911-2
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -29,16 +29,18 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
 
 ci:
-  build: pending
-  test: pending
+  build: not_verified
+  test: not_verified
 
 release:
   status: pending
 
-blocking: []
+blocking:
+  - No CI workflow or CI result is available for the committed revision.
 next_action: verification
