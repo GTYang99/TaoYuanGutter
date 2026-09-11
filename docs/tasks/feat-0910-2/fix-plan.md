@@ -16,3 +16,16 @@ Debug complete. Root cause is the form Activity exceeding the device top-resumed
 - Do not remove the map, change the translucent form theme, or alter activity finish behavior; the fix is limited to deferring map-fragment creation.
 - Do not mark the affected acceptance criteria PASS based only on the user's manual field-order result.
 - Keep the offline existing-data fix and photo lifecycle fix separate from this investigation.
+
+## ISS-0910-2-11: Virtual-point off-state
+
+### Current status
+
+Debug complete. The virtual checkbox listener still exists, but the Activity-level virtual UI method was made unconditional by the earlier UI redesign, so turning virtual mode off cannot restore the original normal interaction state.
+
+### Minimum implementation
+
+1. Restore state-dependent handling in `applyVirtualModeUi(isVirtual)` for the controls that belong to the virtual-point toggle.
+2. Preserve the existing `GutterBasicInfoFragment.setVirtualMode(false)` field restoration and persisted `is_virtual=0` behavior.
+3. Add a focused UI regression test for virtual on → off, including the restored control state.
+4. Validate the virtual toggle together with the existing form-order and cant-open regressions.

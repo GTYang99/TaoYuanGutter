@@ -2,8 +2,8 @@ task:
   id: feat-0910-2
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: not_required
@@ -24,19 +24,15 @@ validation:
 
 git:
   branch: uiFix/填寫順序
-  commit: 93cacc7
+  commit: f723ade
   status: committed
 
 verification:
-  result: fail
-  category: implementation
-  failed_acceptance_criteria:
-    - AC-001
-    - AC-002
-    - AC-003
-    - AC-005
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
     - AC-006
-  not_verified_acceptance_criteria: []
 
 ci:
   build: pending
@@ -46,13 +42,13 @@ release:
   status: pending
 
 blocking:
-  - Full connected regression is pending because XQ-AU52 went offline during APK reinstall.
+  - Full connected regression is pending because no Android device is currently connected.
   - One unrelated unit test remains failing in MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement.
   - No CI build/test result is available.
 
 debug:
   status: completed
-  issue_id: ISS-0910-2-09
+  issue_id: ISS-0910-2-11
   root_cause: identified
 
-next_action: verification
+next_action: implementation_debug

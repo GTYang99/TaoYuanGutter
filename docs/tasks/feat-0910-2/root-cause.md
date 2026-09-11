@@ -35,3 +35,35 @@ The earlier pass/fail variation is explained by whether the device completed the
 - `app/build/outputs/androidTest-results/connected/debug/TEST-XQ-AU52 - 12.xml`: one failure in a 12-test connected run.
 - `app/build/outputs/androidTest-results/connected/debug/XQ-AU52 - 12/logcat-com.example.taoyuangutter.GutterBasicInfoUiTest-newFormShowsRequiredOrderLabelsButtonsAndDefaults.txt`: lifecycle sequence and absence of app fatal exception.
 - `GutterFormActivity.onCreate()`: initializes the map fragment and form pager before the first assertion.
+
+
+# Root Cause Analysis: ISS-0910-2-11
+
+## Confirmed behavior
+
+- The original virtual-point flow allowed the user to turn virtual mode off and restore the normal form navigation behavior.
+- The current form still exposes `cbIsVirtual` and its listener, but turning it off does not restore the original page-navigation UI/interaction state.
+
+## Root cause
+
+This is a regression from the UI layout redesign in commit `cb3b90f` (`fix: UI 版面改版`). The original `applyVirtualModeUi(isVirtual)` used the virtual-state argument to control both behaviors:
+
+- `switchPageBar.visibility = if (isVirtual) View.GONE else View.VISIBLE`
+- `viewPager.isUserInputEnabled = !isVirtual`
+
+The redesign replaced both state-dependent expressions with unconditional values:
+
+- `binding.switchPageBar.visibility = View.GONE`
+- `binding.viewPager.isUserInputEnabled = false`
+
+As a result, the checkbox can change `isVirtualMode` and the form fields can be restored by `GutterBasicInfoFragment.setVirtualMode(false)`, but the Activity-level navigation state remains permanently disabled/hidden. The close/off action therefore appears to be missing even though the checkbox listener still exists.
+
+## Affected files and risk
+
+- `app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt`: `applyVirtualModeUi()` and its initial `setupTabButtons()` interaction.
+- `app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt`: existing field visibility toggle remains present and is not the root cause.
+- Risk: restoring the original conditional behavior may expose the page switch bar in non-virtual mode, so the implementation must preserve the current single-page product intent if that visibility was intentionally removed; the required behavior decision is specifically that virtual mode can be turned off and normal form interaction restored.
+
+## Minimum fix scope
+
+Restore the virtual-state transition contract at the Activity layer: when virtual mode is turned off, re-enable the normal form navigation/close path and keep virtual mode's hidden/disabled state while it is on. Add a regression test that toggles `cbIsVirtual` on and off and verifies both the checkbox state and the restored controls. Do not change API keys, field order, photo slots, or map startup behavior.

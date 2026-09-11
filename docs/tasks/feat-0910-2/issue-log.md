@@ -82,6 +82,20 @@
 - Classification: provisionally `environment`; the test cannot currently be rerun because the CLI environment has no Java Runtime, so implementation regression is not established.
 - Next action: infrastructure
 
+## ISS-0910-2-11
+
+- Task: feat-0910-2
+- Phase: debug
+- Category: `implementation_regression`
+- Priority: P1
+- Status: open
+- Title: Virtual-point off action no longer restores normal form behavior
+- Impact: Users can enter virtual-point mode but cannot fully return to the original normal interaction state.
+- Evidence: Current `GutterFormActivity.applyVirtualModeUi()` hardcodes `switchPageBar` to `GONE` and `viewPager.isUserInputEnabled` to `false`. Original behavior in the pre-UI-redesign implementation used `if (isVirtual) GONE else VISIBLE` and `!isVirtual`; both changes are visible in commit `cb3b90f`.
+- Root cause: Activity-level virtual-mode UI handling was changed from state-dependent behavior to unconditional hiding/disabling during the UI redesign. The checkbox listener and Fragment field visibility logic still exist, so the defect is specifically the missing Activity-level off-state restoration.
+- Minimum fix: restore the virtual on/off state transition contract and add focused toggle regression coverage.
+- Next action: implementation_debug
+
 ## ISS-0910-2-07
 
 - Task: feat-0910-2
@@ -128,3 +142,15 @@
 - Root-cause evidence: system `ActivityTaskManager` logs at 10:06:46.536, 10:24:22.408, 10:40:53.778, and 10:46:17.636 report top-resumed and pause timeouts for `GutterFormActivity`; the 10:46:17.104 launch reaches `RESUMED` only after the timeout window. No app fatal exception or explicit `finish()` is present.
 - Resolution status: implementation completed; targeted post-fix new-form test passed once. Class-level regression was blocked by the device going offline during reinstall.
 - Next action: verification
+
+## ISS-0910-2-10
+
+- Task: feat-0910-2
+- Phase: verification
+- Category: `environment`
+- Priority: P1
+- Status: open
+- Title: Full connected regression cannot start because no device is connected
+- Impact: AC-006 cannot receive complete post-fix evidence.
+- Evidence: `JAVA_HOME=/Applications/Android Studio.app/Contents/jbr/Contents/Home ./gradlew connectedDebugAndroidTest --no-daemon` after `f723ade` returned `com.android.builder.testing.api.DeviceException: No connected devices!`.
+- Next action: infrastructure
