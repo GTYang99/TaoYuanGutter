@@ -1,33 +1,24 @@
-# Root Cause Analysis
+# Root Cause Analysis: ISS-0910-2-09
 
-## Issue
+## Confirmed behavior
 
-- Issue ID: ISS-0910-2-02
-- Category: `implementation_regression`
-- Priority: P0
+- The failure occurs in `GutterBasicInfoUiTest.newFormShowsRequiredOrderLabelsButtonsAndDefaults` on Sony XQ-AU52.
+- `GutterFormActivity` reaches `RESUMED`, then transitions to `PAUSED` and `STOPPED` about 66 ms later.
+- There is no application `FATAL EXCEPTION`, `finish()` log, or stack trace identifying an application crash.
+- Espresso waits for the first assertion until the 46-second timeout, after which `ActivityScenario` reports the activity as `DESTROYED` and raises `NoActivityResumedException`.
+- The same test uses an activity with a full-screen `SupportMapFragment` and a translucent `FormSheet` theme. Existing-value and `GutterCantOpenUiTest` scenarios do not reproduce this exact failure.
 
-## Evidence
+## Root-cause status
 
-Real-device logcat at 2026-09-10 16:12:01:
+The application-side trigger for the immediate `PAUSED/STOPPED` transition is not yet conclusively identified. The evidence rules out the earlier View-reparenting crash and does not justify changing the form window theme or removing the map. This remains an implementation investigation, not a verified environment-only failure.
 
-```text
-FATAL EXCEPTION: main
-java.lang.IllegalStateException: The specified child already has a parent. You must call removeView() on the child's parent first.
- at android.view.ViewGroup.addView(...)
- at com.example.taoyuangutter.gutter.GutterBasicInfoFragment.reorderEditableSections(GutterBasicInfoFragment.kt:511)
- at com.example.taoyuangutter.gutter.GutterBasicInfoFragment.onViewCreated(GutterBasicInfoFragment.kt:423)
-```
+## Affected acceptance criteria
 
-## Cause
+- AC-001, AC-002, AC-003, AC-005: assertions cannot run because the new-form activity is not resumed.
+- AC-006: the connected regression suite fails even though the affected `GutterCantOpenUiTest` cases pass.
 
-`reorderEditableSections()` builds an ordered list of Views, removes each item from `formContent`, and adds it back. Some entries are nested children whose immediate parent is not `formContent`; removing them from `formContent` is a no-op. The subsequent `formContent.addView(child)` therefore attempts to attach a View that still belongs to its original parent, producing the observed `IllegalStateException` during form creation.
+## Investigation evidence
 
-## Affected Requirements
-
-- AC-001: entering the form page is blocked by the crash.
-- AC-002 and AC-005: the requested order cannot be observed.
-- AC-006: regression validation cannot proceed.
-
-## Risk
-
-The crash occurs before the form becomes usable. A minimum fix must preserve existing View IDs, listeners, field bindings, photo-slot mappings, virtual-mode visibility, and view-mode behavior while eliminating runtime cross-parent reparenting.
+- `app/build/outputs/androidTest-results/connected/debug/TEST-XQ-AU52 - 12.xml`: one failure in a 12-test connected run.
+- `app/build/outputs/androidTest-results/connected/debug/XQ-AU52 - 12/logcat-com.example.taoyuangutter.GutterBasicInfoUiTest-newFormShowsRequiredOrderLabelsButtonsAndDefaults.txt`: lifecycle sequence and absence of app fatal exception.
+- `GutterFormActivity.onCreate()`: initializes the map fragment and form pager before the first assertion.

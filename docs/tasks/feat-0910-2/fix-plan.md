@@ -1,21 +1,18 @@
-# Debug Fix Plan
+# Fix Plan: ISS-0910-2-09
 
-## Issue
+## Current status
 
-Resolve ISS-0910-2-02 and the `IllegalStateException` raised while entering `GutterFormActivity`.
+Debug is still investigating. No production fix is approved yet because the trigger for the activity losing resumed state has not been proven.
 
-## Minimum Fix
+## Minimum next checks
 
-Make the existing runtime reordering parent-safe by detaching each ordered View from its actual current `ViewGroup` before adding it to `formContent`. Preserve all IDs, listeners, field bindings, photo-slot mappings, virtual-mode visibility, and view-mode behavior. Keep the change limited to the failing reordering logic and update the UI test/documentation evidence.
+1. Re-run the single new-form test with map initialization isolated or disabled only in the test harness, to determine whether `SupportMapFragment`/map rendering is the trigger.
+2. Capture ActivityTaskManager/WindowManager lifecycle events together with the app logcat to identify what causes the `PAUSED/STOPPED` transition.
+3. If map initialization is confirmed, choose the smallest production-safe fix that preserves the translucent map-backed form behavior and then rerun the new-form test.
+4. Re-run `GutterBasicInfoUiTest` and `GutterCantOpenUiTest` before updating AC-001/002/003/005/006.
 
-## Validation
+## Guardrails
 
-- `git diff --check`
-- XML parsing for the modified layout
-- Android Studio build/install on Sony XQ-AU52
-- Re-enter the form on the real device and confirm no `FATAL EXCEPTION`
-- Run available targeted UI tests; record unavailable CLI checks as `NOT VERIFIED` if Java remains unavailable
-
-## Re-entry Gate
-
-Root cause is identified and the failed acceptance criteria are mapped. Re-implementation may begin after this plan is recorded.
+- Do not remove the map, change the translucent form theme, or alter activity finish behavior without confirming the trigger and reviewing the UI requirement impact.
+- Do not mark the affected acceptance criteria PASS based only on the user's manual field-order result.
+- Keep the offline existing-data fix and photo lifecycle fix separate from this investigation.

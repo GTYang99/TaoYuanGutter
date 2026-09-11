@@ -109,3 +109,19 @@
 - Fix scope: merge Intent form data over the offline empty-data template while preserving the existing draft branch.
 - Resolution evidence: source fix compiled successfully; connected re-test was blocked by disconnected devices.
 - Next action: rerun `GutterBasicInfoUiTest` on a connected device.
+
+## ISS-0910-2-09
+
+- Task: feat-0910-2
+- Phase: verification
+- Category: `implementation_regression`
+- Priority: P1
+- Status: open
+- Title: New-form activity is destroyed before UI assertions
+- Impact: The new-form UI test cannot verify the measurement-status/default/order/button requirements; the connected suite fails 1 of 12 tests.
+- Evidence: `TEST-XQ-AU52 - 12.xml` and the targeted rerun report; `GutterBasicInfoUiTest.newFormShowsRequiredOrderLabelsButtonsAndDefaults` fails twice with `NoActivityResumedException` at line 23. Logcat shows `GutterFormActivity` transitions to `DESTROYED` before the assertion completes, without a matching app `FATAL EXCEPTION`.
+- Repro steps: Run `JAVA_HOME=/Applications/Android Studio.app/Contents/jbr/Contents/Home ./gradlew connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterBasicInfoUiTest#newFormShowsRequiredOrderLabelsButtonsAndDefaults` on `XQ-AU52 - 12`.
+- Expected: New-form activity remains resumed long enough for the UI assertions to complete.
+- Actual: Activity is destroyed and Espresso raises `NoActivityResumedException`.
+- Root-cause status: application-side trigger for the immediate `PAUSED/STOPPED` transition is not yet conclusively identified; no app fatal exception or explicit `finish()` was found.
+- Next action: isolate map initialization and capture ActivityTaskManager/WindowManager lifecycle evidence before choosing a production fix.
