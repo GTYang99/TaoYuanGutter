@@ -147,6 +147,7 @@
 - Current classification: environment/test lifecycle failure is approximately 85% likely; the translucent `FormSheet` theme alone is below 50% likely. The opaque-theme experiment was applied and reverted because the targeted rerun reproduced the same `Activity top resumed state loss timeout`. A production `MainShellActivity` launch comparison is still required before changing Activity window behavior.
 - Final isolation update: XQ-AU52 was asleep during the failing runs (`mWakefulness=Asleep`, `always_finish_activities=0`). After waking, the targeted new-form test passed. The remaining class-run lifecycle failures are associated with Android Test `EmptyActivity` task handoff between scenarios; no production crash was reproduced. No production workaround was retained.
 - Test-task isolation update: `GutterBasicInfoUiTest.launchForm()` now adds `FLAG_ACTIVITY_CLEAR_TASK`. The complete `GutterBasicInfoUiTest` class passed 3/3 and `GutterCantOpenUiTest` passed 4/4 on XQ-AU52. This provides direct evidence that cross-scenario task handoff was the trigger; no application crash was observed.
+- Regression coverage update: `GutterSessionDraftTest` and `UploadFailureClassifierTest` both pass after the test-task isolation change.
 
 ## ISS-0910-2-10
 

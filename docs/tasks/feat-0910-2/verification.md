@@ -75,5 +75,6 @@
 - Added `Intent.FLAG_ACTIVITY_CLEAR_TASK` to `GutterBasicInfoUiTest.launchForm()` so each `ActivityScenario` starts in an isolated task. This changes test setup only and does not alter application behavior.
 - `GutterBasicInfoUiTest`: **PASS**, 3/3 on Sony XQ-AU52 / Android 12. Evidence: `TEST-XQ-AU52 - 12.xml`, `failures="0"`.
 - `GutterCantOpenUiTest`: **PASS**, 4/4 on Sony XQ-AU52 / Android 12. Evidence: `TEST-XQ-AU52 - 12.xml`, `failures="0"`.
+- Targeted unit tests: **PASS** — `GutterSessionDraftTest` and `UploadFailureClassifierTest` completed successfully.
 - The prior `NoActivityResumedException` did not recur in these isolated runs. This supports the classified cause as test/device task-lifecycle interference rather than a newly reproduced application crash.
 - `testDebugUnitTest`, CI, and the full connected Android suite remain **NOT VERIFIED** in this revalidation round.
