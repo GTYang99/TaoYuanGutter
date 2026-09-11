@@ -2440,7 +2440,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     /** 僅更新 Activity 層級的 UI（Tab, ViewPager 等）*/
     private fun applyVirtualModeUi(isVirtual: Boolean) {
-        binding.switchPageBar.visibility = if (isVirtual) View.GONE else View.VISIBLE
+        // 目前表單只有一頁，TabLayout 本身由 setupTabButtons() 隱藏；
+        // 外層切換列也必須保持隱藏，避免只顯示出沒有內容的灰色背景區塊。
+        binding.switchPageBar.visibility = View.GONE
         
         if (isOfflineMode) {
             binding.importWaypointBar.visibility = View.GONE

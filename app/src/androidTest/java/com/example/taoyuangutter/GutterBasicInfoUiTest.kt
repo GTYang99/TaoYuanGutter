@@ -24,6 +24,7 @@ class GutterBasicInfoUiTest {
         launchForm(hashMapOf()).use { scenario ->
             onView(withId(R.id.rbIsBroken0)).check(matches(isChecked()))
             onView(withId(R.id.rbIsSilt0)).check(matches(isChecked()))
+            onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             onView(withId(R.id.btnTakePhotoSlot1)).check(matches(withText("拍攝照片（概況）")))
             onView(withId(R.id.btnTakePhotoSlot2)).check(matches(withText("拍攝照片（寬度）")))
             onView(withId(R.id.btnTakePhotoSlot3)).check(matches(withText("拍攝照片（深度）")))
