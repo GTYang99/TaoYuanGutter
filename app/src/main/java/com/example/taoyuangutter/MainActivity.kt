@@ -37,6 +37,7 @@ import com.google.gson.Gson
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
 import com.example.taoyuangutter.gutter.PhotoUploadManager
+import com.example.taoyuangutter.gutter.PhotoUploadCandidateResolver
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.GutterFormContract
 import com.example.taoyuangutter.gutter.GutterFormNavigator
@@ -1039,14 +1040,12 @@ class MainActivity : AppCompatActivity(),
     private suspend fun uploadWaypointPhotos(
         waypoints: List<Waypoint>,
         nodes: List<DitchNode>,
-        token: String,
-        originalWaypoints: List<WaypointSnapshot>? = null
+        token: String
     ): PhotoUploadManager.UploadBatchResult {
         // 先計算待上傳數量以決定是否需要顯示進度 UI
         val pendingCount = photoUploadManager.countPendingPhotos(
             waypoints = waypoints,
-            nodes = nodes,
-            originalWaypoints = originalWaypoints
+            nodes = nodes
         )
         if (pendingCount == 0) return PhotoUploadManager.UploadBatchResult.Completed(0)
 
@@ -1056,7 +1055,6 @@ class MainActivity : AppCompatActivity(),
                 waypoints = waypoints,
                 nodes = nodes,
                 token = token,
-                originalWaypoints = originalWaypoints,
                 listener = object : PhotoUploadManager.UploadListener {
                     override fun onProgressUpdate(completedCount: Int, totalCount: Int) {
                         // PhotoUploadManager 已在 Main thread 回呼
@@ -1133,14 +1131,11 @@ class MainActivity : AppCompatActivity(),
     ) {
         lifecycleScope.launch {
             try {
-                val uploadWaypoints = if (currentSessionResumedFromDraft) {
-                    persistedWaypoints
-                } else {
-                    buildEditPhotoUploadWaypoints(
-                        waypoints = persistedWaypoints,
-                        originalWaypoints = originalWaypoints
-                    )
-                }
+                val uploadWaypoints = PhotoUploadCandidateResolver.resolve(
+                    waypoints = persistedWaypoints,
+                    originalWaypoints = originalWaypoints,
+                    resumedFromDraft = currentSessionResumedFromDraft
+                )
                 android.util.Log.d(
                     "PhotoUpload",
                     "photo upload mode=${if (currentSessionResumedFromDraft) "FULL_DRAFT" else "EDIT_DIFF_OR_DEFAULT"}, resumedFromDraft=$currentSessionResumedFromDraft, originalWaypoints=${originalWaypoints?.size ?: 0}"
@@ -1148,8 +1143,7 @@ class MainActivity : AppCompatActivity(),
                 when (val result = uploadWaypointPhotos(
                     waypoints = uploadWaypoints,
                     nodes = nodes,
-                    token = token,
-                    originalWaypoints = originalWaypoints
+                    token = token
                 )) {
                     is PhotoUploadManager.UploadBatchResult.Completed -> {
                         val failCount = result.failCount
@@ -1261,67 +1255,6 @@ class MainActivity : AppCompatActivity(),
                         .show()
                 }
             }
-        }
-    }
-
-    /**
-     * 編輯更新時，若某個 node 的照片與原始版本完全相同，就把該 slot 清空，
-     * 讓後續既有的照片上傳流程自然跳過。
-     *
-     * 這只影響 edit update 的「上傳用副本」，不改動 storeDitch、草稿或原始 waypoints。
-     */
-    private fun buildEditPhotoUploadWaypoints(
-        waypoints: List<Waypoint>,
-        originalWaypoints: List<WaypointSnapshot>?
-    ): List<Waypoint> {
-        if (originalWaypoints.isNullOrEmpty()) return waypoints
-
-        val originalByUid = originalWaypoints
-            .mapNotNull { snapshot ->
-                val uid = snapshot.uid.takeIf { it.isNotBlank() }
-                if (uid.isNullOrBlank()) null else uid to snapshot
-            }
-            .toMap()
-
-        return waypoints.map { waypoint ->
-            val currentNodeId = waypoint.basicData["_nodeId"]?.takeIf { it.isNotBlank() }
-            val original = waypoint.uid.takeIf { it.isNotBlank() }?.let { originalByUid[it] }
-                ?: originalWaypoints.firstOrNull {
-                    it.basicData["_nodeId"]?.takeIf { id -> id.isNotBlank() } == currentNodeId
-                }
-            if (original == null) return@map waypoint
-
-            val originalNodeId = original.basicData["_nodeId"]?.takeIf { it.isNotBlank() } ?: currentNodeId ?: "unknown"
-            val merged = HashMap(waypoint.basicData)
-            var changed = false
-
-            for (slot in 1..3) {
-                val photoKey = "photo$slot"
-                val capturedAtKey = "photo${slot}CapturedAt"
-                val currentPhoto = merged[photoKey]?.trim().orEmpty()
-                val originalPhoto = original.basicData[photoKey]?.trim().orEmpty()
-                val currentCapturedAt = merged[capturedAtKey]?.trim().orEmpty()
-                val originalCapturedAt = original.basicData[capturedAtKey]?.trim().orEmpty()
-
-                val sameByCapturedAt =
-                    currentCapturedAt.isNotEmpty() &&
-                        currentCapturedAt == originalCapturedAt &&
-                        originalCapturedAt.isNotEmpty()
-                val sameByPhotoPath =
-                    currentPhoto.isNotEmpty() && currentPhoto == originalPhoto
-
-                if (sameByCapturedAt || sameByPhotoPath) {
-                    merged[photoKey] = ""
-                    merged[capturedAtKey] = ""
-                    changed = true
-                    android.util.Log.d(
-                        "PhotoUpload",
-                        "skip unchanged photo upload: nodeId=$originalNodeId slot=$slot by=${if (sameByCapturedAt) "capturedAt" else "photoPath"}"
-                    )
-                }
-            }
-
-            if (!changed) waypoint else waypoint.copy(basicData = merged)
         }
     }
 

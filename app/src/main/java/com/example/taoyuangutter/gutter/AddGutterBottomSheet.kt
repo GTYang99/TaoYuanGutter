@@ -23,10 +23,9 @@ import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.safeCapturedAt
-import com.example.taoyuangutter.api.StoreDitchNodeRequest
 import com.example.taoyuangutter.api.StoreDitchRequest
+import com.example.taoyuangutter.api.StoreDitchNodeRequestMapper
 import com.example.taoyuangutter.common.PhotoUriStore
-import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PendingPhotoDraftState
 import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 import com.example.taoyuangutter.common.PhotoSlotUploadCoordinator
@@ -2202,51 +2201,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             nodes = waypoints.map { wp ->
                 // 新增模式（spiNum=null）不得帶 node_id，否則後端會視為「更新既有點位」而失敗
                 val requestNodeId = if (spiNum.isNullOrBlank()) null else wp.basicData["_nodeId"]?.toIntOrNull()
-                val nodeAtt = when (wp.type) {
-                    WaypointType.START -> 1
-                    WaypointType.NODE  -> 2
-                    WaypointType.END   -> 3
-                }
-                val isCantOpenBool = parseLooseBoolean(wp.basicData["IS_CANTOPEN"])
-                val isCantOpenInt = if (isCantOpenBool) 1 else 0
-                val isPendingDeployInt =
-                    if (parseLooseBoolean(wp.basicData["IS_PENDING_DEPLOY"])) 1 else 0
-                val isVirtualBool = wp.isVirtual
-                val coverDep = wp.basicData["COVER_DEP"]
-                val imgIds = (1..3).mapNotNull { slot ->
-                    if (isVirtualBool || isCantOpenBool && slot in 2..3) {
-                        null
-                    } else {
-                        PhotoUploadSlotState.readImgId(wp.basicData, slot)
-                    }
-                }.takeIf { it.isNotEmpty() }
-                StoreDitchNodeRequest(
-                    nodeId    = requestNodeId,
-                    nodeAtt   = nodeAtt,
-                    nodeNum   = if (nodeAtt == 2) nodeSequence++ else null,
-                    nodeTyp   = wp.basicData["NODE_TYP"]?.toIntOrNull() ?: 1,
-                    latitude  = wp.latLng?.latitude  ?: 0.0,
-                    longitude = wp.latLng?.longitude ?: 0.0,
-                    nodeLe    = if (isVirtualBool) null else wp.basicData["NODE_LE"]?.toDoubleOrNull(),
-                    xyNum     = wp.basicData["XY_NUM"] ?: "",
-                        isPendingDeploy = isPendingDeployInt,
-                    isCantOpen = if (isVirtualBool) 0 else isCantOpenInt,
-                    isVirtual = isVirtualBool,
-                    matTyp    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
-                    nodeDep   = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),
-                    nodeWid   = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["NODE_WID"]?.toIntOrNull() ?: 0),
-                    coverDep  = if (isCantOpenBool || isVirtualBool) null else coverDep?.toIntOrNull(),
-                    isBroken  = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0),
-                    isHanging = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
-                    isSilt    = if (isCantOpenBool || isVirtualBool) null else (wp.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
-                    nodeNote  = if (isVirtualBool) null else wp.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() },
-                        capturedAt = if (isVirtualBool) null else listOfNotNull(
-                            PhotoCapturedAtResolver.readBasicData(wp.basicData, 1),
-                            PhotoCapturedAtResolver.readBasicData(wp.basicData, 2),
-                            PhotoCapturedAtResolver.readBasicData(wp.basicData, 3)
-                        ).takeIf { it.isNotEmpty() },
-                    imgIds = imgIds
-                )
+                val node = StoreDitchNodeRequestMapper.map(wp, requestNodeId, nodeSequence)
+                if (node.nodeAtt == 2) nodeSequence++
+                node
             }
         )
     }

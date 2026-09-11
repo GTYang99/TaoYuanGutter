@@ -1,0 +1,43 @@
+task:
+  id: feat-0911-1
+  type: feature
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+  result: APPROVED
+  iteration: 2
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+
+git:
+  branch: feat/既有點位不上傳照片
+  commit: 2d29449
+  status: committed
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification

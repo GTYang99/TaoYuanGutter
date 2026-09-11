@@ -8,7 +8,6 @@ import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.pending.DraftPhotoCleaner
-import com.example.taoyuangutter.pending.WaypointSnapshot
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withTimeoutOrNull
@@ -77,8 +76,7 @@ class PhotoUploadManager(
      */
     suspend fun countPendingPhotos(
         waypoints: List<Waypoint>,
-        nodes: List<DitchNode>,
-        originalWaypoints: List<WaypointSnapshot>? = null
+        nodes: List<DitchNode>
     ): Int {
         var count = 0
         for (i in nodes.indices) {
@@ -105,7 +103,6 @@ class PhotoUploadManager(
         waypoints: List<Waypoint>,
         nodes: List<DitchNode>,
         token: String,
-        originalWaypoints: List<WaypointSnapshot>? = null,
         listener: UploadListener? = null
     ): UploadBatchResult {
         val pending = mutableListOf<Triple<DitchNode, String, Int>>()

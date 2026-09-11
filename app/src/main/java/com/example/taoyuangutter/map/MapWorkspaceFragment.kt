@@ -44,6 +44,7 @@ import com.example.taoyuangutter.gutter.GutterSessionFlowCoordinator
 import com.example.taoyuangutter.gutter.GutterSessionUiCoordinator
 import com.example.taoyuangutter.gutter.InspectFlowCoordinator
 import com.example.taoyuangutter.gutter.PhotoUploadManager
+import com.example.taoyuangutter.gutter.PhotoUploadCandidateResolver
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.AuthExpiredHandler
@@ -1943,12 +1944,12 @@ class MapWorkspaceFragment : Fragment(),
     ) {
         lifecycleScope.launch {
             try {
-                val uploadWaypoints = if (currentSessionResumedFromDraft) {
-                    persistedWaypoints
-                } else {
-                    buildEditPhotoUploadWaypoints(persistedWaypoints, originalWaypoints)
-                }
-                when (val result = uploadWaypointPhotos(uploadWaypoints, nodes, token, originalWaypoints)) {
+                val uploadWaypoints = PhotoUploadCandidateResolver.resolve(
+                    waypoints = persistedWaypoints,
+                    originalWaypoints = originalWaypoints,
+                    resumedFromDraft = currentSessionResumedFromDraft
+                )
+                when (val result = uploadWaypointPhotos(uploadWaypoints, nodes, token)) {
                     is PhotoUploadManager.UploadBatchResult.Completed -> {
                         val failCount = result.failCount
                         mainBlockingUiController.setInspectLoading(false)
@@ -2063,13 +2064,11 @@ class MapWorkspaceFragment : Fragment(),
     private suspend fun uploadWaypointPhotos(
         waypoints: List<Waypoint>,
         nodes: List<DitchNode>,
-        token: String,
-        originalWaypoints: List<WaypointSnapshot>? = null
+        token: String
     ): PhotoUploadManager.UploadBatchResult {
         val pendingCount = photoUploadManager.countPendingPhotos(
             waypoints = waypoints,
-            nodes = nodes,
-            originalWaypoints = originalWaypoints
+            nodes = nodes
         )
         if (pendingCount == 0) return PhotoUploadManager.UploadBatchResult.Completed(0)
         mainBlockingUiController.beginPhotoUpload(pendingCount)
@@ -2078,7 +2077,6 @@ class MapWorkspaceFragment : Fragment(),
                 waypoints = waypoints,
                 nodes = nodes,
                 token = token,
-                originalWaypoints = originalWaypoints,
                 listener = object : PhotoUploadManager.UploadListener {
                     override fun onProgressUpdate(completedCount: Int, totalCount: Int) {}
                     override fun onPhotoUploadResult(success: Boolean) {
@@ -2088,45 +2086,6 @@ class MapWorkspaceFragment : Fragment(),
             )
         } finally {
             mainBlockingUiController.endPhotoUpload()
-        }
-    }
-
-    private fun buildEditPhotoUploadWaypoints(
-        waypoints: List<Waypoint>,
-        originalWaypoints: List<WaypointSnapshot>?
-    ): List<Waypoint> {
-        if (originalWaypoints.isNullOrEmpty()) return waypoints
-        val originalByUid = originalWaypoints.mapNotNull { snapshot ->
-            val uid = snapshot.uid.takeIf { it.isNotBlank() }
-            if (uid.isNullOrBlank()) null else uid to snapshot
-        }.toMap()
-        return waypoints.map { waypoint ->
-            val currentNodeId = waypoint.basicData["_nodeId"]?.takeIf { it.isNotBlank() }
-            val original = waypoint.uid.takeIf { it.isNotBlank() }?.let { originalByUid[it] }
-                ?: originalWaypoints.firstOrNull {
-                    it.basicData["_nodeId"]?.takeIf { id -> id.isNotBlank() } == currentNodeId
-                }
-            if (original == null) return@map waypoint
-            val merged = HashMap(waypoint.basicData)
-            var changed = false
-            for (slot in 1..3) {
-                val photoKey = "photo$slot"
-                val capturedAtKey = "photo${slot}CapturedAt"
-                val currentPhoto = merged[photoKey]?.trim().orEmpty()
-                val originalPhoto = original.basicData[photoKey]?.trim().orEmpty()
-                val currentCapturedAt = merged[capturedAtKey]?.trim().orEmpty()
-                val originalCapturedAt = original.basicData[capturedAtKey]?.trim().orEmpty()
-                val sameByCapturedAt = currentCapturedAt.isNotEmpty() &&
-                    currentCapturedAt == originalCapturedAt &&
-                    originalCapturedAt.isNotEmpty()
-                val sameByPhotoPath = currentPhoto.isNotEmpty() && currentPhoto == originalPhoto
-                if (sameByCapturedAt || sameByPhotoPath) {
-                    merged[photoKey] = ""
-                    merged[capturedAtKey] = ""
-                    changed = true
-                }
-            }
-            if (!changed) waypoint else waypoint.copy(basicData = merged)
         }
     }
 
