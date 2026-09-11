@@ -88,8 +88,7 @@ class PhotoUploadManager(
                 wp.basicData["photo3"] to 3
             )
             for ((path, slot) in slots) {
-                val imgId = PhotoUploadSlotState.readImgId(wp.basicData, slot)
-                if (imgId != null) continue
+                if (PhotoUploadSlotState.isAlreadyUploaded(wp.basicData, slot)) continue
                 if (PhotoUploadValidator.isUsableForUpload(context, path)) count++
             }
         }
@@ -119,8 +118,7 @@ class PhotoUploadManager(
                 wp.basicData["photo3"] to 3
             )
             for ((path, category) in slots) {
-                val imgId = PhotoUploadSlotState.readImgId(wp.basicData, category)
-                if (imgId != null) continue
+                if (PhotoUploadSlotState.isAlreadyUploaded(wp.basicData, category)) continue
                 if (!PhotoUploadValidator.isUsableForUpload(context, path)) continue
                 val usablePath = path ?: continue
                 pending.add(Triple(node, usablePath, category))

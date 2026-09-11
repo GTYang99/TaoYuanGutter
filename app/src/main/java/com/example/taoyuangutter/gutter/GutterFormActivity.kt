@@ -619,17 +619,17 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 updateCurrentPhotoCapturedAt(3, capturedAt3)
                 updatePhotoUploadState(
                     1,
-                    state = if (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.id != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
+                    state = if (!p1.isNullOrBlank() && photo1Url != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
                     imgId = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.id
                 )
                 updatePhotoUploadState(
                     2,
-                    state = if (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.id != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
+                    state = if (!p2.isNullOrBlank() && photo2Url != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
                     imgId = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.id
                 )
                 updatePhotoUploadState(
                     3,
-                    state = if (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
+                    state = if (!p3.isNullOrBlank() && photo3Url != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
                     imgId = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id
                 )
                 // Re-apply the Activity's authoritative photo state after all
@@ -2363,7 +2363,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         val isCantOpen = parseLooseBoolean(currentFormData["IS_CANTOPEN"])
         listOf(photo1 to 1, photo2 to 2, photo3 to 3)
             .filterNot { (_, category) -> isCantOpen && category in 2..3 }
-            .filterNot { (_, category) -> currentFormPhotoImgId(category) != null }
+            .filterNot { (_, category) -> PhotoUploadSlotState.isAlreadyUploaded(currentFormData, category) }
             .filter { (path, _) -> PhotoUploadValidator.isUsableForUpload(this@GutterFormActivity, path) }
             .map { (path, category) ->
                 async {

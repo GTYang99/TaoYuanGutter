@@ -1,6 +1,7 @@
 package com.example.taoyuangutter.gutter
 
 import com.example.taoyuangutter.pending.WaypointSnapshot
+import com.example.taoyuangutter.common.PhotoUploadSlotState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Test
@@ -79,6 +80,16 @@ class PhotoUploadCandidateResolverTest {
         assertEquals("101", result.basicData["photo1ImgId"])
         assertEquals("success", result.basicData["photo1UploadState"])
         assertEquals("content://imported-one", result.basicData["photo1"])
+    }
+
+    @Test
+    fun importedExistingPhotoWithoutImageIdIsStillMarkedAsUploaded() {
+        val imported = waypoint(
+            "photo1" to "content://imported-one",
+            "photo1UploadState" to PhotoUploadSlotState.STATE_SUCCESS
+        )
+
+        assertEquals(true, PhotoUploadSlotState.isAlreadyUploaded(imported.basicData, 1))
     }
 
     private fun waypoint(vararg entries: Pair<String, String>): Waypoint = Waypoint(

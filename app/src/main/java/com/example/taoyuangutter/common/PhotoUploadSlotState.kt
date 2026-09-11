@@ -20,6 +20,10 @@ object PhotoUploadSlotState {
     fun readState(data: Map<String, String>, slot: Int): String =
         data[stateKey(slot)]?.trim()?.takeIf { it.isNotEmpty() } ?: STATE_IDLE
 
+    /** True when the slot is already backed by a server image. */
+    fun isAlreadyUploaded(data: Map<String, String>, slot: Int): Boolean =
+        readImgId(data, slot) != null || readState(data, slot) == STATE_SUCCESS
+
     fun readError(data: Map<String, String>, slot: Int): String? =
         data[errorKey(slot)]?.trim()?.takeIf { it.isNotEmpty() }
 
