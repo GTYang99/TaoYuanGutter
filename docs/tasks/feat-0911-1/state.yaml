@@ -40,4 +40,4 @@ release:
   status: pending
 
 blocking: []
-next_action: git_commit
+next_action: verification
