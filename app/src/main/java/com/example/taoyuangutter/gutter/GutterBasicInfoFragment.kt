@@ -518,16 +518,19 @@ class GutterBasicInfoFragment : Fragment() {
     /** Finds the smallest ancestor that is a direct child of the form container. */
     private fun directContentRow(view: View, content: ViewGroup): View {
         var candidate = view
-        while (candidate.parent !== content) {
-            val parent = candidate.parent as? View ?: return candidate
+        while (true) {
+            val parent = candidate.parent as? ViewGroup ?: return candidate
+            if (parent === content || parent.id == R.id.llVirtualHidden1 ||
+                parent.id == R.id.llVirtualHidden2 || parent.id == R.id.llVirtualHidden3
+            ) {
+                // Return the row itself. Returning the virtual wrapper here makes
+                // every title in that wrapper look like the same reorder item.
+                return candidate
+            }
             // Virtual sections are direct children of formContent. Returning
             // their immediate row keeps each title/control pair interleavable.
-            if (parent.id == R.id.llVirtualHidden1 ||
-                parent.id == R.id.llVirtualHidden2 || parent.id == R.id.llVirtualHidden3
-            ) return parent
             candidate = parent
         }
-        return candidate
     }
 
     // ── RadioGroup 工具函式 ───────────────────────────────────────────────
