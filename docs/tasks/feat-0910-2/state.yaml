@@ -17,14 +17,14 @@ plan_review:
 implementation:
   status: completed
   build: passed
-  unit_test: passed_with_unrelated_failure
+  unit_test: passed
 
 validation:
   status: passed
 
 git:
   branch: uiFix/填寫順序
-  commit: 9a55154
+  commit: 7ddb86b
   status: committed
 
 verification:

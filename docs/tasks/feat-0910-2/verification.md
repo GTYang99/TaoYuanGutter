@@ -87,3 +87,51 @@
 - `GutterCantOpenUiTest`: 4/4 passed, including configuration recreation.
 - Full `testDebugUnitTest`: 49 tests, 1 failure in `MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement`; this is the pre-existing map zoom constant/test mismatch and is outside the form bugfix scope.
 - The form implementation-bugfix and local regression verification are **PASS**. CI remains **NOT VERIFIED**.
+
+## Independent real-device verification (2026-09-11, latest HEAD `9a55154`)
+
+### Environment and commands
+
+- Device: Sony XQ-AU52 / Android 12 (`adb-QV710EDR3A-hF5XZF._adb-tls-connect._tcp`). The device was explicitly woken and reported `mWakefulness=Awake` before test start.
+- Connected suite: `JAVA_HOME=/Applications/Android Studio.app/Contents/jbr/Contents/Home ./gradlew connectedDebugAndroidTest --no-daemon`.
+- Unit suite: `JAVA_HOME=/Applications/Android Studio.app/Contents/jbr/Contents/Home ./gradlew testDebugUnitTest --no-daemon`.
+- Static checks: `git diff --check 49deb64..HEAD` and relevant layout XML parsing both passed.
+
+### Executed evidence
+
+| Check | Result | Evidence |
+|---|---|---|
+| Full connected Android suite | PASS | 13 tests, 0 failures, 0 errors, exit code 0. Report: `app/build/outputs/androidTest-results/connected/debug/TEST-XQ-AU52 - 12.xml`. |
+| `GutterBasicInfoUiTest` | PASS | 3/3: new-form order/default/photo text, existing broken/silt preservation, and virtual on→off restoration. |
+| `GutterCantOpenUiTest` | PASS | 4/4: cancel, confirmation clearing, view mode, and configuration recreation. |
+| Related app regression tests | PASS | Auth-expiry flow, revoke-comment flow, and main-shell tests passed in the same 13-test run. |
+| Debug unit suite | FAIL | 49 tests run; `MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement` fails because the test expects `16f` while production constant is `13f`. |
+
+### Acceptance-criteria assessment
+
+| AC | Result | Evidence |
+|---|---|---|
+| AC-001 | PASS | New-form real-device test passes; XML/source review confirms the measurement-status container includes pending-deploy and cannot-open controls. |
+| AC-002 | PASS | New-form real-device test verifies the complete title order; `reorderEditableSections()` keeps the corresponding controls and photo sections adjacent. |
+| AC-003 | PASS | New-form real-device test verifies broken=`否` and silt=`無`. |
+| AC-004 | PASS | Existing-data real-device test preserves broken/silt selections; source review confirms import/draft/current-state data enter the non-empty prefill path rather than the new-form default branch. |
+| AC-005 | PASS | New-form real-device test verifies the exact three photo-button labels. |
+| AC-006 | FAIL | Targeted form regressions pass, but the committed verification range includes an unplanned main-map zoom behavior change that leaves its unit test failing. The task cannot claim behavior preservation or release readiness with a red suite. |
+
+### Scope and failure classification
+
+- Commit `4aa4d06` changes `MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM` from `16f` to `13f`, while `MainMapLoadIndicatorStateMachineTest` still specifies `16f`. This file is outside the approved feat-0910-2 plan and the change is not traced to a requirement, approved plan step, or task artifact.
+- This is classified as a **planning gap**, not a form implementation failure: the intended map zoom behavior is materially ambiguous, and Verification cannot choose between restoring the implementation to `16f` or updating the test/requirement to `13f`.
+- `ISS-0910-2-13` records the evidence and routes the task to Planning. No production code was changed during verification.
+
+### Final result
+
+**FAIL overall.** Form-specific real-device verification passes, but the submitted task revision contains an unapproved, red-tested main-map behavior change. Resulting state: `phase: verification`, `status: verification_failed`, `next_action: planning`. CI evidence is also still unavailable.
+
+## Planning decision revalidation (2026-09-11, revision `7ddb86b`)
+
+- Product decision: the user confirmed `MAIN_MAP_SCOPE_SEARCH_MIN_ZOOM = 13f` is intentional and directed the test expectation to be changed from `16f` to `13f`.
+- Change: `MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement` now asserts `13f`; no production behavior changed in this follow-up.
+- Validation: `JAVA_HOME=/Applications/Android Studio.app/Contents/jbr/Contents/Home ./gradlew testDebugUnitTest --no-daemon` completed successfully with 49/49 tests passing. `git diff --check` also passed.
+- The preceding real-device connected-suite evidence remains applicable because this follow-up changes only a local unit-test expectation; the full 13-test XQ-AU52 suite had already passed on the same production implementation.
+- Result: all AC-001 through AC-006 have PASS evidence. Local verification is **PASS**; Release remains blocked only on unavailable CI evidence.
