@@ -124,4 +124,5 @@
 - Expected: New-form activity remains resumed long enough for the UI assertions to complete.
 - Actual: Activity is destroyed and Espresso raises `NoActivityResumedException`.
 - Root-cause status: application-side trigger for the immediate `PAUSED/STOPPED` transition is not yet conclusively identified; no app fatal exception or explicit `finish()` was found.
+- Follow-up evidence (2026-09-11): the same targeted test passed once and failed once on the same XQ-AU52 device/revision. Both failure logs correlate `SupportMapFragment.onCreateView()` main-thread blocking (203–226 ms) with startup, but no second app Activity or system focus event was captured. Classified as a reproducible flaky lifecycle/focus race pending map-isolation and system lifecycle evidence.
 - Next action: isolate map initialization and capture ActivityTaskManager/WindowManager lifecycle evidence before choosing a production fix.

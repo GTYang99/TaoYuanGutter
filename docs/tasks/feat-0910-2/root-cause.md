@@ -12,6 +12,17 @@
 
 The application-side trigger for the immediate `PAUSED/STOPPED` transition is not yet conclusively identified. The evidence rules out the earlier View-reparenting crash and does not justify changing the form window theme or removing the map. This remains an implementation investigation, not a verified environment-only failure.
 
+## Latest isolation result (2026-09-11)
+
+- The same targeted test was executed twice on the same `XQ-AU52 - 12` device and the same committed revision `4aa4d06`.
+- Run 1 passed: `1 test, 0 failures`, completed in about 5 seconds.
+- Run 2 failed: `1 test, 1 failure`, `NoActivityResumedException` after 45.5 seconds.
+- The failing run again reached `RESUMED`, then `PAUSED/STOPPED` about 63 ms later; `DESTROYED` occurred during failure cleanup.
+- Both runs show `SupportMapFragment.onCreateView()` blocking the main thread for about 203–226 ms. The pass run remained resumed long enough for the assertions; the fail run did not.
+- No app `FATAL EXCEPTION`, explicit `finish()`, or logged second application Activity was captured.
+
+This establishes a reproducible flaky lifecycle/focus race in the connected test environment, with map rendering as a correlated startup event but not yet proven as the sole cause. The minimum safe production fix is still undetermined.
+
 ## Affected acceptance criteria
 
 - AC-001, AC-002, AC-003, AC-005: assertions cannot run because the new-form activity is not resumed.

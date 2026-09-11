@@ -43,6 +43,13 @@
 - Android unit/UI tests and lint remain `NOT VERIFIED` until a JDK/Android build environment is available.
 - Connected UI regression remains pending after the follow-up fixes; a run was blocked by disconnected devices.
 
+## ISS-0910-2-09 debug reruns (2026-09-11)
+
+- Targeted command: `connectedDebugAndroidTest` for `GutterBasicInfoUiTest#newFormShowsRequiredOrderLabelsButtonsAndDefaults`.
+- Same device/revision run 1: PASS, 1/1, about 5 seconds.
+- Same device/revision run 2: FAIL, 1/1, 45.5 seconds, `NoActivityResumedException`.
+- The result is recorded as flaky lifecycle evidence; it is not a production-fix validation pass.
+
 ## Acceptance Criteria Evidence
 
 - AC-001/AC-002: status group and runtime order are implemented; UI test checks labels and relative positions.
