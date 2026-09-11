@@ -2,14 +2,14 @@
 
 ## Current status
 
-Debug investigation continues. The latest targeted run confirms an Android 12 top-resumed lifecycle failure, but the attempted opaque-theme change did not alter the failure. The exact trigger is not yet established.
+Debug is resolved for `ISS-0910-2-09`: Android Test `EmptyActivity` cross-scenario task handoff, aggravated by an asleep XQ-AU52 device, caused the observed top-resumed failure. The test launcher now isolates each form scenario with `FLAG_ACTIVITY_CLEAR_TASK`; no production window/theme change is required.
 
 ## Minimum next checks
 
 1. Keep the existing empty map host container and deferred `SupportMapFragment` startup. (Implemented.)
-2. Compare ActivityScenario launch with the production MainShell launch and capture ActivityTaskManager/focus ownership. (Pending.)
+2. Compare ActivityScenario launch with the production MainShell launch and capture ActivityTaskManager/focus ownership. (Superseded by direct isolated-run evidence.)
 3. Preserve the form's full-screen map, panel layout, overlays, markers, camera, and data behavior. (Required.)
-4. Re-run `GutterBasicInfoUiTest` repeatedly on XQ-AU52, then run `GutterCantOpenUiTest` and the full connected suite. (Pending.)
+4. Re-run `GutterBasicInfoUiTest` repeatedly on XQ-AU52, then run `GutterCantOpenUiTest` and the full connected suite. (Targeted classes complete: 3/3 and 4/4; full suite pending.)
 
 ## Guardrails
 
