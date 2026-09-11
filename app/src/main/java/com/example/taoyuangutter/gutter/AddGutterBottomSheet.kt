@@ -580,7 +580,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun setupBottomSheetBehavior() {
         dialog?.setOnShowListener {
             val sheetView = getSheetView()
-            val sheetHeight = (resources.displayMetrics.heightPixels * 0.6f).toInt()
+            val sheetHeight = (resources.displayMetrics.heightPixels * 0.7f).toInt()
             sheetView?.layoutParams?.height = sheetHeight
             sheetView?.requestLayout()
             // 清除 design_bottom_sheet 容器的預設背景，
