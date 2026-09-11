@@ -104,6 +104,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var restoredIsVirtual: Boolean? = null
     private var photoDraftBatchDepth: Int = 0
     private var pendingPhotoDraftSync: Boolean = false
+    private var mapInitQueued: Boolean = false
     private val photoUploadListeners = mutableMapOf<Int, (PhotoSlotUploadCoordinator.Snapshot) -> Unit>()
     private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(this) }
     private val cantOpenSession: CantOpenSessionViewModel by lazy(LazyThreadSafetyMode.NONE) {
@@ -1258,7 +1259,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         // 全螢幕地圖背景 + 表單面板（不論離線或一般模式皆使用新版佈局）
         setupFullScreenWithMap()
-        initFormMap()
 
         // 檢視模式：標題改為「側溝編號 {gutterId}」；其他模式沿用點位 label（起點/節點/終點）
         val titleText = if (isViewMode) {
@@ -1270,11 +1270,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         setupTitleBar(titleText)
         setupViewPager(currentLat, currentLng, existingData)
         setupTabButtons()
-        
+
         // 取得初始虛擬狀態
         val isVirtualInitial = restoredIsVirtual ?: parseLooseBoolean(existingData["is_virtual"])
         setupVirtualPointToggle(isVirtualInitial)
-        
+
         setupImportWaypointButton()
         setupFab()
         binding.viewPager.post {
@@ -1288,6 +1288,32 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         }
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
         binding.viewPager.post { applyImportedWaypointLock() }
+    }
+
+    override fun onPostResume() {
+        super.onPostResume()
+        if (mapInitQueued) return
+        mapInitQueued = true
+        // 讓表單 Activity 先完成 top-resumed，再建立 Maps fragment；Sony
+        // 裝置的 ActivityTaskManager 會在啟動階段超時時將透明表單移出前景。
+        binding.root.post {
+            if (isFinishing || isDestroyed) return@post
+            if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) ||
+                supportFragmentManager.isStateSaved
+            ) {
+                // 系統可能在 callback 執行前先暫停並保存 Fragment state；保留兩個旗標為
+                // false，讓下一次 onPostResume 重新嘗試，不在 state loss 後提交交易。
+                mapInitQueued = false
+                return@post
+            }
+            if (lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) &&
+                !supportFragmentManager.isStateSaved
+            ) {
+                initFormMap()
+            } else {
+                mapInitQueued = false
+            }
+        }
     }
 
     private fun registerPhotoUploadListeners() {
@@ -1439,9 +1465,20 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     // ── 背景地圖初始化 ────────────────────────────────────────────────────
 
     private fun initFormMap() {
-        val mapFragment = supportFragmentManager
+        val existingMapFragment = supportFragmentManager
             .findFragmentById(binding.formMapContainer.id) as? SupportMapFragment
-        mapFragment?.getMapAsync(this)
+        if (existingMapFragment != null) {
+            existingMapFragment.getMapAsync(this)
+            return
+        }
+
+        supportFragmentManager.beginTransaction()
+            .replace(binding.formMapContainer.id, SupportMapFragment.newInstance())
+            .runOnCommit {
+                (supportFragmentManager.findFragmentById(binding.formMapContainer.id) as? SupportMapFragment)
+                    ?.getMapAsync(this)
+            }
+            .commit()
     }
 
     override fun onMapReady(map: GoogleMap) {
@@ -1927,23 +1964,25 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         if (!photo1.isNullOrBlank()) updateCurrentPendingPhoto(1, null)
         if (!photo2.isNullOrBlank()) updateCurrentPendingPhoto(2, null)
         if (!photo3.isNullOrBlank()) updateCurrentPendingPhoto(3, null)
-        pagerAdapter.getBasicInfoFragment()?.syncPersistedPhotoState(
-            photo1 = photo1,
-            photo2 = photo2,
-            photo3 = photo3,
-            capturedAt1 = currentFormPhotoCapturedAt(1),
-            capturedAt2 = currentFormPhotoCapturedAt(2),
-            capturedAt3 = currentFormPhotoCapturedAt(3),
-            uploadState1 = currentFormPhotoUploadState(1),
-            uploadState2 = currentFormPhotoUploadState(2),
-            uploadState3 = currentFormPhotoUploadState(3),
-            imgId1 = currentFormPhotoImgId(1),
-            imgId2 = currentFormPhotoImgId(2),
-            imgId3 = currentFormPhotoImgId(3),
-            uploadError1 = currentFormPhotoUploadError(1),
-            uploadError2 = currentFormPhotoUploadError(2),
-            uploadError3 = currentFormPhotoUploadError(3)
-        )
+        if (::pagerAdapter.isInitialized) {
+            pagerAdapter.getBasicInfoFragment()?.syncPersistedPhotoState(
+                photo1 = photo1,
+                photo2 = photo2,
+                photo3 = photo3,
+                capturedAt1 = currentFormPhotoCapturedAt(1),
+                capturedAt2 = currentFormPhotoCapturedAt(2),
+                capturedAt3 = currentFormPhotoCapturedAt(3),
+                uploadState1 = currentFormPhotoUploadState(1),
+                uploadState2 = currentFormPhotoUploadState(2),
+                uploadState3 = currentFormPhotoUploadState(3),
+                imgId1 = currentFormPhotoImgId(1),
+                imgId2 = currentFormPhotoImgId(2),
+                imgId3 = currentFormPhotoImgId(3),
+                uploadError1 = currentFormPhotoUploadError(1),
+                uploadError2 = currentFormPhotoUploadError(2),
+                uploadError3 = currentFormPhotoUploadError(3)
+            )
+        }
     }
 
     private fun saveAndFinish() {

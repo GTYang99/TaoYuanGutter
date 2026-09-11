@@ -2,8 +2,8 @@ task:
   id: feat-0910-2
   type: feature
 
-phase: debug
-status: debug_complete
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -17,14 +17,14 @@ plan_review:
 implementation:
   status: completed
   build: passed
-  unit_test: passed
+  unit_test: not_verified
 
 validation:
   status: not_verified
 
 git:
   branch: uiFix/填寫順序
-  commit: 4aa4d06
+  commit: 93cacc7
   status: committed
 
 verification:
@@ -46,7 +46,8 @@ release:
   status: pending
 
 blocking:
-  - New-form GutterFormActivity is destroyed before the first UI assertion on the connected device.
+  - Full connected regression is pending because XQ-AU52 went offline during APK reinstall.
+  - One unrelated unit test remains failing in MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement.
   - No CI build/test result is available.
 
 debug:
@@ -54,4 +55,4 @@ debug:
   issue_id: ISS-0910-2-09
   root_cause: identified
 
-next_action: implementation_debug
+next_action: verification

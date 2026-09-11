@@ -14,7 +14,6 @@
     <!-- ① 地圖背景（全螢幕，可滑動） -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/formMapContainer"
-        android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 

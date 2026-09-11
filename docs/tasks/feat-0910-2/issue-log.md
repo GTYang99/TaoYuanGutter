@@ -126,4 +126,5 @@
 - Root-cause status: identified. The Activity startup path exceeds the device top-resumed deadline while synchronously inflating the form and `SupportMapFragment`; system logs show `Activity top resumed state loss timeout` followed by `Activity pause timeout`.
 - Follow-up evidence (2026-09-11): the same targeted test passed once and failed once on the same XQ-AU52 device/revision. Both failure logs correlate `SupportMapFragment.onCreateView()` main-thread blocking (203–226 ms) with startup. System logs now confirm the Activity top-resumed and pause timeouts; the earlier focus-race classification is superseded by this startup-timeout root cause.
 - Root-cause evidence: system `ActivityTaskManager` logs at 10:06:46.536, 10:24:22.408, 10:40:53.778, and 10:46:17.636 report top-resumed and pause timeouts for `GutterFormActivity`; the 10:46:17.104 launch reaches `RESUMED` only after the timeout window. No app fatal exception or explicit `finish()` is present.
-- Next action: implementation_debug
+- Resolution status: implementation completed; targeted post-fix new-form test passed once. Class-level regression was blocked by the device going offline during reinstall.
+- Next action: verification

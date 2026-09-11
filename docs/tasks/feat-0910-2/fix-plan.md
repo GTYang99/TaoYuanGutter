@@ -6,10 +6,10 @@ Debug complete. Root cause is the form Activity exceeding the device top-resumed
 
 ## Minimum next checks
 
-1. Replace the XML `android:name="com.google.android.gms.maps.SupportMapFragment"` declaration with an empty map host container.
-2. Let the form UI finish its normal `onCreate`/first-frame path before adding the `SupportMapFragment` and calling `getMapAsync()`.
-3. Keep existing map overlays, markers, camera, and transparent form-sheet behavior unchanged.
-4. Re-run `GutterBasicInfoUiTest` repeatedly on XQ-AU52, then run `GutterCantOpenUiTest` and the full connected suite.
+1. Replace the XML `android:name="com.google.android.gms.maps.SupportMapFragment"` declaration with an empty map host container. (Implemented.)
+2. Let the form UI keep its normal `onCreate`/first-frame path, then add the `SupportMapFragment` from the resumed view queue. (Implemented.)
+3. Keep existing map overlays, markers, camera, and transparent form-sheet behavior unchanged. (Implemented.)
+4. Re-run `GutterBasicInfoUiTest` repeatedly on XQ-AU52, then run `GutterCantOpenUiTest` and the full connected suite. (Pending device reconnection.)
 
 ## Guardrails
 
