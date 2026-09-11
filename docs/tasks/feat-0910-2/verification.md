@@ -78,3 +78,12 @@
 - Targeted unit tests: **PASS** — `GutterSessionDraftTest` and `UploadFailureClassifierTest` completed successfully.
 - The prior `NoActivityResumedException` did not recur in these isolated runs. This supports the classified cause as test/device task-lifecycle interference rather than a newly reproduced application crash.
 - `testDebugUnitTest`, CI, and the full connected Android suite remain **NOT VERIFIED** in this revalidation round.
+
+## Correct-branch revalidation (2026-09-11)
+
+- Revalidated on the intended `uiFix/填寫順序` branch at `9a55154`; earlier results from another branch were discarded.
+- Full `connectedDebugAndroidTest`: **PASS**, 13/13 tests, 0 failures and 0 errors on Sony XQ-AU52 / Android 12. Evidence: `app/build/outputs/androidTest-results/connected/debug/TEST-XQ-AU52 - 12.xml`.
+- `GutterBasicInfoUiTest`: 3/3 passed, including existing-value preservation and virtual-point on→off restoration.
+- `GutterCantOpenUiTest`: 4/4 passed, including configuration recreation.
+- Full `testDebugUnitTest`: 49 tests, 1 failure in `MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement`; this is the pre-existing map zoom constant/test mismatch and is outside the form bugfix scope.
+- The form implementation-bugfix and local regression verification are **PASS**. CI remains **NOT VERIFIED**.

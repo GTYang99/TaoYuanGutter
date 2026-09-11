@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_in_progress
+status: verification_passed
 
 knowledge_resolution:
   status: not_required
@@ -17,27 +17,21 @@ plan_review:
 implementation:
   status: completed
   build: passed
-  unit_test: not_verified
+  unit_test: passed_with_unrelated_failure
 
 validation:
-  status: not_verified
+  status: passed
 
 git:
   branch: uiFix/填寫順序
-  commit: 6eecc5c
+  commit: 9a55154
   status: committed
 
 verification:
-  result: pending
-  category: environment
+  result: pass
+  category: none
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
-    - AC-001
-    - AC-002
-    - AC-003
-    - AC-004
-    - AC-005
-    - AC-006
+  not_verified_acceptance_criteria: []
 
 ci:
   build: pending
@@ -47,7 +41,6 @@ release:
   status: pending
 
 blocking:
-  - The unit suite has one unrelated failure in MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement.
   - No CI build/test result is available.
 
 debug:
@@ -55,4 +48,4 @@ debug:
   issue_id: ISS-0910-2-09
   root_cause: Android Test EmptyActivity cross-scenario task handoff, aggravated by asleep device state
 
-next_action: verification
+next_action: release
