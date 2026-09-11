@@ -69,11 +69,13 @@ class GutterBasicInfoUiTest {
         launchForm(hashMapOf("is_virtual" to "1")).use { scenario ->
             onView(withId(R.id.cbIsVirtual)).check(matches(isChecked()))
             onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
+            onView(withId(R.id.cbCantOpen)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
 
             onView(withId(R.id.cbIsVirtual)).perform(androidx.test.espresso.action.ViewActions.click())
 
             onView(withId(R.id.cbIsVirtual)).check(matches(isNotChecked()))
             onView(withId(R.id.switchPageBar)).check(matches(isDisplayed()))
+            onView(withId(R.id.cbCantOpen)).check(matches(isDisplayed()))
             scenario.onActivity { activity ->
                 val viewPager = activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
                 assertTrue("turning virtual mode off must restore pager interaction", viewPager.isUserInputEnabled)

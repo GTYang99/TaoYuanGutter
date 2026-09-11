@@ -1165,6 +1165,8 @@ class GutterBasicInfoFragment : Fragment() {
         binding.layoutDepthPhotoSection.visibility = visibility
         (binding.tvGutterTypeTitle.parent as? View)?.visibility = visibility
         binding.layoutGutterTypeSelector.visibility = visibility
+        // 虛擬點只保留測量狀態中的「待架站」；「無法開蓋」不適用於虛擬點。
+        binding.cbCantOpen.visibility = visibility
         updateRequiredIndicators()
         notifyDraftChanged()
     }

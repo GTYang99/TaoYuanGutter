@@ -67,6 +67,8 @@
 - `JAVA_HOME=.../Android Studio.app/.../Home ./gradlew assembleDebug compileDebugAndroidTestKotlin --no-daemon`: PASS.
 - `git diff --check`: PASS.
 - Connected execution: NOT VERIFIED; `adb devices` currently reports no connected device.
+- Virtual-mode field correction: hide `cbCantOpen` while virtual mode is active, leaving only the measurement-status 「待架站」 option; restore it when virtual mode is turned off.
+- The focused UI regression now verifies `cbCantOpen` hidden in virtual mode and visible after turning virtual mode off.
 
 ## Acceptance Criteria Evidence
 

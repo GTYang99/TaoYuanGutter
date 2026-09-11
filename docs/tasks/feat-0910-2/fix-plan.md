@@ -26,6 +26,7 @@ Debug complete. The virtual checkbox listener still exists, but the Activity-lev
 ### Minimum implementation
 
 1. Restore state-dependent handling in `applyVirtualModeUi(isVirtual)` for the controls that belong to the virtual-point toggle.
-2. Preserve the existing `GutterBasicInfoFragment.setVirtualMode(false)` field restoration and persisted `is_virtual=0` behavior.
-3. Add a focused UI regression test for virtual on → off, including the restored control state.
-4. Validate the virtual toggle together with the existing form-order and cant-open regressions.
+2. Hide `cbCantOpen` while virtual mode is active so measurement status retains only 「待架站」.
+3. Preserve the existing `GutterBasicInfoFragment.setVirtualMode(false)` field restoration and persisted `is_virtual=0` behavior.
+4. Add a focused UI regression test for virtual on → off, including the restored control state.
+5. Validate the virtual toggle together with the existing form-order and cant-open regressions.

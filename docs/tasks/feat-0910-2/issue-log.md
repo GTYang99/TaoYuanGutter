@@ -93,7 +93,7 @@
 - Impact: Users can enter virtual-point mode but cannot fully return to the original normal interaction state.
 - Evidence: Current `GutterFormActivity.applyVirtualModeUi()` hardcodes `switchPageBar` to `GONE` and `viewPager.isUserInputEnabled` to `false`. Original behavior in the pre-UI-redesign implementation used `if (isVirtual) GONE else VISIBLE` and `!isVirtual`; both changes are visible in commit `cb3b90f`.
 - Root cause: Activity-level virtual-mode UI handling was changed from state-dependent behavior to unconditional hiding/disabling during the UI redesign. The checkbox listener and Fragment field visibility logic still exist, so the defect is specifically the missing Activity-level off-state restoration.
-- Minimum fix: restore the virtual on/off state transition contract and add focused toggle regression coverage.
+- Minimum fix: restore the virtual on/off state transition contract, hide the inapplicable `cbCantOpen` while virtual mode is active, and add focused toggle regression coverage. Implemented in the current follow-up.
 - Next action: implementation_debug
 
 ## ISS-0910-2-07

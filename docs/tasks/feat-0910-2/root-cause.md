@@ -64,6 +64,10 @@ As a result, the checkbox can change `isVirtualMode` and the form fields can be 
 - `app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt`: existing field visibility toggle remains present and is not the root cause.
 - Risk: restoring the original conditional behavior may expose the page switch bar in non-virtual mode, so the implementation must preserve the current single-page product intent if that visibility was intentionally removed; the required behavior decision is specifically that virtual mode can be turned off and normal form interaction restored.
 
+## Additional field-visibility finding
+
+The virtual-mode field filter also omitted `cbCantOpen`. Because the measurement-status row contains both `btnPendingDeploy` and `cbCantOpen`, virtual mode still displayed the inapplicable 「無法開蓋」 option. The expected virtual form keeps the measurement-status title and 「待架站」 only, plus the measurement-coordinate number field and location section.
+
 ## Minimum fix scope
 
-Restore the virtual-state transition contract at the Activity layer: when virtual mode is turned off, re-enable the normal form navigation/close path and keep virtual mode's hidden/disabled state while it is on. Add a regression test that toggles `cbIsVirtual` on and off and verifies both the checkbox state and the restored controls. Do not change API keys, field order, photo slots, or map startup behavior.
+Restore the virtual-state transition contract at the Activity layer: when virtual mode is turned off, re-enable the normal form navigation/close path and keep virtual mode's hidden/disabled state while it is on. Hide `cbCantOpen` while virtual mode is on. Add a regression test that toggles `cbIsVirtual` on and off and verifies both the checkbox state and the restored controls. Do not change API keys, field order, photo slots, or map startup behavior.
