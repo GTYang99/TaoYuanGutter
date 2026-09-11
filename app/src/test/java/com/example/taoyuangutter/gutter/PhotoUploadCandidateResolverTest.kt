@@ -63,6 +63,24 @@ class PhotoUploadCandidateResolverTest {
         assertEquals("22", result.single().basicData["photo2ImgId"])
     }
 
+    @Test
+    fun importedExistingPhotoIdsRemainAvailableToUploadGuard() {
+        val imported = waypoint(
+            "photo1" to "content://imported-one",
+            "photo1CapturedAt" to "at-1",
+            "photo1ImgId" to "101",
+            "photo1UploadState" to "success"
+        )
+
+        val result = PhotoUploadCandidateResolver.resolve(
+            listOf(imported), originalWaypoints = emptyList(), resumedFromDraft = false
+        ).single()
+
+        assertEquals("101", result.basicData["photo1ImgId"])
+        assertEquals("success", result.basicData["photo1UploadState"])
+        assertEquals("content://imported-one", result.basicData["photo1"])
+    }
+
     private fun waypoint(vararg entries: Pair<String, String>): Waypoint = Waypoint(
         type = WaypointType.NODE,
         label = "節點1",

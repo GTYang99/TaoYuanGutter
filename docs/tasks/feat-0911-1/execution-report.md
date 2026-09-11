@@ -30,3 +30,13 @@
 ## Limitation
 
 Local unit/build validation completed with the Android Studio bundled Java Runtime. Host-level MockWebServer/manual smoke remains `NOT VERIFIED` and must be covered during Verification.
+
+## Follow-up Implementation Validation
+
+- Root cause addressed: the imported-node path in `GutterFormActivity` was not covered by the first resolver extraction.
+- `handleImportedNodeDetails()` now persists `NodeDetails.nodeId` as `_nodeId` and keeps it in the session waypoint.
+- The form-level `uploadLocalPhotos()` now skips any slot with an existing `photo*ImgId`.
+- Added a resolver test confirming imported photo IDs remain available to the upload guard.
+- `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew clean testDebugUnitTest --tests '*StoreDitchNodeRequestMapperTest' --tests '*PhotoUploadCandidateResolverTest'`: PASS (`BUILD SUCCESSFUL`).
+- `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug`: PASS (`BUILD SUCCESSFUL`).
+- Host-level imported-node smoke observing `/v1/node/nodeImage`: NOT VERIFIED.

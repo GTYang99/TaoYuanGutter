@@ -563,6 +563,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		        }
 
     private fun handleImportedNodeDetails(nodeDetails: NodeDetails) {
+        nodeDetails.nodeId?.let { importedNodeId ->
+            nodeId = importedNodeId
+            currentFormData["_nodeId"] = importedNodeId.toString()
+            syncCurrentWaypointFromCurrentFormData()
+        }
         setImportedWaypointLocked(true)
         pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
         syncImportedVirtualState(parseLooseBoolean(nodeDetails.isVirtual))
@@ -2358,6 +2363,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         val isCantOpen = parseLooseBoolean(currentFormData["IS_CANTOPEN"])
         listOf(photo1 to 1, photo2 to 2, photo3 to 3)
             .filterNot { (_, category) -> isCantOpen && category in 2..3 }
+            .filterNot { (_, category) -> currentFormPhotoImgId(category) != null }
             .filter { (path, _) -> PhotoUploadValidator.isUsableForUpload(this@GutterFormActivity, path) }
             .map { (path, category) ->
                 async {
