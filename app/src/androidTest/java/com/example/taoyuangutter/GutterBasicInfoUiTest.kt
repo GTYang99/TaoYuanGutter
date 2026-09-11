@@ -6,6 +6,8 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isChecked
+import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.ViewMatchers.isNotChecked
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -59,6 +61,23 @@ class GutterBasicInfoUiTest {
         launchForm(hashMapOf("IS_BROKEN" to "1", "IS_SILT" to "2")).use {
             onView(withId(R.id.rbIsBroken1)).check(matches(isChecked()))
             onView(withId(R.id.rbIsSilt2)).check(matches(isChecked()))
+        }
+    }
+
+    @Test
+    fun turningVirtualPointOffRestoresNormalFormInteraction() {
+        launchForm(hashMapOf("is_virtual" to "1")).use { scenario ->
+            onView(withId(R.id.cbIsVirtual)).check(matches(isChecked()))
+            onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
+
+            onView(withId(R.id.cbIsVirtual)).perform(androidx.test.espresso.action.ViewActions.click())
+
+            onView(withId(R.id.cbIsVirtual)).check(matches(isNotChecked()))
+            onView(withId(R.id.switchPageBar)).check(matches(isDisplayed()))
+            scenario.onActivity { activity ->
+                val viewPager = activity.findViewById<androidx.viewpager2.widget.ViewPager2>(R.id.viewPager)
+                assertTrue("turning virtual mode off must restore pager interaction", viewPager.isUserInputEnabled)
+            }
         }
     }
 

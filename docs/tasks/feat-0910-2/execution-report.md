@@ -58,6 +58,16 @@
 - Final narrowed fix run: PASS, 1/1, on XQ-AU52.
 - The class-level rerun was blocked by `adb: device offline`; full verification remains pending.
 
+## ISS-0910-2-11 Implementation and Validation
+
+- Restored `applyVirtualModeUi(isVirtual)` state-dependent behavior:
+  - virtual on: hide the page switch bar and disable ViewPager interaction;
+  - virtual off: restore the page switch bar and enable ViewPager interaction.
+- Added `GutterBasicInfoUiTest.turningVirtualPointOffRestoresNormalFormInteraction`, covering virtual on → off, checkbox state, page switch visibility, and ViewPager interaction.
+- `JAVA_HOME=.../Android Studio.app/.../Home ./gradlew assembleDebug compileDebugAndroidTestKotlin --no-daemon`: PASS.
+- `git diff --check`: PASS.
+- Connected execution: NOT VERIFIED; `adb devices` currently reports no connected device.
+
 ## Acceptance Criteria Evidence
 
 - AC-001/AC-002: status group and runtime order are implemented; UI test checks labels and relative positions.

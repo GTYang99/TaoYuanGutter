@@ -2435,7 +2435,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     /** 僅更新 Activity 層級的 UI（Tab, ViewPager 等）*/
     private fun applyVirtualModeUi(isVirtual: Boolean) {
-        binding.switchPageBar.visibility = View.GONE
+        binding.switchPageBar.visibility = if (isVirtual) View.GONE else View.VISIBLE
         
         if (isOfflineMode) {
             binding.importWaypointBar.visibility = View.GONE
@@ -2443,7 +2443,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             binding.importWaypointBar.visibility = if (isVirtual) View.GONE else View.VISIBLE
         }
 
-        binding.viewPager.isUserInputEnabled = false
+        binding.viewPager.isUserInputEnabled = !isVirtual
     }
 
     private fun applyVirtualMode(isVirtual: Boolean) {
