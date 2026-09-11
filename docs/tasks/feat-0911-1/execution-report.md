@@ -43,5 +43,6 @@ Local unit/build validation completed with the Android Studio bundled Java Runti
 - Confirmed root-cause fixture: `docs/tasks/dbg-0910/evidence/node_details_A0910pt52.json` provides a `node_img` URL without an image `id`.
 - Imported downloaded photos are now marked `UploadState=success`; upload guards accept either an existing `imgId` or success state.
 - `PhotoUploadSlotState.isAlreadyUploaded()` now covers both numeric image IDs and imported server-backed photos whose response omits an ID.
+- Added an early guard in `GutterFormActivity.onPhotoSlotReadyForUpload()` so an existing photo cannot enqueue `PhotoSlotUploadCoordinator`.
 - Follow-up targeted tests: PASS (`BUILD SUCCESSFUL`).
 - Follow-up debug APK build: PASS (`BUILD SUCCESSFUL`).

@@ -25,7 +25,7 @@ validation:
 git:
   branch: feat/既有點位不上傳照片
   commit: fb6e83d
-  status: committed
+  status: pending
 
 verification:
   result: pending
@@ -40,4 +40,4 @@ release:
   status: pending
 
 blocking: []
-next_action: verification
+next_action: git_commit

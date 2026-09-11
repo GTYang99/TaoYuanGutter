@@ -153,6 +153,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     override fun onPhotoSlotReadyForUpload(slot: Int, photoPath: String?) {
         if (slot !in 1..3) return
+        if (PhotoUploadSlotState.isAlreadyUploaded(currentFormData, slot)) {
+            android.util.Log.d(
+                "PhotoUpload",
+                "既有照片已有伺服器狀態，略過啟動上傳 slot=$slot imgId=${currentFormPhotoImgId(slot)} state=${currentFormPhotoUploadState(slot)}"
+            )
+            return
+        }
         if (photoPath.isNullOrBlank()) {
             clearPhotoUploadState(slot)
             queuePhotoDraftSync()

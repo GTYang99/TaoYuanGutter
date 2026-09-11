@@ -19,4 +19,5 @@
   - Skip slots with an existing `photo*ImgId` in the form-level uploader.
   - Added imported photo metadata preservation coverage.
   - Treat imported/downloaded photos with `UploadState=success` as already uploaded even when the API omits image IDs.
+  - Add an early callback guard before `PhotoSlotUploadCoordinator.enqueueUpload()`.
 - next_action: verification
