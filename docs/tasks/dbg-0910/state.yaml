@@ -2,8 +2,8 @@ task:
   id: dbg-0910
   type: debug
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -27,13 +27,14 @@ validation:
 
 git:
   branch: uiFix/審核顯示框
-  commit: 6013858
+  commit: 32f74f5
   status: completed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
 
 ci:
   build: not_verified
@@ -43,7 +44,7 @@ release:
   status: pending
 
 blocking:
-  - Authenticated A0910pt52 first-open visual confirmation is NOT VERIFIED because the emulator is at login and no test credentials were supplied.
-  - Full unit suite has an existing unrelated failure: minimum zoom test expects 16f while source is 13f.
+  - No remote CI workflow is configured; CI build/test remains NOT VERIFIED.
+  - Connected Android test instrumentation failed on XQ-AU52 with DELETE_FAILED_INTERNAL_ERROR during package cleanup.
 
 next_action: verification

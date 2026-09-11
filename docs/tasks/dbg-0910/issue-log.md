@@ -3,6 +3,9 @@
 | Issue ID | Category | Priority | Status | Description |
 |---|---|---:|---|---|
 | ISS-DBG-0910-001 | implementation_regression | P1 | fixed_pending_verification | `A0910pt52` has a category-1 `node_img` URL; runtime evidence identifies and the implementation addresses a first-open Activity-to-Fragment photo state synchronization gap in the cant-open flow. |
+| ISS-DBG-0910-002 | implementation_regression | P1 | resolved_user_confirmed | User manually adjusted the BottomSheet and confirmed AC-002 on a real device. |
+| ISS-DBG-0910-003 | environment | P1 | resolved_user_confirmed | User confirmed authenticated real-device validation for AC-003. Detailed log/screenshot was not supplied in this thread. |
+| ISS-DBG-0910-004 | environment | P1 | open | No remote CI workflow is configured. Local full unit test, `assembleDebug`, and targeted direct 0910 instrumentation pass; the full direct package run hits `NoActivityResumedException`, while the Gradle connected task fails with `INSTRUMENTATION_FAILED` and package cleanup returns `DELETE_FAILED_INTERNAL_ERROR`. |
 
 ## Evidence
 
@@ -26,10 +29,10 @@
 
 ## Next Action
 
-- Complete authenticated first-open/re-entry verification for `A0910pt52`; keep AC-003 as `NOT VERIFIED` until that run is captured.
+- Remote CI is unavailable because no workflow is configured; full connected-test environment evidence remains unresolved before Release. Targeted direct 0910 instrumentation passed 6/6 tests.
 
 ## Environment Evidence
 
 - Android SDK AVD `Medium_Phone` is available.
 - ADB device check passed with `emulator-5554 device` after starting the local ADB daemon with the required host permission.
-- Gradle and connected tests were executed with Android Studio's bundled JDK. The connected suite passed; the full unit suite has one unrelated pre-existing failure documented in `execution-report.md`.
+- Gradle and direct ADB instrumentation were executed with Android Studio's bundled JDK. The direct 0910 instrumentation passed 6/6 tests; the Gradle connected task failed during instrumentation/package cleanup.
