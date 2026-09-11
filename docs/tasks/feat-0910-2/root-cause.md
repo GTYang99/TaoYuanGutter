@@ -10,7 +10,9 @@
 
 ## Root-cause status
 
-The application-side trigger for the immediate `PAUSED/STOPPED` transition is not yet conclusively identified. The evidence rules out the earlier View-reparenting crash and does not justify changing the form window theme or removing the map. This remains an implementation investigation, not a verified environment-only failure.
+Root cause identified: `GutterFormActivity` does not complete its launch lifecycle before the Sony XQ-AU52 system's top-resumed timeout. The synchronous `setContentView()` path inflates the full form and the XML-declared `SupportMapFragment`; the map's `onCreateView()` blocks the main thread while the Activity is still starting. Android then reports `Activity top resumed state loss timeout` and `Activity pause timeout`, moves the form out of the foreground, and Espresso later reports `NoActivityResumedException`.
+
+This is an application startup performance/lifecycle regression, not an app `finish()` call or the `onPause()` draft-sync path. The translucent form theme increases the consequence because the form is expected to remain a foreground overlay, but changing that theme is not required by the root-cause evidence.
 
 ## Latest isolation result (2026-09-11)
 
@@ -21,7 +23,7 @@ The application-side trigger for the immediate `PAUSED/STOPPED` transition is no
 - Both runs show `SupportMapFragment.onCreateView()` blocking the main thread for about 203–226 ms. The pass run remained resumed long enough for the assertions; the fail run did not.
 - No app `FATAL EXCEPTION`, explicit `finish()`, or logged second application Activity was captured.
 
-This establishes a reproducible flaky lifecycle/focus race in the connected test environment, with map rendering as a correlated startup event but not yet proven as the sole cause. The minimum safe production fix is still undetermined.
+The earlier pass/fail variation is explained by whether the device completed the startup work before the top-resumed deadline. The minimum safe production fix is to keep form UI startup independent from map creation: remove automatic XML map-fragment inflation and schedule `SupportMapFragment` creation/`getMapAsync()` after the form Activity has reached its first resumed frame. The map remains part of the product UI; only its startup timing changes.
 
 ## Affected acceptance criteria
 

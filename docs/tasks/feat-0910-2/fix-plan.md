@@ -2,17 +2,17 @@
 
 ## Current status
 
-Debug is still investigating. No production fix is approved yet because the trigger for the activity losing resumed state has not been proven.
+Debug complete. Root cause is the form Activity exceeding the device top-resumed startup deadline because the form and XML-declared Maps fragment are created synchronously on the main thread.
 
 ## Minimum next checks
 
-1. Re-run the single new-form test with map initialization isolated or disabled only in the test harness, to determine whether `SupportMapFragment`/map rendering is the trigger.
-2. Capture ActivityTaskManager/WindowManager lifecycle events together with the app logcat to identify what causes the `PAUSED/STOPPED` transition.
-3. If map initialization is confirmed, choose the smallest production-safe fix that preserves the translucent map-backed form behavior and then rerun the new-form test.
-4. Re-run `GutterBasicInfoUiTest` and `GutterCantOpenUiTest` before updating AC-001/002/003/005/006.
+1. Replace the XML `android:name="com.google.android.gms.maps.SupportMapFragment"` declaration with an empty map host container.
+2. Let the form UI finish its normal `onCreate`/first-frame path before adding the `SupportMapFragment` and calling `getMapAsync()`.
+3. Keep existing map overlays, markers, camera, and transparent form-sheet behavior unchanged.
+4. Re-run `GutterBasicInfoUiTest` repeatedly on XQ-AU52, then run `GutterCantOpenUiTest` and the full connected suite.
 
 ## Guardrails
 
-- Do not remove the map, change the translucent form theme, or alter activity finish behavior without confirming the trigger and reviewing the UI requirement impact.
+- Do not remove the map, change the translucent form theme, or alter activity finish behavior; the fix is limited to deferring map-fragment creation.
 - Do not mark the affected acceptance criteria PASS based only on the user's manual field-order result.
 - Keep the offline existing-data fix and photo lifecycle fix separate from this investigation.

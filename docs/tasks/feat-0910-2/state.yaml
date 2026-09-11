@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: debug
-status: debug_in_progress
+status: debug_complete
 
 knowledge_resolution:
   status: not_required
@@ -50,8 +50,8 @@ blocking:
   - No CI build/test result is available.
 
 debug:
-  status: investigating
+  status: completed
   issue_id: ISS-0910-2-09
-  root_cause: not_yet_identified
+  root_cause: identified
 
-next_action: debug
+next_action: implementation_debug
