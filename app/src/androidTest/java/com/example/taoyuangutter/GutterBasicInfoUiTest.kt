@@ -70,6 +70,34 @@ class GutterBasicInfoUiTest {
             onView(withId(R.id.cbIsVirtual)).check(matches(isChecked()))
             onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             onView(withId(R.id.cbCantOpen)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
+            listOf(
+                R.id.tvGutterTypeTitle,
+                R.id.layoutGutterTypeSelector,
+                R.id.tvOverviewPhotoTitle,
+                R.id.layoutOverviewPhotoSection,
+                R.id.tvDepthPhotoTitle,
+                R.id.layoutDepthPhotoSection,
+                R.id.tvDepthTitle,
+                R.id.tilDepth,
+                R.id.tvCoverThicknessTitle,
+                R.id.llCoverThicknessWrapper,
+                R.id.tvWidthPhotoTitle,
+                R.id.layoutWidthPhotoSection,
+                R.id.tvTopWidthTitle,
+                R.id.tilTopWidth,
+                R.id.tvMatTypeTitle,
+                R.id.rgMatType,
+                R.id.tvBrokenTitle,
+                R.id.rgIsBroken,
+                R.id.tvHangingTitle,
+                R.id.rgIsHanging,
+                R.id.tvSiltTitle,
+                R.id.rgIsSilt,
+                R.id.tvRemarksTitle,
+                R.id.tilRemarks
+            ).forEach { id ->
+                onView(withId(id)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
+            }
 
             onView(withId(R.id.cbIsVirtual)).perform(androidx.test.espresso.action.ViewActions.click())
 

@@ -517,16 +517,17 @@ class GutterBasicInfoFragment : Fragment() {
 
     /** Finds the smallest ancestor that is a direct child of the form container. */
     private fun directContentRow(view: View, content: ViewGroup): View {
-        var candidate = view.parent as? View ?: return view
-        while (true) {
-            val parent = candidate.parent as? ViewGroup ?: return candidate
+        var candidate = view
+        while (candidate.parent !== content) {
+            val parent = candidate.parent as? View ?: return candidate
             // Virtual sections are direct children of formContent. Returning
             // their immediate row keeps each title/control pair interleavable.
-            if (parent === content || parent.id == R.id.llVirtualHidden1 ||
+            if (parent.id == R.id.llVirtualHidden1 ||
                 parent.id == R.id.llVirtualHidden2 || parent.id == R.id.llVirtualHidden3
-            ) return candidate
+            ) return parent
             candidate = parent
         }
+        return candidate
     }
 
     // ── RadioGroup 工具函式 ───────────────────────────────────────────────
@@ -1166,15 +1167,35 @@ class GutterBasicInfoFragment : Fragment() {
     fun setVirtualMode(isVirtual: Boolean) {
         isVirtualMode = isVirtual
         val visibility = if (isVirtual) View.GONE else View.VISIBLE
-        binding.llVirtualHidden1.visibility = visibility
-        binding.llVirtualHidden2.visibility = visibility
-        binding.llCoverThicknessWrapper.visibility = visibility
-        binding.llVirtualHidden3.visibility = visibility
-        binding.layoutOverviewPhotoSection.visibility = visibility
-        binding.layoutWidthPhotoSection.visibility = visibility
-        binding.layoutDepthPhotoSection.visibility = visibility
-        (binding.tvGutterTypeTitle.parent as? View)?.visibility = visibility
-        binding.layoutGutterTypeSelector.visibility = visibility
+
+        // reorderEditableSections() 會把欄位從 llVirtualHidden* 搬到 formContent，
+        // 因此不能只隱藏原本的父容器；必須直接控制重排後的每個欄位 View。
+        val virtualOnlyHiddenViews = listOf(
+            binding.llVirtualHidden1,
+            binding.llVirtualHidden2,
+            binding.llCoverThicknessWrapper,
+            binding.llVirtualHidden3,
+            binding.layoutOverviewPhotoSection,
+            binding.layoutWidthPhotoSection,
+            binding.layoutDepthPhotoSection,
+            directContentRow(binding.tvGutterTypeTitle, binding.formContent),
+            binding.layoutGutterTypeSelector,
+            directContentRow(binding.tvDepthTitle, binding.formContent),
+            binding.tilDepth,
+            directContentRow(binding.tvTopWidthTitle, binding.formContent),
+            binding.tilTopWidth,
+            directContentRow(binding.tvMatTypeTitle, binding.formContent),
+            binding.rgMatType,
+            directContentRow(binding.tvBrokenTitle, binding.formContent),
+            binding.rgIsBroken,
+            directContentRow(binding.tvHangingTitle, binding.formContent),
+            binding.rgIsHanging,
+            directContentRow(binding.tvSiltTitle, binding.formContent),
+            binding.rgIsSilt,
+            binding.tvRemarksTitle,
+            binding.tilRemarks
+        ).distinct()
+        virtualOnlyHiddenViews.forEach { it.visibility = visibility }
         // 虛擬點只保留測量狀態中的「待架站」；「無法開蓋」不適用於虛擬點。
         binding.cbCantOpen.visibility = visibility
         updateRequiredIndicators()
