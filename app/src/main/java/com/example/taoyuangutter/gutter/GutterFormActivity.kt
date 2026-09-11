@@ -573,33 +573,27 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 val photo1Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.url
                 val photo2Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.url
                 val photo3Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.url
+                val photoUrls = listOf(photo1Url, photo2Url, photo3Url)
+                val totalPhotos = photoUrls.count { !it.isNullOrBlank() }
+                var downloadedPhotoCount = 0
 
-                showUploadLoading(true, "正在下載照片（1/3）…")
-                val p1 = photo1Url?.let {
-                    gutterRepository.downloadImageToLocalContentUri(
-                        context = this@GutterFormActivity,
-                        url = it,
-                        prefix = "IMPORT_1_"
+                suspend fun downloadImportedPhoto(url: String?, slot: Int): String? {
+                    if (url.isNullOrBlank()) return null
+                    downloadedPhotoCount += 1
+                    showUploadLoading(
+                        true,
+                        "正在下載照片（$downloadedPhotoCount/$totalPhotos）…"
                     )
-                }?.toString()
+                    return gutterRepository.downloadImageToLocalContentUri(
+                        context = this@GutterFormActivity,
+                        url = url,
+                        prefix = "IMPORT_${slot}_"
+                    )?.toString()
+                }
 
-                showUploadLoading(true, "正在下載照片（2/3）…")
-                val p2 = photo2Url?.let {
-                    gutterRepository.downloadImageToLocalContentUri(
-                        context = this@GutterFormActivity,
-                        url = it,
-                        prefix = "IMPORT_2_"
-                    )
-                }?.toString()
-
-                showUploadLoading(true, "正在下載照片（3/3）…")
-                val p3 = photo3Url?.let {
-                    gutterRepository.downloadImageToLocalContentUri(
-                        context = this@GutterFormActivity,
-                        url = it,
-                        prefix = "IMPORT_3_"
-                    )
-                }?.toString()
+                val p1 = downloadImportedPhoto(photo1Url, slot = 1)
+                val p2 = downloadImportedPhoto(photo2Url, slot = 2)
+                val p3 = downloadImportedPhoto(photo3Url, slot = 3)
 
                 val capturedAt1 = nodeDetails.safeCapturedAt(0, "GutterFormActivity", "import existing waypoint")
                 val capturedAt2 = nodeDetails.safeCapturedAt(1, "GutterFormActivity", "import existing waypoint")

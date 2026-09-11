@@ -3,6 +3,7 @@
 ## Implementation
 
 - `GutterFormActivity.handleImportedNodeDetails()` now re-applies the Activity-authoritative photo state to the already-created `GutterBasicInfoFragment` after import photo state updates. Slot 1 photo, captured time, image ID, upload state, and upload error are passed together so the first-open view cannot remain on its initial empty state.
+- Import photo download progress now uses the number of non-empty `node_img` URLs as the denominator; a one-photo import displays `1/1` instead of the fixed `1/3` sequence.
 - `AddGutterBottomSheet` now uses approximately 60% of display height for its initial sheet height.
 - Upload-review messages map the four approved raw keys to the existing Chinese UI labels without changing validation keys or request payloads.
 
@@ -13,6 +14,8 @@
 | `git diff --check` | PASS | No whitespace errors. |
 | `assembleDebug` | PASS | Android Studio / Gradle: `BUILD SUCCESSFUL`; 42 actionable tasks. |
 | `connectedDebugAndroidTest` | PASS | AVD `Medium_Phone (API 34)`, 12 tests, 0 failures, 0 errors, 0 skipped. |
+| Dynamic import progress change `assembleDebug` | PASS | `BUILD SUCCESSFUL`; 42 actionable tasks. |
+| Dynamic import progress change `connectedDebugAndroidTest` | PASS | AVD `Medium_Phone (API 34)`, `BUILD SUCCESSFUL`; 78 actionable tasks. |
 | `testDebugUnitTest` | FAIL (pre-existing/unrelated) | 49 tests completed; existing `MainMapLoadIndicatorStateMachineTest.minimumZoomMatchesGutterLayerRequirement` expects 16f while source is 13f. No changed 0910 file is involved. |
 
 ## Manual validation

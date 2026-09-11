@@ -22,6 +22,7 @@
 
 - `GutterFormActivity` now calls `GutterBasicInfoFragment.syncPersistedPhotoState(...)` after the import photo state has been applied to the Activity, including slot 1 metadata and upload state.
 - The fix is deliberately presentation/state synchronization only; API mapping, URL handling, slot/category mapping, and cant-open slot 2/3 clearing remain unchanged.
+- Import download progress no longer assumes three photos. It counts non-empty category URLs and reports the current downloaded URL as `1/1` for the supplied one-photo response.
 
 ## Next Action
 
