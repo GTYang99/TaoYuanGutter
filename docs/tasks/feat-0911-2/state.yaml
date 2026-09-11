@@ -25,7 +25,7 @@ validation:
 
 git:
   branch: feat/0910圖層
-  commit: 5c20fa18464f2b34739472a649dba19b7a4bf982
+  commit: cc86ed605b342b45502f685222b159c39a3aa3d0
   status: committed
 
 verification:
