@@ -36,6 +36,25 @@ The earlier pass/fail variation is explained by whether the device completed the
 - `app/build/outputs/androidTest-results/connected/debug/XQ-AU52 - 12/logcat-com.example.taoyuangutter.GutterBasicInfoUiTest-newFormShowsRequiredOrderLabelsButtonsAndDefaults.txt`: lifecycle sequence and absence of app fatal exception.
 - `GutterFormActivity.onCreate()`: initializes the map fragment and form pager before the first assertion.
 
+# Root Cause Analysis: ISS-0910-2-12
+
+## Confirmed behavior
+
+- The previously corrected six-field ordering defect reappeared after the virtual-point visibility work.
+- The affected fields are depth, width, material, damage, hanging/road-crossing pipes, and silt; their titles can be displaced or remain visible outside the intended virtual-point form.
+- The report is distinct from the empty gray switch-bar issue and from the original `ISS-0910-2-05` ordering defect.
+
+## Root cause
+
+`reorderEditableSections()` must move individual title rows into the approved order. Its `directContentRow()` helper walks upward from a title, but the virtual-section boundary was handled incorrectly: when the current row's parent was `llVirtualHidden1`, `llVirtualHidden2`, or `llVirtualHidden3`, the helper returned the wrapper rather than the current row. Since the six affected titles originally share `llVirtualHidden3`, each lookup resolved to the same wrapper. The ordered list consequently contained duplicate wrapper references and could not preserve title/control adjacency.
+
+## Resolution and review evidence
+
+- Corrected `directContentRow()` to return the candidate row when its parent is `formContent` or a virtual wrapper.
+- Added the recurrence to `issue-log.md` as `ISS-0910-2-12` with the affected code path, impact, resolution commit, and validation limitation.
+- Resolution commit: `64ac477`.
+- Build and static checks passed; connected UI verification remains `NOT VERIFIED` because the instrumentation run did not complete on XQ-AU52.
+
 
 # Root Cause Analysis: ISS-0910-2-11
 

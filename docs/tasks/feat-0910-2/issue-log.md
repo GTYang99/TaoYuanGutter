@@ -154,3 +154,18 @@
 - Impact: AC-006 cannot receive complete post-fix evidence.
 - Evidence: `JAVA_HOME=/Applications/Android Studio.app/Contents/jbr/Contents/Home ./gradlew connectedDebugAndroidTest --no-daemon` after `f723ade` returned `com.android.builder.testing.api.DeviceException: No connected devices!`.
 - Next action: infrastructure
+
+## ISS-0910-2-12
+
+- Task: feat-0910-2
+- Phase: implementation
+- Category: `implementation_regression`
+- Priority: P1
+- Status: resolved_pending_verification
+- Title: Field-row mapping regression reappeared after virtual-point visibility fix
+- Impact: The six fields for depth, width, material, damage, hanging/road-crossing pipes, and silt can be treated as one virtual wrapper during reordering; their titles then detach from their controls and unrelated residual blocks can remain visible.
+- Evidence: User reported recurrence after the prior `ISS-0910-2-05` correction. In `GutterBasicInfoFragment.directContentRow()`, the branch for `llVirtualHidden1/2/3` returned the wrapper instead of the current direct child row. Multiple calls from `reorderEditableSections()` therefore resolved to the same `llVirtualHidden3` instance.
+- Root cause: The helper's ancestor boundary was interpreted as the container to return, rather than the row immediately below that container. This made the ordered view list contain duplicate virtual-wrapper references instead of individual title rows.
+- Resolution: Return the current candidate row when its parent is `formContent` or a virtual wrapper. Implemented in commit `64ac477`.
+- Validation: `git diff --check`, `assembleDebug`, and `compileDebugAndroidTestKotlin` passed. Connected UI execution was attempted on XQ-AU52 but instrumentation did not reach completion because the Activity was not resumed; final device verification remains pending.
+- Next action: verification
