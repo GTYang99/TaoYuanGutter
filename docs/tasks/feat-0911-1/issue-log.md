@@ -21,4 +21,5 @@
   - Treat imported/downloaded photos with `UploadState=success` as already uploaded even when the API omits image IDs.
   - Add an early callback guard before `PhotoSlotUploadCoordinator.enqueueUpload()`.
   - Accept both `node_img[].id` and `node_img[].img_id` in the Android model; current ty04 response omits both fields, so ID population remains an API-contract limitation.
+  - Persist `storeDitch.data.nodes[].url[].id` into the corresponding waypoint photo ID fields by `fileCategory`.
 - next_action: verification

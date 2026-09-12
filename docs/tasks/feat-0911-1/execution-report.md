@@ -56,3 +56,11 @@ Local unit/build validation completed with the Android Studio bundled Java Runti
 - Targeted mapping/resolver/mapper tests: PASS (`BUILD SUCCESSFUL`).
 - Debug APK build: PASS (`BUILD SUCCESSFUL`).
 - `photo*ImgId` population for the current ty04 direct-import response: NOT VERIFIED / unavailable because that response omits the ID; backend must return `node_img[].id` (or `img_id`) or provide a lookup endpoint.
+
+## StoreDitch Response Persistence Follow-up
+
+- Root cause fixed: `persistServerIdsIntoDraft()` previously persisted only `SPI_NUM` and `_nodeId`; it now applies `storeDitch.data.nodes[].url[].id` by `fileCategory` to `photo1ImgId`/`photo2ImgId`/`photo3ImgId`.
+- Added `StoreDitchResponseWaypointMapper` and tests for all three photo categories, node ID persistence, and preservation when a response item has no ID.
+- Targeted storeDitch mapper, response model, request mapper, resolver tests: PASS (`BUILD SUCCESSFUL`).
+- Debug APK build: PASS (`BUILD SUCCESSFUL`).
+- Full emulator storeDitch save-and-reopen smoke: NOT VERIFIED; current emulator run reached the imported form but did not complete a controlled save against the provided storeDitch response.

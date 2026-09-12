@@ -46,6 +46,7 @@ import com.example.taoyuangutter.gutter.GutterSheetSessionBinder
 import com.example.taoyuangutter.gutter.GutterSessionFlowCoordinator
 import com.example.taoyuangutter.gutter.GutterSessionUiCoordinator
 import com.example.taoyuangutter.gutter.InspectFlowCoordinator
+import com.example.taoyuangutter.gutter.StoreDitchResponseWaypointMapper
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.login.AuthExpiredHandler
@@ -1097,17 +1098,13 @@ class MainActivity : AppCompatActivity(),
             ?.takeIf { it.isNotBlank() }
             ?: waypoints.firstOrNull { it.type == WaypointType.START }?.basicData?.get("SPI_NUM")
 
-        val updatedWaypoints = waypoints.mapIndexed { index, waypoint ->
-            val merged = HashMap(waypoint.basicData).apply {
-                if (!resolvedSpiNum.isNullOrBlank()) {
-                    put("SPI_NUM", resolvedSpiNum)
-                }
-                nodes.getOrNull(index)?.let { node ->
-                    put("_nodeId", node.nodeId.toString())
-                }
+        val updatedWaypoints = StoreDitchResponseWaypointMapper
+            .apply(waypoints, nodes)
+            .map { waypoint ->
+                waypoint.copy(basicData = HashMap(waypoint.basicData).apply {
+                    if (!resolvedSpiNum.isNullOrBlank()) put("SPI_NUM", resolvedSpiNum)
+                })
             }
-            waypoint.copy(basicData = merged)
-        }
 
         val saveResult = draftCoordinator.autoSaveSessionDraft(
             waypoints = updatedWaypoints,
