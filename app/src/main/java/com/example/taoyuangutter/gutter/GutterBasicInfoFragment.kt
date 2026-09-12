@@ -693,24 +693,44 @@ class GutterBasicInfoFragment : Fragment() {
             if (checked) {
                 if (!button.isPressed) return@setOnCheckedChangeListener
                 button.isChecked = false
+                if (!hasCantOpenContentToClear()) {
+                    confirmCantOpenSelection(button)
+                    return@setOnCheckedChangeListener
+                }
                 MaterialAlertDialogBuilder(requireContext())
                     .setMessage("無法開蓋照片與已填寫資訊將被清除")
                     .setNegativeButton("取消", null)
                     .setPositiveButton("確認") { _, _ ->
-                        val host = activity as? GutterFormActivity ?: return@setPositiveButton
-                        host.captureCantOpenSnapshot()
-                        button.setOnCheckedChangeListener(null)
-                        button.isChecked = true
-                        button.setOnCheckedChangeListener(this@GutterBasicInfoFragment::onCantOpenCheckedChanged)
-                        clearCantOpenFieldsAndPhotos()
-                        host.markCantOpenSnapshotCleared()
-                        applyCantOpenUi(true)
-                        notifyDraftChanged()
+                        confirmCantOpenSelection(button)
                     }.show()
                 return@setOnCheckedChangeListener
             }
             onCantOpenCheckedChanged(button, checked)
         }
+    }
+
+    private fun hasCantOpenContentToClear(): Boolean = GutterFormExitRules.shouldConfirmCantOpenClear(
+        coverThickness = binding.etCoverThickness.text?.toString().orEmpty(),
+        depth = binding.etDepth.text?.toString().orEmpty(),
+        topWidth = binding.etTopWidth.text?.toString().orEmpty(),
+        materialSelected = binding.rgMatType.checkedRadioButtonId != View.NO_ID,
+        brokenSelected = binding.rgIsBroken.checkedRadioButtonId != View.NO_ID,
+        hangingSelected = binding.rgIsHanging.checkedRadioButtonId != View.NO_ID,
+        siltSelected = binding.rgIsSilt.checkedRadioButtonId != View.NO_ID,
+        hasPhoto2 = photoUriSlot2 != null || photoImgId2 != null,
+        hasPhoto3 = photoUriSlot3 != null || photoImgId3 != null
+    )
+
+    private fun confirmCantOpenSelection(button: CompoundButton) {
+        val host = activity as? GutterFormActivity ?: return
+        host.captureCantOpenSnapshot()
+        button.setOnCheckedChangeListener(null)
+        button.isChecked = true
+        button.setOnCheckedChangeListener(this::onCantOpenCheckedChanged)
+        clearCantOpenFieldsAndPhotos()
+        host.markCantOpenSnapshotCleared()
+        applyCantOpenUi(true)
+        notifyDraftChanged()
     }
 
     private fun onCantOpenCheckedChanged(button: CompoundButton, checked: Boolean) {

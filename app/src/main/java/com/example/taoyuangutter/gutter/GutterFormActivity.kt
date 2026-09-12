@@ -53,6 +53,7 @@ import com.google.android.gms.maps.model.TileOverlay
 import com.google.android.gms.maps.model.TileOverlayOptions
 import com.google.android.gms.maps.model.UrlTileProvider
 import com.google.android.material.tabs.TabLayoutMediator
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.example.taoyuangutter.api.ApiResult
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.NodeDetails
@@ -2152,7 +2153,26 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             returnToPreviewMode()
             return
         }
+        if (!isViewMode && shouldShowIncompleteExitWarning()) {
+            MaterialAlertDialogBuilder(this)
+                .setMessage("尚未填寫完畢")
+                .setPositiveButton("確認") { _, _ -> buildAndFinishWithResult() }
+                .show()
+            return
+        }
         buildAndFinishWithResult()
+    }
+
+    private fun shouldShowIncompleteExitWarning(): Boolean {
+        val basicInfo = pagerAdapter.getBasicInfoFragment() ?: return false
+        val basicFieldsInvalid = basicInfo.validateRequiredFields() != null
+        val isVirtual = binding.cbIsVirtual.isChecked
+        val photosInvalid = !isVirtual && basicInfo.validateAllPhotos() != null
+        return GutterFormExitRules.shouldShowIncompleteExitWarning(
+            basicFieldsInvalid = basicFieldsInvalid,
+            isVirtual = isVirtual,
+            photosInvalid = photosInvalid
+        )
     }
 
     private fun buildAndFinishWithResult() {
