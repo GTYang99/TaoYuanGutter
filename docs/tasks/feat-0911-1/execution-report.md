@@ -60,7 +60,10 @@ Local unit/build validation completed with the Android Studio bundled Java Runti
 ## StoreDitch Response Persistence Follow-up
 
 - Root cause fixed: `persistServerIdsIntoDraft()` previously persisted only `SPI_NUM` and `_nodeId`; it now applies `storeDitch.data.nodes[].url[].id` by `fileCategory` to `photo1ImgId`/`photo2ImgId`/`photo3ImgId`.
+- Fixed both `MainActivity` and `MapWorkspaceFragment` save callbacks to use the same response mapper; either map save entry now persists the returned photo IDs.
 - Added `StoreDitchResponseWaypointMapper` and tests for all three photo categories, node ID persistence, and preservation when a response item has no ID.
 - Targeted storeDitch mapper, response model, request mapper, resolver tests: PASS (`BUILD SUCCESSFUL`).
 - Debug APK build: PASS (`BUILD SUCCESSFUL`).
-- Full emulator storeDitch save-and-reopen smoke: NOT VERIFIED; current emulator run reached the imported form but did not complete a controlled save against the provided storeDitch response.
+- Emulator ty04 import: PASS for reaching the imported form and displaying all three downloaded photos; the live trace showed `nodeDetails` photos have `imgId` empty because that response contains no ID.
+- Emulator storeDitch save-and-reopen smoke: NOT VERIFIED. The controlled run reached the bottom-sheet save screen, but the fixture produced unfilled intermediate waypoint rows and the save action did not issue `storeDitch`; no claim is made for runtime response-ID persistence from this run.
+- Emulator nodeImage observation: PASS for the completed ty04 form-import flow; no `/v1/node/nodeImage` request was observed before the blocked bottom-sheet save. StoreDitch post-response behavior remains covered by mapper unit tests, not by this emulator run.
