@@ -23,4 +23,5 @@
   - Accept both `node_img[].id` and `node_img[].img_id` in the Android model; current ty04 response omits both fields, so ID population remains an API-contract limitation.
   - Persist `storeDitch.data.nodes[].url[].id` into the corresponding waypoint photo ID fields by `fileCategory`.
   - Apply the same persistence mapping from the `MapWorkspaceFragment` save callback; otherwise the alternate map save path could still lose the returned photo IDs.
+  - Make `NodeDetails.safeCapturedAt()` tolerate an explicit `captured_at: null`; emulator evidence showed Gson can bypass the Kotlin non-null default and otherwise produce a caught `NullPointerException` during import.
 - next_action: verification
