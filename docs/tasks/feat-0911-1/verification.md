@@ -48,3 +48,54 @@
 2. Obtain a CI build and test result, or configure the project CI.
 
 Because AC-005 and CI lack sufficient evidence, `NOT VERIFIED` is not a release approval. No implementation defect was observed, so the task remains in verification rather than being routed to Debug.
+
+---
+
+## Verification Round 2 — ISS-002 Fix
+
+### Verification Target
+
+- Production revision: `457ef7b` (`fix(feat-0911-1): honor successful imported photo state`)
+- Documentation revision at review start: `c1546ed`
+- Date: 2026-09-12
+- Result: **NOT VERIFIED**
+
+### Change Review
+
+`AddGutterBottomSheet.countPendingPhotoUploads()` and
+`ensureWaypointPhotosUploadedBeforeSubmit()` now both call
+`PhotoUploadSlotState.isAlreadyUploaded(...)`. This is the same combined guard
+used by the other upload paths: a numeric image ID **or**
+`photo*UploadState=success` skips the slot. Consequently, an imported photo
+without an ID but with successful server-backed state does not reach
+`repository.uploadNodeImage(...)`; an idle replacement remains eligible.
+
+### Executed Evidence
+
+| Check | Result | Expected / actual result |
+|---|---|---|
+| `./gradlew testDebugUnitTest --rerun-tasks --tests '*PhotoUploadCandidateResolverTest' --tests '*StoreDitchNodeRequestMapperTest'` | PASS | Forced re-execution recorded 2 mapper tests and 7 resolver/state tests, all with 0 failures and 0 errors. Covers AC-001 through AC-004 and the new successful-state eligibility rule. |
+| `./gradlew assembleDebug` | PASS | `BUILD SUCCESSFUL`; current debug APK remained assemblable. |
+| `./gradlew connectedDebugAndroidTest` | PASS | Fresh emulator report dated 2026-09-12 14:43:33 records 14 tests, 0 failures, 0 errors, 0 skipped; exit code `0` on `Medium_Phone(AVD) - 14`. |
+| `git diff --check` | PASS | No whitespace errors. |
+| CI | NOT VERIFIED | No CI configuration or run result exists in the repository or task artifacts. |
+
+### Acceptance Criteria Reassessment
+
+| AC | Result | Evidence and assessment |
+|---|---|---|
+| AC-001 | PASS | Prior Gson request-JSON test remains applicable and was force-rerun; the ISS-002 change does not modify request mapping. |
+| AC-002 | PASS | Static review confirms both bottom-sheet pre-submit paths now use the shared server-backed guard. The force-rerun state tests confirm `UploadState=success` without an image ID is already uploaded. |
+| AC-003 | PASS | The changed guard only skips already-uploaded state. The force-rerun test confirms an idle replacement is not already uploaded, and the existing resolver/category path remains unchanged. |
+| AC-004 | PASS | The new guard does not affect metadata mapping; the new-node Gson test was force-rerun successfully. |
+| AC-005 | NOT VERIFIED | The ISS-002 alternate submit path is now statically covered, but there remains no controlled end-to-end save/reopen observation of the complete cant-open, virtual, draft-restore, and existing-photo matrix. |
+
+### Coverage and Regression Assessment
+
+- The regression fix is limited to the two planned bottom-sheet guards; no API contract or unrelated production path changed.
+- The added test verifies `PhotoUploadSlotState`, but does **not** instantiate or directly exercise either changed bottom-sheet method. The source-level call-site review is therefore necessary evidence, and a direct bottom-sheet integration test remains a coverage improvement.
+- Existing runtime instrumentation validates the APK and adjacent form behavior, but does not make a backend `nodeImage` request assertion.
+
+### Remaining Evidence Gap
+
+The task cannot advance to Release. It still needs an authorized, controlled backend save-and-reopen smoke that observes request bodies/counts without creating unintended persistent data, plus CI build/test evidence. Until then, this task remains `verification_not_verified` with `next_action: verification`.

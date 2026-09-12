@@ -2,8 +2,8 @@ task:
   id: feat-0911-1
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
