@@ -64,6 +64,8 @@ Local unit/build validation completed with the Android Studio bundled Java Runti
 - Added `StoreDitchResponseWaypointMapper` and tests for all three photo categories, node ID persistence, and preservation when a response item has no ID.
 - Targeted storeDitch mapper, response model, request mapper, resolver tests: PASS (`BUILD SUCCESSFUL`).
 - Debug APK build: PASS (`BUILD SUCCESSFUL`).
+- Full `./gradlew testDebugUnitTest`: PASS (`BUILD SUCCESSFUL`).
+- Full `./gradlew assembleDebug`: PASS (`BUILD SUCCESSFUL`).
 - Emulator ty04 import: PASS for reaching the imported form and displaying all three downloaded photos; the live trace showed `nodeDetails` photos have `imgId` empty because that response contains no ID.
 - Emulator AA0019 import on the null-safe APK: PASS; all three downloaded photo slots reached `state=success`, no `captured_at unavailable`/`NullPointerException` was logged, and no `/v1/node/nodeImage` request was observed during the import flow.
 - Emulator storeDitch save-and-reopen smoke: NOT VERIFIED. After filling the intermediate rows, the only available fixture remained `ty04`; using it for all positions triggered the app's `座標編號重複` validation before `storeDitch`. No claim is made for runtime response-ID persistence from this run.
