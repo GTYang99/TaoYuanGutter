@@ -65,5 +65,5 @@ Local unit/build validation completed with the Android Studio bundled Java Runti
 - Targeted storeDitch mapper, response model, request mapper, resolver tests: PASS (`BUILD SUCCESSFUL`).
 - Debug APK build: PASS (`BUILD SUCCESSFUL`).
 - Emulator ty04 import: PASS for reaching the imported form and displaying all three downloaded photos; the live trace showed `nodeDetails` photos have `imgId` empty because that response contains no ID.
-- Emulator storeDitch save-and-reopen smoke: NOT VERIFIED. The controlled run reached the bottom-sheet save screen, but the fixture produced unfilled intermediate waypoint rows and the save action did not issue `storeDitch`; no claim is made for runtime response-ID persistence from this run.
+- Emulator storeDitch save-and-reopen smoke: NOT VERIFIED. After filling the intermediate rows, the only available fixture remained `ty04`; using it for all positions triggered the app's `座標編號重複` validation before `storeDitch`. No claim is made for runtime response-ID persistence from this run.
 - Emulator nodeImage observation: PASS for the completed ty04 form-import flow; no `/v1/node/nodeImage` request was observed before the blocked bottom-sheet save. StoreDitch post-response behavior remains covered by mapper unit tests, not by this emulator run.
