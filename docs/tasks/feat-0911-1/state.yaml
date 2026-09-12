@@ -24,7 +24,7 @@ validation:
 
 git:
   branch: feat/既有點位不上傳照片
-  commit: 3f6b302
+  commit: 457ef7b
   status: committed
 
 verification:
