@@ -62,7 +62,9 @@ Local unit/build validation completed with the Android Studio bundled Java Runti
 - Root cause fixed: `persistServerIdsIntoDraft()` previously persisted only `SPI_NUM` and `_nodeId`; it now applies `storeDitch.data.nodes[].url[].id` by `fileCategory` to `photo1ImgId`/`photo2ImgId`/`photo3ImgId`.
 - Fixed both `MainActivity` and `MapWorkspaceFragment` save callbacks to use the same response mapper; either map save entry now persists the returned photo IDs.
 - Added `StoreDitchResponseWaypointMapper` and tests for all three photo categories, node ID persistence, and preservation when a response item has no ID.
+- Added a controlled Gson response fixture matching `storeDitch.data.nodes[].url[].id`; it verifies the API response model preserves all three IDs and the mapper writes them to the draft photo slots.
 - Targeted storeDitch mapper, response model, request mapper, resolver tests: PASS (`BUILD SUCCESSFUL`).
+- `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew testDebugUnitTest --tests '*StoreDitchResponseParsingTest' --tests '*StoreDitchResponseWaypointMapperTest' --tests '*NodeDetailsExtensionsTest' --tests '*NodeImgDeserializationTest' --tests '*PhotoUploadCandidateResolverTest'`: PASS (`BUILD SUCCESSFUL`).
 - Debug APK build: PASS (`BUILD SUCCESSFUL`).
 - Full `./gradlew testDebugUnitTest`: PASS (`BUILD SUCCESSFUL`).
 - Full `./gradlew assembleDebug`: PASS (`BUILD SUCCESSFUL`).
@@ -71,3 +73,4 @@ Local unit/build validation completed with the Android Studio bundled Java Runti
 - Emulator storeDitch save-and-reopen smoke: NOT VERIFIED. After filling the intermediate rows, the only available fixture remained `ty04`; using it for all positions triggered the app's `座標編號重複` validation before `storeDitch`. No claim is made for runtime response-ID persistence from this run.
 - Emulator nodeImage observation: PASS for the completed ty04 form-import flow; no `/v1/node/nodeImage` request was observed before the blocked bottom-sheet save. StoreDitch post-response behavior remains covered by mapper unit tests, not by this emulator run.
 - The final `storeDitch` submit action was not repeated after the successful unique-point setup because it creates persistent backend data; runtime response-ID persistence remains covered by mapper tests and requires one authorized controlled backend save.
+- The controlled response fixture closes the model/mapping validation gap without writing a duplicate record to the demo backend; an end-to-end emulator observation of a real `storeDitch` success response remains `NOT VERIFIED`.
