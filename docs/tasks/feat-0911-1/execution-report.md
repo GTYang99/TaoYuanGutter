@@ -77,3 +77,13 @@ Local unit/build validation completed with the Android Studio bundled Java Runti
 - Added backend-free Android instrumentation coverage using the `storeDitch` success-response fixture; it runs Gson parsing and `StoreDitchResponseWaypointMapper` on the emulator and asserts `_nodeId` plus all three `photo*ImgId` values.
 - `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew connectedDebugAndroidTest`: PASS (`BUILD SUCCESSFUL`; 14 instrumentation tests passed on `Medium_Phone(AVD) - 14`). No backend request is made by this test.
 - The real demo-backend `storeDitch` submit remains `NOT VERIFIED`; the emulator instrumentation test verifies the same response-to-draft mapping in the APK runtime without creating persistent data.
+
+## Verification-Driven Debug Fix (ISS-002)
+
+- Root cause: `AddGutterBottomSheet.countPendingPhotoUploads()` and `ensureWaypointPhotosUploadedBeforeSubmit()` checked only for a numeric `photo*ImgId`. Imported photos can have no ID while carrying `photo*UploadState=success`, so this alternate submit path could enqueue them again.
+- Fix: both pre-submit guards now use `PhotoUploadSlotState.isAlreadyUploaded()`, matching `PhotoUploadManager` and `GutterFormActivity`. Idle/failed/replaced slots remain eligible for upload.
+- Added regression coverage for a successful imported photo without an image ID and for a replaced idle photo that must remain uploadable.
+- `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew testDebugUnitTest`: PASS (`BUILD SUCCESSFUL`).
+- `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug`: PASS (`BUILD SUCCESSFUL`).
+- `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew connectedDebugAndroidTest`: PASS (`BUILD SUCCESSFUL`; emulator `Medium_Phone(AVD) - 14`, 14 tests, 0 failures, 0 errors, 0 skipped).
+- Real demo-backend submission remains intentionally unrun; no persistent test data was created.

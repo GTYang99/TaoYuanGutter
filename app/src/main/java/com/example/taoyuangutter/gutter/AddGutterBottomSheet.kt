@@ -1866,8 +1866,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     usable = usable
                 )
                 if (!usable) return@forEach
-                val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
-                if (imgId != null) return@forEach
+                if (PhotoUploadSlotState.isAlreadyUploaded(waypoint.basicData, slot)) {
+                    return@forEach
+                }
                 count++
             }
         }
@@ -1914,8 +1915,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         usable = usable
                     )
                     if (!usable) return@forEach
-                    val imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
-                    if (imgId != null) return@forEach
+                    if (PhotoUploadSlotState.isAlreadyUploaded(waypoint.basicData, slot)) {
+                        return@forEach
+                    }
 
                     val result = repository.uploadNodeImage(
                         context = ctx,
