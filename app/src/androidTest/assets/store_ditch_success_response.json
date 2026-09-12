@@ -1,0 +1,20 @@
+{
+  "success": true,
+  "message": "新增成功",
+  "data": {
+    "ditch_id": 10232,
+    "SPI_NUM": "3207-ZZ-00207",
+    "nodes": [
+      {
+        "node_id": 10888,
+        "NODE_ATT": "1",
+        "NODE_NUM": null,
+        "url": [
+          {"url": "https://example.test/1.jpg", "node_id": "10888", "fileCategory": "1", "id": 12135},
+          {"url": "https://example.test/2.jpg", "node_id": "10888", "fileCategory": "2", "id": 12134},
+          {"url": "https://example.test/3.jpg", "node_id": "10888", "fileCategory": "3", "id": 12133}
+        ]
+      }
+    ]
+  }
+}
