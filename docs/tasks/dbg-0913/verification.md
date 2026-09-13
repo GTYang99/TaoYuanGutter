@@ -27,6 +27,14 @@
 - PASS: `git diff --check`.
 - PASS: follow-up full `:app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest` and Android 14 `GutterCantOpenUiTest` — 5 tests, 0 failures.
 
+## Re-verification — 2026-09-13
+- Verified current committed revision `f17049159ad68192b09adbbeb17d28d52e760b93` on branch `codex/dbg-0913`; its production implementation remains `266fcc0`.
+- PASS — `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest --tests com.example.taoyuangutter.gutter.GutterFormExitRulesTest`: 3 tests, 0 failures.
+- PASS — `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest`.
+- PASS — Android 14 emulator (`emulator-5554`) `GutterFormExitUiTest`: 4 tests, 0 failures. The generated connected-test XML records toolbar back and system back warnings for incomplete forms, no warning on completed virtual forms, and edit-to-preview return behavior.
+- PASS — Android 14 emulator (`emulator-5554`) `GutterCantOpenUiTest`: 5 tests, 0 failures. The test runner completed the first four tests in the class; the final no-data case was rerun independently and returned `OK (1 test)`. This covers confirm, cancel, default/no-data suppression, view mode, and configuration-recreation snapshot behavior.
+- PASS — `git diff --check` before task-artifact updates.
+
 ## CI
 - NOT VERIFIED: no remote CI workflow or result is available in the repository. This does not affect the local verification result, but release must not treat CI as passed.
 

@@ -2,8 +2,8 @@ task:
   id: dbg-0913
   type: debug
 
-phase: release
-status: release_blocked
+phase: verification
+status: verification_passed
 
 knowledge_resolution:
   status: not_required
@@ -50,4 +50,4 @@ release:
 
 blocking:
   - No remote CI workflow or result is available.
-next_action: verification
+next_action: release
