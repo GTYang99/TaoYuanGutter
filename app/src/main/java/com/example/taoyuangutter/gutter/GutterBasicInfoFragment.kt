@@ -710,13 +710,21 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     private fun hasCantOpenContentToClear(): Boolean = GutterFormExitRules.shouldConfirmCantOpenClear(
-        coverThickness = binding.etCoverThickness.text?.toString().orEmpty(),
+        // 明溝時系統強制寫入的 0 不是使用者填寫、也不會造成資料遺失。
+        coverThickness = binding.etCoverThickness.text?.toString()
+            .orEmpty()
+            .takeUnless { isUOpenGutter() && it == "0" }
+            .orEmpty(),
         depth = binding.etDepth.text?.toString().orEmpty(),
         topWidth = binding.etTopWidth.text?.toString().orEmpty(),
         materialSelected = binding.rgMatType.checkedRadioButtonId != View.NO_ID,
-        brokenSelected = binding.rgIsBroken.checkedRadioButtonId != View.NO_ID,
+        // 「否」是新建表單的預設值，尚未代表使用者有資料會遺失。
+        brokenSelected = binding.rgIsBroken.checkedRadioButtonId != View.NO_ID &&
+            binding.rgIsBroken.checkedRadioButtonId != R.id.rbIsBroken0,
         hangingSelected = binding.rgIsHanging.checkedRadioButtonId != View.NO_ID,
-        siltSelected = binding.rgIsSilt.checkedRadioButtonId != View.NO_ID,
+        // 「無」同樣是新建表單的預設值，不應單獨觸發確認。
+        siltSelected = binding.rgIsSilt.checkedRadioButtonId != View.NO_ID &&
+            binding.rgIsSilt.checkedRadioButtonId != R.id.rbIsSilt0,
         hasPhoto2 = photoUriSlot2 != null || photoImgId2 != null,
         hasPhoto3 = photoUriSlot3 != null || photoImgId3 != null
     )

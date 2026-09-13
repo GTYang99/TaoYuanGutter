@@ -43,15 +43,6 @@ class GutterCantOpenUiTest {
     @Test
     fun emptyClearableFieldsDoNotShowCantOpenDialog() {
         launchEmptyForm().use {
-            it.onActivity { activity ->
-                activity.findViewById<android.widget.EditText>(R.id.etCoverThickness).setText("")
-                activity.findViewById<android.widget.EditText>(R.id.etDepth).setText("")
-                activity.findViewById<android.widget.EditText>(R.id.etTopWidth).setText("")
-                activity.findViewById<android.widget.RadioGroup>(R.id.rgMatType).clearCheck()
-                activity.findViewById<android.widget.RadioGroup>(R.id.rgIsBroken).clearCheck()
-                activity.findViewById<android.widget.RadioGroup>(R.id.rgIsHanging).clearCheck()
-                activity.findViewById<android.widget.RadioGroup>(R.id.rgIsSilt).clearCheck()
-            }
             onView(withId(R.id.cbCantOpen)).perform(click())
             onView(withText("無法開蓋照片與已填寫資訊將被清除")).check(doesNotExist())
             onView(withId(R.id.cbCantOpen)).check(matches(androidx.test.espresso.matcher.ViewMatchers.isChecked()))

@@ -15,3 +15,8 @@
 
 ## Limitations
 - Remote CI is not configured or available in this repository; local build and emulator evidence are recorded instead.
+
+## Follow-up Fix: ISS-DBG-0913-002
+- Fixed the regression where initial 「否／無」 selections and the 明溝 system-forced cover thickness `0` were treated as user-entered clearable content.
+- PASS — real new-form Android 14 emulator `GutterCantOpenUiTest` (5 tests, 0 failures), including the first selection with no manual test-field cleanup.
+- PASS — full `:app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest`.

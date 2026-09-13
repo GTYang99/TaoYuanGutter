@@ -2,8 +2,8 @@ task:
   id: dbg-0913
   type: debug
 
-phase: release
-status: release_blocked
+phase: implementation
+status: implementation_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -18,7 +18,8 @@ plan_review:
 
 debug:
   status: completed
-  root_cause: unconditional_cant_open_confirmation_and_unchecked_form_exit
+  root_cause: default_radio_values_misclassified_as_cant_open_clearable_content
+  issue_id: ISS-DBG-0913-002
 
 implementation:
   status: completed
@@ -32,11 +33,11 @@ validation:
 git:
   branch: codex/dbg-0913
   commit: ecbe6fe
-  status: committed
+  status: pending_commit
 
 verification:
-  result: pass
-  category: functional
+  result: pending
+  category: null
   failed_acceptance_criteria: []
 
 ci:
@@ -44,9 +45,7 @@ ci:
   test: not_verified
 
 release:
-  status: blocked
-  decision: ci_not_verified
+  status: pending
 
-blocking:
-  - No remote CI workflow or result is available.
-next_action: verification
+blocking: []
+next_action: implementation
