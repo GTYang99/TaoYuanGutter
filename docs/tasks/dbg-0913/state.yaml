@@ -2,8 +2,8 @@ task:
   id: dbg-0913
   type: debug
 
-phase: implementation
-status: implementation_in_progress
+phase: verification
+status: verification_passed
 
 knowledge_resolution:
   status: not_required
@@ -32,12 +32,12 @@ validation:
 
 git:
   branch: codex/dbg-0913
-  commit: ecbe6fe
-  status: pending_commit
+  commit: 266fcc0
+  status: committed
 
 verification:
-  result: pending
-  category: null
+  result: pass
+  category: functional
   failed_acceptance_criteria: []
 
 ci:
