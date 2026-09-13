@@ -4,7 +4,7 @@
 BLOCKED — do not merge or deploy.
 
 ## Evidence Reviewed
-- Requirements, approved plan, committed implementation `ecbe6fe`, and verification record `4099b44`.
+- Requirements, approved plan, committed implementations `ecbe6fe` and `266fcc0`, and latest verification record `bb1a415`.
 - All AC-001 through AC-005 are PASS through local unit, build, and Android 14 emulator evidence.
 - No P0/P1 issue is recorded for this task.
 
