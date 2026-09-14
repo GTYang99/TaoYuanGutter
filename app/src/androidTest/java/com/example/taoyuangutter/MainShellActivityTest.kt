@@ -2,6 +2,10 @@ package com.example.taoyuangutter
 
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
+import android.view.View
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.FrameLayout
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.platform.app.InstrumentationRegistry
@@ -12,6 +16,7 @@ import androidx.test.runner.lifecycle.Stage
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -114,5 +119,32 @@ class MainShellActivityTest {
             MainShellActivity.fragmentFactoryForTests = null
             scenario.close()
         }
+    }
+
+    @Test
+    fun addGutterListMatchesFigmaGeometryAndRequirementControlOrder() {
+        val context = ContextThemeWrapper(
+            ApplicationProvider.getApplicationContext(),
+            R.style.Theme_TaoYuanGutter
+        )
+        val parent = FrameLayout(context)
+        val root = LayoutInflater.from(context).inflate(R.layout.bottom_sheet_add_gutter_list, parent, false)
+        val toolbar = root.findViewById<LinearLayout>(R.id.btnAddGutterListAdd).parent.parent as LinearLayout
+        val add = root.findViewById<LinearLayout>(R.id.btnAddGutterListAdd)
+        val close = root.findViewById<ImageButton>(R.id.btnAddGutterListClose)
+        val row = LayoutInflater.from(context).inflate(R.layout.item_add_gutter_list, parent, false)
+        fun pxToDp(px: Int): Int = (px / context.resources.displayMetrics.density).toInt()
+
+        assertEquals(70, pxToDp(toolbar.layoutParams.height))
+        assertEquals(88, pxToDp(row.layoutParams.height))
+        assertEquals(32, pxToDp(row.paddingLeft))
+        val widthPx = (402 * context.resources.displayMetrics.density).toInt()
+        root.measure(
+            View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        root.layout(0, 0, widthPx, root.measuredHeight)
+        assertTrue(add.left < close.left)
+        assertNotNull(root.findViewById<View>(R.id.rvAddGutterList))
     }
 }

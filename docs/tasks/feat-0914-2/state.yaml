@@ -46,6 +46,7 @@ release:
   status: pending
 
 blocking:
-  - Android instrumentation produced no result and ADB server access is unavailable in the current environment.
+  - Targeted list-layout instrumentation passes, but end-to-end AC-001–AC-007 workflow evidence is still unavailable.
+  - Full Android instrumentation did not complete within the available execution window.
   - No CI result is available.
-next_action: infrastructure
+next_action: verification
