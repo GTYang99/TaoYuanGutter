@@ -13,9 +13,9 @@
 | Check | Result | Evidence |
 |---|---|---|
 | `git diff --check` | PASS | No whitespace errors |
-| `./gradlew testDebugUnitTest assembleDebug` | NOT VERIFIED | Environment has no Java Runtime |
+| `./gradlew testDebugUnitTest assembleDebug` | PASS | Android Studio JBR; BUILD SUCCESSFUL; 50 actionable tasks |
 | Device/API smoke test | NOT VERIFIED | Requires Android runtime and authenticated backend |
 
 ## Limitations
 
-Gradle compilation, unit tests, APK build, instrumentation, and authenticated complete-time API behavior remain unverified until a Java/Android build environment is available.
+Instrumentation and authenticated complete-time API behavior remain unverified; local compilation, unit tests, and debug APK build passed.
