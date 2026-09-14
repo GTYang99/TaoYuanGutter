@@ -2,8 +2,8 @@ task:
   id: dbg-0913
   type: debug
 
-phase: verification
-status: verification_passed
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -18,8 +18,8 @@ plan_review:
 
 debug:
   status: completed
-  root_cause: default_radio_values_misclassified_as_cant_open_clearable_content
-  issue_id: ISS-DBG-0913-002
+  root_cause: cant_open_listener_replaced_with_state_only_handler_after_first_selection
+  issue_id: ISS-DBG-0913-003
 
 implementation:
   status: completed
@@ -32,12 +32,12 @@ validation:
 
 git:
   branch: codex/dbg-0913
-  commit: 266fcc0
-  status: committed
+  commit: ""
+  status: pending_commit
 
 verification:
-  result: pass
-  category: functional
+  result: pending
+  category: null
   failed_acceptance_criteria: []
 
 ci:
@@ -45,9 +45,7 @@ ci:
   test: not_verified
 
 release:
-  status: blocked
-  decision: ci_not_verified
+  status: pending
 
-blocking:
-  - No remote CI workflow or result is available.
-next_action: release
+blocking: []
+next_action: verification

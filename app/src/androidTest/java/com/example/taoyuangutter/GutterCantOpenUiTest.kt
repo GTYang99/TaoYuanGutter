@@ -50,6 +50,20 @@ class GutterCantOpenUiTest {
     }
 
     @Test
+    fun recheckingAfterEmptySelectionWarnsWhenDepthWasEntered() {
+        launchEmptyForm().use {
+            onView(withId(R.id.cbCantOpen)).perform(click())
+            onView(withId(R.id.cbCantOpen)).check(matches(androidx.test.espresso.matcher.ViewMatchers.isChecked()))
+            onView(withId(R.id.cbCantOpen)).perform(click())
+            it.onActivity { activity ->
+                activity.findViewById<android.widget.EditText>(R.id.etDepth).setText("10")
+            }
+            onView(withId(R.id.cbCantOpen)).perform(click())
+            onView(withText("無法開蓋照片與已填寫資訊將被清除")).check(matches(isDisplayed()))
+        }
+    }
+
+    @Test
     fun viewModeDoesNotShowCantOpenDialog() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val data = hashMapOf("NODE_TYP" to "1", "IS_CANTOPEN" to "")

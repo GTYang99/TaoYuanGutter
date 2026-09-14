@@ -10,3 +10,13 @@
 - Fix: Treat only non-default broken/silt selections and non-system-forced cover thickness as confirmation-worthy content, and test the real initial form state without clearing its views.
 - Verification: PASS — 2026-09-13 Android 14 emulator `GutterCantOpenUiTest` completed all 5 cases with no failures; the real new-form no-data case returned `OK (1 test)` when rerun independently.
 - Next action: release
+
+## ISS-DBG-0913-003
+- Category: implementation_regression
+- Priority: P1
+- Status: resolved_pending_validation
+- Title: Rechecking cant-open bypasses the clear confirmation
+- Evidence: After a no-data selection, `confirmCantOpenSelection()` replaced the full checked-change listener with `onCantOpenCheckedChanged()`, which only applies UI state. A subsequent recheck after entering depth or photos skipped `hasCantOpenContentToClear()`.
+- Expected: Every user-initiated check evaluates the current clearable content.
+- Fix: Reattach the full toggle handler and add a UI test for empty select → uncheck → enter depth → recheck.
+- Next action: implementation

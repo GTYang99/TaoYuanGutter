@@ -689,24 +689,25 @@ class GutterBasicInfoFragment : Fragment() {
         }
 
         // 之後才開始監聽，避免 prefill 時觸發清空
-        binding.cbCantOpen.setOnCheckedChangeListener { button, checked ->
-            if (checked) {
-                if (!button.isPressed) return@setOnCheckedChangeListener
-                button.isChecked = false
-                if (!hasCantOpenContentToClear()) {
-                    confirmCantOpenSelection(button)
-                    return@setOnCheckedChangeListener
-                }
-                MaterialAlertDialogBuilder(requireContext())
-                    .setMessage("無法開蓋照片與已填寫資訊將被清除")
-                    .setNegativeButton("取消", null)
-                    .setPositiveButton("確認") { _, _ ->
-                        confirmCantOpenSelection(button)
-                    }.show()
-                return@setOnCheckedChangeListener
+        binding.cbCantOpen.setOnCheckedChangeListener(this::onCantOpenToggleChanged)
+    }
+
+    private fun onCantOpenToggleChanged(button: CompoundButton, checked: Boolean) {
+        if (checked) {
+            if (!button.isPressed) return
+            button.isChecked = false
+            if (!hasCantOpenContentToClear()) {
+                confirmCantOpenSelection(button)
+                return
             }
-            onCantOpenCheckedChanged(button, checked)
+            MaterialAlertDialogBuilder(requireContext())
+                .setMessage("無法開蓋照片與已填寫資訊將被清除")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("確認") { _, _ -> confirmCantOpenSelection(button) }
+                .show()
+            return
         }
+        onCantOpenCheckedChanged(button, false)
     }
 
     private fun hasCantOpenContentToClear(): Boolean = GutterFormExitRules.shouldConfirmCantOpenClear(
@@ -734,7 +735,7 @@ class GutterBasicInfoFragment : Fragment() {
         host.captureCantOpenSnapshot()
         button.setOnCheckedChangeListener(null)
         button.isChecked = true
-        button.setOnCheckedChangeListener(this::onCantOpenCheckedChanged)
+        button.setOnCheckedChangeListener(this::onCantOpenToggleChanged)
         clearCantOpenFieldsAndPhotos()
         host.markCantOpenSnapshotCleared()
         applyCantOpenUi(true)
