@@ -63,8 +63,17 @@ class DashboardFragment : Fragment() {
         val current = (if (isStart) startDate else endDate) ?: LocalDate.now()
         DatePickerDialog(requireContext(), R.style.ThemeOverlay_TaoYuanGutter_DatePicker, { _, year, month, day ->
             val date = LocalDate.of(year, month + 1, day)
-            if (isStart) { startDate = date; binding.startDate.text = date.toString() } else { endDate = date; binding.endDate.text = date.toString() }
+            if (isStart) startDate = date else endDate = date
+            normalizeAndRenderDates()
         }, current.year, current.monthValue - 1, current.dayOfMonth).show()
+    }
+
+    private fun normalizeAndRenderDates() {
+        val normalized = normalizeDateRange(startDate, endDate)
+        startDate = normalized.first
+        endDate = normalized.second
+        binding.startDate.text = startDate?.toString() ?: getString(R.string.dashboard_pick_start_date)
+        binding.endDate.text = endDate?.toString() ?: getString(R.string.dashboard_pick_end_date)
     }
 
     private fun render(state: DashboardUiState) {
@@ -76,5 +85,12 @@ class DashboardFragment : Fragment() {
         if (state.errorCode == 401) { authExpiredHandler.handleIfAuthExpired(ApiResult.Error(state.errorMessage ?: "尚未登入", 401)); viewModel.consumeAuthError() }
     }
 
-    companion object { fun newInstance() = DashboardFragment() }
+    companion object {
+        fun newInstance() = DashboardFragment()
+
+        internal fun normalizeDateRange(start: LocalDate?, end: LocalDate?): Pair<LocalDate?, LocalDate?> {
+            val dates = listOfNotNull(start, end).sorted()
+            return dates.getOrNull(0) to dates.getOrNull(1)
+        }
+    }
 }

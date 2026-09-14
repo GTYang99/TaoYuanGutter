@@ -33,6 +33,8 @@
     <string name="dashboard_today_mileage">今日里程</string>
     <string name="dashboard_cumulative_mileage">累積里程</string>
     <string name="dashboard_search_title">調查進度搜尋</string>
+    <string name="dashboard_date_range_subtitle">日期區間（起訖）</string>
+    <string name="dashboard_query_result">查詢結果</string>
     <string name="dashboard_search">搜尋</string>
     <string name="dashboard_no_data">暫無資料</string>
     <string name="dashboard_date_required">請選擇開始與結束日期</string>
