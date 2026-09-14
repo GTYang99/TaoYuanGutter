@@ -80,8 +80,13 @@ class DashboardFragment : Fragment() {
         binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
         binding.tvError.text = state.errorMessage.orEmpty(); binding.tvError.visibility = if (state.errorMessage.isNullOrBlank()) View.GONE else View.VISIBLE
         binding.todayValue.text = state.todayMileage ?: "0"; binding.cumulativeValue.text = state.cumulativeMileage ?: "0"
-        binding.searchResult.visibility = if (state.searchExecuted) View.VISIBLE else View.GONE
-        binding.searchResultValue.text = state.searchMileage ?: getString(R.string.dashboard_no_data)
+        binding.searchResult.visibility = View.VISIBLE
+        val hasResult = state.searchExecuted && !state.searchMileage.isNullOrBlank()
+        binding.emptyResult.visibility = if (hasResult) View.GONE else View.VISIBLE
+        binding.searchResultValue.visibility = if (hasResult) View.VISIBLE else View.GONE
+        binding.searchResultUnit.visibility = if (hasResult) View.VISIBLE else View.GONE
+        binding.searchResultValue.text = state.searchMileage.orEmpty()
+        binding.searchResult.setBackgroundResource(if (hasResult) R.drawable.bg_dashboard_result_card else android.R.color.transparent)
         if (state.errorCode == 401) { authExpiredHandler.handleIfAuthExpired(ApiResult.Error(state.errorMessage ?: "尚未登入", 401)); viewModel.consumeAuthError() }
     }
 
