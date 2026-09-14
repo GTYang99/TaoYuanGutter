@@ -37,6 +37,7 @@ class LoginActivity : AppCompatActivity() {
         private const val KEY_REMEMBER_ME  = "remember_me"
         private const val KEY_SAVED_USER   = "saved_username"
         private const val KEY_SAVED_PWD    = "saved_password"
+        private const val KEY_CURRENT_USER = "current_username"
 
         /** 從 SharedPreferences 取出已儲存的 token（無則回傳 null） */
         fun getSavedToken(context: Context): String? =
@@ -47,6 +48,10 @@ class LoginActivity : AppCompatActivity() {
         fun getSavedGroupId(context: Context): Int =
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .getInt(KEY_GROUP_ID, -1)
+
+        fun getSavedUsername(context: Context): String? =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getString(KEY_CURRENT_USER, null)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -139,6 +144,7 @@ class LoginActivity : AppCompatActivity() {
                                 .putString(KEY_COMPANY, loginData.company ?: "")
                                 .putInt(KEY_GROUP_ID,   loginData.groupId ?: -1)
                         }
+                        editor.putString(KEY_CURRENT_USER, username)
 
                         // 處理記住密碼邏輯
                         if (isRememberMe) {

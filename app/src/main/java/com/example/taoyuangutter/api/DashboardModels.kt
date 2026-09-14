@@ -34,6 +34,15 @@ data class DashboardResponseData(
     val surveyProgress: Map<String, DashboardProgressGroup> = emptyMap()
 )
 
+fun DashboardResponseData.accountMileage(username: String?): String? {
+    val account = username?.trim().takeUnless { it.isNullOrEmpty() } ?: return null
+    return surveyLength
+        .asSequence()
+        .filter { (group, _) -> group != "全部" }
+        .mapNotNull { (_, value) -> value.accounts[account] }
+        .firstOrNull()
+}
+
 data class DashboardLengthGroup(
     @SerializedName("總長")
     val totalLength: String = "",

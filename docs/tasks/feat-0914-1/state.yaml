@@ -1,0 +1,47 @@
+task:
+  id: feat-0914-1
+  type: feature
+
+phase: implementation
+status: implementation_in_progress
+
+knowledge_resolution:
+  status: resolved
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+  build:
+    status: not_executed
+    reason: no_java_runtime
+  unit_test:
+    status: not_executed
+    reason: no_java_runtime
+
+validation:
+  status: not_verified
+
+git:
+  branch: feat/修改儀表板
+  commit: "4778605"
+  status: committed
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification

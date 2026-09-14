@@ -66,4 +66,16 @@ class DashboardModelsTest {
         assertEquals(false, monthQuery.isDateRangeSelected)
         assertEquals(true, monthQuery.isMonthRangeSelected)
     }
+
+    @Test
+    fun accountMileageMatchesOnlyNonTotalGroup() {
+        val data = DashboardResponseData(
+            surveyLength = mapOf(
+                "全部" to DashboardLengthGroup(totalLength = "9.99", accounts = mapOf("10362" to "9.99")),
+                "D組" to DashboardLengthGroup(totalLength = "3.99", accounts = mapOf("10362" to "2.34"))
+            )
+        )
+        assertEquals("2.34", data.accountMileage("10362"))
+        assertEquals(null, data.accountMileage("missing"))
+    }
 }
