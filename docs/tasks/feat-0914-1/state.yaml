@@ -26,15 +26,14 @@ validation:
 
 git:
   branch: feat/修改儀表板
-  commit: "66e9815"
+  commit: "fa7bfdf"
   status: committed
 
 verification:
   result: not_verified
   category: environment
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
-    - AC-005
+  not_verified_acceptance_criteria: []
 
 ci:
   build: pending
@@ -44,6 +43,5 @@ release:
   status: pending
 
 blocking:
-  - Figma visual comparison not completed
-  - Authenticated API behavior not verified
+  - CI result is unavailable; no CI configuration or recorded CI evidence exists for fa7bfdf
 next_action: infrastructure
