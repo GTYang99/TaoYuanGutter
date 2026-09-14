@@ -47,6 +47,8 @@
 | AC-003 | 2 | UI test |
 | AC-004 | 2 | UI test |
 | AC-005 | 3 | UI test/manual path |
+| AC-006 | Follow-up shared-validator fix | Android UI test |
+| AC-007 | Follow-up shared-validator fix | Android UI test |
 
 ## Failure Behavior
 - 若 Fragment 尚未可用，保留既有的草稿保存與返回，不阻塞使用者。

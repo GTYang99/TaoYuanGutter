@@ -24,3 +24,8 @@
 
 ## Unknowns
 - 無
+
+## Follow-up Validation Gap (2026-09-14)
+- `handleNavigateBack()` 的未完成 Alert 正確呼叫 `validateRequiredFields()`，但該共用驗證未檢查畫面已標示必填的 `NODE_TYP`、`NODE_X`、`NODE_Y`、`XY_NUM`、`COVER_DEP`。
+- 此外，既有 `isUOpen || isCantOpen` 早期返回使明溝跳過所有細節欄位，與確認後的產品規則「明溝僅厚度免填」不一致。
+- 因此問題位於共用驗證規則，而非返回 Alert 的觸發路徑；修正共用規則可同時覆蓋上一頁提醒與送出驗證。

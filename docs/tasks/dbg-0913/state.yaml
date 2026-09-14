@@ -18,8 +18,8 @@ plan_review:
 
 debug:
   status: completed
-  root_cause: cant_open_listener_replaced_with_state_only_handler_after_first_selection
-  issue_id: ISS-DBG-0913-003
+  root_cause: required_exit_fields_omitted_from_shared_validation
+  issue_id: ISS-DBG-0913-004
 
 implementation:
   status: completed
@@ -32,7 +32,7 @@ validation:
 
 git:
   branch: codex/dbg-0913
-  commit: 7629518
+  commit: ee7fb21
   status: committed
 
 verification:
@@ -48,4 +48,4 @@ release:
   status: pending
 
 blocking: []
-next_action: verification
+next_action: release

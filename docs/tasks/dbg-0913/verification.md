@@ -47,3 +47,17 @@ PASS
 - The new regression test proves: first empty selection proceeds without confirmation; after unchecking and entering depth, the next selection displays the existing clear confirmation.
 - PASS — `:app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest`.
 - PASS — `git diff --check` before commit.
+
+## Follow-up Verification: ISS-DBG-0913-004
+- Verified revision: `ee7fb21` on `codex/dbg-0913`.
+
+| AC | Result | Evidence |
+|---|---|---|
+| AC-006 | PASS | Android 14 `GutterFormExitUiTest.backButtonWarnsWhenStandardFormIsMissingAnyNewlyAuditedField` passed all five cases: `NODE_TYP`, `NODE_X`, `NODE_Y`, `XY_NUM`, and `COVER_DEP`. |
+| AC-007 | PASS | Android 14 `backButtonWarnsWhenOpenGutterIsMissingARequiredDetailOtherThanCoverThickness` passed for 明溝深度；`backButtonWarnsWhenCantOpenFormIsMissingPointIdentityData` passed for無法開蓋測量座標編號。 |
+
+- PASS — `:app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest`.
+- PASS — Android 14 emulator `GutterFormExitUiTest`: 7 tests, 0 failures; XML evidence at `app/build/outputs/androidTest-results/connected/debug/Medium_Phone(AVD) - 14/TEST-emulator-5554.xml`.
+- PASS — existing cant-open regression: direct Android 14 instrumentation reruns returned `OK (1 test)` for both empty-clearable-content and configuration-recreation snapshot cases.
+- PASS — `git diff --check`.
+- CI remains NOT VERIFIED because no remote CI result is available.
