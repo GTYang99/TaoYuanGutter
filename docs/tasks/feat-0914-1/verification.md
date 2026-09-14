@@ -15,18 +15,21 @@
 | AC-003 | PASS | New layout exposes only start/end date fields; Fragment sends `DashboardQuery(start, end)`. |
 | AC-004 | PASS | Date picker, search, clear, empty/result rendering are implemented; no device UI evidence available. |
 | AC-005 | NOT VERIFIED | XML contains 20dp margins, 8dp cards, purple mileage cards, white bordered search card; Figma/device visual comparison not executed. |
-| AC-006 | NOT VERIFIED | Existing 401 handler and MainShell tab structure remain; instrumentation regression test not executed. |
+| AC-006 | PASS | Direct instrumentation: `MainShellActivityTest` 2 tests passed and `AuthExpiredUiFlowTest` 1 test passed on `Medium_Phone(AVD) - 14`. |
 
 ## Validation
 
 - `git diff --check`: PASS.
 - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest assembleDebug`: PASS; BUILD SUCCESSFUL, 50 actionable tasks.
 - Instrumentation/device smoke test: NOT VERIFIED.
+- `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.MainShellActivityTest ...`: PASS, 2 tests.
+- `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.AuthExpiredUiFlowTest ...`: PASS, 1 test.
+- Full `connectedDebugAndroidTest`: NOT VERIFIED; instrumentation worker remained running without output and was terminated after process inspection.
 - Authenticated API complete-time query: NOT VERIFIED.
 
 ## Result
 
-NOT VERIFIED. AC-005 and AC-006 require device/instrumentation evidence before Release. No implementation failure was observed in local compilation or unit tests.
+NOT VERIFIED. AC-005 and authenticated complete-time API behavior still require evidence before Release. No implementation failure was observed in local compilation, unit tests, or the targeted auth/tab tests.
 
 ## Next Action
 

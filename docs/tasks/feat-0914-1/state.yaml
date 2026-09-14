@@ -35,7 +35,6 @@ verification:
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-005
-    - AC-006
 
 ci:
   build: pending
@@ -45,6 +44,6 @@ release:
   status: pending
 
 blocking:
-  - Device/instrumentation smoke test unavailable
+  - Figma visual comparison not completed
   - Authenticated API behavior not verified
 next_action: infrastructure
