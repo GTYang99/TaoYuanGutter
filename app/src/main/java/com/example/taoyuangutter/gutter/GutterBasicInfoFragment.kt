@@ -701,7 +701,7 @@ class GutterBasicInfoFragment : Fragment() {
                 return
             }
             MaterialAlertDialogBuilder(requireContext())
-                .setMessage("無法開蓋照片與已填寫資訊將被清除")
+                .setMessage("切換成「無法開蓋」後將清除已填寫資訊與照片，是否確認切換?")
                 .setNegativeButton("取消", null)
                 .setPositiveButton("確認") { _, _ -> confirmCantOpenSelection(button) }
                 .show()

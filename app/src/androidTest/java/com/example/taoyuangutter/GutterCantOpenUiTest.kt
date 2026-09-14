@@ -23,7 +23,7 @@ class GutterCantOpenUiTest {
         launchForm().use {
             it.onActivity { activity -> activity.findViewById<android.widget.EditText>(R.id.etDepth).setText("10") }
             onView(withId(R.id.cbCantOpen)).perform(click())
-            onView(withText("無法開蓋照片與已填寫資訊將被清除")).check(matches(isDisplayed()))
+            onView(withText("切換成「無法開蓋」後將清除已填寫資訊與照片，是否確認切換?")).check(matches(isDisplayed()))
             onView(withText("取消")).perform(click())
             onView(withId(R.id.cbCantOpen)).check(matches(androidx.test.espresso.matcher.ViewMatchers.isNotChecked()))
             onView(withId(R.id.etDepth)).check(matches(withText("10")))
@@ -44,7 +44,7 @@ class GutterCantOpenUiTest {
     fun emptyClearableFieldsDoNotShowCantOpenDialog() {
         launchEmptyForm().use {
             onView(withId(R.id.cbCantOpen)).perform(click())
-            onView(withText("無法開蓋照片與已填寫資訊將被清除")).check(doesNotExist())
+            onView(withText("切換成「無法開蓋」後將清除已填寫資訊與照片，是否確認切換?")).check(doesNotExist())
             onView(withId(R.id.cbCantOpen)).check(matches(androidx.test.espresso.matcher.ViewMatchers.isChecked()))
         }
     }
@@ -59,7 +59,7 @@ class GutterCantOpenUiTest {
                 activity.findViewById<android.widget.EditText>(R.id.etDepth).setText("10")
             }
             onView(withId(R.id.cbCantOpen)).perform(click())
-            onView(withText("無法開蓋照片與已填寫資訊將被清除")).check(matches(isDisplayed()))
+            onView(withText("切換成「無法開蓋」後將清除已填寫資訊與照片，是否確認切換?")).check(matches(isDisplayed()))
         }
     }
 
