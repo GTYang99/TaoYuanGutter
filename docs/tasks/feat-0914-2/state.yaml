@@ -2,8 +2,8 @@ task:
   id: feat-0914-2
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -26,9 +26,17 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-003
+    - AC-004
+    - AC-005
+    - AC-006
+    - AC-007
 
 ci:
   build: pending
@@ -37,5 +45,7 @@ ci:
 release:
   status: pending
 
-blocking: []
-next_action: verification
+blocking:
+  - Android instrumentation produced no result and ADB server access is unavailable in the current environment.
+  - No CI result is available.
+next_action: infrastructure
