@@ -4,7 +4,7 @@
 
 - Branch: `feat/修改儀表板`
 - Implementation commit: `c1d5281`
-- Validation evidence commit: `a06968c`
+- Validation evidence commit: `66e9815`
 
 ## Acceptance Criteria
 
@@ -21,7 +21,7 @@
 
 - `git diff --check`: PASS.
 - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew testDebugUnitTest assembleDebug`: PASS; BUILD SUCCESSFUL, 50 actionable tasks.
-- Instrumentation/device smoke test: NOT VERIFIED.
+- Instrumentation/device smoke test: PASS after installing the latest Debug APK; `MainShellActivityTest` 2 tests and `AuthExpiredUiFlowTest` 1 test passed on `emulator-5554`.
 - `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.MainShellActivityTest ...`: PASS, 2 tests.
 - `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.AuthExpiredUiFlowTest ...`: PASS, 1 test.
 - Full `connectedDebugAndroidTest`: NOT VERIFIED; instrumentation worker remained running without output and was terminated after process inspection.
