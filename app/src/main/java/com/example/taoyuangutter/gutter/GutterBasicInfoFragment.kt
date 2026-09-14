@@ -1036,8 +1036,17 @@ class GutterBasicInfoFragment : Fragment() {
             return null
         }
 
-        // 點選「明溝」或「無法開蓋」時，下方細節欄位不用填寫（跳過驗證）
-        if (isUOpen || isCantOpen) return null
+        // 不論側溝形式或是否可開蓋，點位識別資料都必須完整。
+        if (d["NODE_TYP"].isNullOrEmpty()) return "側溝形式"
+        if (d["NODE_X"].isNullOrEmpty()) return "側溝位置"
+        if (d["NODE_Y"].isNullOrEmpty()) return "側溝位置"
+        if (d["XY_NUM"].isNullOrEmpty()) return "測量座標編號"
+
+        // 無法開蓋會清除後續細節欄位，因此維持既有免填規則。
+        if (isCantOpen) return null
+
+        // 明溝僅免填溝蓋板厚度；其餘細節欄位仍須驗證。
+        if (!isUOpen && d["COVER_DEP"].isNullOrEmpty()) return "溝蓋板厚度"
 
         if (d["MAT_TYP"].isNullOrEmpty())     return "側溝材質"
 

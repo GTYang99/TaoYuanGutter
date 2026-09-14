@@ -59,6 +59,35 @@ class GutterFormExitUiTest {
         }
     }
 
+    @Test
+    fun backButtonWarnsWhenStandardFormIsMissingAnyNewlyAuditedField() {
+        listOf("NODE_TYP", "NODE_X", "NODE_Y", "XY_NUM", "COVER_DEP").forEach { missingKey ->
+            launchStandardForm(missingKey).use {
+                onView(withId(R.id.btnBack)).perform(click())
+                onView(withText("尚未填寫完畢")).check(matches(isDisplayed()))
+                onView(withText("確認")).perform(click())
+            }
+        }
+    }
+
+    @Test
+    fun backButtonWarnsWhenOpenGutterIsMissingARequiredDetailOtherThanCoverThickness() {
+        launchStandardForm(missingKey = "NODE_DEP", gutterType = "1").use {
+            onView(withId(R.id.btnBack)).perform(click())
+            onView(withText("尚未填寫完畢")).check(matches(isDisplayed()))
+            onView(withText("確認")).perform(click())
+        }
+    }
+
+    @Test
+    fun backButtonWarnsWhenCantOpenFormIsMissingPointIdentityData() {
+        launchStandardForm(missingKey = "XY_NUM", isCantOpen = true).use {
+            onView(withId(R.id.btnBack)).perform(click())
+            onView(withText("尚未填寫完畢")).check(matches(isDisplayed()))
+            onView(withText("確認")).perform(click())
+        }
+    }
+
     private fun launchIncompleteForm(): ActivityScenario<GutterFormActivity> {
         val intent = GutterFormActivity.newIntent(
             ApplicationProvider.getApplicationContext(),
@@ -80,5 +109,34 @@ class GutterFormExitUiTest {
             sessionDraftId = 0L, sessionIsOffline = true
         )
         return ActivityScenario.launch(intent)
+    }
+
+    private fun launchStandardForm(
+        missingKey: String,
+        gutterType: String = "2",
+        isCantOpen: Boolean = false
+    ): ActivityScenario<GutterFormActivity> {
+        val data = hashMapOf(
+            "NODE_TYP" to gutterType,
+            "NODE_X" to "121.000000",
+            "NODE_Y" to "24.000000",
+            "XY_NUM" to "A-1",
+            "COVER_DEP" to "3",
+            "NODE_DEP" to "10",
+            "NODE_WID" to "26",
+            "MAT_TYP" to "1",
+            "IS_BROKEN" to "0",
+            "IS_HANGING" to "0",
+            "IS_SILT" to "0",
+            "IS_CANTOPEN" to if (isCantOpen) "1" else ""
+        )
+        data[missingKey] = ""
+        return ActivityScenario.launch(
+            GutterFormActivity.newIntent(
+                ApplicationProvider.getApplicationContext(),
+                arrayListOf("test"), doubleArrayOf(24.0), doubleArrayOf(121.0),
+                basicData = data, sessionDraftId = 0L, sessionIsOffline = true
+            )
+        )
     }
 }
