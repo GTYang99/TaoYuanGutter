@@ -61,7 +61,7 @@ class DashboardFragment : Fragment() {
 
     private fun pickDate(isStart: Boolean) {
         val current = (if (isStart) startDate else endDate) ?: LocalDate.now()
-        DatePickerDialog(requireContext(), { _, year, month, day ->
+        DatePickerDialog(requireContext(), R.style.ThemeOverlay_TaoYuanGutter_DatePicker, { _, year, month, day ->
             val date = LocalDate.of(year, month + 1, day)
             if (isStart) { startDate = date; binding.startDate.text = date.toString() } else { endDate = date; binding.endDate.text = date.toString() }
         }, current.year, current.monthValue - 1, current.dayOfMonth).show()
