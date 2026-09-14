@@ -47,5 +47,6 @@ release:
 
 blocking:
   - Targeted list-layout instrumentation passes, but end-to-end AC-001–AC-007 workflow evidence is still unavailable.
+  - Formal MapWorkspace smoke requires an authenticated session; no test credentials/session are available.
   - No CI result is available.
 next_action: verification
