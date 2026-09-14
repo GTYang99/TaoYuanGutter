@@ -16,8 +16,8 @@
 | Debug APK build | PASS | `./gradlew :app:assembleDebug --no-daemon` |
 | Diff whitespace check | PASS | `git diff --check` |
 | Figma MCP design context | PASS | File `IfmNbZKhr4wojZ2bF5rYHG`, node `2374:26810`; dimensions recorded in `execution-report.md` |
-| Targeted Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`; all 7 `MainShellActivityTest` cases passed on `Medium_Phone(AVD) - 14`, including Figma geometry/control order, seconds precision, effective node-count rendering, independent draft IDs across coordinator recreation, Espresso Alert add/cancel/confirm callbacks, and requested draft-ID routing. |
-| Full Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon`; all connected tests completed successfully on `Medium_Phone(AVD) - 14` in 2m41s. |
+| Targeted Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`; all 7 `MainShellActivityTest` cases passed on `Medium_Phone(AVD) - 14`, including Figma geometry/control order, seconds precision, effective node-count rendering, independent draft IDs across coordinator recreation, Alert message/add/cancel/confirm callbacks, and requested draft-ID routing. |
+| Full Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon`; all connected tests completed successfully on `Medium_Phone(AVD) - 14` in 2m32s. |
 | Formal MapWorkspace smoke | NOT VERIFIED | Debug APK installed successfully on `emulator-5554`, but the exported launcher opens `LoginActivity` and no authenticated session is available; credentials were not supplied. |
 | CI | NOT VERIFIED | No CI result is available in the repository or current session. |
 
