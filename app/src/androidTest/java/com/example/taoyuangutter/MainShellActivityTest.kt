@@ -8,6 +8,10 @@ import android.widget.LinearLayout
 import android.widget.FrameLayout
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
+import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.matcher.ViewMatchers.withId
+import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.fragment.app.Fragment
@@ -31,6 +35,18 @@ class MainShellActivityTest {
 
     class TestMapFragment : Fragment()
     class TestDashboardFragment : Fragment()
+    class TestAddGutterHostFragment : Fragment(), com.example.taoyuangutter.gutter.AddGutterListBottomSheet.Host {
+        var addClicked = false
+        var confirmedClose = false
+
+        fun showList() {
+            com.example.taoyuangutter.gutter.AddGutterListBottomSheet().show(childFragmentManager, "test-add-gutter-list")
+        }
+
+        override fun onAddGutterListAdd() { addClicked = true }
+        override fun onAddGutterListSelect(draft: GutterSessionDraft) = Unit
+        override fun onAddGutterListConfirmedClose() { confirmedClose = true }
+    }
 
     @Test
     fun shellLayoutInflatesBottomNavigation() {
@@ -219,6 +235,40 @@ class MainShellActivityTest {
         } finally {
             repository.delete(first.draftId)
             repository.delete(second.draftId)
+        }
+    }
+
+    @Test
+    fun addGutterListWiresAddAndCloseConfirmationCallbacks() {
+        MainShellActivity.fragmentFactoryForTests = { TestAddGutterHostFragment() }
+        val scenario = ActivityScenario.launch(MainShellActivity::class.java)
+        try {
+            val hostRef = AtomicReference<TestAddGutterHostFragment?>()
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                hostRef.set(
+                    ActivityLifecycleMonitorRegistry.getInstance()
+                        .getActivitiesInStage(Stage.RESUMED)
+                        .first { it is MainShellActivity }
+                        .let { (it as MainShellActivity).supportFragmentManager
+                            .findFragmentById(R.id.shell_container) as TestAddGutterHostFragment }
+                )
+                hostRef.get()!!.showList()
+            }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
+            onView(withId(R.id.btnAddGutterListAdd)).perform(click())
+            assertTrue(hostRef.get()!!.addClicked)
+
+            onView(withId(R.id.btnAddGutterListClose)).perform(click())
+            onView(withText("取消")).perform(click())
+            assertTrue(!hostRef.get()!!.confirmedClose)
+
+            onView(withId(R.id.btnAddGutterListClose)).perform(click())
+            onView(withText("確定")).perform(click())
+            assertTrue(hostRef.get()!!.confirmedClose)
+        } finally {
+            MainShellActivity.fragmentFactoryForTests = null
+            scenario.close()
         }
     }
 }
