@@ -14,8 +14,11 @@ import androidx.fragment.app.Fragment
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import com.example.taoyuangutter.gutter.AddGutterListAdapter
+import com.example.taoyuangutter.gutter.MultiGutterSessionCoordinator
 import com.example.taoyuangutter.pending.GutterSessionDraft
+import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.WaypointSnapshot
+import com.example.taoyuangutter.pending.WORKFLOW_MULTI_GUTTER
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -179,5 +182,43 @@ class MainShellActivityTest {
         assertEquals("側溝草稿 1", holder.binding.tvAddGutterListTitle.text.toString())
         assertTrue(holder.binding.tvAddGutterListTime.text.toString().matches(Regex("建立時間：\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2}")))
         assertEquals("已存節點：2", holder.binding.tvAddGutterListNodes.text.toString())
+    }
+
+    @Test
+    fun multiGutterDraftsKeepIndependentIdsAcrossCoordinatorRecreation() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val repository = GutterSessionRepository(context)
+        val coordinator = MultiGutterSessionCoordinator(repository)
+        val first = coordinator.addItem()
+        val second = coordinator.addItem()
+        try {
+            repository.save(
+                GutterSessionDraft(
+                    id = first.draftId,
+                    createdAt = first.createdAt,
+                    workflowOwnership = WORKFLOW_MULTI_GUTTER,
+                    waypoints = listOf(WaypointSnapshot(latitude = 25.0, longitude = 121.0))
+                )
+            )
+            repository.save(
+                GutterSessionDraft(
+                    id = second.draftId,
+                    createdAt = second.createdAt + 1,
+                    workflowOwnership = WORKFLOW_MULTI_GUTTER,
+                    waypoints = listOf(WaypointSnapshot(latitude = 25.1, longitude = 121.1))
+                )
+            )
+
+            val recreated = MultiGutterSessionCoordinator(repository)
+            assertEquals(listOf(first.draftId, second.draftId), recreated.items().map { it.draftId })
+            assertEquals(setOf(first.draftId, second.draftId), recreated.drafts().map { it.id }.toSet())
+
+            repository.delete(first.draftId)
+            val afterSingleDelete = MultiGutterSessionCoordinator(repository)
+            assertEquals(listOf(second.draftId), afterSingleDelete.items().map { it.draftId })
+        } finally {
+            repository.delete(first.draftId)
+            repository.delete(second.draftId)
+        }
     }
 }
