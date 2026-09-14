@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: implementation
-status: implementation_in_progress
+status: implementation_complete
 
 knowledge_resolution:
   status: resolved
@@ -15,15 +15,15 @@ plan_review:
   status: approved
 
 implementation:
-  status: pending
+  status: completed
 
 validation:
-  status: pending
+  status: completed
 
 git:
   branch: feat/側溝清單
-  commit: ""
-  status: pending
+  commit: d8b8967
+  status: committed
 
 verification:
   result: pending
@@ -38,4 +38,4 @@ release:
   status: pending
 
 blocking: []
-next_action: implementation
+next_action: verification
