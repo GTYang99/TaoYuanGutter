@@ -4,7 +4,7 @@
 
 - Branch: `feat/側溝清單`
 - Implementation commit: `d8b8967`
-- Verification commit: `b7ada7e`
+- Verification commit: `0ef857c`
 - Working tree contains the pre-existing unrelated `GutterApiService.kt` modification; it was not included in either task commit.
 
 ## Validation evidence
