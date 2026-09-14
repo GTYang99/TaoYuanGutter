@@ -2,8 +2,8 @@ task:
   id: feat-0914-1
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -30,9 +30,12 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-005
+    - AC-006
 
 ci:
   build: pending
@@ -41,5 +44,7 @@ ci:
 release:
   status: pending
 
-blocking: []
-next_action: verification
+blocking:
+  - Device/instrumentation smoke test unavailable
+  - Authenticated API behavior not verified
+next_action: infrastructure
