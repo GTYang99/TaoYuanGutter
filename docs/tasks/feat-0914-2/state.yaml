@@ -22,7 +22,7 @@ validation:
 
 git:
   branch: feat/側溝清單
-  commit: f9b5337
+  commit: 2df09eb
   status: committed
 
 verification:
@@ -47,6 +47,5 @@ release:
 
 blocking:
   - Targeted list-layout instrumentation passes, but end-to-end AC-001–AC-007 workflow evidence is still unavailable.
-  - Full Android instrumentation did not complete within the available execution window.
   - No CI result is available.
 next_action: verification

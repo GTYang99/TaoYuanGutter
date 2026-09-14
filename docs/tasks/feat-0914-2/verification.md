@@ -17,7 +17,7 @@
 | Diff whitespace check | PASS | `git diff --check` |
 | Figma MCP design context | PASS | File `IfmNbZKhr4wojZ2bF5rYHG`, node `2374:26810`; dimensions recorded in `execution-report.md` |
 | Targeted Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`; `MainShellActivityTest` passed on `Medium_Phone(AVD) - 14`, including the Figma geometry/control-order assertion. |
-| Full Android instrumentation | NOT VERIFIED | The earlier full `connectedDebugAndroidTest` run did not complete within the available execution window and was stopped. |
+| Full Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon`; all connected tests completed successfully on `Medium_Phone(AVD) - 14` in 2m23s. |
 | CI | NOT VERIFIED | No CI result is available in the repository or current session. |
 
 ## Acceptance criteria
@@ -36,12 +36,12 @@
 
 - Existing debug unit tests pass.
 - Existing source-level legacy ownership path remains the default for `MainActivity` and non-multi flows.
-- Targeted device evidence covers the list layout only; no device evidence is available for the map, form, photo, upload, or pending-draft UI regressions.
+- Targeted device evidence covers the list layout; the full connected suite passes, but it does not exercise the new multi-gutter workflow end-to-end.
 
 ## Result
 
-`NOT VERIFIED` — implementation builds, unit tests pass, and the Figma-aligned list layout has targeted device evidence, but end-to-end workflow evidence, the full instrumentation suite, and CI result are unavailable.
+`NOT VERIFIED` — implementation builds, unit tests and the full connected suite pass, and the Figma-aligned list layout has targeted device evidence, but end-to-end multi-gutter workflow evidence and CI result are unavailable.
 
 ## Next action
 
-Add or execute end-to-end instrumentation for AC-001–AC-007, rerun the full instrumentation suite, and obtain CI evidence before Release.
+Add or execute end-to-end instrumentation for AC-001–AC-006 and obtain CI evidence before Release.
