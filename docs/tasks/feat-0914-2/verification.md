@@ -16,8 +16,8 @@
 | Debug APK build | PASS | `./gradlew :app:assembleDebug --no-daemon` |
 | Diff whitespace check | PASS | `git diff --check` |
 | Figma MCP design context | PASS | File `IfmNbZKhr4wojZ2bF5rYHG`, node `2374:26810`; dimensions recorded in `execution-report.md` |
-| Targeted Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`; `MainShellActivityTest` passed on `Medium_Phone(AVD) - 14`, including the Figma geometry/control-order assertion. |
-| Full Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon`; all connected tests completed successfully on `Medium_Phone(AVD) - 14` in 2m23s. |
+| Targeted Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`; all 4 `MainShellActivityTest` cases passed on `Medium_Phone(AVD) - 14`, including Figma geometry/control order, seconds precision, and effective node-count rendering. |
+| Full Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon`; all connected tests completed successfully on `Medium_Phone(AVD) - 14` in 2m03s. |
 | CI | NOT VERIFIED | No CI result is available in the repository or current session. |
 
 ## Acceptance criteria
@@ -26,7 +26,7 @@
 |---|---|---|
 | AC-001 | NOT VERIFIED | `MapWorkspaceFragment.openAddGutterFlow()` now opens `AddGutterListBottomSheet`; no runtime UI evidence. |
 | AC-002 | NOT VERIFIED | Multi-item coordinator and ID routing are implemented; no instrumentation result proving two-item switching. |
-| AC-003 | NOT VERIFIED | Adapter uses `createdAt`, seconds precision, effective waypoint count, creation order. Targeted instrumentation verifies toolbar/row geometry, left 新增 and right close ordering, and list presence; populated multi-row rendering was not exercised. |
+| AC-003 | NOT VERIFIED | Adapter uses `createdAt`, seconds precision, effective waypoint count, creation order. Targeted instrumentation verifies toolbar/row geometry, left 新增 and right close ordering, list presence, seconds-formatted time, and effective node count for a populated row; multi-row ordering and click-through were not exercised. |
 | AC-004 | NOT VERIFIED | Alert text/buttons and cancel/confirm callbacks are implemented; no runtime interaction evidence. |
 | AC-005 | NOT VERIFIED | Room ownership, immutable `createdAt`, ID allocator, and immediate-save routing are source-verified; process recreation was not executed. |
 | AC-006 | NOT VERIFIED | Success path deletes by selected draft ID and removes only that coordinator item; upload interaction was not executed. |

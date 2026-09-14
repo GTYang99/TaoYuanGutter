@@ -13,6 +13,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.fragment.app.Fragment
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
+import com.example.taoyuangutter.gutter.AddGutterListAdapter
+import com.example.taoyuangutter.pending.GutterSessionDraft
+import com.example.taoyuangutter.pending.WaypointSnapshot
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -146,5 +149,35 @@ class MainShellActivityTest {
         root.layout(0, 0, widthPx, root.measuredHeight)
         assertTrue(add.left < close.left)
         assertNotNull(root.findViewById<View>(R.id.rvAddGutterList))
+    }
+
+    @Test
+    fun addGutterListRendersSecondsAndEffectiveNodeCount() {
+        val context = ContextThemeWrapper(
+            ApplicationProvider.getApplicationContext(),
+            R.style.Theme_TaoYuanGutter
+        )
+        val parent = FrameLayout(context)
+        val adapter = AddGutterListAdapter {}
+        adapter.submitList(
+            listOf(
+                GutterSessionDraft(
+                    id = 101L,
+                    createdAt = 1_725_312_345_000L,
+                    waypoints = listOf(
+                        WaypointSnapshot(latitude = 25.0, longitude = 121.0),
+                        WaypointSnapshot(basicData = hashMapOf("is_virtual" to "true")),
+                        WaypointSnapshot()
+                    )
+                )
+            )
+        )
+
+        val holder = adapter.onCreateViewHolder(parent, 0)
+        adapter.onBindViewHolder(holder, 0)
+
+        assertEquals("側溝草稿 1", holder.binding.tvAddGutterListTitle.text.toString())
+        assertTrue(holder.binding.tvAddGutterListTime.text.toString().matches(Regex("建立時間：\\d{4}/\\d{2}/\\d{2} \\d{2}:\\d{2}:\\d{2}")))
+        assertEquals("已存節點：2", holder.binding.tvAddGutterListNodes.text.toString())
     }
 }
