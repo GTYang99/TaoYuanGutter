@@ -18,6 +18,7 @@ import androidx.fragment.app.Fragment
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import com.example.taoyuangutter.gutter.AddGutterListAdapter
+import com.example.taoyuangutter.gutter.GutterSessionFlowCoordinator
 import com.example.taoyuangutter.gutter.MultiGutterSessionCoordinator
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -270,5 +271,15 @@ class MainShellActivityTest {
             MainShellActivity.fragmentFactoryForTests = null
             scenario.close()
         }
+    }
+
+    @Test
+    fun requestedDraftIdIsRoutedIntoTheAddSession() {
+        val start = GutterSessionFlowCoordinator().createAddSessionStart(
+            isOfflineMainMode = false,
+            requestedDraftId = 987654321L
+        )
+
+        assertEquals(987654321L, start.draftId)
     }
 }

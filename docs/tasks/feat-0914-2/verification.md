@@ -4,7 +4,7 @@
 
 - Branch: `feat/側溝清單`
 - Implementation commit: `d8b8967`
-- Verification commit: `f9b5337`
+- Verification commit: pending current verification commit
 - Working tree contains the pre-existing unrelated `GutterApiService.kt` modification; it was not included in either task commit.
 
 ## Validation evidence
@@ -16,8 +16,8 @@
 | Debug APK build | PASS | `./gradlew :app:assembleDebug --no-daemon` |
 | Diff whitespace check | PASS | `git diff --check` |
 | Figma MCP design context | PASS | File `IfmNbZKhr4wojZ2bF5rYHG`, node `2374:26810`; dimensions recorded in `execution-report.md` |
-| Targeted Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`; all 6 `MainShellActivityTest` cases passed on `Medium_Phone(AVD) - 14`, including Figma geometry/control order, seconds precision, effective node-count rendering, independent draft IDs across coordinator recreation, and Espresso Alert add/cancel/confirm callbacks. |
-| Full Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon`; all connected tests completed successfully on `Medium_Phone(AVD) - 14` in 2m33s. |
+| Targeted Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`; all 7 `MainShellActivityTest` cases passed on `Medium_Phone(AVD) - 14`, including Figma geometry/control order, seconds precision, effective node-count rendering, independent draft IDs across coordinator recreation, Espresso Alert add/cancel/confirm callbacks, and requested draft-ID routing. |
+| Full Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon`; all connected tests completed successfully on `Medium_Phone(AVD) - 14` in 2m41s. |
 | CI | NOT VERIFIED | No CI result is available in the repository or current session. |
 
 ## Acceptance criteria
