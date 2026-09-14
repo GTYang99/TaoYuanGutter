@@ -40,3 +40,10 @@
 
 ## Final Result
 PASS
+
+## Follow-up Verification: ISS-DBG-0913-003
+- Verified revision: `7629518`.
+- PASS — Android 14 emulator `GutterCantOpenUiTest`: 6 tests, 0 failures.
+- The new regression test proves: first empty selection proceeds without confirmation; after unchecking and entering depth, the next selection displays the existing clear confirmation.
+- PASS — `:app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest`.
+- PASS — `git diff --check` before commit.
