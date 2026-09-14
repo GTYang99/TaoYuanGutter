@@ -17,6 +17,7 @@ class GutterSessionRepository(context: Context) {
     private val prefs = appContext.getSharedPreferences(LEGACY_PREFS_NAME, Context.MODE_PRIVATE)
     private val gson = Gson()
     private val draftDao = GutterDraftDatabase.getInstance(appContext).draftDao()
+    private var nextAllocatedId = 0L
 
     companion object {
         private const val LEGACY_PREFS_NAME = "gutter_session_drafts"
@@ -45,7 +46,26 @@ class GutterSessionRepository(context: Context) {
      * 若 [draft.id] 已存在，則以新內容覆蓋；否則新增。
      */
     fun save(draft: GutterSessionDraft) {
-        draftDao.upsert(draft.toEntity())
+        val existing = draftDao.getById(draft.id)
+        val normalized = if (existing == null) {
+            draft
+        } else {
+            draft.copy(
+                createdAt = existing.createdAt,
+                workflowOwnership = existing.workflowOwnership
+            )
+        }
+        draftDao.upsert(normalized.toEntity())
+    }
+
+    /** Allocates a persistent, collision-resistant draft id for a new workflow item. */
+    @Synchronized
+    fun allocateDraftId(): Long {
+        val persistedMax = draftDao.maxId() ?: 0L
+        val now = System.currentTimeMillis()
+        nextAllocatedId = maxOf(nextAllocatedId + 1, now, persistedMax + 1)
+        while (draftDao.getById(nextAllocatedId) != null) nextAllocatedId++
+        return nextAllocatedId
     }
 
     /** 依 id 刪除一筆草稿。 */
@@ -96,7 +116,9 @@ class GutterSessionRepository(context: Context) {
         }
         return GutterSessionDraft(
             id = entity.id,
+            createdAt = entity.createdAt.takeIf { it > 0L } ?: entity.savedAt,
             savedAt = entity.savedAt,
+            workflowOwnership = entity.workflowOwnership,
             spiTyp = entity.spiTyp,
             kind = entity.kind,
             isOffline = entity.isOffline,
@@ -108,7 +130,9 @@ class GutterSessionRepository(context: Context) {
     private fun GutterSessionDraft.toEntity(): DraftEntity {
         return DraftEntity(
             id = id,
+            createdAt = createdAt,
             savedAt = savedAt,
+            workflowOwnership = workflowOwnership,
             spiTyp = spiTyp,
             kind = kind,
             isOffline = isOffline,

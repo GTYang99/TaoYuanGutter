@@ -21,4 +21,7 @@ interface DraftDao {
 
     @Query("SELECT COUNT(*) FROM gutter_session_drafts")
     fun count(): Int
+
+    @Query("SELECT MAX(id) FROM gutter_session_drafts")
+    fun maxId(): Long?
 }

@@ -33,7 +33,8 @@ class GutterDraftCoordinator(
         waypoints: List<Waypoint>,
         spiTyp: String? = null,
         isOffline: Boolean,
-        isCurve: Boolean = false
+        isCurve: Boolean = false,
+        workflowOwnership: String = WORKFLOW_LEGACY_SINGLE
     ) {
         if (repository.getById(draftId) != null) return
         val snapshots = waypoints.map { wp ->
@@ -49,7 +50,9 @@ class GutterDraftCoordinator(
         repository.save(
             GutterSessionDraft(
                 id = draftId,
+                createdAt = System.currentTimeMillis(),
                 savedAt = System.currentTimeMillis(),
+                workflowOwnership = workflowOwnership,
                 spiTyp = spiTyp,
                 kind = if (isCurve) KIND_CURVE else KIND_GUTTER,
                 isOffline = isOffline,
@@ -63,7 +66,8 @@ class GutterDraftCoordinator(
         currentSessionDraftId: Long?,
         spiTyp: String? = null,
         isOffline: Boolean,
-        isCurve: Boolean = false
+        isCurve: Boolean = false,
+        workflowOwnership: String = WORKFLOW_LEGACY_SINGLE
     ): SaveResult? {
         if (waypoints.isEmpty()) return null
 
@@ -93,7 +97,7 @@ class GutterDraftCoordinator(
             ?.takeIf { it.isNotEmpty() }
 
         val previousSessionId = currentSessionDraftId
-        val existingId = if (!spiNum.isNullOrEmpty()) {
+        val existingId = if (workflowOwnership == WORKFLOW_LEGACY_SINGLE && !spiNum.isNullOrEmpty()) {
             repository.getAll().firstOrNull { draft ->
                 draft.waypoints.firstOrNull { it.type == WaypointType.START.name }
                     ?.basicData?.get("SPI_NUM") == spiNum &&
@@ -123,7 +127,7 @@ class GutterDraftCoordinator(
             return null
         }
 
-        if (!spiNum.isNullOrEmpty()) {
+        if (workflowOwnership == WORKFLOW_LEGACY_SINGLE && !spiNum.isNullOrEmpty()) {
             repository.getAll()
                 .filter { draft ->
                     draft.id != draftId &&
@@ -136,7 +140,9 @@ class GutterDraftCoordinator(
         repository.save(
             GutterSessionDraft(
                 id = draftId,
+                createdAt = repository.getById(draftId)?.createdAt ?: System.currentTimeMillis(),
                 savedAt = System.currentTimeMillis(),
+                workflowOwnership = workflowOwnership,
                 spiTyp = spiTyp,
                 kind = if (isCurve) KIND_CURVE else KIND_GUTTER,
                 isOffline = isOffline,
@@ -222,6 +228,7 @@ class GutterDraftCoordinator(
     fun deleteDraftsBySpiNum(context: Context, spiNum: String) {
         repository.getAll()
             .filter { draft ->
+                draft.workflowOwnership == WORKFLOW_LEGACY_SINGLE &&
                 draft.waypoints.firstOrNull { it.type == WaypointType.START.name }
                     ?.basicData?.get("SPI_NUM") == spiNum
             }

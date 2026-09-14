@@ -8,8 +8,12 @@ import androidx.room.PrimaryKey
 data class DraftEntity(
     @PrimaryKey
     val id: Long,
+    @ColumnInfo(name = "created_at")
+    val createdAt: Long,
     @ColumnInfo(name = "saved_at")
     val savedAt: Long,
+    @ColumnInfo(name = "workflow_ownership")
+    val workflowOwnership: String,
     @ColumnInfo(name = "spi_typ")
     val spiTyp: String? = null,
     val kind: String,

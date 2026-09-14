@@ -35,6 +35,7 @@ import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.UploadFailureClassifier
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 import com.example.taoyuangutter.gutter.AddGutterBottomSheet
+import com.example.taoyuangutter.gutter.AddGutterListBottomSheet
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.GutterFormContract
 import com.example.taoyuangutter.gutter.GutterFormNavigator
@@ -42,6 +43,7 @@ import com.example.taoyuangutter.gutter.GutterInspectActivity
 import com.example.taoyuangutter.gutter.GutterSheetSessionBinder
 import com.example.taoyuangutter.gutter.GutterSessionFlowCoordinator
 import com.example.taoyuangutter.gutter.GutterSessionUiCoordinator
+import com.example.taoyuangutter.gutter.MultiGutterSessionCoordinator
 import com.example.taoyuangutter.gutter.InspectFlowCoordinator
 import com.example.taoyuangutter.gutter.PhotoUploadManager
 import com.example.taoyuangutter.gutter.PhotoUploadCandidateResolver
@@ -62,6 +64,7 @@ import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.PendingDraftSheetNavigator
 import com.example.taoyuangutter.pending.WaypointSnapshot
+import com.example.taoyuangutter.pending.WORKFLOW_MULTI_GUTTER
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -81,7 +84,8 @@ import kotlin.math.max
 class MapWorkspaceFragment : Fragment(),
     OnMapReadyCallback,
     AddGutterBottomSheet.LocationPickerHost,
-    LayersBottomSheet.Host {
+    LayersBottomSheet.Host,
+    AddGutterListBottomSheet.Host {
 
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding!!
@@ -117,6 +121,7 @@ class MapWorkspaceFragment : Fragment(),
             pendingDraftSheetNavigator = pendingDraftSheetNavigator
         )
     }
+    private val multiGutterSessionCoordinator by lazy { MultiGutterSessionCoordinator(sessionDraftRepository) }
     private val authNavigator by lazy { AuthNavigator(requireContext()) }
     private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(requireActivity()) }
     private val gutterFormNavigator by lazy { GutterFormNavigator(requireContext()) }
@@ -194,6 +199,8 @@ class MapWorkspaceFragment : Fragment(),
     private var pendingEditOriginalWaypoints: List<WaypointSnapshot>? = null
     private var currentSessionResumedFromDraft: Boolean = false
     private var currentSessionIsOffline: Boolean = false
+    private var isMultiGutterSession: Boolean = false
+    private var addGutterListSheet: AddGutterListBottomSheet? = null
     private var initialSpiState: String? = null
     private var activeSheet: AddGutterBottomSheet? = null
     private var pickingIndex: Int = -1
@@ -973,11 +980,41 @@ class MapWorkspaceFragment : Fragment(),
     }
 
     private fun openAddGutterFlow() {
+        isMultiGutterSession = true
+        showAddGutterList()
+    }
+
+    private fun showAddGutterList() {
+        val sheet = AddGutterListBottomSheet().also { it.drafts = multiGutterSessionCoordinator.drafts() }
+        addGutterListSheet = sheet
+        sheet.show(childFragmentManager, "AddGutterListBottomSheet")
+    }
+
+    override fun onAddGutterListAdd() {
+        val item = multiGutterSessionCoordinator.addItem()
+        addGutterListSheet?.dismissAllowingStateLoss()
         currentSessionResumedFromDraft = false
         gutterSessionUiCoordinator.startAddSession(
             isOfflineMainMode = isOfflineMainMode,
+            hooks = buildSessionUiHooks(),
+            requestedDraftId = item.draftId
+        )
+    }
+
+    override fun onAddGutterListSelect(draft: GutterSessionDraft) {
+        addGutterListSheet?.dismissAllowingStateLoss()
+        currentSessionResumedFromDraft = true
+        gutterSessionUiCoordinator.resumeDraft(
+            draft = draft,
+            isOfflineMainMode = isOfflineMainMode,
             hooks = buildSessionUiHooks()
         )
+    }
+
+    override fun onAddGutterListConfirmedClose() {
+        isMultiGutterSession = false
+        addGutterListSheet = null
+        restoreMainUiAfterSheetClosed()
     }
 
     private fun buildSessionUiHooks(): GutterSessionUiCoordinator.Hooks {
@@ -1011,13 +1048,16 @@ class MapWorkspaceFragment : Fragment(),
                 currentSessionDraftId = draftId
                 currentSessionIsOffline = isOffline
                 activeSheet = sheet
-                draftCoordinator.ensureDraftExists(
-                    draftId = draftId,
-                    waypoints = sheet.getWaypoints(),
-                    spiTyp = sheet.getSelectedSpiTypCode(),
-                    isOffline = isOffline,
-                    isCurve = sheet.isCurveMode()
-                )
+                if (!isMultiGutterSession) {
+                    draftCoordinator.ensureDraftExists(
+                        draftId = draftId,
+                        waypoints = sheet.getWaypoints(),
+                        spiTyp = sheet.getSelectedSpiTypCode(),
+                        isOffline = isOffline,
+                        isCurve = sheet.isCurveMode(),
+                        workflowOwnership = com.example.taoyuangutter.pending.WORKFLOW_LEGACY_SINGLE
+                    )
+                }
             },
             onResumedWaypointsReady = { waypoints ->
                 currentWaypoints = waypoints
@@ -1050,6 +1090,9 @@ class MapWorkspaceFragment : Fragment(),
                     activeSheet = null
                     restoreMainUiAfterSheetClosed()
                     if (!isOfflineMainMode) loadGuttersByViewport(showFeedback = true) else refreshWorkingLayer(emptyList())
+                    if (isMultiGutterSession && isAdded) {
+                        showAddGutterList()
+                    }
                 },
                 onAutoSaveRequested = { waypoints -> autoSaveSessionDraft(waypoints) },
                 onRefitRequested = { waypoints ->
@@ -1907,7 +1950,8 @@ class MapWorkspaceFragment : Fragment(),
             currentSessionDraftId = currentSessionDraftId,
             spiTyp = resolveCurrentSessionSpiTyp(updatedWaypoints),
             isOffline = currentSessionIsOffline,
-            isCurve = activeSheet?.isCurveMode() ?: false
+            isCurve = activeSheet?.isCurveMode() ?: false,
+            workflowOwnership = if (isMultiGutterSession) WORKFLOW_MULTI_GUTTER else com.example.taoyuangutter.pending.WORKFLOW_LEGACY_SINGLE
         )
         val savedDraftId = saveResult?.draftId ?: currentSessionDraftId
         currentSessionDraftId = savedDraftId
@@ -1926,7 +1970,8 @@ class MapWorkspaceFragment : Fragment(),
             currentSessionDraftId = currentSessionDraftId,
             spiTyp = resolveCurrentSessionSpiTyp(waypoints),
             isOffline = currentSessionIsOffline,
-            isCurve = activeSheet?.isCurveMode() ?: false
+            isCurve = activeSheet?.isCurveMode() ?: false,
+            workflowOwnership = if (isMultiGutterSession) WORKFLOW_MULTI_GUTTER else com.example.taoyuangutter.pending.WORKFLOW_LEGACY_SINGLE
         ) ?: return
         currentSessionDraftId = result.draftId
     }
@@ -1963,6 +2008,9 @@ class MapWorkspaceFragment : Fragment(),
                                     draftId,
                                     fallbackWaypoints = persistedWaypoints
                                 )
+                                if (isMultiGutterSession) {
+                                    multiGutterSessionCoordinator.remove(draftId)
+                                }
                             }
                             currentSessionDraftId = null
                             currentSessionResumedFromDraft = false
@@ -1972,11 +2020,15 @@ class MapWorkspaceFragment : Fragment(),
                             } else if (!spiNum.isNullOrBlank()) {
                                 reopenInspectPreviewAfterUpdate(spiNum, persistedWaypoints, token)
                             } else {
-                                MaterialAlertDialogBuilder(requireContext())
-                                    .setTitle("上傳成功")
-                                    .setMessage(getString(R.string.msg_gutter_uploaded))
-                                    .setPositiveButton(getString(R.string.confirm), null)
-                                    .show()
+                                if (isMultiGutterSession) {
+                                    showAddGutterList()
+                                } else {
+                                    MaterialAlertDialogBuilder(requireContext())
+                                        .setTitle("上傳成功")
+                                        .setMessage(getString(R.string.msg_gutter_uploaded))
+                                        .setPositiveButton(getString(R.string.confirm), null)
+                                        .show()
+                                }
                             }
                         } else {
                             val authExpiredFailure = result.failures.firstOrNull { it.code == 401 }

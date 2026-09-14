@@ -27,10 +27,11 @@ class GutterSessionUiCoordinator(
 
     fun startAddSession(
         isOfflineMainMode: Boolean,
-        hooks: Hooks
+        hooks: Hooks,
+        requestedDraftId: Long? = null
     ) {
         hooks.prepareForNewMapSession()
-        val start = flowCoordinator.createAddSessionStart(isOfflineMainMode)
+        val start = flowCoordinator.createAddSessionStart(isOfflineMainMode, requestedDraftId)
         val sheet = start.sheet
         hooks.onMapSessionReady(start.draftId, start.isOffline, sheet)
         hooks.bindSheet(sheet, 0)

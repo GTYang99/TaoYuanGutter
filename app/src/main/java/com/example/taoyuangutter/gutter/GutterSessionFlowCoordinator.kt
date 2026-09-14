@@ -26,8 +26,11 @@ class GutterSessionFlowCoordinator {
         ) : ResumeAction
     }
 
-    fun createAddSessionStart(isOfflineMainMode: Boolean): AddSessionStart {
-        val draftId = System.currentTimeMillis()
+    fun createAddSessionStart(
+        isOfflineMainMode: Boolean,
+        requestedDraftId: Long? = null
+    ): AddSessionStart {
+        val draftId = requestedDraftId ?: System.currentTimeMillis()
         return AddSessionStart(
             // 先在 session 開始時就分配固定 draftId，讓 sheet 與表單共用同一筆草稿。
             draftId = draftId,

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="88dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="32dp"
+    android:background="?attr/selectableItemBackground">
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:gravity="center_vertical"
+        android:orientation="vertical"
+        android:paddingVertical="12dp">
+        <TextView
+            android:id="@+id/tvAddGutterListTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@color/text_grey"
+            android:textSize="16sp" />
+        <TextView
+            android:id="@+id/tvAddGutterListTime"
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/inputFieldHint"
+            android:textSize="14sp" />
+        <TextView
+            android:id="@+id/tvAddGutterListNodes"
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:textColor="@color/inputFieldHint"
+            android:textSize="14sp" />
+    </LinearLayout>
+    <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:contentDescription="開啟"
+        android:src="@drawable/ic_arrow_forward"
+        android:tint="@color/inputFieldHint" />
+</LinearLayout>

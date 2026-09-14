@@ -9,8 +9,12 @@ package com.example.taoyuangutter.pending
 data class GutterSessionDraft(
     /** 唯一識別碼，以建立時間毫秒數作為主鍵 */
     val id: Long = System.currentTimeMillis(),
+    /** Immutable creation time used by the multi-gutter list. */
+    val createdAt: Long = System.currentTimeMillis(),
     /** 建立／更新時間（毫秒），供列表排序與時間顯示 */
     val savedAt: Long = System.currentTimeMillis(),
+    /** Persistence ownership boundary used to isolate legacy and multi-gutter flows. */
+    val workflowOwnership: String = WORKFLOW_LEGACY_SINGLE,
     /**
      * 側溝類型（側溝層級）。
      * 以字串保存，值對應 1~4；舊草稿可能為 null。
@@ -37,6 +41,8 @@ data class GutterSessionDraft(
 
 const val KIND_GUTTER = "gutter"
 const val KIND_CURVE = "curve"
+const val WORKFLOW_LEGACY_SINGLE = "LEGACY_SINGLE"
+const val WORKFLOW_MULTI_GUTTER = "MULTI_GUTTER"
 
 /**
  * 單一 Waypoint 的可序列化快照。
