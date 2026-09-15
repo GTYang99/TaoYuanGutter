@@ -30,7 +30,7 @@ class StoreDitchNodeRequestMapperTest {
     }
 
     @Test
-    fun newNodeRetainsPhotoMetadataInJson() {
+    fun newNodeOmitsCapturedAtButRetainsImgIdsInJson() {
         val waypoint = waypoint(
             "photo1" to "content://photo-1",
             "photo1CapturedAt" to "2026-09-11T01:00:00Z",
@@ -41,8 +41,8 @@ class StoreDitchNodeRequestMapperTest {
         val request = StoreDitchNodeRequestMapper.map(waypoint, requestNodeId = null, nodeSequence = 1)
         val json = gson.toJson(request)
 
-        assertTrue(json.contains("\"captured_at\""))
-        assertTrue(json.contains("2026-09-11T01:00:00Z"))
+        assertFalse(json.contains("\"captured_at\""))
+        assertFalse(json.contains("2026-09-11T01:00:00Z"))
         assertTrue(json.contains("\"img_ids\""))
         assertTrue(json.contains("101"))
     }

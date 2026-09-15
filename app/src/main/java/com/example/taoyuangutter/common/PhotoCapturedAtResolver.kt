@@ -58,6 +58,9 @@ object PhotoCapturedAtResolver {
         return null
     }
 
+    /** Uses the same API timestamp format when a source image has no readable capture time. */
+    fun currentTime(): String = apiFormat.format(Date())
+
     private fun extractFromText(text: String?): String? {
         if (text.isNullOrBlank()) return null
         val matcher = filenameTimestampPattern.matcher(text)

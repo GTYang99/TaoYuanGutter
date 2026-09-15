@@ -28,6 +28,18 @@ import androidx.core.content.FileProvider
 import android.os.Environment
 import com.example.taoyuangutter.common.buildRequestBody
 
+internal fun buildNodeImageMultipartBody(
+    file: File,
+    nodeId: Int?,
+    fileCategory: Int,
+    capturedAt: String
+): RequestBody = buildRequestBody {
+    addFile("file", file, "image/jpeg")
+    nodeId?.let { param("node_id", it) }
+    param("fileCategory", fileCategory)
+    param("captured_at", capturedAt)
+}
+
 /**
  * GutterRepository
  *
@@ -624,12 +636,16 @@ class GutterRepository(
                     "request nodeId=$nodeId, category=$fileCategory, size=${tempFile.length() / 1024} KB"
                 )
 
-                // 🌟 使用 RequestBodyBuilder DSL 構建封裝的 MultipartBody
-                val requestBody = buildRequestBody {
-                    addFile("file", tempFile, "image/jpeg")
-                    nodeId?.let { param("node_id", it) }
-                    param("fileCategory", fileCategory)
-                }
+                val capturedAt = PhotoCapturedAtResolver.resolveBestEffort(
+                    context,
+                    imageUri.toString()
+                ) ?: PhotoCapturedAtResolver.currentTime()
+                val requestBody = buildNodeImageMultipartBody(
+                    file = tempFile,
+                    nodeId = nodeId,
+                    fileCategory = fileCategory,
+                    capturedAt = capturedAt
+                )
 
                 val response = api.uploadNodeImage(
                     body          = requestBody,

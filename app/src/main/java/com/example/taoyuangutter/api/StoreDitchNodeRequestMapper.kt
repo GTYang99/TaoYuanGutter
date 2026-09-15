@@ -1,6 +1,5 @@
 package com.example.taoyuangutter.api
 
-import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
@@ -30,16 +29,6 @@ object StoreDitchNodeRequestMapper {
                 }
             }.takeIf { it.isNotEmpty() }
         }
-        val capturedAt = if (requestNodeId != null || isVirtual) {
-            null
-        } else {
-            listOfNotNull(
-                PhotoCapturedAtResolver.readBasicData(waypoint.basicData, 1),
-                PhotoCapturedAtResolver.readBasicData(waypoint.basicData, 2),
-                PhotoCapturedAtResolver.readBasicData(waypoint.basicData, 3)
-            ).takeIf { it.isNotEmpty() }
-        }
-
         return StoreDitchNodeRequest(
             nodeId = requestNodeId,
             nodeAtt = nodeAtt,
@@ -60,7 +49,6 @@ object StoreDitchNodeRequestMapper {
             isHanging = if (isCantOpen || isVirtual) null else (waypoint.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
             isSilt = if (isCantOpen || isVirtual) null else (waypoint.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
             nodeNote = if (isVirtual) null else waypoint.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() },
-            capturedAt = capturedAt,
             imgIds = imgIds
         )
     }
