@@ -17,3 +17,9 @@ Update `MapWorkspaceFragment.onStoreDitchNetworkClosed()` so that after saving t
 - Add or update a deterministic callback-flow test proving multi-gutter failure returns to the list and legacy failure still restores the map.
 - Run focused unit tests, full unit tests, `assembleDebug`, and connected instrumentation with emulator animations disabled.
 - Perform authenticated physical-device smoke: force a network-classified `storeDitch` failure, close the Alert, verify the same add-list and failed row remain available for retry.
+
+## Implementation Result
+
+- Implemented the multi-gutter branch in `MapWorkspaceFragment.onStoreDitchNetworkClosed()`.
+- Unit tests, `assembleDebug`, and the full dual-device connected suite passed after the change.
+- Real authenticated network-failure smoke remains required for final AC-008 verification.

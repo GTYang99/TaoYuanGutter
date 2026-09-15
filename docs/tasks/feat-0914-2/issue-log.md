@@ -145,13 +145,35 @@ task_id: feat-0914-2
 phase: verification
 category: environment
 priority: P1
-title: Release-blocking MapWorkspace smoke and CI evidence are unavailable
-status: open
-impact: The corrected implementation cannot advance to Release until the authenticated formal map workflow and CI results are independently evidenced.
+title: Release-blocking CI evidence is unavailable
+status: implementation_fixed_pending_verification
+impact: The task cannot advance to Release until a CI result is retained after the implementation failure is corrected and reverified.
 evidence:
-  - The launcher requires an authenticated LoginActivity session; no test credentials/session are available.
+  - Authenticated Sony smoke proves two populated gutters, independent edit/switch, and close-and-save.
+  - Full connected instrumentation subsequently passed 29/29 on Sony XQ-AU52 and Medium_Phone(AVD) - 14.
   - No CI configuration or CI result is present in the repository/current session.
 next_action: infrastructure
+owner: verification
+```
+
+## ISS-FEAT-0914-2-010
+
+```yaml
+issue_id: ISS-FEAT-0914-2-010
+task_id: feat-0914-2
+phase: verification
+category: environment
+priority: P2
+title: Emulator full regression had intermittent Espresso root-focus failure
+status: resolved
+impact: The prior focus flake temporarily prevented retaining dual-device regression evidence.
+evidence:
+  - Sony direct AndroidJUnitRunner: 29 tests, 0 failed, 0 ignored.
+  - Emulator direct AndroidJUnitRunner: 29 tests, 1 failed, 0 ignored.
+  - Failure: RootViewWithoutFocusException at MainShellActivityTest.kt:288 in addGutterListWiresAddAndCloseConfirmationCallbacks.
+  - A later rerun with emulator system animations disabled completed 29 tests, 0 failed, 0 ignored; Sony XQ-AU52 also completed 29 tests, 0 failed, 0 ignored.
+resolution: The clean dual-device regression evidence is recorded in verification.md.
+next_action: verification
 owner: verification
 ```
 
@@ -164,7 +186,7 @@ phase: debug
 category: implementation_regression
 priority: P1
 title: Returning from a newly created gutter form bypasses the active add-list
-status: classified
+status: resolved
 impact: Users cannot create and switch between multiple gutters in one add-list session because returning from the first form exits to the main map instead of restoring the same list.
 repro_steps:
   - Log in on Sony XQ-AU52 and open the MapWorkspace map tab.
@@ -172,12 +194,42 @@ repro_steps:
   - Tap the add-list right-side 新增 action; the new-gutter form opens.
   - Use the form's back action without submitting.
 expected: Return to the same add-gutter list, allowing another item to be added or selected.
-actual: Return directly to the main map; no add-list is displayed.
+actual: Before fix, return directly to the main map; no add-list was displayed.
 evidence:
-  - Authenticated physical-device smoke on Sony XQ-AU52 API 31, 2026-09-15.
-  - MapWorkspaceFragment binds onWaypointsCleared to showAddGutterList when isMultiGutterSession is true, but the observed form-return path did not restore the list.
+  - Initial authenticated physical-device smoke on Sony XQ-AU52 API 31, 2026-09-15, reproduced the failure.
+  - Production fix d21a27d guards onWaypointsCleared during active form handoff and restores the retained sheet from the activity result.
+  - Follow-up authenticated Sony smoke, 2026-09-15: map FAB → add-list → 新增 → form → Android back restored the same add-list with 新增 still available.
 failed_acceptance_criteria:
   - AC-002
-next_action: implementation_debug
-owner: developer
+next_action: verification
+owner: verification
+```
+
+## ISS-FEAT-0914-2-011
+
+```yaml
+issue_id: ISS-FEAT-0914-2-011
+task_id: feat-0914-2
+phase: verification
+category: implementation_regression
+priority: P1
+title: Network submission failure exits a multi-gutter session to the main map
+status: open
+impact: A failed submission does not return the user to the active add-gutter list, so the failed item cannot immediately be edited or retried as required.
+repro_steps:
+  - Start a multi-gutter add-list session and open a draft in the add form.
+  - Cause storeDitch to return a network-classified failure.
+  - Close the failure Alert.
+expected: The active add-gutter list is restored and retains the failed draft for editing or retry.
+actual: Before the fix, the form was dismissed and the main map was restored when no SPI_NUM was available.
+evidence:
+  - AddGutterBottomSheet.submitNewGutterRequest() routes network failures to LocationPickerHost.onStoreDitchNetworkClosed().
+  - Before the fix, MapWorkspaceFragment.onStoreDitchNetworkClosed() saved the draft, cleared the sheet callback, dismissed the form, and restored the main map for a null SPI_NUM.
+  - The fix now branches on isMultiGutterSession and reuses returnToMultiGutterListAfterUploadFailure().
+  - UploadFailureClassifierTest passes but contains no UI return-path assertion.
+failed_acceptance_criteria:
+  - AC-008
+resolution: Multi-gutter network failure now returns to the active add-gutter list without deleting the failed draft. Authenticated failure smoke remains pending.
+next_action: verification
+owner: verification
 ```
