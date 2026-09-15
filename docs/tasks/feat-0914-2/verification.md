@@ -5,7 +5,7 @@
 - Branch: `feat/側溝清單`
 - Implementation revision: `0230c10`
 - Verification revision: `0230c10`
-- Working tree contains the pre-existing unrelated `GutterApiService.kt` modification; it was not included in either task commit.
+- Working tree contains the pre-existing unrelated `GutterApiService.kt` and `strings.xml` modifications; neither was included in the task commits.
 
 ## Validation evidence
 

@@ -23,7 +23,7 @@ validation:
 git:
   branch: feat/側溝清單
   commit: 0230c10
-  status: pending
+  status: committed
 
 verification:
   result: not_verified
