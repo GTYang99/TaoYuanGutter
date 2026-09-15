@@ -2,8 +2,8 @@ task:
   id: feat-0915-1
   type: feature
 
-phase: verification
-status: verification_failed
+phase: debug
+status: debug_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -41,4 +41,6 @@ release:
 blocking:
   - AC-002 的重複點擊行為違反核准計畫
   - emulator UI 測試的備註膠囊案例未捲動至目標欄位而失敗
+debug:
+  status: investigating
 next_action: debug
