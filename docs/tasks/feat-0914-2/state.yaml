@@ -22,19 +22,18 @@ validation:
 
 git:
   branch: feat/側溝清單
-  commit: f46297a
+  commit: c4161d4
   status: committed
 
 debug:
   status: completed
-  root_cause: fixed_for_012
+  root_cause: fixed_for_013
 
 verification:
   result: not_verified
   category: environment
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
-    - AC-007
     - AC-008
 
 ci:
@@ -45,8 +44,7 @@ release:
   status: pending
 
 blocking:
-  - AC-008 requires an authenticated network-failure Alert-to-list-to-retry smoke; no automated UI test covers this branch.
-  - Post-fix emulator connected regression has an intermittent Espresso root-focus failure; Sony completed 29/29.
+  - AC-008 requires an authenticated failure Alert-to-active-list-to-edit/retry smoke; no automated UI test injects a live `storeDitch` or photo-upload failure.
   - CI workflow/result is not present in the repository/current session.
 
 next_action: verification

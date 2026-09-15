@@ -10,6 +10,7 @@
 - 正式 map tab 的新增入口先顯示可管理多條側溝的清單；清單選定一條側溝後才進入既有編輯流程。
 - 每條側溝以獨立 draft ID、獨立 waypoint 集合及獨立上傳／刪除生命週期保存；同一清單中的其他側溝不得被覆寫或移除，即使相同或稍後取得相同 `SPI_NUM`。
 - 清單以 Figma 的 bottom sheet 與 list-row 階層呈現，關閉時確認保存，並透過立即持久化支援重建後恢復。
+- 現行 `StoreDitchNodeRequestMapper` 會為新 node 組裝 `captured_at`，而 `GutterRepository.uploadNodeImage()` 的單張 multipart body 尚未帶入此欄位；兩者需依新 contract 交換責任。
 
 ## Affected Modules
 - `MainShellActivity.kt`：不預期改動產品邏輯，但列入正式登入後 map tab 的入口驗證範圍。
@@ -19,11 +20,14 @@
 - 新增 `gutter/MultiGutterSessionCoordinator.kt`：維護列順序、每條側溝的預先配置 draft ID、建立時間、完成狀態與表單回傳資料。
 - `pending/GutterSessionDraft.kt`、`DraftEntity.kt`、`DraftDao.kt`、`GutterDraftDatabase.kt`、`GutterSessionRepository.kt`、`GutterDraftCoordinator.kt`：增加 immutable `createdAt`、workflow ownership 與碰撞安全 ID 配置；提供獨立草稿 upsert／delete，並把 legacy SPI_NUM 去重限制在 legacy flow。
 - `gutter/GutterFormActivity.kt`、`common/PhotoSlotUploadCoordinator.kt`：所有表單即時保存與照片狀態保存須走保留 `createdAt` 的 repository contract。
+- `api/GutterRepository.kt`、`common/RequestBodyBuilder.kt`：在共用的單張 `nodeImage` multipart request 加入該 URI 的 `captured_at`，解析失敗時補裝置目前時間。
+- `api/StoreDitchNodeRequestMapper.kt`：停止設定 outbound `StoreDitchNodeRequest.capturedAt`；讀取 response 的 `captured_at` model 保留。
 - `pending/PendingDraftAdapter.kt` 與可能的 `PendingDraftsBottomSheet.kt`：確認恢復列表能顯示本工項新建的獨立草稿而不改變既有草稿流程。
 - 相關 unit／instrumentation tests：覆蓋工作項目隔離、草稿持久化、列表內容、關閉確認與主地圖入口回歸。
 
 ## Dependencies
 - `AddGutterBottomSheet` 的既有 waypoint／表單／送出介面與 `MapWorkspaceFragment` 的 Activity Result 回傳協議。
+- `GutterRepository.uploadNodeImage()` 是即時、批次與 legacy bottom-sheet 三條照片上傳路徑的共用單張 request 邊界。
 - Room `gutter_session_drafts`、`GutterSessionRepository`、草稿照片清理與 pending drafts 恢復流程；所有新 multi-gutter write/delete 以 draft ID 為唯一鍵。
 - Figma node `2374:26810` 的 Toolbar、Content Area、repeatable `list-row` 及現有 Material BottomSheet／Alert 樣式。
 - `MainActivity` 的地圖 marker、working layer、viewport inset、401 與照片上傳流程。
@@ -34,6 +38,7 @@
 - 表單回傳、Activity 重建與並行新增／切換可能使清單項目的 waypoint 快照或 marker 狀態不同步。
 - 未完成照片若未在每條草稿的隔離邊界保存與清理，可能導致照片遺失、重複上傳或錯誤清除。
 - 現行草稿的 `savedAt` 是更新時間；需求的「建立時間」需以 immutable `createdAt` 呈現，且要有舊列 backfill、所有寫入端保留與快速新增不碰撞的契約。
+- 若 `captured_at` 仍同時出現在 `storeDitch` 與 `nodeImage`，會造成後端責任重複；若解析失敗不得省略欄位或用其他 slot 的時間代填。
 
 ## Unknowns
 - 無阻擋規劃的未知項目。空白列不保存草稿採用知識釐清的明確假設；冷啟動後不自動將所有 pending drafts 混入新清單，使用者應從既有 pending list 各自恢復。

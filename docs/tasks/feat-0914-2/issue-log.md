@@ -124,7 +124,7 @@ phase: debug
 category: implementation_regression
 priority: P2
 title: Upload loading indicator renders as a static icon
-status: implementation_fixed_pending_verification
+status: verification_not_verified
 impact: Users cannot visually confirm that side-gutter or photo upload is still progressing.
 repro_steps:
   - Start a side-gutter submission or photo upload.
@@ -136,6 +136,32 @@ evidence:
   - activity_main.xml uses framework progressBarStyleLarge with tint but omits explicit android:indeterminate=true.
   - MainShellActivityTest and the current emulator set Android animation scales to 0.
 resolution: Spinner is now explicitly indeterminate in the layout and controller state updates; layout-state validation passes on both devices. Real visual motion with animator scale greater than zero remains a manual smoke item.
+next_action: verification
+owner: verification
+```
+
+## ISS-FEAT-0914-2-013
+
+```yaml
+issue_id: ISS-FEAT-0914-2-013
+task_id: feat-0914-2
+phase: debug
+category: implementation_regression
+priority: P1
+title: AC-008 recovery is incomplete and upload overlay motion is not runtime-verified
+status: implementation_fixed_pending_verification
+impact: Non-network submission failures can dismiss a multi-gutter form without returning to the active list; users cannot rely on a visibly animated upload state.
+repro_steps:
+  - Submit a client-valid multi-gutter item and make storeDitch return a non-network error.
+  - Select the failure dialog action that saves/closes.
+  - Start a side-gutter or photo upload with Android animation scale set to 1x and observe the upload overlay.
+expected: Every failed upload confirmation returns to the active list with the draft retained, and the visible upload indicator has a verified indeterminate animation state.
+actual: Fixed in the committed revision; 1x emulator spinner motion is validated. Authenticated failure return remains verification work.
+evidence:
+  - Generic errors, exceptions, photo failure confirmation, and debug failure simulation now call onGutterUploadFailureConfirmed.
+  - MapWorkspaceFragment saves the selected multi-gutter draft and returns to the active list when that callback is accepted.
+  - The overlay uses CircularProgressIndicator plus controller-owned 900 ms rotation; direct 1x emulator validation observed rotation change over 250 ms.
+  - Final targeted connected regression on Medium_Phone(AVD) - 14 and Sony XQ-AU52 passed MainShellActivityTest 10/10 on each device.
 next_action: verification
 owner: verification
 ```
@@ -190,7 +216,7 @@ phase: verification
 category: environment
 priority: P2
 title: Emulator full regression has intermittent Espresso root-focus failure
-status: open
+status: resolved
 impact: A post-fix clean dual-device connected regression result cannot yet be retained.
 evidence:
   - Sony direct AndroidJUnitRunner: 29 tests, 0 failed, 0 ignored.
@@ -198,7 +224,11 @@ evidence:
   - Failure: RootViewWithoutFocusException at MainShellActivityTest.kt:288 in addGutterListWiresAddAndCloseConfirmationCallbacks.
   - A later rerun with emulator system animations disabled completed 29 tests, 0 failed, 0 ignored; Sony XQ-AU52 also completed 29 tests, 0 failed, 0 ignored.
   - Post-fix full connected regression on 2026-09-15: Sony XQ-AU52 29 tests, 0 failed; Medium_Phone(AVD) - 14 29 tests, 1 failed at the same RootViewWithoutFocusException.
-next_action: infrastructure
+  - Current `f46297a` emulator direct runner: 30 tests, 1 failure. `addGutterListWiresAddAndCloseConfirmationCallbacks` could not find `btnAddGutterListAdd` after preceding tests, while the same 9-test MainShellActivityTest class passes in isolation.
+  - 2026-09-15 focused connected rerun: Sony XQ-AU52 passed MainShellActivityTest 9/9; Medium_Phone(AVD) - 14 failed 1/9 with RootViewWithoutFocusException in addGutterListWiresAddAndCloseConfirmationCallbacks.
+  - 2026-09-15 clean single-emulator full connected regression completed 30 tests, 0 failures, 0 skipped (including MainShellActivityTest 9/9) with system animation scales at 0.
+resolution: The controlled clean single-emulator run reproduced neither focus nor view-absence failure. Treat earlier failures as transient test-environment interference rather than a current product regression.
+next_action: none
 owner: verification
 ```
 

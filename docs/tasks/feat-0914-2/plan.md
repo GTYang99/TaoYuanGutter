@@ -4,7 +4,7 @@
 - 建立可同時管理多條側溝、獨立保存各條未上傳草稿並符合 Figma 清單面板結構的新增側溝流程。
 
 ## Scope
-- 僅調整主地圖新增側溝入口、清單工作階段、草稿持久化與其必要 UI／測試；不重寫既有側溝表單欄位、後端 API、地圖功能或上傳 contract。
+- 調整主地圖新增側溝入口、清單工作階段、草稿持久化與照片／`storeDitch` 的 `captured_at` contract；不重寫既有側溝表單欄位、地圖功能或其他 API contract。
 
 ## Affected Files
 - `app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt`：正式新增入口、`childFragmentManager`、表單／選點回傳、檢視頁關閉回傳、marker、working layer 與送出成功／失敗的單筆狀態協調，全部由 selected multi-gutter item 的 draft ID 協調。
@@ -13,6 +13,8 @@
 - 新增 `app/src/main/java/com/example/taoyuangutter/gutter/AddGutterListBottomSheet.kt`、`AddGutterListAdapter.kt`、`MultiGutterSessionCoordinator.kt`：新增側溝清單、列選取、關閉確認、只恢復此清單 ID 集合的 configuration recreation 與即時保存協調。
 - `app/src/main/java/com/example/taoyuangutter/pending/GutterSessionDraft.kt`、`DraftEntity.kt`、`DraftDao.kt`、`GutterDraftDatabase.kt`、`GutterSessionRepository.kt`、`GutterDraftCoordinator.kt`：支援 `createdAt`／`savedAt`、workflow ownership、碰撞安全 ID 配置、每條側溝的 ID-only upsert/delete 及舊資料 migration。
 - `app/src/main/java/com/example/taoyuangutter/common/PhotoSlotUploadCoordinator.kt`：照片狀態更新改用保留 `createdAt` 與 workflow ownership 的草稿寫入 contract。
+- `app/src/main/java/com/example/taoyuangutter/api/GutterRepository.kt`、`common/RequestBodyBuilder.kt`：維持一張照片一個 multipart request；以現有 resolver 時間或裝置目前時間加入 `captured_at`。
+- `app/src/main/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapper.kt`、`GutterApiModels.kt`：所有 outbound storeDitch node 省略 `capturedAt`；保留 response parsing。
 - `app/src/main/java/com/example/taoyuangutter/pending/PendingDraftAdapter.kt`、`PendingDraftsBottomSheet.kt`：使新草稿在既有列表正確顯示、恢復與刪除。
 - `app/src/main/res/layout/`、`app/src/main/res/drawable/`、`app/src/main/res/values/strings.xml`：Figma 清單面板、88px row、關閉 Alert 文案及可存取性文字。
 - `app/src/test/`、`app/src/androidTest/`：草稿隔離、時間與節點數、工作階段／表單回傳、關閉確認、程序重建及上傳清理測試。
@@ -26,7 +28,9 @@
 6. 依 Figma `2374:26810` 建立 `AddGutterListBottomSheet`：使用地圖上的 bottom sheet、70px Toolbar、置中標題、左側關閉／刪除、右側新增、可捲動的 88px 清單列與 chevron；列表以 `createdAt` 顯示秒級時間，節點數共用既有有效資料判定並定義虛擬點／pending photo 的計數語意。
 7. 實作新增、選取與返回清單：新增後建立 item 並進入既有表單；點選列開啟對應表單；每次有效表單、選點或照片狀態變更都立即寫回該 item。有未上傳項目時，關閉 Alert 的取消不關閉、確定 final-upsert 後關閉；無未上傳項目時直接關閉並只清理此 session 的地圖 UI。
 8. 送出成功時維持既有「送出 → 檢視側溝頁面」流程；只在使用者關閉檢視頁並回到同一新增清單時，以成功 item draft ID 刪除其草稿與已驗證歸屬的本機照片並移除該列，不得呼叫後端 delete API。送出／照片失敗則保留 item 與草稿，既有失敗 Alert 確認後回到同一清單供編輯或重送。
-9. 補齊 unit 與 instrumentation 測試，並以 build、正式登入後的 map tab、表單、草稿恢復與上傳 smoke test 驗證 Figma 視覺階層及所有 acceptance criteria。
+9. 在 `GutterRepository.uploadNodeImage()` 組裝每個實際單張 multipart request 時，使用 `PhotoCapturedAtResolver.resolveBestEffort(imageUri)`；若為空值，以裝置目前時間依既有 `yyyy-MM-dd HH:mm:ss` 格式補入 `captured_at`。維持既有 slot、retry 及已上傳不重傳的判定。
+10. 移除 `StoreDitchNodeRequestMapper` 對新增、更新、虛擬與一般 node 的 `capturedAt` 組裝，使 outbound JSON 一律省略；保留 `img_ids` 與 response 的 `captured_at` parsing。
+11. 補齊 unit 與 instrumentation 測試，並以 build、正式登入後的 map tab、表單、草稿恢復與上傳 smoke test 驗證 Figma 視覺階層及所有 acceptance criteria。
 
 ## Test Plan
 - Unit：repository-backed allocator 快速建立多筆與重啟後皆為唯一 ID；insert collision retry 能回傳並回寫新 ID。
@@ -36,16 +40,20 @@
 - Instrumentation：從 `MainShellActivity` 登入後進入 map tab，主地圖新增入口先開啟清單；新增兩筆、各自進入表單並返回；清單列內容與選取結果正確。
 - Instrumentation：Toolbar 左關閉／右新增；有／無未上傳項目時的關閉 Alert 分流；configuration recreation 只恢復此清單 ID 集合；程序重建後 pending list 可各自恢復兩筆草稿。
 - Instrumentation：成功送出 → 檢視頁 → 關閉檢視頁 → 同一清單移除成功項目，且不發出 delete API；失敗 Alert 確認 → 同一清單保留失敗項目與草稿；照片與既有 legacy draft 恢復回歸。
+- Unit：每張 `nodeImage` multipart 請求都帶該 URI 解析出的 `captured_at`；解析失敗時以裝置目前時間（同一格式）補入；每張仍是一個 request。
+- Unit：新增、更新、虛擬及一般 `storeDitch` node JSON 都不含 `captured_at`；`img_ids` 行為與 response parsing 保持。
+- Regression：三條既有照片上傳路徑都經共用 repository request；已上傳照片不因本調整變成待重傳。
 - Validation：執行 targeted unit tests、相關 Android instrumentation tests、`assembleDebug`，並在可用裝置上進行新增／切換／關閉／恢復／上傳的 smoke test。
 
 ## Regression Plan
 - 驗證既有單條新增、編輯、檢視模式、無法開蓋、虛擬點、定位選點與地圖控制項持續正常。
 - 驗證既有 pending draft 的恢復、刪除與本機照片清理不受資料模型 migration 影響，且 legacy SPI_NUM 流程不能刪除 multi-gutter rows。
-- 驗證上傳 API payload、照片 slot、401 導回登入與失敗後草稿保留行為不變。
+- 驗證 `nodeImage` 每張帶正確／補值的 `captured_at`、`storeDitch` 一律不帶；照片 slot、401 導回登入與失敗後草稿保留行為不變。
 
 ## Risks
 - 多筆工作項目的 ID、Activity Result 與 map marker 對應錯置是主要資料隔離風險；測試必須涵蓋交錯編輯與重建。
 - Room migration、ID allocator 或照片檔案生命周期錯誤可能導致舊草稿不可讀、快速新增碰撞或清除錯誤照片；須以舊資料 fixture、collision test 和單筆 ID delete 測試保護。
+- 若有上傳路徑繞開 repository 或 resolver 空值被省略，後端 contract 會不一致；以 multipart body unit test 與三條 call path regression 保護。
 
 ## Rollback Plan
 - 若多側溝流程造成回歸，回復本工項的已提交 revision 即可還原既有單一側溝入口與草稿模型。
@@ -69,6 +77,8 @@
 | AC-006 | 4, 8 | same-SPI isolation and successful-upload cleanup tests |
 | AC-007 | 4, 5, 8, 9 | 既有 form／draft／photo／map regression tests |
 | AC-008 | 5, 8 | failed-submit Alert-to-list instrumentation |
+| AC-009 | 9, 11 | repository multipart unit test、三條上傳路徑 regression |
+| AC-010 | 10, 11 | storeDitch mapper JSON unit test、response parsing regression |
 
 ## Failure Behavior
 - 草稿 upsert 失敗：不關閉清單，顯示可辨識錯誤並保留記憶體內工作項目供重試；不得假稱保存成功。

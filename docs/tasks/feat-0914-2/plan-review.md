@@ -150,3 +150,19 @@ APPROVED
 APPROVED
 
 新需求已被可執行的計畫與驗證範圍完整吸收。可進入 Implementation；本 review 未修改 production code，也未執行程式驗證。
+
+## Re-review — 2026-09-15 (Photo API Contract)
+
+| Check | Result | Evidence |
+|---|---|---|
+| Requirements and acceptance criteria | Pass | AC-009 明定每張 nodeImage 的 timestamp 與 fallback；AC-010 明定 storeDitch 全數省略。 |
+| Affected modules and dependencies | Pass | 共用 upload repository／multipart builder、timestamp resolver、outbound mapper 和 response model 的界線已識別。 |
+| Implementation and regression boundaries | Pass | 三條上傳路徑共用 repository；slot、retry、已上傳不重傳、`img_ids` 與 response parsing 均明確保留。 |
+| Failure behavior | Pass | resolver 無值時以裝置目前時間、同一既有格式補值，故不會產生缺少必填欄位的 request。 |
+| Test and rollback plan | Pass | multipart body、mapper JSON、三條上傳路徑 regression 與既有 build/instrumentation 均納入；回復本工項 revision 即可回退。 |
+
+## Re-review Decision — 2026-09-15
+
+APPROVED
+
+API contract 修訂已具備實作條件，可進入 Implementation。
