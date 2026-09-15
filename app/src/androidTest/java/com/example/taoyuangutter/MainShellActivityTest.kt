@@ -266,9 +266,12 @@ class MainShellActivityTest {
     @Test
     fun addGutterListWiresAddAndCloseConfirmationCallbacks() {
         val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.uiAutomation.executeShellCommand("settings put system always_finish_activities 0").close()
+        instrumentation.uiAutomation.executeShellCommand("settings put global always_finish_activities 0").close()
         listOf("animator_duration_scale", "transition_animation_scale", "window_animation_scale").forEach { key ->
             instrumentation.uiAutomation.executeShellCommand("settings put global $key 0").close()
         }
+        instrumentation.waitForIdleSync()
         MainShellActivity.fragmentFactoryForTests = { TestAddGutterHostFragment() }
         val scenario = ActivityScenario.launch(MainShellActivity::class.java)
         try {
