@@ -81,3 +81,4 @@ Requirement text remains authoritative where it differs from the Figma example: 
 - `:app:testDebugUnitTest :app:assembleDebug`: PASS.
 - Targeted `MainShellActivityTest`: PASS, 9/9 on XQ-AU52 - 12 and 9/9 on Medium_Phone(AVD) - 14.
 - Authenticated failure return and visible 1× upload-spinner motion remain `NOT VERIFIED` pending verification smoke.
+- Device readiness check: connected Sony XQ-AU52 currently reports all three Android animation scales as `0`; changing it to 1× and running the authenticated smoke requires a logged-in test session.
