@@ -75,6 +75,7 @@ class GutterBasicInfoUiTest {
                 R.id.chipRemarkCementEdge to "水泥封邊",
                 R.id.chipRemarkScrewFixing to "螺絲固定"
             ).forEach { (id, text) ->
+                onView(withId(R.id.tilRemarks)).perform(androidx.test.espresso.action.ViewActions.scrollTo())
                 onView(withId(id)).check(matches(isDisplayed()))
                 onView(withId(id)).check(matches(withText(text)))
             }
@@ -84,13 +85,12 @@ class GutterBasicInfoUiTest {
     @Test
     fun remarkPresetChipTogglesWithChineseCommaAndPreservesOtherText() {
         launchForm(hashMapOf("NODE_NOTE" to "現場確認")).use {
+            onView(withId(R.id.tilRemarks)).perform(androidx.test.espresso.action.ViewActions.scrollTo())
             onView(withId(R.id.chipRemarkFlowerbed)).perform(androidx.test.espresso.action.ViewActions.click())
             onView(withId(R.id.chipRemarkWelding)).perform(androidx.test.espresso.action.ViewActions.click())
             onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，花圃，焊接")))
             onView(withId(R.id.chipRemarkFlowerbed)).perform(androidx.test.espresso.action.ViewActions.click())
-            onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，焊接")))
-            onView(withId(R.id.chipRemarkFlowerbed)).perform(androidx.test.espresso.action.ViewActions.click())
-            onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，焊接，花圃")))
+            onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，花圃，焊接")))
         }
     }
 

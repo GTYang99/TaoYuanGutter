@@ -17,6 +17,14 @@
 | `./gradlew :app:assembleDebug` | NOT VERIFIED | Environment has no Java Runtime (`Unable to locate a Java Runtime`). |
 | Connected Android UI tests | NOT VERIFIED | Build/runtime prerequisite unavailable. |
 
+## Debug Fix Validation
+
+- Duplicate preset taps now leave an existing exact preset unchanged.
+- Chip UI tests scroll to the remarks section before visibility checks and
+  clicks.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin` — PASS.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest` — NOT VERIFIED: no connected devices; ADB daemon could not start because the environment denied its listener.
+
 ## Isolation
 
 - Branch: `feat/備註欄輔助填寫功能`

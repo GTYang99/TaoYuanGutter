@@ -1015,12 +1015,8 @@ class GutterBasicInfoFragment : Fragment() {
                 val preset = chip.text.toString()
                 val current = binding.etRemarks.text?.toString().orEmpty()
                 val parts = current.split('，').map { it.trim() }.filter { it.isNotEmpty() }
-                val updatedParts = if (parts.any { it == preset }) {
-                    parts.filterNot { it == preset }
-                } else {
-                    parts + preset
-                }
-                val updated = updatedParts.joinToString("，")
+                if (parts.any { it == preset }) return@setOnClickListener
+                val updated = (parts + preset).joinToString("，")
                 binding.etRemarks.setText(updated)
                 binding.etRemarks.setSelection(updated.length)
             }
