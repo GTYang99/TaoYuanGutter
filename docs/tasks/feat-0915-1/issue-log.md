@@ -45,6 +45,26 @@ owner: developer
 
 ---
 
+issue_id: ISS-0915-005
+task_id: feat-0915-1
+phase: verification
+category: environment
+priority: P1
+title: 專案沒有 CI 設定或可查的 CI 結果
+status: open
+impact: 本輪本機單元與模擬機測試皆通過，但無法取得必要的 CI build/test 證據，Release 閘門受阻。
+repro_steps:
+  - 搜尋 `.gitlab-ci.yml`、`.github/workflows`、Jenkinsfile、Azure 與 Bitbucket pipeline 設定。
+  - 檢查任務分支可取得的 CI 結果。
+expected: 有可執行的 CI 設定與本提交的 build/test 結果。
+actual: Repository 未找到 CI 設定，亦無可驗證的 CI 結果。
+evidence:
+  - docs/tasks/feat-0915-1/verification.md
+next_action: infrastructure
+owner: infrastructure
+
+---
+
 issue_id: ISS-0915-003
 task_id: feat-0915-1
 phase: verification

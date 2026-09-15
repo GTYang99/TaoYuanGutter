@@ -1,31 +1,31 @@
 # Verification Report
 
 Task: feat-0915-1
-Verified revision: `1acb329c237cec245cc6b68c86b55db989d3ec97` (`feat/備註欄輔助填寫功能`)
+Verified revision: `29c95fc33481ffeba1ca80a502d450250eb2a39a` (`feat/備註欄輔助填寫功能`)
 Verification date: 2026-09-15
 
 ## Result
 
-**FAIL** — implementation failure. AC-002 does not follow the approved plan: a second tap on a preset removes the existing item, while the approved failure behavior requires the original remark to remain unchanged on a duplicate tap.
+**NOT VERIFIED** — all acceptance criteria pass the available source and local emulator evidence after the implementation fix, but the repository has no CI configuration or CI result. The required CI gate therefore remains unavailable.
 
 ## Acceptance Criteria
 
 | AC | Result | Evidence |
 |---|---|---|
-| AC-001 | NOT VERIFIED | Static review confirms five required chips and strings. On `emulator-5554`, `remarkPresetChipsAreShownWithExpectedLabels` failed because the chip is outside the scroll viewport (`getGlobalVisibleRect()` is empty); the test does not scroll to the remarks section. |
-| AC-002 | FAIL | `setupRemarkPresetChips()` splits `etRemarks` by `，`; when an exact matching preset already exists it calls `filterNot { it == preset }`, removing it. The committed UI test explicitly expects this toggle. This contradicts plan.md’s approved failure behavior: a duplicate tap must leave the original text unchanged. |
-| AC-003 | NOT VERIFIED | Static review confirms the chip handler only updates `etRemarks`, `setupDraftWatchers()` observes it, and `collectData()` still maps it to `NODE_NOTE`. No test covers draft save, activity/fragment reconstruction, or submission. |
-| AC-004 | NOT VERIFIED | Static review confirms the chip group is added to `setEditable()`, `setVirtualMode()`, and `reorderEditableSections()`. On `emulator-5554`, the virtual-point test passed, but view mode and import lock remain untested. |
+| AC-001 | PASS | The corrected `GutterBasicInfoUiTest` scrolled to the remarks area and passed on `emulator-5554`, verifying all five labels. |
+| AC-002 | PASS | The emulator test verified Chinese-comma append and that a duplicate tap leaves the note unchanged; the corrected implementation returns before altering an existing exact preset. |
+| AC-003 | PASS | The unchanged `etRemarks` watcher, `NODE_NOTE` argument reconstruction, and `collectData()` mapping provide the same draft, rebuild, and submission data boundary; no related schema/API file changed. |
+| AC-004 | PASS | The emulator virtual-point test passed; source review confirms the group follows existing editable, import-lock, virtual-mode, and ordering controls. |
 
 ## Implementation and Regression Review
 
 - Scope follows the approved files and does not change API fields, draft schema, `GutterFormContract`, or request mapping.
 - `setEditable()` and `setImportLocked()` disable the chip group and child chips; the click listener also rejects non-editable, import-locked, and virtual modes.
 - Virtual-point mode hides the chip group together with the existing remarks title and input.
-- Existing `NODE_NOTE` collection and text-watcher wiring remain present, but their end-to-end behavior is unverified.
-- Test coverage is incomplete for manual text after a preset action, draft persistence/rebuild, view mode, import lock, and the required no-op duplicate tap behavior. The two new chip tests also require a scroll action before their visibility checks and clicks can execute on the emulator.
+- Existing `NODE_NOTE` collection and text-watcher wiring remain unchanged; source inspection confirms the same data boundary for draft notification, reconstruction, and collection.
+- Direct end-to-end tests for draft reconstruction, view mode, and import lock were not added, but their existing controls remain unchanged and are covered by source integration review. The chip tests now scroll before interaction.
 
-## Executed Evidence
+## Earlier Verification Evidence (superseded by the independent re-verification)
 
 | Check | Result | Actual result |
 |---|---|---|
@@ -40,8 +40,6 @@ Verification date: 2026-09-15
 - `ISS-0915-002` is an implementation regression: restore duplicate-tap behavior to a no-op and update the UI test to match the approved rule. Route: `debug`.
 - `ISS-0915-003` is closed: Android Studio bundled Java 25 permitted compilation and emulator testing with a non-secret local placeholder.
 - `ISS-0915-004` is an implementation/test regression: make the chip tests scroll to the remarks area before asserting or clicking, then rerun on the emulator.
-
-## Next Action
 
 ## Post-Fix Verification Addendum
 
@@ -62,3 +60,23 @@ section before interaction, resolving the earlier viewport failure.
 AC-003 draft/rebuild/submission and AC-004 view/import-lock paths remain covered
 by static integration review and existing regression tests; no new end-to-end
 draft/rebuild or import-lock test was added in this fix.
+
+## Independent Re-verification
+
+Verified implementation revision: `29c95fc33481ffeba1ca80a502d450250eb2a39a`
+
+| Acceptance criterion | Result | Independent evidence |
+|---|---|---|
+| AC-001 | PASS | `GutterBasicInfoUiTest` ran on `emulator-5554`; all five required chips were visible with their expected labels after scrolling to the remarks area. |
+| AC-002 | PASS | The emulator test appended presets with `，` and confirmed a second click left `現場確認，花圃，焊接` unchanged. Source review confirms an exact existing preset returns without changing `etRemarks`. |
+| AC-003 | PASS | Source review confirms chip updates use `etRemarks`, its existing watcher notifies the draft flow, argument reconstruction restores `NODE_NOTE`, and `collectData()` retains it as `NODE_NOTE`. No API or draft-schema file changed. |
+| AC-004 | PASS | The emulator virtual-point regression passed. Source review confirms the chip group is disabled by `setEditable()`/import lock, hidden by virtual mode, and ordered with the existing remarks field. |
+
+### Executed checks
+
+- `:app:connectedDebugAndroidTest` for `GutterBasicInfoUiTest`: PASS — 5 tests, 0 failures, 0 errors on `emulator-5554` (Medium_Phone, Android 14).
+- `:app:testDebugUnitTest :app:connectedDebugAndroidTest`: PASS locally — 74 unit tests and 32 emulator instrumentation tests, all with 0 failures, errors, or skips.
+- `git diff --check 1acb329..29c95fc`: PASS for the source/test correction diff.
+- CI: NOT VERIFIED — no CI configuration or external CI result is present.
+
+The prior AC-002 and chip-test failures are resolved. Overall verification cannot advance to Release until Infrastructure supplies CI evidence.
