@@ -105,6 +105,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         fun onGutterSaveFailed(waypoints: List<Waypoint>)
         /** 新增模式下 storeDitch 失敗時，先關閉主畫面的 blocking loading。 */
         fun onGutterSubmitFailed()
+        /**
+         * 使用者確認新增流程的失敗 Alert 後，讓 multi-gutter host 保存草稿並回到目前清單。
+         * 回傳 true 代表 host 已接管收尾；false 保留 legacy sheet dismiss 行為。
+         */
+        fun onGutterUploadFailureConfirmed(waypoints: List<Waypoint>): Boolean = false
         /** BottomSheet 可視高度變動時，通知 MainActivity 更新地圖可視區。 */
         fun onSheetViewportInsetChanged(bottomInsetPx: Int)
         /** 重傳時重新顯示 BottomSheet */
@@ -1151,7 +1156,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 activity = requireActivity(),
                                 message = errorUi.buildDialogMessage(),
                                 onRetry = { performEditSubmit() },
-                                onSaveDraft = { dismissAllowingStateLoss() }
+                                onSaveDraft = {
+                                    if (locationPickerHost()?.onGutterUploadFailureConfirmed(waypoints.toList()) != true) {
+                                        dismissAllowingStateLoss()
+                                    }
+                                }
                             )
                         }
                     }
@@ -1185,7 +1194,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         activity = requireActivity(),
                         message = errorUi.buildDialogMessage(),
                         onRetry = { performEditSubmit() },
-                        onSaveDraft = { dismissAllowingStateLoss() }
+                        onSaveDraft = {
+                            if (locationPickerHost()?.onGutterUploadFailureConfirmed(waypoints.toList()) != true) {
+                                dismissAllowingStateLoss()
+                            }
+                        }
                     )
                 }
             }
@@ -1259,7 +1272,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                     locationPickerHost()?.onGutterRetry()
                                     submitNewGutterRequest(activity, validWaypoints, token)
                                 },
-                                onSaveDraft = { dismissAllowingStateLoss() }
+                                onSaveDraft = {
+                                    if (locationPickerHost()?.onGutterUploadFailureConfirmed(validWaypoints) != true) {
+                                        dismissAllowingStateLoss()
+                                    }
+                                }
                             )
                         }
                     }
@@ -1294,7 +1311,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         activity = activity,
                         message = errorUi.buildDialogMessage(),
                         onRetry = { submitNewGutterRequest(activity, validWaypoints, token) },
-                        onSaveDraft = { dismissAllowingStateLoss() }
+                        onSaveDraft = {
+                            if (locationPickerHost()?.onGutterUploadFailureConfirmed(validWaypoints) != true) {
+                                dismissAllowingStateLoss()
+                            }
+                        }
                     )
                 }
             }
@@ -1382,14 +1403,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 )
                 )
             ),
-            onClose = {}
+            onClose = {
+                locationPickerHost()?.onGutterUploadFailureConfirmed(waypoints.toList())
+            }
         )
     }
 
     private fun triggerStoreDitchConflictTest() {
         showStoreDitchPhotoClaimDialog(
             activity = requireActivity(),
-            onClose = {}
+            onClose = {
+                locationPickerHost()?.onGutterUploadFailureConfirmed(waypoints.toList())
+            }
         )
     }
 
@@ -1959,7 +1984,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             MaterialAlertDialogBuilder(requireContext())
                                 .setTitle("照片上傳失敗")
                                 .setMessage("${waypoint.label} 第${slot}張照片上傳失敗：${result.message}")
-                                .setPositiveButton("確定", null)
+                                .setPositiveButton("確定") { _, _ ->
+                                    host?.onGutterUploadFailureConfirmed(waypoints.toList())
+                                }
                                 .show()
                             return false
                         }

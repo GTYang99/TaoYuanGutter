@@ -123,7 +123,12 @@ class MainBlockingUiController(
         binding.inspectLoadingOverlay.visibility = if (visible) View.VISIBLE else View.GONE
         // Keep the shared submission/photo indicator explicitly indeterminate on every state update.
         binding.pbInspectLoading.isIndeterminate = true
-        binding.pbInspectLoading.visibility = if (visible) View.VISIBLE else View.GONE
+        if (visible) {
+            // CircularProgressIndicator.show() owns the indeterminate drawable lifecycle.
+            binding.pbInspectLoading.show()
+        } else {
+            binding.pbInspectLoading.hide()
+        }
         binding.tvPhotoUploadProgress.visibility = if (photoUploadBlockingVisible) View.VISIBLE else View.GONE
         binding.tvInspectLoading.visibility = View.VISIBLE
         if (photoUploadBlockingVisible) {

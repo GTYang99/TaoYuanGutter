@@ -82,7 +82,10 @@ class MainShellActivityTest {
         var foundIndicator = false
         var indeterminateValue: String? = null
         while (parser.next() != XmlPullParser.END_DOCUMENT) {
-            if (parser.eventType == XmlPullParser.START_TAG && parser.name == "ProgressBar") {
+            if (
+                parser.eventType == XmlPullParser.START_TAG &&
+                parser.name == "com.google.android.material.progressindicator.CircularProgressIndicator"
+            ) {
                 val id = parser.getAttributeResourceValue(
                     "http://schemas.android.com/apk/res/android",
                     "id",

@@ -257,14 +257,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-	        <ProgressBar
+	        <com.google.android.material.progressindicator.CircularProgressIndicator
 	            android:id="@+id/pbInspectLoading"
-	            style="?android:attr/progressBarStyleLarge"
 	            android:layout_width="wrap_content"
 	            android:layout_height="wrap_content"
 	            android:indeterminate="true"
-	            android:indeterminateTint="?attr/colorPrimary"
-	            android:indeterminateTintMode="src_in"
+	            app:indicatorColor="?attr/colorPrimary"
+	            app:indicatorSize="48dp"
+	            app:trackThickness="4dp"
 	            app:layout_constraintTop_toTopOf="parent"
 	            app:layout_constraintBottom_toBottomOf="parent"
 	            app:layout_constraintStart_toStartOf="parent"

@@ -963,13 +963,18 @@ class MapWorkspaceFragment : Fragment(),
         mainBlockingUiController.setInspectLoading(false)
     }
 
-    override fun onStoreDitchNetworkClosed(spiNum: String?, waypoints: List<Waypoint>) {
+    override fun onGutterUploadFailureConfirmed(waypoints: List<Waypoint>): Boolean {
+        if (!isMultiGutterSession) return false
         mainBlockingUiController.setInspectLoading(false)
         saveWaypointsAsPendingDraft(waypoints)
-        if (isMultiGutterSession) {
-            returnToMultiGutterListAfterUploadFailure()
-            return
-        }
+        returnToMultiGutterListAfterUploadFailure()
+        return true
+    }
+
+    override fun onStoreDitchNetworkClosed(spiNum: String?, waypoints: List<Waypoint>) {
+        mainBlockingUiController.setInspectLoading(false)
+        if (onGutterUploadFailureConfirmed(waypoints)) return
+        saveWaypointsAsPendingDraft(waypoints)
         activeSheet?.onWaypointsChanged = null
         activeSheet?.dismissAllowingStateLoss()
         activeSheet = null

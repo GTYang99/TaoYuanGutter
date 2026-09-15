@@ -72,3 +72,12 @@ Requirement text remains authoritative where it differs from the Figma example: 
 - The new spinner validation test: PASS on XQ-AU52 - 12 and Medium_Phone(AVD).
 - The full `MainShellActivityTest` class had one unrelated Sony `onSaveInstanceState` flaky failure; the new test itself passed on both devices.
 - Actual visual motion remains `NOT VERIFIED` because the current test devices have Android animation scales set to `0`.
+
+## AC-008 Common Failure Exit and Material Spinner — 2026-09-15
+
+- Added a multi-gutter-only confirmed-failure callback. Generic `storeDitch` errors, exceptions, pre-submit photo failures, network failures, and 409 conflict confirmation now share the save-draft and return-to-active-list exit.
+- Legacy single-gutter behavior remains the existing sheet-dismiss fallback.
+- Replaced the activity upload overlay's platform `ProgressBar` with the existing Material `CircularProgressIndicator`; controller state uses `show()`/`hide()` to manage the indeterminate drawable lifecycle.
+- `:app:testDebugUnitTest :app:assembleDebug`: PASS.
+- Targeted `MainShellActivityTest`: PASS, 9/9 on XQ-AU52 - 12 and 9/9 on Medium_Phone(AVD) - 14.
+- Authenticated failure return and visible 1× upload-spinner motion remain `NOT VERIFIED` pending verification smoke.
