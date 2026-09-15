@@ -51,7 +51,7 @@ phase: verification
 category: environment
 priority: P1
 title: Java Runtime 缺失使建置與 Android UI 測試無法執行
-status: open
+status: closed
 impact: 無法取得組建、連線 Android UI 測試與 CI 的執行證據，Release 受阻。
 repro_steps:
   - 執行 `java -version`。
@@ -60,5 +60,26 @@ expected: Java 與 Gradle 建置可執行。
 actual: 系統回報 `Unable to locate a Java Runtime`。
 evidence:
   - verification.md
-next_action: infrastructure
-owner: infrastructure
+next_action: verification
+owner: verification
+
+---
+
+issue_id: ISS-0915-004
+task_id: feat-0915-1
+phase: verification
+category: implementation_regression
+priority: P2
+title: 備註膠囊 UI 測試未捲動至欄位而無法驗證互動
+status: open
+impact: `GutterBasicInfoUiTest` 的兩項新增膠囊測試在模擬機上無法看見或點擊膠囊，未能提供 AC-001／AC-002 的 runtime 證據。
+repro_steps:
+  - 在 emulator-5554 執行 `GutterBasicInfoUiTest`。
+  - 執行備註膠囊顯示或點擊測試。
+expected: 測試先捲動至備註區，確認膠囊可見後再檢查或點擊。
+actual: 測試直接檢查或點擊畫面外的 `chipRemarkFlowerbed`，Espresso 回報空的 global visible rectangle。
+evidence:
+  - app/build/outputs/androidTest-results/connected/debug/TEST-Medium_Phone(AVD) - 14.xml
+  - app/src/androidTest/java/com/example/taoyuangutter/GutterBasicInfoUiTest.kt:69
+next_action: debug
+owner: developer

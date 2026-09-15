@@ -18,7 +18,7 @@ implementation:
   status: completed
 
 validation:
-  status: limited
+  status: failed
 
 git:
   branch: feat/備註欄輔助填寫功能
@@ -39,5 +39,6 @@ release:
   status: pending
 
 blocking:
-  - Java Runtime 缺失，無法執行 Gradle 建置與 Android UI 測試
+  - AC-002 的重複點擊行為違反核准計畫
+  - emulator UI 測試的備註膠囊案例未捲動至目標欄位而失敗
 next_action: debug
