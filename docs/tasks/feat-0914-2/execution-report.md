@@ -52,3 +52,13 @@ Requirement text remains authoritative where it differs from the Figma example: 
 - Corrected child-fragment callback routing and process-recreation restoration to use only `MULTI_GUTTER` rows.
 - Multi-gutter successful upload now removes only the selected draft after inspect-page close and returns to the list.
 - Formal authenticated MapWorkspace smoke is still not executed because no login session/test credentials are available.
+
+## API Contract Revision — 2026-09-15
+
+- `/v1/node/nodeImage` now sends `captured_at` on every single-photo multipart request.
+- Photo timestamp resolution reuses the existing resolver and falls back to device time in `yyyy-MM-dd HH:mm:ss` format.
+- `/v1/ditch/storeDitch` node mapping no longer serializes `captured_at`; `img_ids` and response parsing remain unchanged.
+- Focused API tests: PASS (`NodeImageMultipartBodyTest`, `StoreDitchNodeRequestMapperTest`).
+- Full debug unit tests: PASS (74 tests, 0 failures, 0 errors).
+- Debug build: PASS (`assembleDebug`).
+- Commit: `e22e78e` (`fix(feat-0914-2): align photo and ditch upload contracts`).
