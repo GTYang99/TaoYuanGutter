@@ -43,6 +43,16 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun confirmClose() {
+        if (drafts.none { draft ->
+                draft.waypoints.any { waypoint ->
+                    (waypoint.latitude != null && waypoint.longitude != null) ||
+                        waypoint.basicData.any { (_, value) -> value.isNotBlank() }
+                }
+            }) {
+            (parentFragment as? Host)?.onAddGutterListConfirmedClose()
+            dismissAllowingStateLoss()
+            return
+        }
         MaterialAlertDialogBuilder(requireContext())
             .setMessage("未上傳側溝草稿將儲存到草稿中")
             .setNegativeButton("取消", null)

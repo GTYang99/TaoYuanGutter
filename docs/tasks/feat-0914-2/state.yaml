@@ -22,8 +22,8 @@ validation:
 
 git:
   branch: feat/側溝清單
-  commit: 0ef857c
-  status: committed
+  commit: pending-current-implementation-commit
+  status: pending
 
 verification:
   result: not_verified
@@ -37,6 +37,7 @@ verification:
     - AC-005
     - AC-006
     - AC-007
+    - AC-008
 
 ci:
   build: pending
@@ -46,7 +47,6 @@ release:
   status: pending
 
 blocking:
-  - Targeted list-layout instrumentation passes, but end-to-end AC-001–AC-007 workflow evidence is still unavailable.
-  - Formal MapWorkspace smoke requires an authenticated session; no test credentials/session are available.
-  - No CI result is available.
+  - Formal authenticated MapWorkspace smoke requires a login session/test credentials not available in the current environment.
+  - CI workflow/result is not present in the repository or current session.
 next_action: verification

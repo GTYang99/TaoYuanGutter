@@ -7,7 +7,7 @@
 - 僅調整主地圖新增側溝入口、清單工作階段、草稿持久化與其必要 UI／測試；不重寫既有側溝表單欄位、後端 API、地圖功能或上傳 contract。
 
 ## Affected Files
-- `app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt`：正式新增入口、`childFragmentManager`、表單／選點回傳、marker、working layer 與送出後的單筆清理，全部由 selected multi-gutter item 的 draft ID 協調。
+- `app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt`：正式新增入口、`childFragmentManager`、表單／選點回傳、檢視頁關閉回傳、marker、working layer 與送出成功／失敗的單筆狀態協調，全部由 selected multi-gutter item 的 draft ID 協調。
 - `app/src/main/java/com/example/taoyuangutter/MainShellActivity.kt`：不預期 production change；列入登入後 map tab 的入口驗證。`MainActivity.kt` 是 legacy duplicate，不在本工項產品流程修改範圍。
 - `app/src/main/java/com/example/taoyuangutter/gutter/AddGutterBottomSheet.kt`、`GutterFormActivity.kt` 與既有 coordinator：新增清單 session 所需的穩定 item／draft ID 傳遞，維持既有單條表單行為。
 - 新增 `app/src/main/java/com/example/taoyuangutter/gutter/AddGutterListBottomSheet.kt`、`AddGutterListAdapter.kt`、`MultiGutterSessionCoordinator.kt`：新增側溝清單、列選取、關閉確認、只恢復此清單 ID 集合的 configuration recreation 與即時保存協調。
@@ -23,9 +23,9 @@
 3. 建立唯一寫入 contract：repository 的 `upsertIndependentDraft` 只接受 item draft ID，對已存在列一律保留 `createdAt`／ownership、只更新 `savedAt` 和內容；`ensureDraftExists`、coordinator auto-save、`GutterFormActivity.syncSessionDraftNow` 及 `PhotoSlotUploadCoordinator` 全數改經同一 contract 寫入。insert collision 必須重新配置 ID 並把回傳 ID 回寫至 item／form result。
 4. 隔離 legacy SPI_NUM 行為：將 `autoSaveSessionDraft` 的 SPI_NUM dedup 與 `deleteDraftsBySpiNum` 限制為 `LEGACY_SINGLE` drafts；multi-gutter workflow 絕不按 SPI_NUM 查找、重用、覆寫或批次刪除。`MapWorkspaceFragment` 的 multi-gutter submit success、照片清理與失敗保存一律使用 selected item draft ID；legacy 流程不得影響 `MULTI_GUTTER` rows。
 5. 將 `MapWorkspaceFragment` 的 `btnAddGutter` 改為正式清單入口，並以 `childFragmentManager` 顯示 list sheet。把 location-pick receiver、`AddGutterBottomSheet`／`GutterFormActivity` result、working markers 與 preview 綁定 selected item draft ID，不再以全域單一 `currentSessionDraftId` 作多側溝識別。
-6. 依 Figma `2374:26810` 建立 `AddGutterListBottomSheet`：使用地圖上的 bottom sheet、70px Toolbar、置中標題、左側新增、右側關閉、可捲動的 88px 清單列與 chevron；列表以 `createdAt` 顯示秒級時間，節點數共用既有有效資料判定並定義虛擬點／pending photo 的計數語意。
-7. 實作新增、選取與返回清單：新增後建立 item 並進入既有表單；點選列開啟對應表單；每次有效表單、選點或照片狀態變更都立即寫回該 item。關閉 Alert 的取消不關閉；確定 final-upsert 每條有效未上傳 item、關閉清單並只清理此 session 的地圖 UI。
-8. 送出與照片上傳完成時，只以成功 item 的 draft ID 刪除其草稿與已驗證歸屬的本機照片；同一清單、同 SPI_NUM 或後補 SPI_NUM 的其他 items 必須保留。網路／照片失敗僅更新該 item，讓其仍可由 pending list 恢復。
+6. 依 Figma `2374:26810` 建立 `AddGutterListBottomSheet`：使用地圖上的 bottom sheet、70px Toolbar、置中標題、左側關閉／刪除、右側新增、可捲動的 88px 清單列與 chevron；列表以 `createdAt` 顯示秒級時間，節點數共用既有有效資料判定並定義虛擬點／pending photo 的計數語意。
+7. 實作新增、選取與返回清單：新增後建立 item 並進入既有表單；點選列開啟對應表單；每次有效表單、選點或照片狀態變更都立即寫回該 item。有未上傳項目時，關閉 Alert 的取消不關閉、確定 final-upsert 後關閉；無未上傳項目時直接關閉並只清理此 session 的地圖 UI。
+8. 送出成功時維持既有「送出 → 檢視側溝頁面」流程；只在使用者關閉檢視頁並回到同一新增清單時，以成功 item draft ID 刪除其草稿與已驗證歸屬的本機照片並移除該列，不得呼叫後端 delete API。送出／照片失敗則保留 item 與草稿，既有失敗 Alert 確認後回到同一清單供編輯或重送。
 9. 補齊 unit 與 instrumentation 測試，並以 build、正式登入後的 map tab、表單、草稿恢復與上傳 smoke test 驗證 Figma 視覺階層及所有 acceptance criteria。
 
 ## Test Plan
@@ -34,7 +34,8 @@
 - Unit：兩筆同 SPI_NUM／後補 SPI_NUM 的 `MULTI_GUTTER` draft 交錯更新與成功刪除其中一筆時，另一筆仍完整存在；legacy SPI_NUM dedup／delete 不可作用於 multi rows。
 - Unit：多側溝 item 各自保有 draft ID、建立時間、waypoints 與排序；更新其中一筆不影響其他筆；空項目不生成草稿；節點數固定虛擬點與 pending photo 的既有有效資料計數規則。
 - Instrumentation：從 `MainShellActivity` 登入後進入 map tab，主地圖新增入口先開啟清單；新增兩筆、各自進入表單並返回；清單列內容與選取結果正確。
-- Instrumentation：關閉 Alert 的取消／確定、configuration recreation 只恢復此清單 ID 集合、程序重建後 pending list 可各自恢復兩筆草稿、成功上傳只移除對應草稿、照片與既有 legacy draft 恢復回歸。
+- Instrumentation：Toolbar 左關閉／右新增；有／無未上傳項目時的關閉 Alert 分流；configuration recreation 只恢復此清單 ID 集合；程序重建後 pending list 可各自恢復兩筆草稿。
+- Instrumentation：成功送出 → 檢視頁 → 關閉檢視頁 → 同一清單移除成功項目，且不發出 delete API；失敗 Alert 確認 → 同一清單保留失敗項目與草稿；照片與既有 legacy draft 恢復回歸。
 - Validation：執行 targeted unit tests、相關 Android instrumentation tests、`assembleDebug`，並在可用裝置上進行新增／切換／關閉／恢復／上傳的 smoke test。
 
 ## Regression Plan
@@ -63,10 +64,11 @@
 | AC-001 | 5, 6 | 正式 map tab 入口 instrumentation |
 | AC-002 | 1, 5, 7 | 多筆新增／切換 instrumentation |
 | AC-003 | 1, 2, 6 | allocator／adapter unit test、Figma visual smoke test |
-| AC-004 | 3, 4, 7 | Alert instrumentation、ID-only repository assertions |
+| AC-004 | 3, 4, 6, 7 | Toolbar／Alert branch instrumentation、ID-only repository assertions |
 | AC-005 | 1, 2, 3, 7 | process/activity recreation instrumentation、createdAt／草稿隔離 unit test |
 | AC-006 | 4, 8 | same-SPI isolation and successful-upload cleanup tests |
 | AC-007 | 4, 5, 8, 9 | 既有 form／draft／photo／map regression tests |
+| AC-008 | 5, 8 | failed-submit Alert-to-list instrumentation |
 
 ## Failure Behavior
 - 草稿 upsert 失敗：不關閉清單，顯示可辨識錯誤並保留記憶體內工作項目供重試；不得假稱保存成功。

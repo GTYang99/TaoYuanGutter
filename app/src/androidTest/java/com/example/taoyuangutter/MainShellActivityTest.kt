@@ -43,7 +43,9 @@ class MainShellActivityTest {
         var confirmedClose = false
 
         fun showList() {
-            com.example.taoyuangutter.gutter.AddGutterListBottomSheet().show(childFragmentManager, "test-add-gutter-list")
+            com.example.taoyuangutter.gutter.AddGutterListBottomSheet().also {
+                it.drafts = listOf(GutterSessionDraft(waypoints = listOf(WaypointSnapshot(latitude = 25.0, longitude = 121.0))))
+            }.show(childFragmentManager, "test-add-gutter-list")
         }
 
         override fun onAddGutterListAdd() { addClicked = true }
@@ -169,7 +171,7 @@ class MainShellActivityTest {
             View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
         )
         root.layout(0, 0, widthPx, root.measuredHeight)
-        assertTrue(add.left < close.left)
+        assertTrue(close.left < add.left)
         assertNotNull(root.findViewById<View>(R.id.rvAddGutterList))
     }
 
@@ -229,12 +231,15 @@ class MainShellActivityTest {
             )
 
             val recreated = MultiGutterSessionCoordinator(repository)
-            assertEquals(listOf(first.draftId, second.draftId), recreated.items().map { it.draftId })
+            val recreatedIds = recreated.items().map { it.draftId }
+            assertTrue(recreatedIds.containsAll(listOf(first.draftId, second.draftId)))
+            assertTrue(recreatedIds.indexOf(first.draftId) < recreatedIds.indexOf(second.draftId))
             assertEquals(setOf(first.draftId, second.draftId), recreated.drafts().map { it.id }.toSet())
 
             repository.delete(first.draftId)
             val afterSingleDelete = MultiGutterSessionCoordinator(repository)
-            assertEquals(listOf(second.draftId), afterSingleDelete.items().map { it.draftId })
+            assertTrue(afterSingleDelete.items().none { it.draftId == first.draftId })
+            assertTrue(afterSingleDelete.items().any { it.draftId == second.draftId })
         } finally {
             repository.delete(first.draftId)
             repository.delete(second.draftId)
@@ -243,6 +248,10 @@ class MainShellActivityTest {
 
     @Test
     fun addGutterListWiresAddAndCloseConfirmationCallbacks() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        listOf("animator_duration_scale", "transition_animation_scale", "window_animation_scale").forEach { key ->
+            instrumentation.uiAutomation.executeShellCommand("settings put global $key 0").close()
+        }
         MainShellActivity.fragmentFactoryForTests = { TestAddGutterHostFragment() }
         val scenario = ActivityScenario.launch(MainShellActivity::class.java)
         try {

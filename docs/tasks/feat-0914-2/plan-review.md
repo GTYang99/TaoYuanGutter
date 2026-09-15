@@ -94,6 +94,13 @@ REQUEST_CHANGES
 
 前一輪三項 Major 已依上述回應修訂 `analysis.md` 與 `plan.md`。規劃重新送交 Plan Review；尚未修改 production code。
 
+## Requirement Revision — 2026-09-15
+
+- 使用者決定 Toolbar 改為左側關閉／刪除、右側新增。
+- 有未上傳項目時才顯示關閉保存 Alert；沒有未上傳項目時直接關閉。
+- 成功送出後必須先進入檢視側溝頁面，關閉檢視頁後才回到本次清單並移除成功項目；失敗 Alert 確認後回到本次清單並保留失敗項目。
+- 此變更新增 AC-008 並使既有已核准／已實作 revision 不再涵蓋完整 requirement；`state.yaml` 已退回 Planning，待重新 Plan Review。
+
 ## Re-review — 2026-09-14 (Approved)
 
 | Check | Result | Evidence |
@@ -119,3 +126,27 @@ REQUEST_CHANGES
 APPROVED
 
 計畫已達實作準備條件。可進入 Implementation；尚未執行任何 production code 變更或驗證。
+
+## Re-review — 2026-09-15 (Requirement Update)
+
+新 requirement 新增並明確化下列行為，已與修訂後計畫逐項核對：
+
+| Requirement change | Plan coverage | Result |
+|---|---|---|
+| Toolbar 左側關閉／刪除、右側新增 | Step 6 與 toolbar instrumentation 明確定義。 | Pass |
+| 無未上傳項目時直接關閉 | Step 7 與有／無項目的 Alert branch instrumentation 已覆蓋。 | Pass |
+| 成功後先進檢視頁，關閉後回到同一清單才移除成功項目 | Step 8 將刪除時機、ID-only 清理與禁止後端 delete API 明確化；Instrumentation 覆蓋完整回傳鏈。 | Pass |
+| 失敗 Alert 確認後回到同一清單並保留項目 | Step 8、AC-008 traceability 與 failure-path instrumentation 已覆蓋。 | Pass |
+| 既有檢視、上傳、照片與草稿流程不回歸 | Affected modules、Regression Plan 與 AC-007 已涵蓋。 | Pass |
+
+### Review Checklist
+- Requirements and acceptance criteria: Pass — AC-001 至 AC-008 均有 implementation step 與驗證對應。
+- Repository analysis and affected modules: Pass — `MapWorkspaceFragment`、`inspectLauncher`、表單／檢視回傳、草稿與照片清理責任皆已納入。
+- Implementation and failure paths: Pass — success、photo failure、submit failure 與關閉分流都有明確狀態與資料保留規則。
+- Tests, risks, scope, rollback and open questions: Pass — 新增需求具體測試已列入，無需外部決策。
+
+## Re-review Decision — 2026-09-15
+
+APPROVED
+
+新需求已被可執行的計畫與驗證範圍完整吸收。可進入 Implementation；本 review 未修改 production code，也未執行程式驗證。

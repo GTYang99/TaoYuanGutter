@@ -201,6 +201,11 @@ class MapWorkspaceFragment : Fragment(),
     private var currentSessionIsOffline: Boolean = false
     private var isMultiGutterSession: Boolean = false
     private var addGutterListSheet: AddGutterListBottomSheet? = null
+    private data class PendingSuccessfulMultiDraftCleanup(
+        val draftId: Long,
+        val waypoints: List<Waypoint>
+    )
+    private var pendingSuccessfulMultiDraftCleanup: PendingSuccessfulMultiDraftCleanup? = null
     private var initialSpiState: String? = null
     private var activeSheet: AddGutterBottomSheet? = null
     private var pickingIndex: Int = -1
@@ -301,6 +306,16 @@ class MapWorkspaceFragment : Fragment(),
             if (result.resultCode == GutterInspectActivity.RESULT_EDIT_DITCH) {
                 handleInspectEditResult(result.data)
             } else {
+                val completedMultiDraft = pendingSuccessfulMultiDraftCleanup
+                pendingSuccessfulMultiDraftCleanup = null
+                if (completedMultiDraft != null) {
+                    draftCoordinator.deleteDraftAndLocalPhotos(
+                        requireContext(),
+                        completedMultiDraft.draftId,
+                        fallbackWaypoints = completedMultiDraft.waypoints
+                    )
+                    multiGutterSessionCoordinator.remove(completedMultiDraft.draftId)
+                }
                 isInEditingMode = false
                 inspectPreviewIntent = null
                 shouldReturnToInspectPreview = false
@@ -310,6 +325,9 @@ class MapWorkspaceFragment : Fragment(),
                 gutterMapController.clearPreviewLayer()
                 clearWorkingMarkers()
                 loadGuttersByViewport(showFeedback = true)
+                if (completedMultiDraft != null && isMultiGutterSession && isAdded) {
+                    showAddGutterList()
+                }
             }
         }
     }
@@ -988,6 +1006,20 @@ class MapWorkspaceFragment : Fragment(),
         val sheet = AddGutterListBottomSheet().also { it.drafts = multiGutterSessionCoordinator.drafts() }
         addGutterListSheet = sheet
         sheet.show(childFragmentManager, "AddGutterListBottomSheet")
+    }
+
+    private fun returnToMultiGutterListAfterUploadFailure() {
+        if (!isMultiGutterSession) {
+            activeSheet?.dismissAllowingStateLoss()
+            activeSheet = null
+            return
+        }
+        if (!isAdded) return
+        activeSheet?.onWaypointsChanged = null
+        activeSheet?.dismissAllowingStateLoss()
+        activeSheet = null
+        currentSessionResumedFromDraft = true
+        showAddGutterList()
     }
 
     override fun onAddGutterListAdd() {
@@ -2003,13 +2035,16 @@ class MapWorkspaceFragment : Fragment(),
                             activeSheet?.dismissAllowingStateLoss()
                             activeSheet = null
                             pendingDraftId?.let { draftId ->
-                                draftCoordinator.deleteDraftAndLocalPhotos(
-                                    requireContext(),
-                                    draftId,
-                                    fallbackWaypoints = persistedWaypoints
-                                )
-                                if (isMultiGutterSession) {
-                                    multiGutterSessionCoordinator.remove(draftId)
+                                if (isMultiGutterSession && !spiNum.isNullOrBlank()) {
+                                    pendingSuccessfulMultiDraftCleanup =
+                                        PendingSuccessfulMultiDraftCleanup(draftId, persistedWaypoints)
+                                } else {
+                                    draftCoordinator.deleteDraftAndLocalPhotos(
+                                        requireContext(),
+                                        draftId,
+                                        fallbackWaypoints = persistedWaypoints
+                                    )
+                                    if (isMultiGutterSession) multiGutterSessionCoordinator.remove(draftId)
                                 }
                             }
                             currentSessionDraftId = null
@@ -2050,8 +2085,7 @@ class MapWorkspaceFragment : Fragment(),
                                 .setTitle("上傳失敗")
                                 .setMessage(errorUi.buildDialogMessage())
                                 .setNegativeButton("存入草稿") { _, _ ->
-                                    activeSheet?.dismissAllowingStateLoss()
-                                    activeSheet = null
+                                    returnToMultiGutterListAfterUploadFailure()
                                 }
                                 .setPositiveButton("重傳") { _, _ ->
                                     finalizePhotoUploadFlow(
@@ -2095,8 +2129,7 @@ class MapWorkspaceFragment : Fragment(),
                     .setTitle("上傳失敗")
                     .setMessage(errorUi.buildDialogMessage())
                     .setNegativeButton("存入草稿") { _, _ ->
-                        activeSheet?.dismissAllowingStateLoss()
-                        activeSheet = null
+                        returnToMultiGutterListAfterUploadFailure()
                     }
                     .setPositiveButton("重傳") { _, _ ->
                         finalizePhotoUploadFlow(

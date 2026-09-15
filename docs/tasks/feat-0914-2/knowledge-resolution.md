@@ -16,6 +16,8 @@
 | Toolbar 行為採需求文字：左側「＋新增」、右側關閉 x；建立時間到秒；Alert 採指定內容與確定／取消。 | requirement 高於 Figma 的示意排版。 | High | AC-003, AC-004 |
 | Figma 的清單面板視覺可重用：地圖上的底部面板、24px 上圓角、70px toolbar、置中標題、88px list row、32px 內距與 chevron。 | Figma node `2374:26810`；與需求不衝突的設計資訊。 | High | AC-003 |
 | 空白且沒有任何有效資料的剛建立側溝不產生草稿。 | 延用 `GutterDraftCoordinator` 的有效內容清理規則；不影響使用者已輸入資料。 | Medium | AC-004, AC-005 |
+| Toolbar 採左側關閉／刪除、右側新增；無未上傳項目時關閉直接結束。 | 2026-09-15 使用者明確決定，高於既有 requirement 與 Figma 示意。 | High | AC-004 |
+| 成功送出後必須先進檢視頁，關閉檢視頁再回到同一新增清單並移除成功項目；失敗 Alert 確認後回清單並保留失敗項目。 | 2026-09-15 使用者明確指定流程；不含後端 delete。 | High | AC-006, AC-008 |
 
 ## Figma Component Relationships
 
@@ -33,13 +35,14 @@ Main map shell (map + statusBar + tabBar + map controls)
 ```
 
 ## Unresolved Conflicts
-- Figma 把 close 放在左側、add 放在右側，且範例建立時間只到分鐘；requirement 指定相反位置與秒級時間。已依需求文字處理，非阻擋項。
+- Figma 把 close 放在左側、add 放在右側，且範例建立時間只到分鐘；目前需求也指定 close 左、add 右，但時間仍以需求的秒級格式為準。
 - Figma 未提供關閉確認 Alert。Alert 的行為與文案以 requirement 為準；實作時沿用 app 既有 Material Alert 樣式。
 
 ## Assumptions Safe for Planning
 - 清單本身是 `BottomSheetDialogFragment`，疊在既有主地圖上，不取代 `MainActivity`、地圖或 tab host。
 - 每個新增工作項目在首次進入表單前即有穩定的草稿 ID；首次有效變更時寫入 Room，以支援程序重建。
 - 清單關閉時只針對仍未上傳且有效的工作項目進行 final upsert；成功上傳的項目應刪除其草稿。
+- 成功後的清單項目移除只能發生在使用者關閉既有檢視頁並回到清單時；失敗確認後不得移除該 item 或其草稿。
 
 ## Questions Requiring Approval
 - 無。
