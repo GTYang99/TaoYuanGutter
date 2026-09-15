@@ -241,6 +241,9 @@ class MainShellActivityTest {
             val afterSingleDelete = MultiGutterSessionCoordinator(repository)
             assertTrue(afterSingleDelete.items().none { it.draftId == first.draftId })
             assertTrue(afterSingleDelete.items().any { it.draftId == second.draftId })
+
+            recreated.clearSession()
+            assertTrue(recreated.items().isEmpty())
         } finally {
             repository.delete(first.draftId)
             repository.delete(second.draftId)

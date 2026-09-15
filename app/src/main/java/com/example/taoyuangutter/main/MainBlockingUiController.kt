@@ -121,15 +121,18 @@ class MainBlockingUiController(
     private fun applyBlockingOverlay() {
         val visible = inspectLoadingVisible || photoUploadBlockingVisible
         binding.inspectLoadingOverlay.visibility = if (visible) View.VISIBLE else View.GONE
-        binding.tvPhotoUploadProgress.visibility = View.GONE
+        binding.pbInspectLoading.visibility = if (visible) View.VISIBLE else View.GONE
+        binding.tvPhotoUploadProgress.visibility = if (photoUploadBlockingVisible) View.VISIBLE else View.GONE
         binding.tvInspectLoading.visibility = View.VISIBLE
         if (photoUploadBlockingVisible) {
-            binding.tvInspectLoading.text = context.getString(
+            val progressText = context.getString(
                 R.string.msg_photo_upload_overlay_progress,
                 photoUploadCompleted,
                 photoUploadTotal,
                 photoUploadFailed
             )
+            binding.tvInspectLoading.text = progressText
+            binding.tvPhotoUploadProgress.text = progressText
         } else if (!inspectLoadingMessage.isNullOrBlank()) {
             binding.tvInspectLoading.text = inspectLoadingMessage
         }

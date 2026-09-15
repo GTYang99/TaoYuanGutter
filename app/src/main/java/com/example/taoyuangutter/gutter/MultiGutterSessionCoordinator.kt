@@ -35,4 +35,9 @@ class MultiGutterSessionCoordinator(repository: GutterSessionRepository) {
     fun remove(draftId: Long) {
         items.removeAll { it.draftId == draftId }
     }
+
+    /** Ends the current add-list session without deleting the drafts just finalized. */
+    fun clearSession() {
+        items.clear()
+    }
 }
