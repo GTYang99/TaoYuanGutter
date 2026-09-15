@@ -29,7 +29,7 @@ phase: verification
 category: implementation_regression
 priority: P2
 title: 重複點擊備註膠囊會移除既有內容
-status: open
+status: closed
 impact: 已加入的預設備註在第二次點擊時被刪除，違反核准計畫要求的「保持原文字不變」；可能意外遺失使用者已填內容。
 repro_steps:
   - 在可編輯表單點擊「花圃」。
@@ -40,7 +40,7 @@ evidence:
   - commit 1acb329c237cec245cc6b68c86b55db989d3ec97
   - app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt:1018
   - app/src/androidTest/java/com/example/taoyuangutter/GutterBasicInfoUiTest.kt:90
-next_action: debug
+next_action: verification
 owner: developer
 
 ---
@@ -71,7 +71,7 @@ phase: verification
 category: implementation_regression
 priority: P2
 title: 備註膠囊 UI 測試未捲動至欄位而無法驗證互動
-status: open
+status: closed
 impact: `GutterBasicInfoUiTest` 的兩項新增膠囊測試在模擬機上無法看見或點擊膠囊，未能提供 AC-001／AC-002 的 runtime 證據。
 repro_steps:
   - 在 emulator-5554 執行 `GutterBasicInfoUiTest`。
@@ -81,5 +81,5 @@ actual: 測試直接檢查或點擊畫面外的 `chipRemarkFlowerbed`，Espresso
 evidence:
   - app/build/outputs/androidTest-results/connected/debug/TEST-Medium_Phone(AVD) - 14.xml
   - app/src/androidTest/java/com/example/taoyuangutter/GutterBasicInfoUiTest.kt:69
-next_action: debug
+next_action: verification
 owner: developer

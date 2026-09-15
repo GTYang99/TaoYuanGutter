@@ -43,4 +43,22 @@ Verification date: 2026-09-15
 
 ## Next Action
 
-Run Debug for AC-002 and the failed chip test setup before any production-code change. After an approved debug fix is committed, repeat the emulator UI tests and add evidence for draft/rebuild, view mode, and import lock.
+## Post-Fix Verification Addendum
+
+Verified revision: `35af48d` (implementation fix at `29c95fc`)
+
+The debug fix was applied and re-tested on `Medium_Phone` (Android 14).
+
+| Check | Result | Evidence |
+|---|---|---|
+| `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin` | PASS | Build completed successfully with Android Studio bundled JDK. |
+| `:app:connectedDebugAndroidTest` | PASS | 32 tests, 0 failures, 0 errors, 0 skipped. |
+| `GutterBasicInfoUiTest` | PASS | 5 tests passed, including chip visibility, Chinese-comma append, duplicate-tap no-op, and virtual-point regression. |
+
+The previous AC-002 implementation failure is resolved: duplicate taps now leave
+the existing exact preset unchanged. The chip tests now scroll to the remarks
+section before interaction, resolving the earlier viewport failure.
+
+AC-003 draft/rebuild/submission and AC-004 view/import-lock paths remain covered
+by static integration review and existing regression tests; no new end-to-end
+draft/rebuild or import-lock test was added in this fix.
