@@ -22,7 +22,7 @@ validation:
 
 git:
   branch: feat/側溝清單
-  commit: pending-current-implementation-commit
+  commit: 0230c10
   status: pending
 
 verification:
