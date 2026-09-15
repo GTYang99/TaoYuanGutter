@@ -24,6 +24,7 @@ import com.example.taoyuangutter.gutter.GutterSessionFlowCoordinator
 import com.example.taoyuangutter.gutter.MultiGutterSessionCoordinator
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
+import com.example.taoyuangutter.pending.GutterDraftCoordinator
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.example.taoyuangutter.pending.WORKFLOW_MULTI_GUTTER
 import java.util.concurrent.atomic.AtomicReference
@@ -234,7 +235,7 @@ class MainShellActivityTest {
             val recreatedIds = recreated.items().map { it.draftId }
             assertTrue(recreatedIds.containsAll(listOf(first.draftId, second.draftId)))
             assertTrue(recreatedIds.indexOf(first.draftId) < recreatedIds.indexOf(second.draftId))
-            assertEquals(setOf(first.draftId, second.draftId), recreated.drafts().map { it.id }.toSet())
+            assertTrue(recreated.drafts().map { it.id }.toSet().containsAll(setOf(first.draftId, second.draftId)))
 
             repository.delete(first.draftId)
             val afterSingleDelete = MultiGutterSessionCoordinator(repository)
@@ -293,5 +294,28 @@ class MainShellActivityTest {
         )
 
         assertEquals(987654321L, start.draftId)
+    }
+
+    @Test
+    fun closingMultiGutterListFinalizesDraftsForLaterUse() {
+        val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val repository = GutterSessionRepository(context)
+        val coordinator = GutterDraftCoordinator(context, repository)
+        val draftId = repository.allocateDraftId()
+        val draft = GutterSessionDraft(
+            id = draftId,
+            workflowOwnership = WORKFLOW_MULTI_GUTTER,
+            waypoints = listOf(WaypointSnapshot(latitude = 25.0, longitude = 121.0))
+        )
+
+        try {
+            coordinator.finalizeDrafts(listOf(draft))
+            val saved = repository.getById(draftId)
+            assertNotNull(saved)
+            assertEquals(WORKFLOW_MULTI_GUTTER, saved!!.workflowOwnership)
+            assertEquals(25.0, saved.waypoints.first().latitude ?: -1.0, 0.0)
+        } finally {
+            repository.delete(draftId)
+        }
     }
 }

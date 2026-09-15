@@ -24,6 +24,13 @@ class GutterDraftCoordinator(
 
     fun getAllDrafts(): List<GutterSessionDraft> = repository.getAll()
 
+    /** Finalizes the currently visible multi-gutter drafts before the list closes. */
+    fun finalizeDrafts(drafts: List<GutterSessionDraft>) {
+        drafts
+            .filter { it.workflowOwnership == WORKFLOW_MULTI_GUTTER && hasRetainableContent(it) }
+            .forEach(repository::save)
+    }
+
     fun deleteDraft(id: Long) {
         repository.delete(id)
     }

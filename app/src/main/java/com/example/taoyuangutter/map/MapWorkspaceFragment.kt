@@ -1044,6 +1044,7 @@ class MapWorkspaceFragment : Fragment(),
     }
 
     override fun onAddGutterListConfirmedClose() {
+        draftCoordinator.finalizeDrafts(multiGutterSessionCoordinator.drafts())
         isMultiGutterSession = false
         addGutterListSheet = null
         restoreMainUiAfterSheetClosed()
