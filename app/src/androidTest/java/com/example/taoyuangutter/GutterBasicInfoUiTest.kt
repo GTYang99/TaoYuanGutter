@@ -82,12 +82,15 @@ class GutterBasicInfoUiTest {
     }
 
     @Test
-    fun remarkPresetChipAppendsWithChineseCommaAndDoesNotDuplicate() {
+    fun remarkPresetChipTogglesWithChineseCommaAndPreservesOtherText() {
         launchForm(hashMapOf("NODE_NOTE" to "現場確認")).use {
             onView(withId(R.id.chipRemarkFlowerbed)).perform(androidx.test.espresso.action.ViewActions.click())
             onView(withId(R.id.chipRemarkWelding)).perform(androidx.test.espresso.action.ViewActions.click())
-            onView(withId(R.id.chipRemarkFlowerbed)).perform(androidx.test.espresso.action.ViewActions.click())
             onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，花圃，焊接")))
+            onView(withId(R.id.chipRemarkFlowerbed)).perform(androidx.test.espresso.action.ViewActions.click())
+            onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，焊接")))
+            onView(withId(R.id.chipRemarkFlowerbed)).perform(androidx.test.espresso.action.ViewActions.click())
+            onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，焊接，花圃")))
         }
     }
 

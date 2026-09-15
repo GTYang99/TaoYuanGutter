@@ -1014,9 +1014,13 @@ class GutterBasicInfoFragment : Fragment() {
                 if (!isFormEditable || isImportLocked || isVirtualMode) return@setOnClickListener
                 val preset = chip.text.toString()
                 val current = binding.etRemarks.text?.toString().orEmpty()
-                val parts = current.split('，').map { it.trim() }
-                if (parts.any { it == preset }) return@setOnClickListener
-                val updated = if (current.isBlank()) preset else "$current，$preset"
+                val parts = current.split('，').map { it.trim() }.filter { it.isNotEmpty() }
+                val updatedParts = if (parts.any { it == preset }) {
+                    parts.filterNot { it == preset }
+                } else {
+                    parts + preset
+                }
+                val updated = updatedParts.joinToString("，")
                 binding.etRemarks.setText(updated)
                 binding.etRemarks.setSelection(updated.length)
             }
