@@ -2,8 +2,8 @@ task:
   id: feat-0914-2
   type: feature
 
-phase: verification
-status: verification_not_verified
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: resolved
@@ -22,22 +22,19 @@ validation:
 
 git:
   branch: feat/側溝清單
-  commit: ac49f14
+  commit: 21efa64
   status: committed
 
 debug:
   status: completed
-  root_cause: identified
+  root_cause: identified_for_009
 
 verification:
   result: fail
   category: implementation
   failed_acceptance_criteria:
-    - AC-005
-    - AC-006
-  not_verified_acceptance_criteria:
-    - AC-001
     - AC-002
+  not_verified_acceptance_criteria:
     - AC-003
     - AC-004
     - AC-007
@@ -50,4 +47,9 @@ ci:
 release:
   status: pending
 
-next_action: verification
+blocking:
+  - AC-002 fails in formal authenticated MapWorkspace smoke: returning from a newly created gutter form bypasses the active add-list and returns to the main map.
+  - Formal authenticated MapWorkspace smoke requires a login session or test credentials not available in the current environment.
+  - CI workflow/result is not present in the repository or current session.
+
+next_action: implementation_debug

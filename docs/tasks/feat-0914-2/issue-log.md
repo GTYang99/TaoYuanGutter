@@ -136,3 +136,48 @@ failed_acceptance_criteria:
 next_action: verification
 owner: developer
 ```
+
+## ISS-FEAT-0914-2-008
+
+```yaml
+issue_id: ISS-FEAT-0914-2-008
+task_id: feat-0914-2
+phase: verification
+category: environment
+priority: P1
+title: Release-blocking MapWorkspace smoke and CI evidence are unavailable
+status: open
+impact: The corrected implementation cannot advance to Release until the authenticated formal map workflow and CI results are independently evidenced.
+evidence:
+  - The launcher requires an authenticated LoginActivity session; no test credentials/session are available.
+  - No CI configuration or CI result is present in the repository/current session.
+next_action: infrastructure
+owner: verification
+```
+
+## ISS-FEAT-0914-2-009
+
+```yaml
+issue_id: ISS-FEAT-0914-2-009
+task_id: feat-0914-2
+phase: debug
+category: implementation_regression
+priority: P1
+title: Returning from a newly created gutter form bypasses the active add-list
+status: classified
+impact: Users cannot create and switch between multiple gutters in one add-list session because returning from the first form exits to the main map instead of restoring the same list.
+repro_steps:
+  - Log in on Sony XQ-AU52 and open the MapWorkspace map tab.
+  - Tap the map add-gutter FAB; the add-list opens.
+  - Tap the add-list right-side 新增 action; the new-gutter form opens.
+  - Use the form's back action without submitting.
+expected: Return to the same add-gutter list, allowing another item to be added or selected.
+actual: Return directly to the main map; no add-list is displayed.
+evidence:
+  - Authenticated physical-device smoke on Sony XQ-AU52 API 31, 2026-09-15.
+  - MapWorkspaceFragment binds onWaypointsCleared to showAddGutterList when isMultiGutterSession is true, but the observed form-return path did not restore the list.
+failed_acceptance_criteria:
+  - AC-002
+next_action: implementation_debug
+owner: developer
+```
