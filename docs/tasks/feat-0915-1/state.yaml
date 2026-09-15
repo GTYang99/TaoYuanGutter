@@ -2,8 +2,8 @@ task:
   id: feat-0915-1
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -18,18 +18,17 @@ implementation:
   status: completed
 
 validation:
-  status: failed
+  status: limited
 
 git:
   branch: feat/備註欄輔助填寫功能
-  commit: 1acb329c237cec245cc6b68c86b55db989d3ec97
+  commit: 29c95fc
   status: committed
 
 verification:
-  result: fail
-  category: implementation
-  failed_acceptance_criteria:
-    - AC-002
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
 
 ci:
   build: pending
@@ -39,8 +38,7 @@ release:
   status: pending
 
 blocking:
-  - AC-002 的重複點擊行為違反核准計畫
-  - emulator UI 測試的備註膠囊案例未捲動至目標欄位而失敗
+  - connected Android UI tests require an emulator; ADB cannot start in the current environment
 debug:
   status: completed
   root_cause: identified

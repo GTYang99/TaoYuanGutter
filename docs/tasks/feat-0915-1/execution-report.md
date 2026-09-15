@@ -25,6 +25,12 @@
 - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin` — PASS.
 - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest` — NOT VERIFIED: no connected devices; ADB daemon could not start because the environment denied its listener.
 
+## Current Revision
+
+- Bug-fix revision: `29c95fc`.
+- The earlier verification failure at `1acb329` is superseded by the duplicate-tap fix.
+- Emulator verification remains pending until ADB can connect to `Medium_Phone`.
+
 ## Isolation
 
 - Branch: `feat/備註欄輔助填寫功能`
