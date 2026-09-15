@@ -25,6 +25,7 @@ import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.example.taoyuangutter.gutter.AddGutterListAdapter
 import com.example.taoyuangutter.gutter.GutterSessionFlowCoordinator
 import com.example.taoyuangutter.gutter.MultiGutterSessionCoordinator
+import com.example.taoyuangutter.api.GutterApiClient
 import com.example.taoyuangutter.main.MainBlockingUiController
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -65,6 +66,12 @@ class MainShellActivityTest {
         override fun onAddGutterListAdd() { addClicked = true }
         override fun onAddGutterListSelect(draft: GutterSessionDraft) = Unit
         override fun onAddGutterListConfirmedClose() { confirmedClose = true }
+    }
+
+    @Test
+    fun debugBuildEnablesOnlyTheExistingFailureSimulationGate() {
+        assertTrue(BuildConfig.DEBUG)
+        assertTrue(GutterApiClient.ENABLE_GROUP_SIMULATION)
     }
 
     @Test

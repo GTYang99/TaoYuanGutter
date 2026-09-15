@@ -42,3 +42,19 @@
 
 ## Unknowns
 - 無阻擋規劃的未知項目。空白列不保存草稿採用知識釐清的明確假設；冷啟動後不自動將所有 pending drafts 混入新清單，使用者應從既有 pending list 各自恢復。
+
+## Verification test-only simulation amendment — 2026-09-15
+
+### Current behavior
+- `AddGutterBottomSheet` already owns a long-press simulation menu for `模擬網路逾時` and `模擬照片認領失敗(409)`. Both paths call `LocationPickerHost.onGutterUploadFailureConfirmed(waypoints)` after the existing failure Alert is confirmed; `MapWorkspaceFragment` then saves the selected multi-gutter draft and reopens its active list.
+- The simulation is presently unreachable because `GutterApiClient.ENABLE_GROUP_SIMULATION` is hard-coded to `false`. It does not call the backend when enabled.
+- The currently logged-in emulator is connected to a production-like API environment. Real submission and photo-upload testing is therefore unsafe, particularly while the photo timestamp API contract may not be deployed.
+
+### Expected behavior
+- A debug APK may expose only the existing long-press simulation menu. A release APK must not expose it.
+- Selecting either simulator and confirming the existing failure Alert must exercise the existing AC-008 recovery callback without an HTTP request, preserve the local draft, and restore the same multi-gutter list.
+
+### Scope and risks
+- Affected source is limited to `GutterApiService.kt`: derive the existing flag from `BuildConfig.DEBUG`. No endpoint, request payload, token, production UI path, or release behavior changes.
+- Add an instrumentation regression that asserts the flag is enabled for the debug test APK. The existing simulation path is then exercised manually through Alert confirmation to the active list; neither check constructs a valid submit request, attaches a photo, or issues network traffic.
+- Primary risk is accidentally exposing the menu in release. Mitigate with `BuildConfig.DEBUG` and a test assertion. Rollback is a one-line restoration to `false`.

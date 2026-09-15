@@ -91,3 +91,11 @@ Requirement text remains authoritative where it differs from the Figma example: 
 - Final `:app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`: PASS. Medium_Phone(AVD) - 14: 10/10; XQ-AU52 - 12: 10/10.
 - Emulator system animation scales were restored to 1× after regression execution.
 - Authenticated AC-008 failure smoke remains `NOT VERIFIED`; the test device validates the common callback wiring and regression behavior but cannot issue an authenticated `storeDitch` failure without credentials.
+
+## Debug-only AC-008 failure simulator — 2026-09-15
+
+- The existing long-press failure simulator is now gated by `BuildConfig.DEBUG`; release builds keep the gate false.
+- `debugBuildEnablesOnlyTheExistingFailureSimulationGate` passed on Medium_Phone(AVD) - 14.
+- `:app:assembleDebug :app:assembleDebugAndroidTest --no-daemon`: PASS.
+- `:app:testDebugUnitTest :app:assembleRelease --no-daemon`: PASS; 74 unit tests have no recorded failures/errors, and generated release `BuildConfig.DEBUG` is `false`.
+- The test-only simulator calls its existing local failure Alert path directly; it does not create a request, attach a photo, or contact the backend.

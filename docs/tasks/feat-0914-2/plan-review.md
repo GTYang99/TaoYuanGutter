@@ -166,3 +166,21 @@ APPROVED
 APPROVED
 
 API contract 修訂已具備實作條件，可進入 Implementation。
+
+## Re-review — 2026-09-15 (AC-008 test-only simulator)
+
+### Checklist
+
+| Check | Result | Evidence |
+|---|---|---|
+| Requirement scope | Pass | The amendment does not alter AC-008 or server behavior; it supplies the missing test-only evidence path after production-like endpoint testing was ruled unsafe. |
+| Existing capability and affected module | Pass | `AddGutterBottomSheet` already contains the long-press timeout/409 simulation and routes confirmed failures through `onGutterUploadFailureConfirmed`; only its hard-coded gate in `GutterApiClient` must become debug-only. |
+| Release isolation | Pass | `BuildConfig.DEBUG` is generated per build variant. It enables the existing menu in debug and remains false in release, without an endpoint override, request interception, or API contract change. |
+| Test plan and coverage | Pass | The plan adds an instrumentation assertion for the debug-only gate plus a logged-in emulator smoke for the Alert-confirmation callback, active-list return, retained draft, and editable form; neither path can issue HTTP traffic. |
+| Risks and rollback | Pass | The sole behavior risk is release exposure, contained by the build flag and source/test review; the change is one-line reversible. |
+
+### Decision
+
+APPROVED
+
+The amendment is a narrowly scoped debug-only verification aid. Implementation may begin; the final report must distinguish its no-network simulation evidence from a real backend failure.

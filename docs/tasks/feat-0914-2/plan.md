@@ -92,3 +92,51 @@
 
 ## Open Questions
 - 無。
+
+## Verification test-only simulation amendment — 2026-09-15
+
+### Goal
+- Enable the existing no-network failure simulator only in debug builds, so AC-008 can be verified on the logged-in emulator without contacting the production-like backend.
+
+### Scope
+- Reuse the existing long-press submit simulation in `AddGutterBottomSheet`; do not add a server, endpoint override, request interceptor, credentials, or production-facing control.
+
+### Affected Files
+- `app/src/main/java/com/example/taoyuangutter/api/GutterApiService.kt`: make `ENABLE_GROUP_SIMULATION` derive from `BuildConfig.DEBUG`.
+- `app/src/androidTest/java/com/example/taoyuangutter/MainShellActivityTest.kt`: assert the debug test APK enables the existing simulator gate.
+- `docs/tasks/feat-0914-2/{analysis,plan,plan-review,verification,state}.md`: record the bounded test-only scope and evidence.
+
+### Implementation Steps
+1. Replace the hard-coded simulator flag with `BuildConfig.DEBUG`; retain its current false behavior for release builds.
+2. Add an instrumentation test asserting the debug build enables the existing simulation gate.
+3. Build the debug APK, run the targeted instrumentation test on `emulator-5554`, then manually use the existing simulator from logged-in MapWorkspace and capture Alert → list → retained-row → editable-form evidence.
+
+### Test Plan
+- Unit/static: verify the flag source is `BuildConfig.DEBUG` and that no source outside the existing simulation gate is changed.
+- Instrumentation: assert the debug test APK enables the existing simulation gate.
+- Emulator smoke: logged-in debug APK, long-press `新增側溝`, select `模擬網路逾時`, confirm the failure Alert, then verify the same list and editable row. Disable/avoid network at no point because the simulator cannot issue a request.
+
+### Regression Plan
+- Run the affected `MainShellActivityTest` and full connected regression on the sole emulator.
+- Confirm a release variant keeps the simulator flag false by source/build-variant assertion.
+
+### Risks
+- Debug-only menu could inadvertently reach release. `BuildConfig.DEBUG` makes release behavior false; test and source review protect it.
+- Simulator coverage proves the user-visible recovery path but not backend integration; it must be reported specifically as test-only evidence, not as a server failure.
+
+### Rollback Plan
+- Restore the simulator flag to `false` and remove its targeted test in a single revert commit; no data migration or backend rollback is required.
+
+### Acceptance Criteria Traceability — amendment
+| AC | Implementation Step | Validation |
+|---|---|---|
+| AC-008 | 1–3 | Debug-only simulator Alert confirmation returns to the same list, retains the selected draft, and reopens it for editing; no HTTP request occurs. |
+
+### Failure Behavior
+- If debug simulation is unexpectedly unavailable, stop the smoke and report `NOT VERIFIED`; do not substitute a real submission on the production-like endpoint.
+
+### Security and Privacy
+- The debug simulator uses no credentials beyond the already logged-in local session and issues no request, photo upload, or log of sensitive values. Release builds keep it disabled.
+
+### Open Questions — amendment
+- 無。

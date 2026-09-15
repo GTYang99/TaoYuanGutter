@@ -290,10 +290,10 @@ interface GutterApiService {
 object GutterApiClient {
 
     /**
-     * 是否開啟長按登出按鈕切換 Group ID 的模擬功能（開發測試用）。
-     * 手動控制開關：true = 開啟模擬功能 / false = 關閉（正式版建議關閉）。
+     * Enables the existing no-network upload-failure simulator for debug builds only.
+     * Release builds must never expose this test-only control.
      */
-    val ENABLE_GROUP_SIMULATION = false
+    val ENABLE_GROUP_SIMULATION = BuildConfig.DEBUG
 
     /**
      * 後端 API 的 Base URL。
