@@ -3,9 +3,11 @@ package com.example.taoyuangutter
 import android.view.ContextThemeWrapper
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.FrameLayout
+import android.os.ParcelFileDescriptor
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
@@ -19,9 +21,11 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.fragment.app.Fragment
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
+import com.google.android.material.progressindicator.CircularProgressIndicator
 import com.example.taoyuangutter.gutter.AddGutterListAdapter
 import com.example.taoyuangutter.gutter.GutterSessionFlowCoordinator
 import com.example.taoyuangutter.gutter.MultiGutterSessionCoordinator
+import com.example.taoyuangutter.main.MainBlockingUiController
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.GutterDraftCoordinator
@@ -104,6 +108,47 @@ class MainShellActivityTest {
         parser.close()
         assertTrue(foundIndicator)
         assertEquals("true", indeterminateValue)
+    }
+
+    @Test
+    fun uploadSpinnerAnimatorChangesRotationAtRuntime() {
+        val animationScale = ParcelFileDescriptor.AutoCloseInputStream(
+            InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(
+                "settings get global animator_duration_scale"
+            )
+        ).bufferedReader().use { it.readText().trim().toFloatOrNull() ?: 0f }
+        if (animationScale <= 0f) return
+
+        MainShellActivity.fragmentFactoryForTests = { TestMapFragment() }
+        val scenario = ActivityScenario.launch(MainShellActivity::class.java)
+        try {
+            val indicatorRef = AtomicReference<CircularProgressIndicator?>()
+            scenario.onActivity { activity ->
+                val indicator = CircularProgressIndicator(activity).apply {
+                    isIndeterminate = true
+                    layoutParams = ViewGroup.LayoutParams(48, 48)
+                    visibility = View.GONE
+                }
+                activity.findViewById<ViewGroup>(android.R.id.content).addView(indicator)
+                indicator.show()
+                indicator.indeterminateDrawable?.start()
+                MainBlockingUiController.createSpinnerAnimator(indicator).start()
+                indicatorRef.set(indicator)
+            }
+            fun rotation(): Float {
+                val value = AtomicReference(0f)
+                scenario.onActivity { value.set(indicatorRef.get()!!.rotation) }
+                return value.get()
+            }
+
+            val firstRotation = rotation()
+            Thread.sleep(250)
+            val secondRotation = rotation()
+            assertTrue(firstRotation != secondRotation)
+        } finally {
+            MainShellActivity.fragmentFactoryForTests = null
+            scenario.close()
+        }
     }
 
     @Test

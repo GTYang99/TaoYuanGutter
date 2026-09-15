@@ -82,3 +82,12 @@ Requirement text remains authoritative where it differs from the Figma example: 
 - Targeted `MainShellActivityTest`: PASS, 9/9 on XQ-AU52 - 12 and 9/9 on Medium_Phone(AVD) - 14.
 - Authenticated failure return and visible 1× upload-spinner motion remain `NOT VERIFIED` pending verification smoke.
 - Device readiness check: connected Sony XQ-AU52 currently reports all three Android animation scales as `0`; changing it to 1× and running the authenticated smoke requires a logged-in test session.
+
+## Emulator Animation Lifecycle Validation — 2026-09-15
+
+- Initial runtime check established that Material `show()`/drawable `start()` alone did not produce an observable advancing state in the emulator test harness.
+- `MainBlockingUiController` now starts a 900 ms linear rotation animator while the upload overlay is visible and cancels/resets it when hidden.
+- Direct emulator instrumentation at 1× for `uploadSpinnerAnimatorChangesRotationAtRuntime`: PASS; spinner rotation changed over 250 ms.
+- Final `:app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`: PASS. Medium_Phone(AVD) - 14: 10/10; XQ-AU52 - 12: 10/10.
+- Emulator system animation scales were restored to 1× after regression execution.
+- Authenticated AC-008 failure smoke remains `NOT VERIFIED`; the test device validates the common callback wiring and regression behavior but cannot issue an authenticated `storeDitch` failure without credentials.

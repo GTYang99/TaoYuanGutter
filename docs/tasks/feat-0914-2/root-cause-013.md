@@ -56,3 +56,9 @@ Consequently, there are two evidence-backed contributors:
 - Routed generic API errors, exceptions, photo upload confirmation, and the debug failure simulation through this common multi-gutter failure exit. Existing network/409 routes continue through the same MapWorkspace handler.
 - Replaced the platform-default `ProgressBar` with the repository's existing Material `CircularProgressIndicator`; `MainBlockingUiController` uses `show()` and `hide()` so the component owns its indeterminate drawable lifecycle.
 - Debug build, unit tests, and `MainShellActivityTest` passed on XQ-AU52 - 12 and Medium_Phone(AVD) - 14. Runtime upload motion at animation scale 1x and an authenticated failure smoke remain verification work.
+
+## Follow-up spinner resolution
+
+The first Material-indicator revision still relied on `show()` and the drawable's own lifecycle. A 1× emulator test showed that this did not provide a testable, advancing animation state. `MainBlockingUiController` now owns an explicit 900 ms linear `ObjectAnimator` for the upload spinner: it starts when either upload overlay becomes visible, cancels on hide, and resets rotation. The animation remains subject to Android's system animation scale.
+
+`uploadSpinnerAnimatorChangesRotationAtRuntime` directly ran on Medium_Phone(AVD) - 14 with all three animation scales set to 1× and observed a changed rotation after 250 ms.

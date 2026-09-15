@@ -1,7 +1,10 @@
 package com.example.taoyuangutter.main
 
+import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.view.View
+import android.view.animation.LinearInterpolator
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.databinding.ActivityMainBinding
 
@@ -17,6 +20,7 @@ class MainBlockingUiController(
     private var photoUploadTotal = 0
     private var photoUploadCompleted = 0
     private var photoUploadFailed = 0
+    private var spinnerAnimator: ObjectAnimator? = null
 
     fun setInspectLoading(visible: Boolean, message: String? = null) {
         inspectLoadingVisible = visible
@@ -124,9 +128,13 @@ class MainBlockingUiController(
         // Keep the shared submission/photo indicator explicitly indeterminate on every state update.
         binding.pbInspectLoading.isIndeterminate = true
         if (visible) {
-            // CircularProgressIndicator.show() owns the indeterminate drawable lifecycle.
+            // Explicitly start the drawable: show() alone does not guarantee a running state.
             binding.pbInspectLoading.show()
+            binding.pbInspectLoading.indeterminateDrawable?.start()
+            startSpinnerAnimation()
         } else {
+            binding.pbInspectLoading.indeterminateDrawable?.stop()
+            stopSpinnerAnimation()
             binding.pbInspectLoading.hide()
         }
         binding.tvPhotoUploadProgress.visibility = if (photoUploadBlockingVisible) View.VISIBLE else View.GONE
@@ -143,5 +151,26 @@ class MainBlockingUiController(
         } else if (!inspectLoadingMessage.isNullOrBlank()) {
             binding.tvInspectLoading.text = inspectLoadingMessage
         }
+    }
+
+    private fun startSpinnerAnimation() {
+        val animator = spinnerAnimator ?: createSpinnerAnimator(binding.pbInspectLoading).also {
+            spinnerAnimator = it
+        }
+        if (!animator.isStarted) animator.start()
+    }
+
+    private fun stopSpinnerAnimation() {
+        spinnerAnimator?.cancel()
+        binding.pbInspectLoading.rotation = 0f
+    }
+
+    companion object {
+        internal fun createSpinnerAnimator(target: View): ObjectAnimator =
+            ObjectAnimator.ofFloat(target, View.ROTATION, 0f, 360f).apply {
+                duration = 900L
+                repeatCount = ValueAnimator.INFINITE
+                interpolator = LinearInterpolator()
+            }
     }
 }
