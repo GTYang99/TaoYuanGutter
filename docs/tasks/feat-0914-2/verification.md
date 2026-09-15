@@ -3,8 +3,8 @@
 ## Revision
 
 - Branch: `feat/側溝清單`
-- Implementation revision: `0230c10`
-- Verification revision: `0230c10`
+- Implementation revision: `11f9749`
+- Verification revision: `11f9749`
 - Working tree contains the pre-existing unrelated `GutterApiService.kt` and `strings.xml` modifications; neither was included in the task commits.
 
 ## Validation evidence
@@ -28,7 +28,7 @@
 | AC-001 | NOT VERIFIED | `MapWorkspaceFragment.openAddGutterFlow()` now opens `AddGutterListBottomSheet`; no runtime UI evidence. |
 | AC-002 | NOT VERIFIED | Instrumentation proves two independent multi-gutter IDs survive coordinator recreation and are ordered, but UI-level add/select/switch editing was not exercised. |
 | AC-003 | NOT VERIFIED | Adapter uses `createdAt`, seconds precision, effective waypoint count, creation order. Targeted instrumentation verifies toolbar/row geometry, close left and add right ordering, list presence, seconds-formatted time, and effective node count for a populated row; multi-row ordering and click-through were not exercised. |
-| AC-004 | NOT VERIFIED | Espresso verifies close left/add right, the specified Alert message, and cancel/confirm callback branches at runtime; post-confirm persistence of every draft and the no-item direct-close branch were not fully exercised. |
+| AC-004 | NOT VERIFIED | Close confirmation now calls final draft upsert and the regression test verifies a multi-gutter draft remains recoverable after finalization; full authenticated MapWorkspace close interaction remains unavailable. |
 | AC-005 | NOT VERIFIED | Instrumentation proves repository-backed draft recovery across coordinator recreation and independent IDs; Activity/process recreation and effective-edit autosave were not executed. |
 | AC-006 | NOT VERIFIED | Source flow now defers cleanup until inspect-page close and uses selected draft ID; successful upload → inspect → close → list interaction was not executed. |
 | AC-007 | NOT VERIFIED | Legacy flow remains compilable and full connected tests pass; authenticated map/upload smoke remains unavailable. |

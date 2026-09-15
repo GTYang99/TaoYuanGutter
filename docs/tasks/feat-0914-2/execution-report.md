@@ -40,6 +40,8 @@ Requirement text remains authoritative where it differs from the Figma example: 
 - After callback-routing, revised success/failure list flow, and single-item cleanup fixes, compile and unit tests: PASS.
 - Targeted `MainShellActivityTest` instrumentation: PASS on `XQ-AU52 - 12` and `Medium_Phone(AVD)`.
 - Full `connectedDebugAndroidTest`: PASS on both devices after disabling system animations for the Espresso dialog test.
+- Close-confirm flow now finalizes retainable multi-gutter drafts before dismissing the list, preventing drafts from being lost after confirmation.
+- Regression test `closingMultiGutterListFinalizesDraftsForLaterUse`: PASS on both devices.
 - `git diff --check`: PASS.
 
 ## Limitations
