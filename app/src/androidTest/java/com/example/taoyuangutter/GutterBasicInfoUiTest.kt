@@ -66,6 +66,32 @@ class GutterBasicInfoUiTest {
     }
 
     @Test
+    fun remarkPresetChipsAreShownWithExpectedLabels() {
+        launchForm(hashMapOf()).use {
+            listOf(
+                R.id.chipRemarkFlowerbed to "花圃",
+                R.id.chipRemarkWelding to "焊接",
+                R.id.chipRemarkBollard to "車擋",
+                R.id.chipRemarkCementEdge to "水泥封邊",
+                R.id.chipRemarkScrewFixing to "螺絲固定"
+            ).forEach { (id, text) ->
+                onView(withId(id)).check(matches(isDisplayed()))
+                onView(withId(id)).check(matches(withText(text)))
+            }
+        }
+    }
+
+    @Test
+    fun remarkPresetChipAppendsWithChineseCommaAndDoesNotDuplicate() {
+        launchForm(hashMapOf("NODE_NOTE" to "現場確認")).use {
+            onView(withId(R.id.chipRemarkFlowerbed)).perform(androidx.test.espresso.action.ViewActions.click())
+            onView(withId(R.id.chipRemarkWelding)).perform(androidx.test.espresso.action.ViewActions.click())
+            onView(withId(R.id.chipRemarkFlowerbed)).perform(androidx.test.espresso.action.ViewActions.click())
+            onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，花圃，焊接")))
+        }
+    }
+
+    @Test
     fun turningVirtualPointOffRestoresNormalFormInteraction() {
         launchForm(hashMapOf("is_virtual" to "1")).use { scenario ->
             onView(withId(R.id.cbIsVirtual)).check(matches(isChecked()))
@@ -95,6 +121,7 @@ class GutterBasicInfoUiTest {
                 R.id.tvSiltTitle,
                 R.id.rgIsSilt,
                 R.id.tvRemarksTitle,
+                R.id.chipGroupRemarksPresets,
                 R.id.tilRemarks
             ).forEach { id ->
                 onView(withId(id)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))

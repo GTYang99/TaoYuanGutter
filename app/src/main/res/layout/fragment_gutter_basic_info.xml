@@ -1363,6 +1363,55 @@
             android:textColor="@color/textColorSecondary"
             android:layout_marginBottom="4dp" />
 
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupRemarksPresets"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            app:chipSpacingHorizontal="6dp"
+            app:chipSpacingVertical="4dp">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipRemarkFlowerbed"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/remark_preset_flowerbed"
+                android:contentDescription="@string/remark_preset_flowerbed_desc" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipRemarkWelding"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/remark_preset_welding"
+                android:contentDescription="@string/remark_preset_welding_desc" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipRemarkBollard"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/remark_preset_bollard"
+                android:contentDescription="@string/remark_preset_bollard_desc" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipRemarkCementEdge"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/remark_preset_cement_edge"
+                android:contentDescription="@string/remark_preset_cement_edge_desc" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipRemarkScrewFixing"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/remark_preset_screw_fixing"
+                android:contentDescription="@string/remark_preset_screw_fixing_desc" />
+        </com.google.android.material.chip.ChipGroup>
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilRemarks"
             style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
