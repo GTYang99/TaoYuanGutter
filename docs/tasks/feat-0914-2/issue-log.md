@@ -115,6 +115,30 @@ next_action: verification
 owner: verification
 ```
 
+## ISS-FEAT-0914-2-012
+
+```yaml
+issue_id: ISS-FEAT-0914-2-012
+task_id: feat-0914-2
+phase: debug
+category: implementation_regression
+priority: P2
+title: Upload loading indicator renders as a static icon
+status: open
+impact: Users cannot visually confirm that side-gutter or photo upload is still progressing.
+repro_steps:
+  - Start a side-gutter submission or photo upload.
+  - Observe the shared blocking overlay indicator.
+expected: The spinner continuously animates until the upload finishes or fails.
+actual: The indicator can appear as a single static icon.
+evidence:
+  - MainBlockingUiController only toggles pbInspectLoading visibility and text; it does not explicitly start or configure animation.
+  - activity_main.xml uses framework progressBarStyleLarge with tint but omits explicit android:indeterminate=true.
+  - MainShellActivityTest and the current emulator set Android animation scales to 0.
+next_action: debug
+owner: developer
+```
+
 ## ISS-FEAT-0914-2-007
 
 ```yaml
@@ -164,16 +188,16 @@ task_id: feat-0914-2
 phase: verification
 category: environment
 priority: P2
-title: Emulator full regression had intermittent Espresso root-focus failure
-status: resolved
-impact: The prior focus flake temporarily prevented retaining dual-device regression evidence.
+title: Emulator full regression has intermittent Espresso root-focus failure
+status: open
+impact: A post-fix clean dual-device connected regression result cannot yet be retained.
 evidence:
   - Sony direct AndroidJUnitRunner: 29 tests, 0 failed, 0 ignored.
   - Emulator direct AndroidJUnitRunner: 29 tests, 1 failed, 0 ignored.
   - Failure: RootViewWithoutFocusException at MainShellActivityTest.kt:288 in addGutterListWiresAddAndCloseConfirmationCallbacks.
   - A later rerun with emulator system animations disabled completed 29 tests, 0 failed, 0 ignored; Sony XQ-AU52 also completed 29 tests, 0 failed, 0 ignored.
-resolution: The clean dual-device regression evidence is recorded in verification.md.
-next_action: verification
+  - Post-fix full connected regression on 2026-09-15: Sony XQ-AU52 29 tests, 0 failed; Medium_Phone(AVD) - 14 29 tests, 1 failed at the same RootViewWithoutFocusException.
+next_action: infrastructure
 owner: verification
 ```
 
@@ -214,7 +238,7 @@ phase: verification
 category: implementation_regression
 priority: P1
 title: Network submission failure exits a multi-gutter session to the main map
-status: open
+status: resolved
 impact: A failed submission does not return the user to the active add-gutter list, so the failed item cannot immediately be edited or retried as required.
 repro_steps:
   - Start a multi-gutter add-list session and open a draft in the add form.
@@ -229,7 +253,7 @@ evidence:
   - UploadFailureClassifierTest passes but contains no UI return-path assertion.
 failed_acceptance_criteria:
   - AC-008
-resolution: Multi-gutter network failure now returns to the active add-gutter list without deleting the failed draft. Authenticated failure smoke remains pending.
+resolution: Independent source review of `fff5f70` confirms multi-gutter network failures now route through `returnToMultiGutterListAfterUploadFailure()` without deleting the failed draft. Authenticated failure smoke remains pending before closure.
 next_action: verification
 owner: verification
 ```
