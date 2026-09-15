@@ -16,6 +16,30 @@ Use the smallest sufficient validation set without sacrificing required coverage
 
 Every acceptance criterion MUST map to at least one test or another concrete form of evidence.
 
+## Physical Device Test Contract
+
+Physical device testing MUST receive the following minimum inputs:
+
+- Commit ID
+- Device serial, model, and Android version
+- Package name
+- Acceptance Criteria IDs
+- Preconditions
+- Exact test steps
+- Expected results
+
+The test scope MUST include only cases mapped to an Acceptance Criterion or an identified Regression Risk. "Test the entire App" is not a valid default scope.
+
+Each failed step MAY be retried at most once. After the retry, record the result and stop that case unless the retry produces new evidence required to classify the failure.
+
+PASS does not require a screenshot unless the Acceptance Criteria, visual requirement, or verification plan explicitly requires visual evidence.
+
+For FAIL, collect only relevant screenshots and a concise logcat excerpt. Limit logs by package, tag, or time range; do not attach an unrestricted device log.
+
+An Agent MUST NOT take a device currently reserved or used by another Agent. If the device state is changed by another Task, stop and classify the affected check as an environment issue.
+
+After all in-scope cases have a result, stop immediately. Do not repeat cases that already passed and do not start exploratory testing without a new requirement, risk, or failure evidence.
+
 ## Result Vocabulary
 
 - `PASS`: executed evidence demonstrates the expected result

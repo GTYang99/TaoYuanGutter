@@ -15,6 +15,19 @@
 ## Test Plan
 - 要跑哪些測試，簡短列出
 
+### Physical Device Test Scope
+- Requires physical device: Yes/No
+- Device/environment: 指定裝置或環境
+- In-scope Acceptance Criteria: AC-xxx
+- Regression risk: 直接相關的回歸風險
+- Full regression required: Yes/No
+- Full regression trigger: Plan、Release Risk、或失敗證據；不適用寫 `無`
+- Stop condition: 所有指定案例完成，或取得足夠失敗證據
+
+| AC | Environment | Steps | Expected | Evidence |
+|---|---|---|---|---|
+| AC-001 | Physical device | Tap submit | Form submitted | Result only; screenshot on failure |
+
 ## Regression Plan
 - 要確認哪些既有功能不壞，簡短列出
 

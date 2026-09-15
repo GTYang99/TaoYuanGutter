@@ -46,6 +46,18 @@ Verification MUST create or update:
 
 Verification SHOULD include supporting evidence.
 
+## Revision and Physical Test Rules
+
+Before Verification starts, record the exact Commit ID under test and confirm the worktree state.
+
+Independent Verification MUST use that committed revision. If `HEAD`, tracked files, or relevant untracked files change after Verification starts, affected results are invalid and MUST be marked `NOT VERIFIED` until the new revision is verified.
+
+Each Acceptance Criterion MUST be reported separately as `PASS`, `FAIL`, or `NOT VERIFIED`.
+
+When a Verification failure is found, collect only the minimum evidence needed to classify it. Verification MUST NOT modify production code or perform unrelated exploratory testing.
+
+Device discovery, ADB, permissions, installation, account access, or device ownership failures are environment failures. Behavior that contradicts the requirement or implementation plan is an implementation failure and routes to `debug`.
+
 ---
 
 ## Verification Process

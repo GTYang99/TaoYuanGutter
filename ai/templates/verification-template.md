@@ -7,13 +7,26 @@
 - CI
 - Committed revision
 
+## Physical Device Context
+
+```yaml
+revision: ""
+device:
+  serial: ""
+  model: ""
+  android_version: ""
+app:
+  package: ""
+  build_variant: debug
+```
+
 ---
 
 ## Acceptance Criteria
 
-| AC | Result | Evidence |
-|----|--------|----------|
-| AC-001 | PASS/FAIL/NOT VERIFIED | 簡短證據 |
+| AC | Steps | Result | Actual Result | Evidence | Retry Count |
+|----|-------|--------|---------------|----------|-------------|
+| AC-001 | 操作步驟 | PASS/FAIL/NOT VERIFIED | 實際結果 | 簡短證據 | 0 |
 
 ---
 

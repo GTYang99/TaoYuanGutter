@@ -212,6 +212,15 @@ After changes, run the most relevant available validation:
 
 Record commands, results, failures, and limitations. If a check cannot run, mark it `NOT VERIFIED`, explain why, and name the next best check.
 
+## Physical Device Testing
+
+- Independent Verification MUST target a fixed committed revision.
+- The worktree under test MUST NOT be modified during physical device testing.
+- Physical device test scope MUST be determined by Acceptance Criteria and Regression Risk.
+- Do not use vague "test the entire App" wording as the default test scope.
+- If the device or required evidence is unavailable, mark the affected result `NOT VERIFIED`.
+- Full regression is triggered only by the approved Plan, Release Risk, or failure evidence.
+
 # Allowed Side Effects
 
 - Knowledge Resolution, Planning, Plan Review, Verification, Investigation, and Infrastructure MUST NOT modify production code.

@@ -43,6 +43,20 @@ Developer MUST create or update:
 
 Developer SHOULD create meaningful Git commits.
 
+## Verification Handoff
+
+Before handing work to Independent Verification, Developer MUST:
+
+- complete Developer Validation
+- create the required Commit
+- record the Commit ID
+- record the APK path or build artifact and build variant
+- record the application package name
+- record required test accounts and preconditions without exposing secrets
+- record relevant `git status --short` worktree evidence
+
+After Independent Verification starts, Developer MUST NOT modify the tested worktree. If a change is required, Developer MUST create a new Commit, repeat Developer Validation, and hand off the new revision. Verification results from the previous Commit MUST NOT be reused.
+
 ---
 
 ## Implementation Rules
