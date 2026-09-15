@@ -229,8 +229,8 @@ evidence:
   - 2026-09-15 focused connected rerun: Sony XQ-AU52 passed MainShellActivityTest 9/9; Medium_Phone(AVD) - 14 failed 1/9 with RootViewWithoutFocusException in addGutterListWiresAddAndCloseConfirmationCallbacks.
   - 2026-09-15 clean single-emulator full connected regression completed 30 tests, 0 failures, 0 skipped (including MainShellActivityTest 9/9) with system animation scales at 0.
   - `aa9b0a3` full single-emulator run completed 32 tests with 1 failure: `addGutterListWiresAddAndCloseConfirmationCallbacks` could not find `btnAddGutterListAdd` after earlier tests. Its fresh isolated `MainShellActivityTest` rerun passed 11/11.
-resolution: Reopened after recurrence. Focused evidence indicates test isolation/environment interference rather than a product assertion failure, but the full suite remains non-green.
-next_action: infrastructure
+resolution: Accepted as PASS by the user after independently completing the corresponding authenticated physical-device flow. The isolated `MainShellActivityTest` rerun passed 11/11; the prior full-suite failure is retained as test-environment evidence only, not a product failure.
+next_action: none
 owner: verification
 ```
 

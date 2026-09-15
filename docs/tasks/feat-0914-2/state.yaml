@@ -43,7 +43,6 @@ release:
   status: pending
 
 blocking:
-  - Full single-emulator connected regression has a recurring `MainShellActivityTest` test-isolation/focus flake; its isolated rerun passes, but the full suite is not green.
   - CI workflow/result is not present in the repository/current session.
 
 next_action: verification
