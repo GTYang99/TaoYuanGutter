@@ -2,8 +2,8 @@ task:
   id: feat-0914-2
   type: feature
 
-phase: debug
-status: debug_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -22,7 +22,7 @@ validation:
 
 git:
   branch: feat/側溝清單
-  commit: 21efa64
+  commit: d21a27d
   status: committed
 
 debug:
@@ -52,4 +52,4 @@ blocking:
   - Formal authenticated MapWorkspace smoke requires a login session or test credentials not available in the current environment.
   - CI workflow/result is not present in the repository or current session.
 
-next_action: implementation_debug
+next_action: verification
