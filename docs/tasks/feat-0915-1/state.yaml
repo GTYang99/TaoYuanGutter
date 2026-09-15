@@ -2,8 +2,8 @@ task:
   id: feat-0915-1
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_failed
 
 knowledge_resolution:
   status: not_required
@@ -21,14 +21,15 @@ validation:
   status: limited
 
 git:
-  branch: feat/側溝清單
-  commit: ""
-  status: pending
+  branch: feat/備註欄輔助填寫功能
+  commit: 1acb329c237cec245cc6b68c86b55db989d3ec97
+  status: committed
 
 verification:
-  result: pending
-  category: null
-  failed_acceptance_criteria: []
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-002
 
 ci:
   build: pending
@@ -37,5 +38,6 @@ ci:
 release:
   status: pending
 
-blocking: []
-next_action: verification
+blocking:
+  - Java Runtime 缺失，無法執行 Gradle 建置與 Android UI 測試
+next_action: debug

@@ -20,3 +20,45 @@ evidence:
   - app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt
 next_action: plan_review
 owner: product
+
+---
+
+issue_id: ISS-0915-002
+task_id: feat-0915-1
+phase: verification
+category: implementation_regression
+priority: P2
+title: 重複點擊備註膠囊會移除既有內容
+status: open
+impact: 已加入的預設備註在第二次點擊時被刪除，違反核准計畫要求的「保持原文字不變」；可能意外遺失使用者已填內容。
+repro_steps:
+  - 在可編輯表單點擊「花圃」。
+  - 再次點擊「花圃」。
+expected: 第二次點擊不變更備註文字，且不新增重複項目。
+actual: `setupRemarkPresetChips()` 移除完整相符的「花圃」分段。
+evidence:
+  - commit 1acb329c237cec245cc6b68c86b55db989d3ec97
+  - app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt:1018
+  - app/src/androidTest/java/com/example/taoyuangutter/GutterBasicInfoUiTest.kt:90
+next_action: debug
+owner: developer
+
+---
+
+issue_id: ISS-0915-003
+task_id: feat-0915-1
+phase: verification
+category: environment
+priority: P1
+title: Java Runtime 缺失使建置與 Android UI 測試無法執行
+status: open
+impact: 無法取得組建、連線 Android UI 測試與 CI 的執行證據，Release 受阻。
+repro_steps:
+  - 執行 `java -version`。
+  - 執行 `./gradlew :app:assembleDebug --no-daemon`。
+expected: Java 與 Gradle 建置可執行。
+actual: 系統回報 `Unable to locate a Java Runtime`。
+evidence:
+  - verification.md
+next_action: infrastructure
+owner: infrastructure
