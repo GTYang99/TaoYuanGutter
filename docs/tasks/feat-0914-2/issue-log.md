@@ -149,20 +149,21 @@ phase: debug
 category: implementation_regression
 priority: P1
 title: AC-008 recovery is incomplete and upload overlay motion is not runtime-verified
-status: implementation_fixed_pending_verification
+status: verified
 impact: Non-network submission failures can dismiss a multi-gutter form without returning to the active list; users cannot rely on a visibly animated upload state.
 repro_steps:
   - Submit a client-valid multi-gutter item and make storeDitch return a non-network error.
   - Select the failure dialog action that saves/closes.
   - Start a side-gutter or photo upload with Android animation scale set to 1x and observe the upload overlay.
 expected: Every failed upload confirmation returns to the active list with the draft retained, and the visible upload indicator has a verified indeterminate animation state.
-actual: Fixed in the committed revision; 1x emulator spinner motion is validated. Authenticated failure return remains verification work.
+actual: Fixed in the committed revision; 1x emulator spinner motion is validated. The logged-in emulator test-only timeout simulation verified Alert confirmation → active list → retained editable draft without issuing a network request.
 evidence:
   - Generic errors, exceptions, photo failure confirmation, and debug failure simulation now call onGutterUploadFailureConfirmed.
   - MapWorkspaceFragment saves the selected multi-gutter draft and returns to the active list when that callback is accepted.
   - The overlay uses CircularProgressIndicator plus controller-owned 900 ms rotation; direct 1x emulator validation observed rotation change over 250 ms.
   - Final targeted connected regression on Medium_Phone(AVD) - 14 and Sony XQ-AU52 passed MainShellActivityTest 10/10 on each device.
-next_action: verification
+  - `aa9b0a3` gates the existing simulator to debug builds only; its logged-in emulator timeout smoke returned to the same list, retained the local draft, and reopened its form.
+next_action: none
 owner: verification
 ```
 
@@ -175,7 +176,7 @@ phase: debug
 category: implementation_regression
 priority: P1
 title: New multi-gutter sessions restore unrelated persisted multi-gutter drafts
-status: resolved
+status: open
 impact: Starting a new add-gutter list session can display drafts from prior closed sessions, contrary to the approved session boundary. A later submit can then treat a prior-session draft as an item in the current list, risking incorrect cleanup scope.
 evidence:
   - MultiGutterSessionCoordinator.kt lines 12-17 loads every repository row with MULTI_GUTTER ownership during construction.
@@ -227,8 +228,9 @@ evidence:
   - Current `f46297a` emulator direct runner: 30 tests, 1 failure. `addGutterListWiresAddAndCloseConfirmationCallbacks` could not find `btnAddGutterListAdd` after preceding tests, while the same 9-test MainShellActivityTest class passes in isolation.
   - 2026-09-15 focused connected rerun: Sony XQ-AU52 passed MainShellActivityTest 9/9; Medium_Phone(AVD) - 14 failed 1/9 with RootViewWithoutFocusException in addGutterListWiresAddAndCloseConfirmationCallbacks.
   - 2026-09-15 clean single-emulator full connected regression completed 30 tests, 0 failures, 0 skipped (including MainShellActivityTest 9/9) with system animation scales at 0.
-resolution: The controlled clean single-emulator run reproduced neither focus nor view-absence failure. Treat earlier failures as transient test-environment interference rather than a current product regression.
-next_action: none
+  - `aa9b0a3` full single-emulator run completed 32 tests with 1 failure: `addGutterListWiresAddAndCloseConfirmationCallbacks` could not find `btnAddGutterListAdd` after earlier tests. Its fresh isolated `MainShellActivityTest` rerun passed 11/11.
+resolution: Reopened after recurrence. Focused evidence indicates test isolation/environment interference rather than a product assertion failure, but the full suite remains non-green.
+next_action: infrastructure
 owner: verification
 ```
 

@@ -22,7 +22,7 @@ validation:
 
 git:
   branch: feat/側溝清單
-  commit: c4161d4
+  commit: aa9b0a3
   status: committed
 
 debug:
@@ -33,8 +33,7 @@ verification:
   result: not_verified
   category: environment
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
-    - AC-008
+  not_verified_acceptance_criteria: []
 
 ci:
   build: pending
@@ -44,7 +43,7 @@ release:
   status: pending
 
 blocking:
-  - AC-008 requires an authenticated failure Alert-to-active-list-to-edit/retry smoke; no automated UI test injects a live `storeDitch` or photo-upload failure.
+  - Full single-emulator connected regression has a recurring `MainShellActivityTest` test-isolation/focus flake; its isolated rerun passes, but the full suite is not green.
   - CI workflow/result is not present in the repository/current session.
 
 next_action: verification
