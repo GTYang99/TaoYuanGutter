@@ -43,12 +43,9 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun confirmClose() {
-        if (drafts.none { draft ->
-                draft.waypoints.any { waypoint ->
-                    (waypoint.latitude != null && waypoint.longitude != null) ||
-                        waypoint.basicData.any { (_, value) -> value.isNotBlank() }
-                }
-            }) {
+        // The alert is about leaving the current add-list session, not about
+        // whether every row already has enough data to be persisted.
+        if (drafts.isEmpty()) {
             (parentFragment as? Host)?.onAddGutterListConfirmedClose()
             dismissAllowingStateLoss()
             return

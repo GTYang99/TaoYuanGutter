@@ -43,9 +43,17 @@ class MainShellActivityTest {
         var addClicked = false
         var confirmedClose = false
 
-        fun showList() {
+        fun showList(withContent: Boolean = true) {
             com.example.taoyuangutter.gutter.AddGutterListBottomSheet().also {
-                it.drafts = listOf(GutterSessionDraft(waypoints = listOf(WaypointSnapshot(latitude = 25.0, longitude = 121.0))))
+                it.drafts = listOf(
+                    GutterSessionDraft(
+                        waypoints = if (withContent) {
+                            listOf(WaypointSnapshot(latitude = 25.0, longitude = 121.0))
+                        } else {
+                            listOf(WaypointSnapshot())
+                        }
+                    )
+                )
             }.show(childFragmentManager, "test-add-gutter-list")
         }
 
@@ -268,7 +276,7 @@ class MainShellActivityTest {
                         .let { (it as MainShellActivity).supportFragmentManager
                             .findFragmentById(R.id.shell_container) as TestAddGutterHostFragment }
                 )
-                hostRef.get()!!.showList()
+                hostRef.get()!!.showList(withContent = false)
             }
             InstrumentationRegistry.getInstrumentation().waitForIdleSync()
 
