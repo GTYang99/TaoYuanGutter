@@ -54,7 +54,7 @@ class MainShellActivityTest {
                         }
                     )
                 )
-            }.show(childFragmentManager, "test-add-gutter-list")
+            }.showNow(childFragmentManager, "test-add-gutter-list")
         }
 
         override fun onAddGutterListAdd() { addClicked = true }
@@ -268,13 +268,10 @@ class MainShellActivityTest {
         val scenario = ActivityScenario.launch(MainShellActivity::class.java)
         try {
             val hostRef = AtomicReference<TestAddGutterHostFragment?>()
-            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            scenario.onActivity { activity ->
                 hostRef.set(
-                    ActivityLifecycleMonitorRegistry.getInstance()
-                        .getActivitiesInStage(Stage.RESUMED)
-                        .first { it is MainShellActivity }
-                        .let { (it as MainShellActivity).supportFragmentManager
-                            .findFragmentById(R.id.shell_container) as TestAddGutterHostFragment }
+                    activity.supportFragmentManager
+                        .findFragmentById(R.id.shell_container) as TestAddGutterHostFragment
                 )
                 hostRef.get()!!.showList(withContent = false)
             }
