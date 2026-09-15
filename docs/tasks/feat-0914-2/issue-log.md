@@ -124,7 +124,7 @@ phase: debug
 category: implementation_regression
 priority: P1
 title: New multi-gutter sessions restore unrelated persisted multi-gutter drafts
-status: classified
+status: resolved
 impact: Starting a new add-gutter list session can display drafts from prior closed sessions, contrary to the approved session boundary. A later submit can then treat a prior-session draft as an item in the current list, risking incorrect cleanup scope.
 evidence:
   - MultiGutterSessionCoordinator.kt lines 12-17 loads every repository row with MULTI_GUTTER ownership during construction.
@@ -133,6 +133,6 @@ evidence:
 failed_acceptance_criteria:
   - AC-005
   - AC-006
-next_action: implementation_debug
-owner: verification
+next_action: verification
+owner: developer
 ```

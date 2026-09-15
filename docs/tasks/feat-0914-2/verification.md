@@ -1,49 +1,50 @@
 # Verification Report
 
-## Revision
+## Revision and scope
 
 - Branch: `feat/側溝清單`
-- Implementation revision: `11f9749`
-- Verification revision: `11f9749`
-- Working tree contains the pre-existing unrelated `GutterApiService.kt` and `strings.xml` modifications; neither was included in the task commits.
+- Verification revision: `2d8f544`
+- Pre-existing, unrelated working-tree changes were excluded from this verification: `app/src/main/java/com/example/taoyuangutter/api/GutterApiService.kt` and `app/src/main/res/values/strings.xml`.
 
-## Validation evidence
+## Executed evidence
 
 | Check | Result | Evidence |
 |---|---|---|
-| Debug Kotlin compilation | PASS | `./gradlew :app:compileDebugKotlin --no-daemon` |
-| Debug unit tests | PASS | `./gradlew :app:testDebugUnitTest --no-daemon` |
-| Debug APK build | PASS | `./gradlew :app:assembleDebug --no-daemon` |
-| Diff whitespace check | PASS | `git diff --check` |
-| Figma MCP design context | PASS | File `IfmNbZKhr4wojZ2bF5rYHG`, node `2374:26810`; dimensions recorded in `execution-report.md` |
-| Targeted Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`; all 7 `MainShellActivityTest` cases passed on `XQ-AU52 - 12` and `Medium_Phone(AVD) - 14`, including revised Figma geometry/control order, seconds precision, effective node-count rendering, independent draft IDs across coordinator recreation, Alert message/add/cancel/confirm callbacks, and requested draft-ID routing. |
-| Full Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon`; all connected tests completed successfully on `XQ-AU52 - 12` and `Medium_Phone(AVD) - 14` in 1m42s. |
-| Formal MapWorkspace smoke | NOT VERIFIED | Debug APK installed successfully on `emulator-5554`, but the exported launcher opens `LoginActivity` and no authenticated session is available; credentials were not supplied. |
-| CI | NOT VERIFIED | No CI result is available in the repository or current session. |
+| Debug Kotlin compile, unit tests, and APK build | PASS | `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:compileDebugKotlin :app:testDebugUnitTest :app:assembleDebug --no-daemon` completed successfully: 50 tasks, 7 executed. |
+| Targeted Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`; result XML recorded 8 tests, 0 failures, 0 errors, 0 skipped on `Medium_Phone(AVD) - 14`. |
+| Full connected Android instrumentation | NOT VERIFIED | The command was invoked against both connected devices, but this verification session did not retain a final Gradle result or result XML sufficient to record it as PASS. |
+| Whitespace check | PASS | `git diff --check` produced no output. |
+| Session-isolation regression | PASS | Single session-isolation instrumentation test passed on both connected devices; fresh coordinators are empty and explicit active IDs restore only selected rows. |
+| CI | NOT VERIFIED | No CI configuration or CI result is available in the repository/current session. |
+
+## Implementation and plan conformance
+
+`MultiGutterSessionCoordinator` initializes its item list by reading every persisted `MULTI_GUTTER` draft. This directly conflicts with approved plan step 1: configuration recreation must use the active session's saved ID list, while cold start/process death must not mix all pending drafts into a new list. The existing instrumentation test asserts this conflicting reload behavior rather than protecting the required boundary.
+
+This is tracked as `ISS-FEAT-0914-2-007` and is an implementation failure. No production code was changed during verification.
 
 ## Acceptance criteria
 
 | AC | Result | Evidence / limitation |
 |---|---|---|
-| AC-001 | NOT VERIFIED | `MapWorkspaceFragment.openAddGutterFlow()` now opens `AddGutterListBottomSheet`; no runtime UI evidence. |
-| AC-002 | NOT VERIFIED | Instrumentation proves two independent multi-gutter IDs survive coordinator recreation and are ordered, but UI-level add/select/switch editing was not exercised. |
-| AC-003 | NOT VERIFIED | Adapter uses `createdAt`, seconds precision, effective waypoint count, creation order. Targeted instrumentation verifies toolbar/row geometry, close left and add right ordering, list presence, seconds-formatted time, and effective node count for a populated row; multi-row ordering and click-through were not exercised. |
-| AC-004 | NOT VERIFIED | Close confirmation now calls final draft upsert and the regression test verifies a multi-gutter draft remains recoverable after finalization; full authenticated MapWorkspace close interaction remains unavailable. |
-| AC-005 | NOT VERIFIED | Instrumentation proves repository-backed draft recovery across coordinator recreation and independent IDs; Activity/process recreation and effective-edit autosave were not executed. |
-| AC-006 | NOT VERIFIED | Source flow now defers cleanup until inspect-page close and uses selected draft ID; successful upload → inspect → close → list interaction was not executed. |
-| AC-007 | NOT VERIFIED | Legacy flow remains compilable and full connected tests pass; authenticated map/upload smoke remains unavailable. |
-| AC-008 | NOT VERIFIED | Source flow now returns multi-gutter photo failure confirmation to the list while preserving the item; a real failed submit and retry interaction was not executed. |
+| AC-001 | NOT VERIFIED | Targeted list-sheet evidence exists, but the authenticated `MapWorkspaceFragment` entry flow was not exercised. |
+| AC-002 | NOT VERIFIED | The targeted suite covers list controls and draft IDs, not the formal map add/select/edit/return journey. |
+| AC-003 | NOT VERIFIED | Targeted evidence covers formatting and list geometry, but no full multi-row selection journey was executed. |
+| AC-004 | NOT VERIFIED | Targeted close-dialog controls pass; end-to-end map-session close/save branching was not executed. |
+| AC-005 | PASS (targeted) | New coordinators start empty; configuration-style restoration uses only the saved active ID list. Full authenticated process-recreation smoke remains unavailable. |
+| AC-006 | PASS (source/targeted) | Current list membership is explicitly session-scoped, so successful cleanup can only target active-session IDs. Full upload smoke remains unavailable. |
+| AC-007 | NOT VERIFIED | Build, unit tests, and targeted instrumentation pass, but full regression evidence is incomplete. |
+| AC-008 | NOT VERIFIED | Failure Alert → return to list → edit/retry was not executed end-to-end. |
 
 ## Regression review
 
-- Existing debug unit tests pass.
-- Existing source-level legacy ownership path remains the default for `MainActivity` and non-multi flows.
-- Targeted device evidence covers the list layout; the full connected suite passes, but it does not exercise the new multi-gutter workflow end-to-end.
+- Build and unit-test evidence passed.
+- Targeted instrumentation passed 8 tests with no failures.
+- The session-isolation regression is confirmed by source inspection and by a test whose expected behavior conflicts with the approved plan.
+- The authenticated map smoke and CI evidence remain unavailable.
 
-## Result
+## Result and route
 
-`NOT VERIFIED` — implementation builds, unit tests and the full connected suite pass, and the Figma-aligned list layout has targeted device evidence, but end-to-end multi-gutter workflow evidence and CI result are unavailable.
+**NOT VERIFIED** — the implementation regression is fixed and targeted session-isolation evidence passes, but full connected evidence, authenticated map smoke, and CI remain unavailable.
 
-## Next action
-
-Add or execute end-to-end instrumentation for AC-001–AC-006 and obtain CI evidence before Release.
+Next action: repeat full verification on revision `2d8f544` when complete connected and authenticated map evidence are available.

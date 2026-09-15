@@ -2,8 +2,8 @@ task:
   id: feat-0914-2
   type: feature
 
-phase: debug
-status: debug_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -22,7 +22,7 @@ validation:
 
 git:
   branch: feat/側溝清單
-  commit: 3b24061
+  commit: 2d8f544
   status: committed
 
 debug:
@@ -50,4 +50,4 @@ ci:
 release:
   status: pending
 
-next_action: implementation_debug
+next_action: verification
