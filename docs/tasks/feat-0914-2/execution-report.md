@@ -62,3 +62,13 @@ Requirement text remains authoritative where it differs from the Figma example: 
 - Full debug unit tests: PASS (74 tests, 0 failures, 0 errors).
 - Debug build: PASS (`assembleDebug`).
 - Commit: `e22e78e` (`fix(feat-0914-2): align photo and ditch upload contracts`).
+
+## Upload Spinner Animation Fix — 2026-09-15
+
+- `activity_main.xml` explicitly declares `pbInspectLoading` as indeterminate.
+- `MainBlockingUiController` reasserts `isIndeterminate = true` whenever the shared submission/photo overlay state is applied.
+- Added `uploadBlockingIndicatorIsExplicitlyIndeterminate` layout-state validation.
+- Unit tests and `assembleDebug`: PASS.
+- The new spinner validation test: PASS on XQ-AU52 - 12 and Medium_Phone(AVD).
+- The full `MainShellActivityTest` class had one unrelated Sony `onSaveInstanceState` flaky failure; the new test itself passed on both devices.
+- Actual visual motion remains `NOT VERIFIED` because the current test devices have Android animation scales set to `0`.

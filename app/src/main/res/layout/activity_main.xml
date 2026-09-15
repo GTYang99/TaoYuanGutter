@@ -262,6 +262,7 @@
 	            style="?android:attr/progressBarStyleLarge"
 	            android:layout_width="wrap_content"
 	            android:layout_height="wrap_content"
+	            android:indeterminate="true"
 	            android:indeterminateTint="?attr/colorPrimary"
 	            android:indeterminateTintMode="src_in"
 	            app:layout_constraintTop_toTopOf="parent"

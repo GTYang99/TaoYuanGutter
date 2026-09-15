@@ -121,6 +121,8 @@ class MainBlockingUiController(
     private fun applyBlockingOverlay() {
         val visible = inspectLoadingVisible || photoUploadBlockingVisible
         binding.inspectLoadingOverlay.visibility = if (visible) View.VISIBLE else View.GONE
+        // Keep the shared submission/photo indicator explicitly indeterminate on every state update.
+        binding.pbInspectLoading.isIndeterminate = true
         binding.pbInspectLoading.visibility = if (visible) View.VISIBLE else View.GONE
         binding.tvPhotoUploadProgress.visibility = if (photoUploadBlockingVisible) View.VISIBLE else View.GONE
         binding.tvInspectLoading.visibility = View.VISIBLE

@@ -124,7 +124,7 @@ phase: debug
 category: implementation_regression
 priority: P2
 title: Upload loading indicator renders as a static icon
-status: open
+status: implementation_fixed_pending_verification
 impact: Users cannot visually confirm that side-gutter or photo upload is still progressing.
 repro_steps:
   - Start a side-gutter submission or photo upload.
@@ -135,8 +135,9 @@ evidence:
   - MainBlockingUiController only toggles pbInspectLoading visibility and text; it does not explicitly start or configure animation.
   - activity_main.xml uses framework progressBarStyleLarge with tint but omits explicit android:indeterminate=true.
   - MainShellActivityTest and the current emulator set Android animation scales to 0.
-next_action: debug
-owner: developer
+resolution: Spinner is now explicitly indeterminate in the layout and controller state updates; layout-state validation passes on both devices. Real visual motion with animator scale greater than zero remains a manual smoke item.
+next_action: verification
+owner: verification
 ```
 
 ## ISS-FEAT-0914-2-007

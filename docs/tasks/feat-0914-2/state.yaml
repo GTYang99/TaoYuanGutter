@@ -2,8 +2,8 @@ task:
   id: feat-0914-2
   type: feature
 
-phase: debug
-status: debug_in_progress
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -26,8 +26,8 @@ git:
   status: committed
 
 debug:
-  status: investigating
-  root_cause: identified_for_012
+  status: completed
+  root_cause: fixed_for_012
 
 verification:
   result: not_verified
@@ -49,4 +49,4 @@ blocking:
   - Post-fix emulator connected regression has an intermittent Espresso root-focus failure; Sony completed 29/29.
   - CI workflow/result is not present in the repository/current session.
 
-next_action: debug
+next_action: verification

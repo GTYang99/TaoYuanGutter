@@ -34,3 +34,9 @@ The current instrumentation setup explicitly sets `animator_duration_scale`, `tr
 ## Classification
 
 `implementation_regression` / UI behavior. The approved requirement expects a visible animated loading indicator; this is not an API or backend issue.
+
+## Resolution
+
+- The shared `ProgressBar` now explicitly declares and applies indeterminate state.
+- `MainBlockingUiController` reasserts `isIndeterminate = true` whenever the shared submission/photo overlay state is applied.
+- A layout-state instrumentation test validates the explicit indeterminate attribute on both supported test devices.

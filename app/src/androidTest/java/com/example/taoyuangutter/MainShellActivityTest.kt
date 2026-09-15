@@ -33,6 +33,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.xmlpull.v1.XmlPullParser
 
 @RunWith(AndroidJUnit4::class)
 class MainShellActivityTest {
@@ -71,6 +72,35 @@ class MainShellActivityTest {
 
         assertNotNull(bottomNav)
         assertEquals(2, bottomNav.menu.size())
+    }
+
+    @Test
+    fun uploadBlockingIndicatorIsExplicitlyIndeterminate() {
+        val parser = ApplicationProvider.getApplicationContext<android.content.Context>()
+            .resources
+            .getLayout(R.layout.activity_main)
+        var foundIndicator = false
+        var indeterminateValue: String? = null
+        while (parser.next() != XmlPullParser.END_DOCUMENT) {
+            if (parser.eventType == XmlPullParser.START_TAG && parser.name == "ProgressBar") {
+                val id = parser.getAttributeResourceValue(
+                    "http://schemas.android.com/apk/res/android",
+                    "id",
+                    0
+                )
+                if (id == R.id.pbInspectLoading) {
+                    foundIndicator = true
+                    indeterminateValue = parser.getAttributeValue(
+                        "http://schemas.android.com/apk/res/android",
+                        "indeterminate"
+                    )
+                    break
+                }
+            }
+        }
+        parser.close()
+        assertTrue(foundIndicator)
+        assertEquals("true", indeterminateValue)
     }
 
     @Test
