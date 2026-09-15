@@ -2,8 +2,8 @@ task:
   id: feat-0914-2
   type: feature
 
-phase: implementation
-status: implementation_completed
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -30,10 +30,12 @@ debug:
   root_cause: identified_for_009
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-007
+    - AC-008
 
 ci:
   build: pending
@@ -44,4 +46,4 @@ release:
 
 blocking: []
 
-next_action: verification
+next_action: infrastructure
