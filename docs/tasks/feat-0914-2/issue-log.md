@@ -95,3 +95,44 @@ resolution: Plan now requires immutable createdAt, savedAt backfill migration, a
 next_action: implementation
 owner: planning
 ```
+
+## ISS-FEAT-0914-2-006
+
+```yaml
+issue_id: ISS-FEAT-0914-2-006
+task_id: feat-0914-2
+phase: verification
+category: environment
+priority: P1
+title: Gradle verification cannot locate a Java Runtime from the default shell environment
+status: resolved
+impact: Compile, unit-test, APK-build, and instrumentation verification cannot start with the default Java lookup.
+evidence:
+  - ./gradlew :app:compileDebugKotlin :app:testDebugUnitTest :app:assembleDebug --no-daemon returns "Unable to locate a Java Runtime."
+  - Android Studio bundled runtime exists at /Applications/Android Studio.app/Contents/jbr.
+resolution: Android Studio's bundled JBR was selected explicitly; the same Gradle command then completed successfully.
+next_action: verification
+owner: verification
+```
+
+## ISS-FEAT-0914-2-007
+
+```yaml
+issue_id: ISS-FEAT-0914-2-007
+task_id: feat-0914-2
+phase: debug
+category: implementation_regression
+priority: P1
+title: New multi-gutter sessions restore unrelated persisted multi-gutter drafts
+status: classified
+impact: Starting a new add-gutter list session can display drafts from prior closed sessions, contrary to the approved session boundary. A later submit can then treat a prior-session draft as an item in the current list, risking incorrect cleanup scope.
+evidence:
+  - MultiGutterSessionCoordinator.kt lines 12-17 loads every repository row with MULTI_GUTTER ownership during construction.
+  - plan.md step 1 requires configuration recreation to restore only saved IDs from the active session and explicitly prohibits mixing all pending drafts after cold start/process death.
+  - MainShellActivityTest.kt lines 242-251 asserts that a newly constructed coordinator reloads persisted items, so current coverage enforces the conflicting behavior.
+failed_acceptance_criteria:
+  - AC-005
+  - AC-006
+next_action: implementation_debug
+owner: verification
+```
