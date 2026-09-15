@@ -2,8 +2,8 @@ task:
   id: feat-0914-2
   type: feature
 
-phase: verification
-status: verification_not_verified
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: resolved
@@ -27,14 +27,14 @@ git:
 
 debug:
   status: completed
-  root_cause: identified_for_009
+  root_cause: identified_for_011
 
 verification:
-  result: not_verified
-  category: environment
-  failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
     - AC-008
+  not_verified_acceptance_criteria: []
 
 ci:
   build: pending
@@ -43,6 +43,8 @@ ci:
 release:
   status: pending
 
-blocking: []
+blocking:
+  - AC-008 network-failure close action returns to the main map instead of the active add-gutter list.
+  - CI workflow/result is not present in the repository/current session.
 
-next_action: infrastructure
+next_action: implementation_debug
