@@ -3,7 +3,7 @@
 ## Revision and scope
 
 - Branch: `feat/側溝清單`
-- Verification revision: `2d8f544`
+- Verification revision: `ac49f14`
 - Pre-existing, unrelated working-tree changes were excluded from this verification: `app/src/main/java/com/example/taoyuangutter/api/GutterApiService.kt` and `app/src/main/res/values/strings.xml`.
 
 ## Executed evidence
@@ -12,7 +12,7 @@
 |---|---|---|
 | Debug Kotlin compile, unit tests, and APK build | PASS | `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:compileDebugKotlin :app:testDebugUnitTest :app:assembleDebug --no-daemon` completed successfully: 50 tasks, 7 executed. |
 | Targeted Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`; result XML recorded 8 tests, 0 failures, 0 errors, 0 skipped on `Medium_Phone(AVD) - 14`. |
-| Full connected Android instrumentation | NOT VERIFIED | The command was invoked against both connected devices, but this verification session did not retain a final Gradle result or result XML sufficient to record it as PASS. |
+| Full connected Android instrumentation | PASS | `./gradlew :app:connectedDebugAndroidTest --no-daemon` completed successfully on `XQ-AU52 - 12` and `Medium_Phone(AVD) - 14` in 1m46s after restoring the XQ device Activity state. |
 | Whitespace check | PASS | `git diff --check` produced no output. |
 | Session-isolation regression | PASS | Single session-isolation instrumentation test passed on both connected devices; fresh coordinators are empty and explicit active IDs restore only selected rows. |
 | CI | NOT VERIFIED | No CI configuration or CI result is available in the repository/current session. |
@@ -45,6 +45,6 @@ This is tracked as `ISS-FEAT-0914-2-007` and is an implementation failure. No pr
 
 ## Result and route
 
-**NOT VERIFIED** — the implementation regression is fixed and targeted session-isolation evidence passes, but full connected evidence, authenticated map smoke, and CI remain unavailable.
+**NOT VERIFIED** — the implementation regression is fixed and targeted/full connected evidence passes; authenticated map smoke and CI remain unavailable.
 
-Next action: repeat full verification on revision `2d8f544` when complete connected and authenticated map evidence are available.
+Next action: obtain authenticated map smoke and CI evidence before Release.

@@ -22,7 +22,7 @@ validation:
 
 git:
   branch: feat/側溝清單
-  commit: 2d8f544
+  commit: ac49f14
   status: committed
 
 debug:
