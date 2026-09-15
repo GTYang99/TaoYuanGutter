@@ -407,6 +407,13 @@ class MapWorkspaceFragment : Fragment(),
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putInt(KEY_PENDING_WP_INDEX, pendingWaypointFormIndex)
+        outState.putBoolean(KEY_MULTI_GUTTER_SESSION, isMultiGutterSession)
+        if (isMultiGutterSession) {
+            outState.putLongArray(
+                KEY_MULTI_GUTTER_DRAFT_IDS,
+                multiGutterSessionCoordinator.items().map { it.draftId }.toLongArray()
+            )
+        }
         currentSessionDraftId?.let { outState.putLong("saved_session_draft_id", it) }
         outState.putBoolean("saved_session_resumed_from_draft", currentSessionResumedFromDraft)
         outState.putBoolean("saved_session_is_offline", currentSessionIsOffline)
@@ -438,6 +445,12 @@ class MapWorkspaceFragment : Fragment(),
 
     private fun restoreStateAfterRecreation(savedState: Bundle) {
         pendingWaypointFormIndex = savedState.getInt(KEY_PENDING_WP_INDEX, -1)
+        isMultiGutterSession = savedState.getBoolean(KEY_MULTI_GUTTER_SESSION, false)
+        if (isMultiGutterSession) {
+            multiGutterSessionCoordinator.restoreItems(
+                savedState.getLongArray(KEY_MULTI_GUTTER_DRAFT_IDS)?.toList().orEmpty()
+            )
+        }
         currentSessionDraftId = if (savedState.containsKey("saved_session_draft_id")) {
             savedState.getLong("saved_session_draft_id")
         } else {
@@ -2281,6 +2294,8 @@ class MapWorkspaceFragment : Fragment(),
 
     companion object {
         private const val KEY_PENDING_WP_INDEX = "pending_wp_index"
+        private const val KEY_MULTI_GUTTER_SESSION = "saved_multi_gutter_session"
+        private const val KEY_MULTI_GUTTER_DRAFT_IDS = "saved_multi_gutter_draft_ids"
         private const val GUTTER_LOAD_DEBOUNCE_MS = 500L
         fun newInstance(): MapWorkspaceFragment = MapWorkspaceFragment()
     }

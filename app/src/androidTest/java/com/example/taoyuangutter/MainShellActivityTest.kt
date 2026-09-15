@@ -54,7 +54,7 @@ class MainShellActivityTest {
                         }
                     )
                 )
-            }.showNow(childFragmentManager, "test-add-gutter-list")
+            }.show(childFragmentManager, "test-add-gutter-list")
         }
 
         override fun onAddGutterListAdd() { addClicked = true }
@@ -239,7 +239,11 @@ class MainShellActivityTest {
                 )
             )
 
+            val freshSession = MultiGutterSessionCoordinator(repository)
+            assertTrue(freshSession.items().isEmpty())
+
             val recreated = MultiGutterSessionCoordinator(repository)
+            recreated.restoreItems(listOf(first.draftId, second.draftId))
             val recreatedIds = recreated.items().map { it.draftId }
             assertTrue(recreatedIds.containsAll(listOf(first.draftId, second.draftId)))
             assertTrue(recreatedIds.indexOf(first.draftId) < recreatedIds.indexOf(second.draftId))
@@ -247,6 +251,7 @@ class MainShellActivityTest {
 
             repository.delete(first.draftId)
             val afterSingleDelete = MultiGutterSessionCoordinator(repository)
+            afterSingleDelete.restoreItems(listOf(second.draftId))
             assertTrue(afterSingleDelete.items().none { it.draftId == first.draftId })
             assertTrue(afterSingleDelete.items().any { it.draftId == second.draftId })
 
