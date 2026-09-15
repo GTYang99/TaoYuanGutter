@@ -200,6 +200,8 @@ class MapWorkspaceFragment : Fragment(),
     private var currentSessionResumedFromDraft: Boolean = false
     private var currentSessionIsOffline: Boolean = false
     private var isMultiGutterSession: Boolean = false
+    /** True while an add-list sheet is temporarily hidden behind GutterFormActivity. */
+    private var isAddFormHandoffActive: Boolean = false
     private var addGutterListSheet: AddGutterListBottomSheet? = null
     private data class PendingSuccessfulMultiDraftCleanup(
         val draftId: Long,
@@ -291,6 +293,7 @@ class MapWorkspaceFragment : Fragment(),
         gutterFormLauncher = registerForActivityResult(
             ActivityResultContracts.StartActivityForResult()
         ) { result ->
+            isAddFormHandoffActive = false
             binding.btnAddGutter.visibility = View.VISIBLE
             renderReferenceRouteIfActive()
             when {
@@ -758,6 +761,7 @@ class MapWorkspaceFragment : Fragment(),
         highlightMarker(waypointIndex)
         sheet.hideSelf()
         binding.btnAddGutter.visibility = View.GONE
+        isAddFormHandoffActive = true
         openAddForm(waypointIndex, wp, initialLatLng, isEditMode = sheet.isEditMode())
     }
 
@@ -1128,17 +1132,19 @@ class MapWorkspaceFragment : Fragment(),
                     mainBlockingUiController.setMainButtonsEnabled(false)
                 },
                 onWaypointsCleared = {
-                    currentSessionDraftId?.let { draftCoordinator.deleteDraftIfEffectivelyEmpty(it) }
-                    currentSessionDraftId = null
-                    currentSessionResumedFromDraft = false
-                    isInEditingMode = false
-                    mapCameraController.setPersistentBottomInset(0)
-                    gutterMapController.clearPreviewLayer()
-                    activeSheet = null
-                    restoreMainUiAfterSheetClosed()
-                    if (!isOfflineMainMode) loadGuttersByViewport(showFeedback = true) else refreshWorkingLayer(emptyList())
-                    if (isMultiGutterSession && isAdded) {
-                        showAddGutterList()
+                    if (!isAddFormHandoffActive) {
+                        currentSessionDraftId?.let { draftCoordinator.deleteDraftIfEffectivelyEmpty(it) }
+                        currentSessionDraftId = null
+                        currentSessionResumedFromDraft = false
+                        isInEditingMode = false
+                        mapCameraController.setPersistentBottomInset(0)
+                        gutterMapController.clearPreviewLayer()
+                        activeSheet = null
+                        restoreMainUiAfterSheetClosed()
+                        if (!isOfflineMainMode) loadGuttersByViewport(showFeedback = true) else refreshWorkingLayer(emptyList())
+                        if (isMultiGutterSession && isAdded) {
+                            showAddGutterList()
+                        }
                     }
                 },
                 onAutoSaveRequested = { waypoints -> autoSaveSessionDraft(waypoints) },
