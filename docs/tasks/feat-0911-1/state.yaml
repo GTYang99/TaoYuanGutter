@@ -2,8 +2,8 @@ task:
   id: feat-0911-1
   type: feature
 
-phase: verification
-status: verification_not_verified
+phase: debug
+status: debug_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -35,9 +35,9 @@ verification:
     - AC-005
 
 debug:
-  status: completed
-  root_cause: identified
-  issue_id: ISS-002
+  status: investigating
+  root_cause: replacement_capture_retains_server_backed_photo_metadata
+  issue_id: ISS-003
 
 ci:
   build: pending
@@ -49,4 +49,4 @@ release:
 blocking:
   - Authorized controlled backend save-and-reopen smoke evidence is unavailable.
   - CI configuration or CI run results are unavailable.
-next_action: verification
+next_action: debug

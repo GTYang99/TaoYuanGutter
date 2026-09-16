@@ -36,3 +36,34 @@ an imported photo without an ID can be counted and uploaded again before
 The fix must preserve uploads for a newly replaced photo: only a slot with a
 server image ID or an explicit successful server state is skipped. Failed,
 idle, or newly replaced slots remain upload candidates.
+
+## Follow-up Root Cause: ISS-003
+
+### Finding
+
+Replacing a photo does **not** clear the original server `img_id` in the
+current code. An explicit delete does clear it, but the capture-and-replace
+path only changes the local URI.
+
+### Causal Chain
+
+1. The camera result invokes `applyPhotoToSlot(slot, newUri, true)`.
+2. That function stores the new URI but leaves the slot's existing image ID and
+   `success` upload state unchanged.
+3. `updateCurrentFormPhotos()` / `syncCurrentWaypointFromCurrentFormData()`
+   preserve metadata for every non-empty photo slot, including the replacement.
+4. `onPhotoSlotReadyForUpload()` sees the old ID or success state through
+   `PhotoUploadSlotState.isAlreadyUploaded()` and returns before creating a
+   `PhotoSlotUploadCoordinator` job.
+
+The early guard was introduced in `72492cb` to stop *unchanged* imported
+photos from being uploaded again. It lacks a replacement transition that clears
+only the server-upload metadata while retaining the newly captured URI.
+
+### Minimum Fix Direction
+
+Before notifying the upload host of a successful replacement capture, reset
+only that slot's upload state, image ID, and error; retain the new URI and its
+capture timestamp. Do not call the generic deletion helper because it also
+removes the newly captured photo. Add a regression test that starts from a
+server-backed slot, replaces it, and asserts that an upload job is enqueued.

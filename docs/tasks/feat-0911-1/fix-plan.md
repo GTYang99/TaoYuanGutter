@@ -27,3 +27,21 @@ requirement changes.
 - Root cause is documented.
 - Tests fail before the fix where practical and pass after it.
 - No unrelated production changes are introduced.
+
+## Follow-up Fix Plan: ISS-003
+
+### Minimum Scope
+
+1. Add a replacement-specific transition that clears `photo*ImgId`,
+   `photo*UploadState`, and `photo*UploadError` while preserving the new URI
+   and captured-at value.
+2. Invoke it only after a successful replacement capture, before
+   `onPhotoSlotReadyForUpload()` evaluates the server-backed guard.
+3. Do not change the unchanged-import guard or explicit-delete behavior.
+
+### Regression Evidence Required
+
+- A server-backed slot replaced with a new URI becomes an upload candidate and
+  enqueues a `PhotoSlotUploadCoordinator` job.
+- An unchanged imported slot remains skipped.
+- An explicit deletion still clears the local URI and all upload metadata.
