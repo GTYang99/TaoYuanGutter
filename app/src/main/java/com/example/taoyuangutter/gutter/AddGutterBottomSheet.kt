@@ -648,7 +648,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun isTouchOutsideSheetContent(event: MotionEvent): Boolean {
-        val content = _binding?.root ?: getSheetView() ?: return false
+        // Use the actual bottom-sheet container. The binding root may fill the
+        // dialog window and therefore misclassify the map area as sheet content.
+        val content = getSheetView() ?: return false
         val loc = IntArray(2)
         content.getLocationOnScreen(loc)
         val left = loc[0].toFloat()

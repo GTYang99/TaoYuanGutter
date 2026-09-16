@@ -101,15 +101,12 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
         }
         dialog?.window?.setDimAmount(0f)
 
-        val contentView = binding.root
         var routeToActivity = false
         val originalCb = dialog?.window?.callback ?: return
         dialog?.window?.callback = object : android.view.Window.Callback by originalCb {
             override fun dispatchTouchEvent(event: MotionEvent): Boolean {
                 if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                    val loc = IntArray(2)
-                    contentView.getLocationOnScreen(loc)
-                    routeToActivity = event.rawY < loc[1]
+                    routeToActivity = isTouchOutsideSheetContent(event)
                     if (routeToActivity && isInsideMainMeasureButton(event)) {
                         requireActivity().findViewById<View>(R.id.btnMeasureDistance)?.performClick()
                         routeToActivity = false
@@ -125,6 +122,22 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
             }
         }
     }
+
+    private fun isTouchOutsideSheetContent(event: MotionEvent): Boolean {
+        val content = getSheetView() ?: return false
+        val loc = IntArray(2)
+        content.getLocationOnScreen(loc)
+        val left = loc[0].toFloat()
+        val top = loc[1].toFloat()
+        val right = left + content.width
+        val bottom = top + content.height
+        return event.rawX < left || event.rawX > right ||
+            event.rawY < top || event.rawY > bottom
+    }
+
+    private fun getSheetView(): View? =
+        (dialog as? BottomSheetDialog)
+            ?.findViewById(com.google.android.material.R.id.design_bottom_sheet)
 
     private fun isInsideMainMeasureButton(event: MotionEvent): Boolean {
         val button = requireActivity().findViewById<View>(R.id.btnMeasureDistance) ?: return false
