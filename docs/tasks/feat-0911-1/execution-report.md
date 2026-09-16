@@ -87,3 +87,13 @@ Local unit/build validation completed with the Android Studio bundled Java Runti
 - `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew assembleDebug`: PASS (`BUILD SUCCESSFUL`).
 - `JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew connectedDebugAndroidTest`: PASS (`BUILD SUCCESSFUL`; emulator `Medium_Phone(AVD) - 14`, 14 tests, 0 failures, 0 errors, 0 skipped).
 - Real demo-backend submission remains intentionally unrun; no persistent test data was created.
+
+## Replacement and Delete Metadata Fix (ISS-003)
+
+- A successful replacement capture now clears only the previous server-upload metadata for its slot before the new URI is persisted and queued for upload.
+- The explicit deletion path now clears authoritative metadata before the unchanged-server-photo guard is evaluated.
+- The unchanged imported-photo guard remains in place for photos that were not replaced or deleted.
+- Added unit coverage proving that clearing former server metadata preserves the replacement URI while making the slot upload-eligible.
+- PASS — `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest --tests com.example.taoyuangutter.gutter.PhotoUploadCandidateResolverTest :app:assembleDebug :app:assembleDebugAndroidTest`.
+- PASS — `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest`.
+- Android runtime observation of a real replacement request remains NOT VERIFIED because it would send a persistent backend `nodeImage` write.

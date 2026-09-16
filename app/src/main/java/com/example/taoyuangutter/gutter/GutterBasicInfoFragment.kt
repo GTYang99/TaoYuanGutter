@@ -404,6 +404,8 @@ class GutterBasicInfoFragment : Fragment() {
                 } catch (_: Exception) {
                     Uri.fromFile(file)
                 }
+                // A new capture supersedes any server image previously attached to this slot.
+                photoDraftChangeHost?.onPhotoSlotReplaced(slot)
                 applyPhotoToSlot(slot, uri, notifyDraftChanged = true)
                 photoDraftChangeHost?.onPhotoSlotReadyForUpload(slot, uri.toString())
             }

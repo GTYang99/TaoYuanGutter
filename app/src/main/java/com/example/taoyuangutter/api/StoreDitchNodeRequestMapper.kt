@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.api
 
+import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
@@ -18,17 +19,26 @@ object StoreDitchNodeRequestMapper {
             WaypointType.NODE -> 2
             WaypointType.END -> 3
         }
-        val imgIds = if (requestNodeId != null) {
+        // Replacement uploads return a new img_id before storeDitch is called.
+        // Keep the current image association on both create and update;
+        // omitting it during update leaves the old server-side image linked.
+        val imgIds = (1..3).mapNotNull { slot ->
+            if (isVirtual || isCantOpen && slot in 2..3) {
+                null
+            } else {
+                PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
+            }
+        }.takeIf { it.isNotEmpty() }
+        val capturedAt = if (requestNodeId != null || isVirtual) {
             null
         } else {
-            (1..3).mapNotNull { slot ->
-                if (isVirtual || isCantOpen && slot in 2..3) {
-                    null
-                } else {
-                    PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
-                }
-            }.takeIf { it.isNotEmpty() }
+            listOfNotNull(
+                PhotoCapturedAtResolver.readBasicData(waypoint.basicData, 1),
+                PhotoCapturedAtResolver.readBasicData(waypoint.basicData, 2),
+                PhotoCapturedAtResolver.readBasicData(waypoint.basicData, 3)
+            ).takeIf { it.isNotEmpty() }
         }
+
         return StoreDitchNodeRequest(
             nodeId = requestNodeId,
             nodeAtt = nodeAtt,
@@ -49,6 +59,7 @@ object StoreDitchNodeRequestMapper {
             isHanging = if (isCantOpen || isVirtual) null else (waypoint.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
             isSilt = if (isCantOpen || isVirtual) null else (waypoint.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
             nodeNote = if (isVirtual) null else waypoint.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() },
+            capturedAt = capturedAt,
             imgIds = imgIds
         )
     }

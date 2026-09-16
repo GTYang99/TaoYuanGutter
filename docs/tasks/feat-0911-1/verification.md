@@ -99,3 +99,44 @@ without an ID but with successful server-backed state does not reach
 ### Remaining Evidence Gap
 
 The task cannot advance to Release. It still needs an authorized, controlled backend save-and-reopen smoke that observes request bodies/counts without creating unintended persistent data, plus CI build/test evidence. Until then, this task remains `verification_not_verified` with `next_action: verification`.
+
+---
+
+## Verification Round 3 — ISS-003 Fix
+
+### Verification Target
+
+- Production revision: `28ce977` (`fix(feat-0911-1): reupload replaced gutter photos`)
+- Branch: `codex/fix-photo-replacement-upload`
+- Result: **NOT VERIFIED** for release; local implementation checks PASS.
+
+### Change Review
+
+- A replacement capture calls a new replacement transition before writing the
+  new URI. That transition clears only the old server metadata, leaving the
+  new URI and captured-at data intact for upload.
+- `onPhotoSlotReadyForUpload()` now handles a `null` path before it applies the
+  already-uploaded guard. An explicit deletion therefore clears the
+  Activity-owned `img_id`, state, error and URI even for a server-backed photo.
+- The guard for an unchanged imported photo remains after those two lifecycle
+  transitions and continues to prevent duplicate uploads.
+
+### Executed Evidence
+
+| Check | Result | Evidence |
+|---|---|---|
+| Target unit test + APK builds | PASS | `:app:testDebugUnitTest --tests com.example.taoyuangutter.gutter.PhotoUploadCandidateResolverTest :app:assembleDebug :app:assembleDebugAndroidTest` completed successfully. |
+| Full debug unit suite | PASS | `:app:testDebugUnitTest` completed successfully. |
+| Whitespace check | PASS | `git diff --check` reported no errors before commit. |
+| Controlled replacement-upload smoke | NOT VERIFIED | A real `nodeImage` request would create persistent backend data; no authorized controlled target was supplied. |
+| CI | NOT VERIFIED | No CI configuration or run result is available. |
+
+### Regression Coverage
+
+- `clearingFormerServerMetadataMakesReplacementUploadEligible` proves the
+  replacement URI is retained while its former successful server state no
+  longer blocks upload eligibility.
+- Static lifecycle review confirms the explicit delete path now executes before
+  the unchanged-import guard.
+- Runtime evidence is still required to observe the actual `nodeImage` request
+  for a replacement and confirm the server's same-category overwrite behavior.

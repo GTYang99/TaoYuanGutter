@@ -152,18 +152,41 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         queuePhotoDraftSync()
     }
 
+    override fun onPhotoSlotReplaced(slot: Int) {
+        if (slot !in 1..3) return
+        PhotoUploadSlotState.clear(currentFormData, slot)
+        // View-mode launches do not carry a session draft.  Clear the same
+        // server metadata from the session snapshot as well, otherwise the
+        // next merge can resurrect the old img id/upload state.
+        if (currentIndex in sessionWaypoints.indices) {
+            val waypoint = sessionWaypoints[currentIndex]
+            val cleared = HashMap(waypoint.basicData)
+            PhotoUploadSlotState.clear(cleared, slot)
+            sessionWaypoints[currentIndex] = waypoint.copy(basicData = cleared)
+        }
+        syncCurrentWaypointFromCurrentFormData()
+        pagerAdapter.getBasicInfoFragment()?.updatePhotoUploadStatus(
+            slot = slot,
+            state = PhotoUploadSlotState.STATE_IDLE,
+            imgId = null,
+            error = null
+        )
+        queuePhotoDraftSync()
+    }
+
     override fun onPhotoSlotReadyForUpload(slot: Int, photoPath: String?) {
         if (slot !in 1..3) return
+        // Deletion must always clear the authoritative state, including old server metadata.
+        if (photoPath.isNullOrBlank()) {
+            clearPhotoUploadState(slot)
+            queuePhotoDraftSync()
+            return
+        }
         if (PhotoUploadSlotState.isAlreadyUploaded(currentFormData, slot)) {
             android.util.Log.d(
                 "PhotoUpload",
                 "既有照片已有伺服器狀態，略過啟動上傳 slot=$slot imgId=${currentFormPhotoImgId(slot)} state=${currentFormPhotoUploadState(slot)}"
             )
-            return
-        }
-        if (photoPath.isNullOrBlank()) {
-            clearPhotoUploadState(slot)
-            queuePhotoDraftSync()
             return
         }
         val token = LoginActivity.getSavedToken(this)
@@ -1740,6 +1763,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         logPhotoImgIdTrace("enterEditMode.before", currentFormData)
         isViewMode = false
         isEditMode = true // 進入編輯模式
+        ensurePhotoUploadDraftForEdit()
         binding.btnEdit.visibility   = View.GONE
         binding.btnDone.visibility   = View.VISIBLE
         binding.fabSubmit.visibility = View.GONE
@@ -1747,6 +1771,33 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         pagerAdapter.getBasicInfoFragment()?.setEditable(true)
         binding.cbIsVirtual.isEnabled = true
         logPhotoImgIdTrace("enterEditMode.after", currentFormData)
+    }
+
+    /**
+     * Inspect launches are intentionally independent from the AddGutter draft
+     * flow, so they have no sessionDraftId.  PhotoSlotUploadCoordinator needs
+     * a persisted draft both to track the upload and to publish its result.
+     * Create a local edit draft when the user explicitly enters edit mode.
+     */
+    private fun ensurePhotoUploadDraftForEdit() {
+        if (sessionDraftId > 0L || currentIndex !in sessionWaypoints.indices) return
+
+        val draftId = System.currentTimeMillis()
+        val waypoint = sessionWaypoints[currentIndex]
+        val basicData = HashMap(waypoint.basicData).apply { putAll(currentFormData) }
+        sessionWaypoints[currentIndex] = waypoint.copy(basicData = basicData)
+
+        GutterSessionRepository(this).save(
+            GutterSessionDraft(
+                id = draftId,
+                savedAt = draftId,
+                isOffline = isOfflineMode,
+                isSinglePoint = true,
+                waypoints = sessionWaypoints.toList()
+            )
+        )
+        sessionDraftId = draftId
+        registerPhotoUploadListeners()
     }
 
     private fun setImportedWaypointLocked(locked: Boolean) {

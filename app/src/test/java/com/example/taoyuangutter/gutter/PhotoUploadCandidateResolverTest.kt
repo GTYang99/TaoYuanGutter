@@ -113,6 +113,20 @@ class PhotoUploadCandidateResolverTest {
         assertEquals(false, PhotoUploadSlotState.isAlreadyUploaded(replacement.basicData, 1))
     }
 
+    @Test
+    fun clearingFormerServerMetadataMakesReplacementUploadEligible() {
+        val replacement = waypoint(
+            "photo1" to "content://new-photo",
+            "photo1ImgId" to "101",
+            "photo1UploadState" to PhotoUploadSlotState.STATE_SUCCESS
+        )
+
+        PhotoUploadSlotState.clear(replacement.basicData, 1)
+
+        assertEquals("content://new-photo", replacement.basicData["photo1"])
+        assertEquals(false, PhotoUploadSlotState.isAlreadyUploaded(replacement.basicData, 1))
+    }
+
     private fun waypoint(vararg entries: Pair<String, String>): Waypoint = Waypoint(
         type = WaypointType.NODE,
         label = "節點1",

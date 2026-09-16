@@ -2,8 +2,8 @@ task:
   id: feat-0911-1
   type: feature
 
-phase: verification
-status: verification_not_verified
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -21,10 +21,13 @@ implementation:
 
 validation:
   status: completed
+  unit_test: pass
+  build: pass
+  android_test: not_verified
 
 git:
-  branch: feat/既有點位不上傳照片
-  commit: 457ef7b
+  branch: codex/fix-photo-replacement-upload
+  commit: 28ce977
   status: committed
 
 verification:
@@ -36,8 +39,8 @@ verification:
 
 debug:
   status: completed
-  root_cause: identified
-  issue_id: ISS-002
+  root_cause: replacement_capture_retains_server_backed_photo_metadata
+  issue_id: ISS-003
 
 ci:
   build: pending
