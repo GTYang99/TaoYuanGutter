@@ -1,0 +1,41 @@
+task:
+  id: feat-0916-1
+  type: feature
+
+phase: plan_review
+status: approved
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: pending
+
+validation:
+  status: pending
+
+git:
+  branch: feat/表單合併測距功能
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: implementation
