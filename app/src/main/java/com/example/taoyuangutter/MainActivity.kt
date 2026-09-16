@@ -646,6 +646,7 @@ class MainActivity : AppCompatActivity(),
                 }
                 activeSheet = sheet
                 sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
+                mainBlockingUiController.setTargetPanelVisible(true)
 
                 // 初始化地圖：繪製線段大頭針並將視角自動對齊至整條側溝
                 currentWaypoints = wps.toMutableList()
@@ -1923,11 +1924,13 @@ class MainActivity : AppCompatActivity(),
             },
             showSheet = { sheet ->
                 sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
+                mainBlockingUiController.setTargetPanelVisible(true)
             },
             onMapSessionReady = { draftId, isOffline, sheet ->
                 currentSessionDraftId = draftId
                 currentSessionIsOffline = isOffline
                 activeSheet = sheet
+                mainBlockingUiController.setTargetPanelVisible(true)
                 draftCoordinator.ensureDraftExists(
                     draftId = draftId,
                     waypoints = sheet.getWaypoints(),
@@ -1957,6 +1960,9 @@ class MainActivity : AppCompatActivity(),
         sheet: AddGutterBottomSheet,
         initialWaypointCount: Int = 0
     ) {
+        // The sheet may be assigned after the coordinator invokes showSheet;
+        // apply the map-control policy at the binding boundary as well.
+        mainBlockingUiController.setTargetPanelVisible(true)
         gutterSheetSessionBinder.bind(
             sheet = sheet,
             config = GutterSheetSessionBinder.Config(
@@ -2438,10 +2444,12 @@ class MainActivity : AppCompatActivity(),
 
     /** 離開測距模式：隱藏準星與底部面板，還原 FAB 樣式。 */
     private fun exitMeasureMode() {
+        val hadSourceSheet = measureSourceSheet != null
         measureModeUiController.exit(measureManager)
         measureSourceSheet?.showSelf()
         measureSourceSheet = null
         if (::measureBackCallback.isInitialized) measureBackCallback.isEnabled = false
+        mainBlockingUiController.setTargetPanelVisible(hadSourceSheet)
     }
 
     /**

@@ -621,6 +621,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 override fun dispatchTouchEvent(event: MotionEvent): Boolean {
                     if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                         routeToActivity = isTouchOutsideSheetContent(event)
+                        if (routeToActivity && isInsideMainMeasureButton(event)) {
+                            requireActivity().findViewById<View>(R.id.btnMeasureDistance)?.performClick()
+                            routeToActivity = false
+                            return true
+                        }
                     }
                     val handled = if (routeToActivity) {
                         requireActivity().dispatchTouchEvent(event)
@@ -651,6 +656,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             event.rawX > right ||
             event.rawY < top ||
             event.rawY > bottom
+    }
+
+    private fun isInsideMainMeasureButton(event: MotionEvent): Boolean {
+        val button = requireActivity().findViewById<View>(R.id.btnMeasureDistance) ?: return false
+        val loc = IntArray(2)
+        button.getLocationOnScreen(loc)
+        return event.rawX >= loc[0] && event.rawX <= loc[0] + button.width &&
+            event.rawY >= loc[1] && event.rawY <= loc[1] + button.height
     }
 
     private fun getBehavior(): BottomSheetBehavior<View>? {

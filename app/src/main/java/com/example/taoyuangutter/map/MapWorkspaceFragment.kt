@@ -1443,9 +1443,10 @@ class MapWorkspaceFragment : Fragment(),
 
     private fun exitMeasureMode() {
         if (measureManager?.isMeasuring != true && measureSource == null) return
+        val source = measureSource
         measureModeUiController.exit(measureManager)
         installNormalMapClickListener()
-        when (measureSource) {
+        when (source) {
             MeasureSource.LIST -> {
                 scopeGutterPolylineController.setVisible(mapOverlayController.currentState().showPlan)
                 measureSourceList?.showAfterMeasure()
@@ -1457,7 +1458,7 @@ class MapWorkspaceFragment : Fragment(),
         measureSourceList = null
         measureSourceEdit = null
         measureBackCallback.isEnabled = false
-        mainBlockingUiController.setTargetPanelVisible(false)
+        mainBlockingUiController.setTargetPanelVisible(source != null)
     }
     private fun updateMeasureDistanceDisplay(meters: Double?) { measureModeUiController.updateDistanceDisplay(meters) }
 

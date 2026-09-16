@@ -107,6 +107,11 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
                     val loc = IntArray(2)
                     contentView.getLocationOnScreen(loc)
                     routeToActivity = event.rawY < loc[1]
+                    if (routeToActivity && isInsideMainMeasureButton(event)) {
+                        requireActivity().findViewById<View>(R.id.btnMeasureDistance)?.performClick()
+                        routeToActivity = false
+                        return true
+                    }
                 }
                 val handled = if (routeToActivity) requireActivity().dispatchTouchEvent(event)
                 else originalCb.dispatchTouchEvent(event)
@@ -116,6 +121,14 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
                 return handled
             }
         }
+    }
+
+    private fun isInsideMainMeasureButton(event: MotionEvent): Boolean {
+        val button = requireActivity().findViewById<View>(R.id.btnMeasureDistance) ?: return false
+        val loc = IntArray(2)
+        button.getLocationOnScreen(loc)
+        return event.rawX >= loc[0] && event.rawX <= loc[0] + button.width &&
+            event.rawY >= loc[1] && event.rawY <= loc[1] + button.height
     }
 
     override fun onCancel(dialog: android.content.DialogInterface) {
