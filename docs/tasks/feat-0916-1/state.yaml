@@ -22,7 +22,7 @@ validation:
 
 git:
   branch: feat/表單合併測距功能
-  commit: "38d2f03"
+  commit: "7dd0b96"
   status: committed
 
 verification:
