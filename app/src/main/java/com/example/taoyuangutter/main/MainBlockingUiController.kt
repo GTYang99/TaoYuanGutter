@@ -20,6 +20,7 @@ class MainBlockingUiController(
     private var photoUploadTotal = 0
     private var photoUploadCompleted = 0
     private var photoUploadFailed = 0
+    private var targetPanelVisible = false
     private var spinnerAnimator: ObjectAnimator? = null
 
     fun setInspectLoading(visible: Boolean, message: String? = null) {
@@ -60,7 +61,40 @@ class MainBlockingUiController(
         return inspectLoadingVisible || photoUploadBlockingVisible
     }
 
+    fun setTargetPanelVisible(visible: Boolean) {
+        targetPanelVisible = visible
+        if (visible && !isBusyBlocking()) {
+            applyTargetPanelPolicy()
+        } else if (!visible) {
+            setMainButtonsVisible(true)
+        }
+    }
+
+    private fun setMainButtonsVisible(visible: Boolean) {
+        val value = if (visible) View.VISIBLE else View.GONE
+        binding.btnLogout.visibility = value
+        binding.btnAddGutter.visibility = value
+        binding.btnLegend.visibility = value
+        binding.btnLayers.visibility = value
+        binding.btnViewDrafts.visibility = value
+        binding.btnMyLocation.visibility = value
+        binding.btnReportNoDitch.visibility = value
+        binding.btnMeasureDistance.visibility = value
+    }
+
+    private fun applyTargetPanelPolicy() {
+        setMainButtonsVisible(false)
+        binding.btnMeasureDistance.visibility = View.VISIBLE
+        binding.btnMeasureDistance.isEnabled = true
+        binding.btnMeasureDistance.isClickable = true
+        binding.btnMeasureDistance.alpha = 1f
+    }
+
     fun setMainButtonsEnabled(enabled: Boolean) {
+        if (targetPanelVisible && !isBusyBlocking()) {
+            applyTargetPanelPolicy()
+            return
+        }
         fun setFabEnabled(view: View, value: Boolean) {
             view.isEnabled = value
             view.isClickable = value

@@ -962,15 +962,6 @@ class MainActivity : AppCompatActivity(),
         mapCameraController.setPersistentBottomInset(0)
     }
 
-    override fun onGutterMeasure(sheet: AddGutterBottomSheet) {
-        if (measureManager?.isMeasuring == true) return
-        measureSourceSheet = sheet
-        sheet.hideSelf {
-            measureBackCallback.isEnabled = true
-            enterMeasureMode()
-        }
-    }
-
     override fun onGutterSubmitted(waypoints: List<Waypoint>) {
         // 隱藏 BottomSheet 並開始上傳動畫
         activeSheet?.hideSelf()
@@ -2434,6 +2425,14 @@ class MainActivity : AppCompatActivity(),
 
     /** 進入測距模式：顯示底部面板，準心暫時隱藏，等使用者點選起點後才顯示。 */
     private fun enterMeasureMode() {
+        if (measureSourceSheet == null && activeSheet?.isAdded == true) {
+            measureSourceSheet = activeSheet
+            measureSourceSheet?.hideSelf {
+                measureBackCallback.isEnabled = true
+                enterMeasureMode()
+            }
+            return
+        }
         measureModeUiController.enter(measureManager)
     }
 

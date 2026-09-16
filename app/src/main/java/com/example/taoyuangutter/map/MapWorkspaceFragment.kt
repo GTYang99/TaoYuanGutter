@@ -359,7 +359,7 @@ class MapWorkspaceFragment : Fragment(),
             context = requireContext(),
             binding = binding,
             isMeasuring = { measureManager?.isMeasuring == true },
-            isSheetActive = { activeSheet != null || inspectSheet != null || isInspecting || isInspectUiLocked }
+            isSheetActive = { addGutterListSheet != null || activeSheet != null || inspectSheet != null || isInspecting || isInspectUiLocked }
         )
         mainMapLoadIndicatorController = MainMapLoadIndicatorController(requireContext(), binding)
         measureConfig = MeasureConfig()
@@ -1042,6 +1042,7 @@ class MapWorkspaceFragment : Fragment(),
         val sheet = AddGutterListBottomSheet().also { it.drafts = multiGutterSessionCoordinator.drafts() }
         addGutterListSheet = sheet
         sheet.show(childFragmentManager, "AddGutterListBottomSheet")
+        mainBlockingUiController.setTargetPanelVisible(true)
     }
 
     private fun returnToMultiGutterListAfterUploadFailure() {
@@ -1061,6 +1062,8 @@ class MapWorkspaceFragment : Fragment(),
     override fun onAddGutterListAdd() {
         val item = multiGutterSessionCoordinator.addItem()
         addGutterListSheet?.dismissAllowingStateLoss()
+        addGutterListSheet = null
+        mainBlockingUiController.setTargetPanelVisible(false)
         currentSessionResumedFromDraft = false
         gutterSessionUiCoordinator.startAddSession(
             isOfflineMainMode = isOfflineMainMode,
@@ -1071,6 +1074,8 @@ class MapWorkspaceFragment : Fragment(),
 
     override fun onAddGutterListSelect(draft: GutterSessionDraft) {
         addGutterListSheet?.dismissAllowingStateLoss()
+        addGutterListSheet = null
+        mainBlockingUiController.setTargetPanelVisible(false)
         currentSessionResumedFromDraft = true
         gutterSessionUiCoordinator.resumeDraft(
             draft = draft,
@@ -1400,6 +1405,7 @@ class MapWorkspaceFragment : Fragment(),
         }
         activeSheet = sheet
         sheet.show(childFragmentManager, AddGutterBottomSheet.TAG)
+        mainBlockingUiController.setTargetPanelVisible(true)
         currentWaypoints = wps.toMutableList()
         refreshWorkingMarkers(wps)
         fitInspectRouteAboveSheet(wps)
@@ -1414,21 +1420,23 @@ class MapWorkspaceFragment : Fragment(),
         googleMap?.setOnMapClickListener { latLng -> handleMainMapTap(latLng) }
     }
 
-    override fun onAddGutterListMeasure(sheet: AddGutterListBottomSheet) {
-        if (measureManager?.isMeasuring == true) return
-        measureSource = MeasureSource.LIST
-        measureSourceList = sheet
-        sheet.hideForMeasure { enterMeasureMode() }
-    }
-
-    override fun onGutterMeasure(sheet: AddGutterBottomSheet) {
-        if (measureManager?.isMeasuring == true) return
-        measureSource = MeasureSource.EDIT
-        measureSourceEdit = sheet
-        sheet.hideSelf { enterMeasureMode() }
-    }
-
     private fun enterMeasureMode() {
+        if (measureSource == null) {
+            val listSheet = addGutterListSheet
+            val editSheet = activeSheet
+            if (listSheet != null && listSheet.isAdded) {
+                measureSource = MeasureSource.LIST
+                measureSourceList = listSheet
+                listSheet.hideForMeasure { enterMeasureMode() }
+                return
+            }
+            if (editSheet != null && editSheet.isAdded) {
+                measureSource = MeasureSource.EDIT
+                measureSourceEdit = editSheet
+                editSheet.hideSelf { enterMeasureMode() }
+                return
+            }
+        }
         if (measureSource == MeasureSource.LIST) {
             gutterMapController.clearWorkingLayer()
             scopeGutterPolylineController.setVisible(false)
@@ -1453,6 +1461,7 @@ class MapWorkspaceFragment : Fragment(),
         measureSourceList = null
         measureSourceEdit = null
         measureBackCallback.isEnabled = false
+        mainBlockingUiController.setTargetPanelVisible(false)
     }
     private fun updateMeasureDistanceDisplay(meters: Double?) { measureModeUiController.updateDistanceDisplay(meters) }
 

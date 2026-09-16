@@ -75,3 +75,28 @@ Status: Open
 APPROVED
 
 The plan now covers all acceptance criteria with actionable ownership, state transitions, rollback, and proportionate unit, UI/integration, and device validation. Implementation may begin on the recorded task branch.
+
+## Round 5 Review — Sole Main Button Revision
+
+### Checklist
+| Item | Result | Notes |
+|---|---|---|
+| Revised requirements and acceptance criteria | Pass | The unique existing `btnMeasureDistance` requirement, external-touch constraint, and blocking priority are explicit. |
+| Repository and architecture analysis | Pass | Correctly identifies the dialog window boundary, existing editor touch routing, list routing gap, and prior proxy implementation to remove. |
+| Affected modules and dependencies | Pass | Covers the activity layout, centralized UI policy, map host, both sheets, layouts, and focused tests. |
+| Implementation and failure handling | Pass | Defines the order for proxy removal, centralized visibility policy, touch routing, source selection, restoration, Back, and unavailable-map/blocking guards. |
+| Test and regression plan | Pass | Covers unique entry, position/visibility, touch delivery, both source flows, listener/layer recovery, blocking, drafts, inspection, and device smoke. |
+| Scope, rollback, privacy | Pass | Scope is bounded to the revised interaction policy; rollback and non-data-impact are stated. |
+
+### Improvement suggestion
+Severity: Suggestion
+Category: Policy API
+Description: The centralized control policy should receive an explicit target-panel state that includes both `addGutterListSheet` and `activeSheet`; the existing `isSheetActive` callback only represents editor/inspect flow.
+Recommendation: Make the policy input or host-owned recomputation include the list-sheet instance, so a loading completion cannot accidentally restore normal controls while the list remains open.
+Status: Open
+
+## Revised Decision
+
+APPROVED
+
+The sole-main-button plan is implementation-ready. The recorded suggestion improves resilience but does not block the defined requirement or acceptance coverage.
