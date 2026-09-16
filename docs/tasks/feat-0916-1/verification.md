@@ -83,7 +83,7 @@ Evidence: `ac003-list-open.png`, `ac003-measured.png`, and `ac003-restored.png` 
 
 ### Fixed Revision and Environment
 
-- Commit under test: `0c5107da1a97c16c040ae8689a158b2b2f91d55c` (`0c5107d`, `fix(feat-0916-1): prioritize measurement back callback`).
+- Commit under test: `0c5107d2cf1705401fb6c550cc42ed55e896e925` (`0c5107d`, `fix(feat-0916-1): prioritize measurement back callback`).
 - Worktree: clean detached `/private/tmp/tyg-feat-0916-1-verification-r4`; no tracked source files changed during the test.
 - Device: `emulator-5554`, `Medium_Phone (AVD)`, Android 14; package `com.example.taoyuangutter`, debug variant.
 - Preconditions: user completed normal login; opened `新增側溝清單` from the main `+` action.
@@ -102,3 +102,31 @@ Evidence: `ac003-list-open.png`, `ac003-measured.png`, and `ac003-restored.png` 
 ## Current Final Result
 
 NOT VERIFIED — AC-003’s Android Back failure is resolved at `0c5107d`; remaining AC-003 layer-state evidence, AC-004’s pre-existing working polyline, AC-005’s outstanding regressions, and CI are still required before Release.
+
+## Emulator Verification Round — `0c5107d`
+
+### Environment
+
+- Revision: `0c5107d2cf1705401fb6c550cc42ed55e896e925`, clean detached worktree `/private/tmp/tyg-feat-0916-1-verification-r4`.
+- Device: `emulator-5554`, `Medium_Phone (AVD)`, Android 14; package `com.example.taoyuangutter`, debug variant.
+- Login: completed through the normal UI. The authenticated `新增側溝清單` contained no rendered item, scope line, or working-layer node available for inspection.
+
+### AC Results
+
+| AC | Result | Emulator evidence |
+|----|--------|-------------------|
+| AC-001 | PASS | With the authenticated list and the editor each open, `dumpsys activity top` showed only `btnMeasureDistance` visible/enabled; logout, add, layers, drafts, legend, report and location controls were `GONE`. UI dumps contained no in-panel proxy measure control. |
+| AC-002 | PASS | From list and editor, the exposed main-map button at `(975, 84)` entered measurement without dismissing either source. The resulting panel displayed `距離`, `重設起點`, and `關閉測距模式`. |
+| AC-003 | NOT VERIFIED | The list hid for measurement and Android Back restored `新增側溝清單` while focus stayed in `MainShellActivity`. However, the authenticated data set had no existing scope or working-layer lines/nodes, so their immediate hiding, preservation, and latest-`showPlan` restoration could not be observed. |
+| AC-004 | NOT VERIFIED | Editor-source measurement hid the editor, map input showed `45 公尺` then `43 公尺` after reset, and both explicit close and Android Back restored the same editor. The editor had empty start/end rows, so retention of a pre-existing working line/node is unproven. |
+| AC-005 | NOT VERIFIED | Reset returned the panel to `點擊地圖設定起點`; close and Back restored the source panel. Closing the list restored all normal map controls, and the restored Layers control opened and closed normally. Emulator instrumentation passed `MainShellActivityTest` (12/12: Back precedence, independent multi-drafts, list close/finalization, blocking-indicator state) and `GutterFormExitUiTest` (7/7: incomplete-form warnings and permitted completed/preview exits). Listener recovery after a normal editor carrying existing working geometry, upload-blocking interaction, and full draft recreation through the production map flow remain unexecuted. |
+
+### Instrumentation Evidence
+
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ANDROID_SERIAL=emulator-5554 ./gradlew --no-daemon --console=plain :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`: PASS. XML: 12 tests, 0 failures, 0 errors.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ANDROID_SERIAL=emulator-5554 ./gradlew --no-daemon --console=plain :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterFormExitUiTest`: PASS. XML: 7 tests, 0 failures, 0 errors; exit-code file `0`.
+- A prior unrestricted full-suite attempt did not produce a usable final report after the test environment removed the app and test package. It is excluded from PASS evidence.
+
+### Final Result
+
+NOT VERIFIED. AC-001 and AC-002 pass on the emulator. AC-003 through AC-005 still require a test account or prepared local scenario with visible pre-existing scope/working geometry; AC-005 also requires the remaining production-flow blocking/listener checks. CI is pending.
