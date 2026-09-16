@@ -152,18 +152,32 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         queuePhotoDraftSync()
     }
 
+    override fun onPhotoSlotReplaced(slot: Int) {
+        if (slot !in 1..3) return
+        PhotoUploadSlotState.clear(currentFormData, slot)
+        syncCurrentWaypointFromCurrentFormData()
+        pagerAdapter.getBasicInfoFragment()?.updatePhotoUploadStatus(
+            slot = slot,
+            state = PhotoUploadSlotState.STATE_IDLE,
+            imgId = null,
+            error = null
+        )
+        queuePhotoDraftSync()
+    }
+
     override fun onPhotoSlotReadyForUpload(slot: Int, photoPath: String?) {
         if (slot !in 1..3) return
+        // Deletion must always clear the authoritative state, including old server metadata.
+        if (photoPath.isNullOrBlank()) {
+            clearPhotoUploadState(slot)
+            queuePhotoDraftSync()
+            return
+        }
         if (PhotoUploadSlotState.isAlreadyUploaded(currentFormData, slot)) {
             android.util.Log.d(
                 "PhotoUpload",
                 "既有照片已有伺服器狀態，略過啟動上傳 slot=$slot imgId=${currentFormPhotoImgId(slot)} state=${currentFormPhotoUploadState(slot)}"
             )
-            return
-        }
-        if (photoPath.isNullOrBlank()) {
-            clearPhotoUploadState(slot)
-            queuePhotoDraftSync()
             return
         }
         val token = LoginActivity.getSavedToken(this)
