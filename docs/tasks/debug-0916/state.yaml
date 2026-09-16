@@ -1,0 +1,45 @@
+task:
+  id: debug-0916
+  type: bugfix
+
+phase: verification
+status: verification_in_progress
+
+knowledge_resolution:
+  status: complete
+
+planning:
+  status: complete
+
+plan_review:
+  status: complete
+
+implementation:
+  status: complete
+
+validation:
+  status: limited
+
+git:
+  branch: feat/側溝清單
+  commit: ea1ba37
+  status: committed
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria:
+    - automated_tests
+    - backend_smoke
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - Java Runtime unavailable for Gradle validation
+
+next_action: infrastructure
