@@ -508,9 +508,15 @@ class MapWorkspaceFragment : Fragment(),
             editLatLngSnapshot = try { Gson().fromJson(json, type) } catch (_: Exception) { null }
         }
 
+        val restoredList = childFragmentManager.findFragmentByTag("AddGutterListBottomSheet") as? AddGutterListBottomSheet
+        if (restoredList != null) {
+            addGutterListSheet = restoredList
+            mainBlockingUiController.setTargetPanelVisible(true)
+        }
         val restoredSheet = childFragmentManager.findFragmentByTag(AddGutterBottomSheet.TAG) as? AddGutterBottomSheet ?: return
         if (restoredSheet.isAddMode()) {
             activeSheet = restoredSheet
+            mainBlockingUiController.setTargetPanelVisible(true)
             bindAddGutterSheet(restoredSheet)
         } else {
             inspectSheet = restoredSheet
@@ -1146,6 +1152,7 @@ class MapWorkspaceFragment : Fragment(),
     }
 
     private fun bindAddGutterSheet(sheet: AddGutterBottomSheet, initialWaypointCount: Int = 0) {
+        mainBlockingUiController.setTargetPanelVisible(true)
         gutterSheetSessionBinder.bind(
             sheet = sheet,
             config = GutterSheetSessionBinder.Config(initialWaypointCount = initialWaypointCount, refitOnGrowth = true),
