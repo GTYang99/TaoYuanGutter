@@ -90,3 +90,29 @@
 - **Planning response:** Plan step 3 now explicitly requires `AddGutterListBottomSheet.hideForMeasure()` and `showAfterMeasure()` using a reversible Dialog decor visibility/translation implementation. Step 4 requires `MapWorkspaceFragment` to retain and restore that same list fragment instance without a Fragment transaction. The test plan verifies restore does not trigger list close confirmation, cancellation, host close callback, or a new fragment.
 - **Next action:** plan_review
 - **Owner:** planning
+
+## ISS-FEAT-0916-1-008
+- **Task:** feat-0916-1
+- **Phase:** verification
+- **Category:** implementation_regression
+- **Priority:** P1
+- **Status:** open
+- **Title:** 編輯面板上方主測距按鈕未進入量測模式
+- **Impact:** 使用者在編輯面板開啟時無法透過唯一允許的測距入口開始量測；AC-002 與 AC-004 失敗，Release 受阻。
+- **Evidence:** 固定提交 `6838499` 在 Android 14 `emulator-5554` 的離線編輯面板中，主按鈕位於 y=305–430、sheet 位於 y=702–2337。點擊 `(975, 368)` 後 sheet 未收起且未顯示量測面板；重試一次結果相同。截圖：`/private/tmp/tyg-feat-0916-1-verification/editor-measure-fail.png`。
+- **Next action:** debug
+- **Owner:** developer / debug
+- **Re-verification:** At committed revision `eef13b8` on Android 14 `emulator-5554`, the editor measurement button at `(975, 368)` still left `design_bottom_sheet` visible and did not display `measurePanel`; one retry had the same result. The `00c2943` bounds correction did not resolve the runtime failure.
+
+## ISS-FEAT-0916-1-009
+- **Task:** feat-0916-1
+- **Phase:** verification
+- **Category:** verification_failure
+- **Priority:** P1
+- **Status:** resolved
+- **Title:** AC-002/AC-004 使用錯誤點擊座標
+- **Impact:** 將未點擊測距按鈕的結果誤分類為 implementation failure，阻止正式 Verification 正確判定。
+- **Evidence:** `/private/tmp/tyg-feat-0916-1-verification-r2/editor-measure-fail.png` 顯示按鈕約在 x=923–1038、y=98–198；記錄的 `(975, 368)` 位於地圖區域。
+- **Resolution:** 撤回 AC-002/AC-004 的 FAIL，改列 `NOT VERIFIED`；下一輪先記錄實際 bounds，再點擊按鈕。
+- **Next action:** verification
+- **Owner:** verifier

@@ -26,6 +26,7 @@
 - AC-003 clarification: opening `AddGutterListBottomSheet` hides all scope polylines immediately; list-source measurement preserves the working layer and its existing segments/nodes.
 - Focused validation after AC-003 fix: `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`, `MainShellActivityTest`, and `GutterFormExitUiTest` all PASS on `emulator-5554`.
 - Debug fix `00c2943` validation: `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`, `MainShellActivityTest`, and `GutterFormExitUiTest` PASS on `emulator-5554`; formal Verification has not been restarted.
+- Verification response: the prior AC-002/AC-004 FAIL used `(975, 368)`, which missed the visible button at approximately y=98–198. The implementation-failure classification is withdrawn; both criteria are `NOT VERIFIED` pending a correct tap.
 
 ## Scope
 - Changed only the approved implementation files and the focused Android test host.
