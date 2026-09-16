@@ -427,6 +427,7 @@ class GutterBasicInfoFragment : Fragment() {
         setupPendingDeployButton(isViewMode)
         setupRangeWatchers()
         setupDraftWatchers()
+        setupRemarkPresetChips()
         setupLocationPickerButton()
 
         // 新增與編輯模式下均隱藏側溝編號欄位（僅檢視模式顯示）
@@ -501,6 +502,7 @@ class GutterBasicInfoFragment : Fragment() {
             directContentRow(binding.tvSiltTitle, content),
             binding.rgIsSilt,
             binding.tvRemarksTitle,
+            binding.chipGroupRemarksPresets,
             binding.tilRemarks,
             hidden1,
             hidden2,
@@ -973,10 +975,15 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsBroken,
             binding.rgIsHanging,
             binding.rgIsSilt,
-            binding.tilRemarks
+            binding.tilRemarks,
+            binding.chipGroupRemarksPresets
         ).forEach { it.alpha = alpha }
 
         binding.cbCantOpen.isEnabled = actualEnabled
+        binding.chipGroupRemarksPresets.isEnabled = actualEnabled
+        for (index in 0 until binding.chipGroupRemarksPresets.childCount) {
+            binding.chipGroupRemarksPresets.getChildAt(index).isEnabled = actualEnabled
+        }
         binding.btnPendingDeploy.isEnabled = actualEnabled
         // Re-apply style (so view->edit mode transitions update colors correctly)
         setPendingDeploySelected(binding.btnPendingDeploy.isChecked)
@@ -994,6 +1001,28 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     /** 隱藏虛擬鍵盤 */
+    private fun setupRemarkPresetChips() {
+        val presets = listOf(
+            binding.chipRemarkFlowerbed,
+            binding.chipRemarkWelding,
+            binding.chipRemarkBollard,
+            binding.chipRemarkCementEdge,
+            binding.chipRemarkScrewFixing
+        )
+        presets.forEach { chip ->
+            chip.setOnClickListener {
+                if (!isFormEditable || isImportLocked || isVirtualMode) return@setOnClickListener
+                val preset = chip.text.toString()
+                val current = binding.etRemarks.text?.toString().orEmpty()
+                val parts = current.split('，').map { it.trim() }.filter { it.isNotEmpty() }
+                if (parts.any { it == preset }) return@setOnClickListener
+                val updated = (parts + preset).joinToString("，")
+                binding.etRemarks.setText(updated)
+                binding.etRemarks.setSelection(updated.length)
+            }
+        }
+    }
+
     private fun hideKeyboard() {
         val view = activity?.currentFocus ?: return
         val imm = activity?.getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
@@ -1234,6 +1263,7 @@ class GutterBasicInfoFragment : Fragment() {
             directContentRow(binding.tvSiltTitle, binding.formContent),
             binding.rgIsSilt,
             binding.tvRemarksTitle,
+            binding.chipGroupRemarksPresets,
             binding.tilRemarks
         ).distinct()
         virtualOnlyHiddenViews.forEach { it.visibility = visibility }

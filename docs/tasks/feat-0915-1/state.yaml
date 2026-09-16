@@ -1,0 +1,45 @@
+task:
+  id: feat-0915-1
+  type: feature
+
+phase: verification
+status: verification_not_verified
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+
+git:
+  branch: feat/備註欄輔助填寫功能
+  commit: 29c95fc
+  status: committed
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - 專案沒有 CI 設定或可查的 CI build/test 結果
+debug:
+  status: completed
+  root_cause: identified
+next_action: infrastructure
