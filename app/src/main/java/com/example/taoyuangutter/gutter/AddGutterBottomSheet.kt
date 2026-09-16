@@ -7,6 +7,7 @@ import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.AbsoluteSizeSpan
 import android.view.LayoutInflater
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -585,6 +586,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         dialog?.setOnShowListener {
             val sheetView = getSheetView()
             val sheetHeight = (resources.displayMetrics.heightPixels * 0.7f).toInt()
+            dialog?.window?.setGravity(Gravity.BOTTOM)
+            dialog?.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, sheetHeight)
             sheetView?.layoutParams?.height = sheetHeight
             sheetView?.requestLayout()
             // 清除 design_bottom_sheet 容器的預設背景，

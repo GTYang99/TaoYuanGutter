@@ -2,6 +2,7 @@ package com.example.taoyuangutter.gutter
 
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -90,6 +91,8 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
         ) ?: return
         bottomSheet.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         val height = (resources.displayMetrics.heightPixels * 0.8f).toInt()
+        dialog?.window?.setGravity(Gravity.BOTTOM)
+        dialog?.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, height)
         bottomSheet.layoutParams.height = height
         bottomSheet.requestLayout()
         (dialog as? BottomSheetDialog)?.behavior?.apply {

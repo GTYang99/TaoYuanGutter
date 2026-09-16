@@ -2,8 +2,8 @@ task:
   id: feat-0916-1
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -18,7 +18,7 @@ implementation:
   status: completed
 
 validation:
-  status: pending
+  status: partial
 
 git:
   branch: feat/表單合併測距功能
