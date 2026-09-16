@@ -12,7 +12,8 @@
 ## Developer Validation
 - `git diff --check`: PASS.
 - XML well-formedness check with `xmllint --noout` on both modified layouts: PASS.
-- `./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`: NOT VERIFIED — the environment has no available Java runtime (`Unable to locate a Java Runtime`).
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`: NOT VERIFIED — Gradle reached manifest processing but stopped because the local `MAPS_API_KEY` placeholder is not configured. No API key was available to add or expose.
+- ADB device discovery: NOT VERIFIED — ADB could not start its daemon in this environment (`Operation not permitted`); no device was changed.
 - Physical-device smoke test: NOT VERIFIED — no device validation was run in this turn.
 
 ## Scope
