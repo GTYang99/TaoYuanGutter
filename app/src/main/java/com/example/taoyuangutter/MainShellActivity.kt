@@ -23,13 +23,6 @@ class MainShellActivity : AppCompatActivity() {
         applyInsets()
         setupBottomNav()
 
-        currentTabId = savedInstanceState?.getInt(KEY_SELECTED_TAB) ?: R.id.nav_map
-        if (savedInstanceState == null || supportFragmentManager.fragments.isEmpty()) {
-            showTab(currentTabId)
-        } else {
-            binding.bottomNav.selectedItemId = currentTabId
-        }
-
         onBackPressedDispatcher.addCallback(
             this,
             object : OnBackPressedCallback(true) {
@@ -42,6 +35,14 @@ class MainShellActivity : AppCompatActivity() {
                 }
             }
         )
+
+        currentTabId = savedInstanceState?.getInt(KEY_SELECTED_TAB) ?: R.id.nav_map
+        if (savedInstanceState == null || supportFragmentManager.fragments.isEmpty()) {
+            showTab(currentTabId)
+        } else {
+            binding.bottomNav.selectedItemId = currentTabId
+        }
+
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

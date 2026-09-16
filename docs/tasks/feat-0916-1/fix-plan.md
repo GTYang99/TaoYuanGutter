@@ -2,19 +2,18 @@
 
 ## Scope
 
-Resolve `ISS-FEAT-0916-1-008` with the minimum change needed for AC-002 and AC-004, while applying the same correction to the list source required by AC-003.
+Resolve `ISS-FEAT-0916-1-010` with the minimum change needed for AC-003.
 
 ## Approved Fix
 
-1. In both BottomSheet classes, calculate external-touch bounds from the actual Material `design_bottom_sheet` container and its screen coordinates.
-2. Preserve the existing direct main-button click routing and the original Dialog callback for touches inside the sheet.
+1. Register the shell Back callback before creating/showing the selected Fragment.
+2. Let the Fragment view-lifecycle callback, when enabled for measurement, take precedence and execute `exitMeasureMode()`.
 3. Do not change measurement calculations, working-layer preservation, scope visibility policy, draft behavior, or Sheet lifecycle APIs.
-4. Validate compilation plus the focused `MainShellActivityTest` and `GutterFormExitUiTest` on `emulator-5554`; then repeat AC-002 and AC-004 manual smoke and execute AC-003 when the authenticated list path is available.
+4. Validate compilation and focused emulator tests, then repeat authenticated list-source measurement and Android Back.
 
 ## Change Set
 
-- `app/src/main/java/com/example/taoyuangutter/gutter/AddGutterBottomSheet.kt`
-- `app/src/main/java/com/example/taoyuangutter/gutter/AddGutterListBottomSheet.kt`
+- `app/src/main/java/com/example/taoyuangutter/MainShellActivity.kt`
 
 ## Exit Criteria
 

@@ -2,25 +2,22 @@
 
 ## Issue
 
-`ISS-FEAT-0916-1-008` caused AC-002 and AC-004 to fail at verification revision `6838499`.
+`ISS-FEAT-0916-1-010` caused AC-003 to fail at verification revision `eef13b8`.
 
 ## Cause
 
-Both BottomSheet Dialogs used their binding root to decide whether a touch was outside the sheet. That root can occupy the Dialog Window rather than the visible `design_bottom_sheet` bounds. A touch on the Activity's map measurement button was therefore classified as sheet content, so the Dialog consumed the first tap and the Activity never received the measurement action.
-
-The same boundary error existed in both `AddGutterBottomSheet.kt` and `AddGutterListBottomSheet.kt`, so the list source had the same regression risk even though it was not reachable during the failed smoke run.
+`MapWorkspaceFragment` installs an enabled `measureBackCallback` while measurement is active. However, `MainShellActivity` registered an always-enabled Activity-level Back callback after `showTab()` had created the map Fragment. The dispatcher therefore evaluated the shell callback first; on the map tab it called `finish()` instead of allowing `exitMeasureMode()` to restore the list sheet.
 
 ## Failed Acceptance Criteria
 
-- AC-002: the main map measurement button did not receive the first tap.
-- AC-004: editor-source measurement could not start, so hide/restore and Back behavior could not execute.
+- AC-003: list-source measurement entered successfully, but Android Back returned to the Launcher instead of restoring the same list.
 
 ## Evidence
 
-- `verification.md`: tap at `(975, 368)` failed twice on `emulator-5554`.
-- `AddGutterBottomSheet.kt` and `AddGutterListBottomSheet.kt`: external-touch routing used binding-root geometry.
-- `00c2943`: changed routing to use the actual `design_bottom_sheet` bounds.
+- `verification.md`: authenticated list measurement displayed distance, then Android Back closed the task on `emulator-5554`.
+- `MapWorkspaceFragment.kt`: `exitMeasureMode()` restores the list through `showAfterMeasure()`.
+- `MainShellActivity.kt`: the shell callback finishes the map Activity and was registered after the map tab was shown.
 
 ## Regression Risk
 
-The fix affects only Dialog-vs-Activity touch classification. Sheet content handling remains delegated to the original Dialog callback; map controls outside the visible sheet become routable. Both source paths require focused emulator validation after the fix.
+The fix affects only Back callback precedence. Measurement calculation, touch routing, sheet state, and layer visibility remain unchanged.
