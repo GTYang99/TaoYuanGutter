@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
-import android.view.Window
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterListBinding
@@ -49,24 +48,6 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
             com.google.android.material.R.id.design_bottom_sheet
         ) ?: return onHidden()
         dialog?.window?.setDimAmount(0f)
-        val contentView = binding.root
-        var routeToActivity = false
-        val originalCb = dialog?.window?.callback ?: return
-        dialog?.window?.callback = object : Window.Callback by originalCb {
-            override fun dispatchTouchEvent(event: MotionEvent): Boolean {
-                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
-                    val loc = IntArray(2)
-                    contentView.getLocationOnScreen(loc)
-                    routeToActivity = event.rawY < loc[1]
-                }
-                val handled = if (routeToActivity) requireActivity().dispatchTouchEvent(event)
-                else originalCb.dispatchTouchEvent(event)
-                if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
-                    routeToActivity = false
-                }
-                return handled
-            }
-        }
         dialog?.setCanceledOnTouchOutside(false)
         sheetView.animate().translationY(sheetView.height.toFloat()).setDuration(250)
             .withEndAction {
@@ -116,6 +97,25 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
             skipCollapsed = true
         }
         dialog?.window?.setDimAmount(0f)
+
+        val contentView = binding.root
+        var routeToActivity = false
+        val originalCb = dialog?.window?.callback ?: return
+        dialog?.window?.callback = object : android.view.Window.Callback by originalCb {
+            override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                    val loc = IntArray(2)
+                    contentView.getLocationOnScreen(loc)
+                    routeToActivity = event.rawY < loc[1]
+                }
+                val handled = if (routeToActivity) requireActivity().dispatchTouchEvent(event)
+                else originalCb.dispatchTouchEvent(event)
+                if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                    routeToActivity = false
+                }
+                return handled
+            }
+        }
     }
 
     override fun onCancel(dialog: android.content.DialogInterface) {

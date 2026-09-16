@@ -1437,10 +1437,6 @@ class MapWorkspaceFragment : Fragment(),
                 return
             }
         }
-        if (measureSource == MeasureSource.LIST) {
-            gutterMapController.clearWorkingLayer()
-            scopeGutterPolylineController.setVisible(false)
-        }
         measureBackCallback.isEnabled = measureSource != null
         measureModeUiController.enter(measureManager)
     }

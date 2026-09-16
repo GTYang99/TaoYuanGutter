@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: implementation
-status: implementation_in_progress
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -15,7 +15,7 @@ plan_review:
   status: approved
 
 implementation:
-  status: in_progress
+  status: completed
 
 validation:
   status: pending
@@ -38,4 +38,4 @@ release:
   status: pending
 
 blocking: []
-next_action: implementation
+next_action: verification
