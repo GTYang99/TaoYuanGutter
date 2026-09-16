@@ -7,6 +7,7 @@
 - List-source measurement hides working and scope layers; exit reconciles scope visibility from the current `showPlan` preference.
 - Editor-source measurement preserves the working layer and restores the same editor sheet.
 - Added a view-lifecycle Android Back callback and reinstalls the normal map-click listener after measurement exits.
+- Measurement starts only after the source sheet hide animation completes, so the dialog no longer intercepts map input.
 
 ## Developer Validation
 - `git diff --check`: PASS.

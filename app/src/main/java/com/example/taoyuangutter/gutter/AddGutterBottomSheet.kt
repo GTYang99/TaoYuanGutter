@@ -674,7 +674,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     /** MainActivity 取得目前 sheet 內的 waypoints（新增模式用） */
     fun getWaypoints(): List<Waypoint> = waypoints.toList()
 
-    fun hideSelf() {
+    fun hideSelf(onHidden: (() -> Unit)? = null) {
         val sheetView = getSheetView() ?: return
         // 先把遮罩清掉，動畫結束後將整個 dialog 視窗隱藏
         // 讓地圖的 pan/zoom gesture 可以完整穿透
@@ -686,6 +686,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             .withEndAction {
                 dialog?.window?.decorView?.visibility = android.view.View.INVISIBLE
                 locationPickerHost()?.onSheetViewportInsetChanged(0)
+                onHidden?.invoke()
             }
             .start()
     }

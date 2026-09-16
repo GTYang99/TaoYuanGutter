@@ -1425,8 +1425,7 @@ class MapWorkspaceFragment : Fragment(),
         if (measureManager?.isMeasuring == true) return
         measureSource = MeasureSource.EDIT
         measureSourceEdit = sheet
-        sheet.hideSelf()
-        enterMeasureMode()
+        sheet.hideSelf { enterMeasureMode() }
     }
 
     private fun enterMeasureMode() {
