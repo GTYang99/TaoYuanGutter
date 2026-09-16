@@ -1,6 +1,5 @@
 package com.example.taoyuangutter.api
 
-import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
@@ -29,15 +28,9 @@ object StoreDitchNodeRequestMapper {
                 PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
             }
         }.takeIf { it.isNotEmpty() }
-        val capturedAt = if (requestNodeId != null || isVirtual) {
-            null
-        } else {
-            listOfNotNull(
-                PhotoCapturedAtResolver.readBasicData(waypoint.basicData, 1),
-                PhotoCapturedAtResolver.readBasicData(waypoint.basicData, 2),
-                PhotoCapturedAtResolver.readBasicData(waypoint.basicData, 3)
-            ).takeIf { it.isNotEmpty() }
-        }
+        // storeDitch does not accept photo timestamps.  Timestamps are sent
+        // only by the node-image multipart upload API.
+        val capturedAt: List<String>? = null
 
         return StoreDitchNodeRequest(
             nodeId = requestNodeId,
