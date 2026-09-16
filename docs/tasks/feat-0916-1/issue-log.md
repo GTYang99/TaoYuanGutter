@@ -137,13 +137,12 @@
 ## ISS-FEAT-0916-1-011
 - **Task:** feat-0916-1
 - **Phase:** verification
-- **Category:** implementation_regression
+- **Category:** verification_failure
 - **Priority:** P1
-- **Status:** open
-- **Title:** 清單開啟後既有 scope 側溝線段未隱藏
-- **Impact:** 使用者開啟 `新增側溝清單` 時仍會看見既有 scope 線段，直接違反 AC-003，並阻擋 Release。
-- **Evidence:** 在固定修訂 `0c5107d` 的 Android 14 `emulator-5554`，將 mock location 設為中壢 (`24.9537, 121.2240`) 後，`scopeSearch` 回應 HTTP 200。開啟清單前畫面有多條紅／綠既有線段；開啟 `新增側溝清單` 後，這些線段仍顯示於 sheet 上方。截圖：`/private/tmp/zhongli-before-list.png`、`/private/tmp/zhongli-list-open.png`。
-- **Expected:** 清單開啟時立即隱藏全部既有 scope 側溝線段。
-- **Actual:** 既有 scope 線段持續可見。
-- **Next action:** debug
-- **Owner:** developer
+- **Status:** resolved
+- **Title:** 將地圖圖層誤判為 scope 側溝線段
+- **Impact:** 會錯將無效視覺證據分類為 AC-003 的 implementation failure。
+- **Evidence:** 在固定修訂 `0c5107d` 的 Android 14 `emulator-5554`，中壢 `scopeSearch` 回應 HTTP 200。`/private/tmp/zhongli-before-list.png`、`/private/tmp/zhongli-list-open.png` 的紅／綠線經產品澄清為地圖圖層，不是既有 scope 側溝線段。
+- **Resolution:** 撤回 AC-003 的 FAIL 與 implementation 分類；AC-003 改為 `NOT VERIFIED`，等待可區分的 scope 側溝線段證據。
+- **Next action:** verification
+- **Owner:** verification

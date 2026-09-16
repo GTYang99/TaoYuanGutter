@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_failed
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -26,10 +26,9 @@ git:
   status: committed
 
 verification:
-  result: fail
-  category: implementation
-  failed_acceptance_criteria:
-    - AC-003
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-003
     - AC-004
@@ -49,4 +48,4 @@ debug:
 blocking:
   - A normal editor with a visible pre-existing working polyline is unavailable for verification; the offline virtual-waypoint scenario preserves its rows but does not render that polyline.
   - Upload-blocking and normal-editor listener restoration with pre-existing geometry remain unavailable in the production emulator flow.
-next_action: debug
+next_action: verification

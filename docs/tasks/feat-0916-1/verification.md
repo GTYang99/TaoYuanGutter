@@ -140,15 +140,13 @@ NOT VERIFIED. AC-001 and AC-002 pass on the emulator. AC-003 through AC-005 stil
 - App `現在位置` action issued `GET /api/v1/map/scopeSearch?minLat=24.951731010701675&maxLat=24.955672082391796&minLng=121.22289743274452&maxLng=121.22510455548763`; response was HTTP 200.
 - Before opening the list, the map visibly rendered multiple green and red existing gutter polylines around Zhongli Station.
 
-### AC-003 Re-test: FAIL
+### AC-003 Re-test: NOT VERIFIED
 
 1. With the loaded existing gutter polylines visible, opened `新增側溝清單` through the main `+` action.
 2. Captured the list-open map state.
 
-**Expected:** all existing scope gutter polylines hide immediately when the list opens.
+**Correction:** the green and red lines in both captures are map-layer overlays, not existing scope gutter polylines. They cannot prove AC-003's scope-line visibility requirement.
 
-**Actual:** the same green and red existing gutter polylines remained visible in the map area above the list sheet.
+Evidence: `/private/tmp/zhongli-before-list.png` and `/private/tmp/zhongli-list-open.png` demonstrate that the layer overlays remain visible, but provide no valid evidence about scope gutter polylines.
 
-Evidence: `/private/tmp/zhongli-before-list.png` (lines visible before opening the list) and `/private/tmp/zhongli-list-open.png` (same lines still visible with `新增側溝清單` open).
-
-Classification: `implementation`; issue `ISS-FEAT-0916-1-011`; route: Debug.
+Result: `NOT VERIFIED`. A viewport containing rendered scope gutter polylines (distinct from map-layer overlays) is still required.
