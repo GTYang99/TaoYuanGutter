@@ -19,6 +19,7 @@
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 - Physical feature smoke test for the map interaction and layer restoration portions of AC-002–AC-004: NOT VERIFIED — the connected suite covers entry wiring but does not drive Google Maps measurement, Android Back restoration, or scope/working-layer visibility end to end.
 - Device smoke evidence: on `XQ-AU52` / Android 12 in offline edit flow, the editor measurement entry was visible and clickable, opened the existing measurement panel, and closing measurement restored the same editor sheet. This provides partial evidence for AC-001, AC-003, and AC-004; map-point measurement, Back handling, and layer visibility remain NOT VERIFIED.
+- A later attempt to re-run the corrected Back smoke was invalid because an external MOTP application took foreground; no PASS claim is made for the corrected Back path.
 - Physical-device smoke test: NOT VERIFIED — no device validation was run in this turn.
 
 ## Scope

@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -326,6 +327,7 @@ class MainActivity : AppCompatActivity(),
     var measureConfig = MeasureConfig()
     private var measureManager: DistanceMeasureManager? = null
     private var measureSourceSheet: AddGutterBottomSheet? = null
+    private lateinit var measureBackCallback: OnBackPressedCallback
 
     private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
     private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
@@ -349,6 +351,10 @@ class MainActivity : AppCompatActivity(),
         draftCoordinator.cleanupEmptyDrafts()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        measureBackCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() { exitMeasureMode() }
+        }
+        onBackPressedDispatcher.addCallback(this, measureBackCallback)
         applySystemBarInsets()
         mainBlockingUiController = MainBlockingUiController(
             context = this,
@@ -959,7 +965,10 @@ class MainActivity : AppCompatActivity(),
     override fun onGutterMeasure(sheet: AddGutterBottomSheet) {
         if (measureManager?.isMeasuring == true) return
         measureSourceSheet = sheet
-        sheet.hideSelf { enterMeasureMode() }
+        sheet.hideSelf {
+            measureBackCallback.isEnabled = true
+            enterMeasureMode()
+        }
     }
 
     override fun onGutterSubmitted(waypoints: List<Waypoint>) {
@@ -2433,6 +2442,7 @@ class MainActivity : AppCompatActivity(),
         measureModeUiController.exit(measureManager)
         measureSourceSheet?.showSelf()
         measureSourceSheet = null
+        if (::measureBackCallback.isInitialized) measureBackCallback.isEnabled = false
     }
 
     /**
