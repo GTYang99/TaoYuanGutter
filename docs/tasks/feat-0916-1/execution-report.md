@@ -10,6 +10,7 @@
 
 ## Developer Validation
 - `git diff --check`: PASS.
+- XML well-formedness check with `xmllint --noout` on both modified layouts: PASS.
 - `./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`: NOT VERIFIED — the environment has no available Java runtime (`Unable to locate a Java Runtime`).
 - Physical-device smoke test: NOT VERIFIED — no device validation was run in this turn.
 
