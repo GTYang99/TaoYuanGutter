@@ -15,8 +15,9 @@
 - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`: PASS.
 - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest :app:assembleDebug`: PASS.
 - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest`: PASS — device `XQ-AU52`, Android 12; 34 tests, 0 failures, 0 errors, 0 skipped.
+- After adding focused coverage, `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest`: PASS — device `XQ-AU52`, Android 12; 36 tests, 0 failures, 0 errors, 0 skipped. The focused tests cover the list measurement callback wiring and editor measurement-entry layout contract.
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
-- Physical feature smoke test for AC-001–AC-005: NOT VERIFIED — the connected suite passed, but it contains no focused test for the new sheet measurement flow.
+- Physical feature smoke test for the map interaction and layer restoration portions of AC-002–AC-004: NOT VERIFIED — the connected suite covers entry wiring but does not drive Google Maps measurement, Android Back restoration, or scope/working-layer visibility end to end.
 - Physical-device smoke test: NOT VERIFIED — no device validation was run in this turn.
 
 ## Scope

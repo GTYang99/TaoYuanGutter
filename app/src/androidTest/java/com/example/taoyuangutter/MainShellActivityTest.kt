@@ -48,6 +48,7 @@ class MainShellActivityTest {
     class TestAddGutterHostFragment : Fragment(), com.example.taoyuangutter.gutter.AddGutterListBottomSheet.Host {
         var addClicked = false
         var confirmedClose = false
+        var measureClicked = false
 
         fun showList(withContent: Boolean = true) {
             com.example.taoyuangutter.gutter.AddGutterListBottomSheet().also {
@@ -66,7 +67,9 @@ class MainShellActivityTest {
         override fun onAddGutterListAdd() { addClicked = true }
         override fun onAddGutterListSelect(draft: GutterSessionDraft) = Unit
         override fun onAddGutterListConfirmedClose() { confirmedClose = true }
-        override fun onAddGutterListMeasure(sheet: com.example.taoyuangutter.gutter.AddGutterListBottomSheet) = Unit
+        override fun onAddGutterListMeasure(sheet: com.example.taoyuangutter.gutter.AddGutterListBottomSheet) {
+            measureClicked = true
+        }
     }
 
     @Test
@@ -386,6 +389,41 @@ class MainShellActivityTest {
             MainShellActivity.fragmentFactoryForTests = null
             scenario.close()
         }
+    }
+
+    @Test
+    fun addGutterListWiresMeasureCallback() {
+        MainShellActivity.fragmentFactoryForTests = { TestAddGutterHostFragment() }
+        val scenario = ActivityScenario.launch(MainShellActivity::class.java)
+        try {
+            val hostRef = AtomicReference<TestAddGutterHostFragment?>()
+            scenario.onActivity { activity ->
+                hostRef.set(
+                    activity.supportFragmentManager
+                        .findFragmentById(R.id.shell_container) as TestAddGutterHostFragment
+                )
+                hostRef.get()!!.showList(withContent = false)
+            }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            onView(withId(R.id.btnAddGutterListMeasure)).perform(click())
+            assertTrue(hostRef.get()!!.measureClicked)
+        } finally {
+            MainShellActivity.fragmentFactoryForTests = null
+            scenario.close()
+        }
+    }
+
+    @Test
+    fun addGutterEditorLayoutExposesMeasureEntry() {
+        val context = ContextThemeWrapper(
+            ApplicationProvider.getApplicationContext(),
+            R.style.Theme_TaoYuanGutter
+        )
+        val root = LayoutInflater.from(context).inflate(R.layout.bottom_sheet_add_gutter, FrameLayout(context), false)
+        val measure = root.findViewById<ImageButton>(R.id.btnMeasureGutter)
+        assertNotNull(measure)
+        assertTrue(measure.isClickable)
+        assertEquals("測距", measure.contentDescription)
     }
 
     @Test
