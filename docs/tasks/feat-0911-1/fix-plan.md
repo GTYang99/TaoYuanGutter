@@ -39,6 +39,9 @@ requirement changes.
    `onPhotoSlotReadyForUpload()` evaluates the server-backed guard.
 3. Do not change the unchanged-import guard or explicit-delete behavior.
 
+4. Handle a `null` photo path before the unchanged-import guard so an explicit
+   delete clears authoritative upload metadata instead of returning early.
+
 ### Regression Evidence Required
 
 - A server-backed slot replaced with a new URI becomes an upload candidate and

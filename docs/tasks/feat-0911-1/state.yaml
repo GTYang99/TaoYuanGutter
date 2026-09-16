@@ -2,8 +2,8 @@ task:
   id: feat-0911-1
   type: feature
 
-phase: debug
-status: debug_in_progress
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -21,10 +21,13 @@ implementation:
 
 validation:
   status: completed
+  unit_test: pass
+  build: pass
+  android_test: not_verified
 
 git:
-  branch: feat/既有點位不上傳照片
-  commit: 457ef7b
+  branch: codex/fix-photo-replacement-upload
+  commit: 28ce977
   status: committed
 
 verification:
@@ -35,7 +38,7 @@ verification:
     - AC-005
 
 debug:
-  status: investigating
+  status: completed
   root_cause: replacement_capture_retains_server_backed_photo_metadata
   issue_id: ISS-003
 
@@ -49,4 +52,4 @@ release:
 blocking:
   - Authorized controlled backend save-and-reopen smoke evidence is unavailable.
   - CI configuration or CI run results are unavailable.
-next_action: debug
+next_action: verification

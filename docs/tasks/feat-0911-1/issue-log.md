@@ -26,6 +26,13 @@
   - Make `NodeDetails.safeCapturedAt()` tolerate an explicit `captured_at: null`; emulator evidence showed Gson can bypass the Kotlin non-null default and otherwise produce a caught `NullPointerException` during import.
 - next_action: verification
 
+## ISS-003 Implementation Result
+
+- Status: resolved_pending_validation
+- Fix: Reset replacement-slot server metadata before upload eligibility is evaluated, and execute the explicit-delete cleanup before the existing-server guard.
+- Validation: PASS — target/full unit tests and debug/Android-test APK builds; backend replacement-request smoke is NOT VERIFIED because it would persist test data.
+- Next action: verification
+
 ## ISS-003
 
 - task_id: feat-0911-1

@@ -60,6 +60,12 @@ The early guard was introduced in `72492cb` to stop *unchanged* imported
 photos from being uploaded again. It lacks a replacement transition that clears
 only the server-upload metadata while retaining the newly captured URI.
 
+The same guard also prevents an explicit deletion from clearing the Activity's
+authoritative metadata: `clearPhotoSlot()` calls
+`onPhotoSlotReadyForUpload(slot, null)`, but the current guard runs before the
+`null`-path cleanup. The Fragment clears its local state, then the stale
+Activity metadata is merged back during draft synchronization.
+
 ### Minimum Fix Direction
 
 Before notifying the upload host of a successful replacement capture, reset
@@ -67,3 +73,6 @@ only that slot's upload state, image ID, and error; retain the new URI and its
 capture timestamp. Do not call the generic deletion helper because it also
 removes the newly captured photo. Add a regression test that starts from a
 server-backed slot, replaces it, and asserts that an upload job is enqueued.
+
+The `null` delete path must run before the existing-server guard so it clears
+the Activity's metadata even when the deleted photo was previously uploaded.
