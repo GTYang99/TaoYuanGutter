@@ -1047,6 +1047,9 @@ class MapWorkspaceFragment : Fragment(),
     private fun showAddGutterList() {
         val sheet = AddGutterListBottomSheet().also { it.drafts = multiGutterSessionCoordinator.drafts() }
         addGutterListSheet = sheet
+        // The list page owns the scope-layer visibility while it is open.
+        // Keep the working layer untouched so existing segments/nodes remain visible.
+        scopeGutterPolylineController.setVisible(false)
         sheet.show(childFragmentManager, "AddGutterListBottomSheet")
         mainBlockingUiController.setTargetPanelVisible(true)
     }
@@ -1736,6 +1739,7 @@ class MapWorkspaceFragment : Fragment(),
             return
         }
         isInspectUiLocked = false
+        mainBlockingUiController.setTargetPanelVisible(false)
         mainBlockingUiController.setMainButtonsEnabled(true)
         consumePendingForceReloadIfPossible()
     }

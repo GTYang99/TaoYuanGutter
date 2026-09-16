@@ -5,6 +5,7 @@
 - Added reversible list-sheet hide/show behavior without dismissing the fragment.
 - Added source-aware measurement state in `MapWorkspaceFragment`.
 - List-source measurement preserves the working layer so existing segments and nodes remain visible; exit reconciles scope visibility from the current `showPlan` preference.
+- List opening now hides all rendered scope polylines immediately; closing the list restores the normal main-map control policy.
 - Editor-source measurement preserves the working layer and restores the same editor sheet.
 - Added a view-lifecycle Android Back callback and reinstalls the normal map-click listener after measurement exits.
 - Measurement starts only after the source sheet hide animation completes, so the dialog no longer intercepts map input.
@@ -22,6 +23,8 @@
 - Emulator smoke evidence: on `Medium_Phone` / `emulator-5554` in offline edit flow, the editor measurement entry was visible and clickable; system Back during measurement restored the same editor sheet. This provides partial evidence for AC-001, AC-003, and AC-004; map-point measurement and layer visibility remain NOT VERIFIED.
 - Emulator main-map measurement smoke: on `Medium_Phone` / `emulator-5554`, the main measurement button opened the panel, a map tap displayed `11446.69 公里`, reset cleared the start point, and close removed the measurement panel. This is PASS evidence for the existing measurement behavior in AC-004.
 - Login-dependent multi-gutter list smoke test: NOT VERIFIED — no test credentials were used; emulator-only validation remains limited to offline flow and instrumentation coverage.
+- AC-003 clarification: opening `AddGutterListBottomSheet` hides all scope polylines immediately; list-source measurement preserves the working layer and its existing segments/nodes.
+- Focused validation after AC-003 fix: `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`, `MainShellActivityTest`, and `GutterFormExitUiTest` all PASS on `emulator-5554`.
 
 ## Scope
 - Changed only the approved implementation files and the focused Android test host.
