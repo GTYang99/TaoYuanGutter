@@ -130,3 +130,25 @@ NOT VERIFIED — AC-003’s Android Back failure is resolved at `0c5107d`; remai
 ### Final Result
 
 NOT VERIFIED. AC-001 and AC-002 pass on the emulator. AC-003 through AC-005 still require a test account or prepared local scenario with visible pre-existing scope/working geometry; AC-005 also requires the remaining production-flow blocking/listener checks. CI is pending.
+
+## Zhongli Data Re-test — `0c5107d`
+
+### Environment and Data Load
+
+- Same fixed revision and detached verification worktree as the preceding emulator round.
+- Android 14 `emulator-5554`; mock location set to `24.9537, 121.2240` (Zhongli).
+- App `現在位置` action issued `GET /api/v1/map/scopeSearch?minLat=24.951731010701675&maxLat=24.955672082391796&minLng=121.22289743274452&maxLng=121.22510455548763`; response was HTTP 200.
+- Before opening the list, the map visibly rendered multiple green and red existing gutter polylines around Zhongli Station.
+
+### AC-003 Re-test: FAIL
+
+1. With the loaded existing gutter polylines visible, opened `新增側溝清單` through the main `+` action.
+2. Captured the list-open map state.
+
+**Expected:** all existing scope gutter polylines hide immediately when the list opens.
+
+**Actual:** the same green and red existing gutter polylines remained visible in the map area above the list sheet.
+
+Evidence: `/private/tmp/zhongli-before-list.png` (lines visible before opening the list) and `/private/tmp/zhongli-list-open.png` (same lines still visible with `新增側溝清單` open).
+
+Classification: `implementation`; issue `ISS-FEAT-0916-1-011`; route: Debug.

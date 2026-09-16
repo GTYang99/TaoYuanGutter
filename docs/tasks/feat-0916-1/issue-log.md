@@ -133,3 +133,17 @@
 - **Re-verification:** `a83f745` 在乾淨分離工作區建置並安裝至 Android 14 `emulator-5554`。登入後重跑清單兩點量距，仍顯示 `90 公尺`；Android Back 再次回到 launcher，未恢復 `AddGutterListBottomSheet`。修正未解決問題，issue 保持 open。
 - **Debug update:** `a83f745` 只改變程式碼在 `onCreate` 中的排列，仍使用 `addCallback(this, ...)`。該 lifecycle-owner overload 到 Activity `ON_START` 才加入 dispatcher，晚於 Fragment view callback，因此 shell callback 仍有最高優先權。最小修正改為直接加入 dispatcher，並保留在 `showTab()` 前。
 - **Resolution:** `0c5107d` 改以非 lifecycle-owner overload 在 `showTab()` 前立即註冊 shell callback。乾淨 detached worktree `/private/tmp/tyg-feat-0916-1-verification-r4` 的 Android 14 `emulator-5554` 重測：從同一清單開啟量測後送出 Android Back，焦點仍為 `MainShellActivity`，且 `新增側溝清單` 已恢復；不再回到 launcher。
+
+## ISS-FEAT-0916-1-011
+- **Task:** feat-0916-1
+- **Phase:** verification
+- **Category:** implementation_regression
+- **Priority:** P1
+- **Status:** open
+- **Title:** 清單開啟後既有 scope 側溝線段未隱藏
+- **Impact:** 使用者開啟 `新增側溝清單` 時仍會看見既有 scope 線段，直接違反 AC-003，並阻擋 Release。
+- **Evidence:** 在固定修訂 `0c5107d` 的 Android 14 `emulator-5554`，將 mock location 設為中壢 (`24.9537, 121.2240`) 後，`scopeSearch` 回應 HTTP 200。開啟清單前畫面有多條紅／綠既有線段；開啟 `新增側溝清單` 後，這些線段仍顯示於 sheet 上方。截圖：`/private/tmp/zhongli-before-list.png`、`/private/tmp/zhongli-list-open.png`。
+- **Expected:** 清單開啟時立即隱藏全部既有 scope 側溝線段。
+- **Actual:** 既有 scope 線段持續可見。
+- **Next action:** debug
+- **Owner:** developer

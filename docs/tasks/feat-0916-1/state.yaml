@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_not_verified
+status: verification_failed
 
 knowledge_resolution:
   status: not_required
@@ -26,9 +26,10 @@ git:
   status: committed
 
 verification:
-  result: not_verified
-  category: environment
-  failed_acceptance_criteria: []
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-003
   not_verified_acceptance_criteria:
     - AC-003
     - AC-004
@@ -47,6 +48,5 @@ debug:
 
 blocking:
   - A normal editor with a visible pre-existing working polyline is unavailable for verification; the offline virtual-waypoint scenario preserves its rows but does not render that polyline.
-  - The authenticated test account's gutter list has no rendered item, scope line, or working-layer node, so AC-003's line-state conditions cannot be observed on the emulator.
   - Upload-blocking and normal-editor listener restoration with pre-existing geometry remain unavailable in the production emulator flow.
-next_action: verification
+next_action: debug
