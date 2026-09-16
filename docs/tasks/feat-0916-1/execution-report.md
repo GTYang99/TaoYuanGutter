@@ -1,10 +1,10 @@
 # Execution Report
 
 ## Implementation
-- Added measurement proxy buttons to the list and editor sheets.
+- Removed the former measurement proxy buttons from the list and editor sheets; the existing main-map button is now the only entry point.
 - Added reversible list-sheet hide/show behavior without dismissing the fragment.
 - Added source-aware measurement state in `MapWorkspaceFragment`.
-- List-source measurement hides working and scope layers; exit reconciles scope visibility from the current `showPlan` preference.
+- List-source measurement preserves the working layer so existing segments and nodes remain visible; exit reconciles scope visibility from the current `showPlan` preference.
 - Editor-source measurement preserves the working layer and restores the same editor sheet.
 - Added a view-lifecycle Android Back callback and reinstalls the normal map-click listener after measurement exits.
 - Measurement starts only after the source sheet hide animation completes, so the dialog no longer intercepts map input.
