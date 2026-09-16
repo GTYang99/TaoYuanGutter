@@ -2,8 +2,8 @@ task:
   id: feat-0916-1
   type: feature
 
-phase: verification
-status: verification_in_progress
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: not_required
@@ -22,13 +22,19 @@ validation:
 
 git:
   branch: feat/表單合併測距功能
-  commit: "48b8756"
+  commit: "00c2943"
   status: committed
 
 verification:
-  result: pending
-  category: null
-  failed_acceptance_criteria: []
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-002
+    - AC-004
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-003
+    - AC-005
 
 ci:
   build: pending
@@ -38,4 +44,8 @@ release:
   status: pending
 
 blocking: []
-next_action: verification
+debug:
+  status: completed
+  root_cause: identified
+
+next_action: implementation_debug

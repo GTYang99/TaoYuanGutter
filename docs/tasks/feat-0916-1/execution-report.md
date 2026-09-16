@@ -25,6 +25,7 @@
 - Login-dependent multi-gutter list smoke test: NOT VERIFIED — no test credentials were used; emulator-only validation remains limited to offline flow and instrumentation coverage.
 - AC-003 clarification: opening `AddGutterListBottomSheet` hides all scope polylines immediately; list-source measurement preserves the working layer and its existing segments/nodes.
 - Focused validation after AC-003 fix: `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`, `MainShellActivityTest`, and `GutterFormExitUiTest` all PASS on `emulator-5554`.
+- Debug fix `00c2943` validation: `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`, `MainShellActivityTest`, and `GutterFormExitUiTest` PASS on `emulator-5554`; formal Verification has not been restarted.
 
 ## Scope
 - Changed only the approved implementation files and the focused Android test host.
