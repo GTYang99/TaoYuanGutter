@@ -45,6 +45,26 @@ class MainShellActivityTest {
 
     class TestMapFragment : Fragment()
     class TestDashboardFragment : Fragment()
+    class TestBackHandlingMapFragment : Fragment() {
+        var backHandled = false
+
+        override fun onCreateView(
+            inflater: LayoutInflater,
+            container: ViewGroup?,
+            savedInstanceState: android.os.Bundle?
+        ): View = View(requireContext())
+
+        override fun onViewCreated(view: View, savedInstanceState: android.os.Bundle?) {
+            requireActivity().onBackPressedDispatcher.addCallback(
+                viewLifecycleOwner,
+                object : androidx.activity.OnBackPressedCallback(true) {
+                    override fun handleOnBackPressed() {
+                        backHandled = true
+                    }
+                }
+            )
+        }
+    }
     class TestAddGutterHostFragment : Fragment(), com.example.taoyuangutter.gutter.AddGutterListBottomSheet.Host {
         var addClicked = false
         var confirmedClose = false
@@ -86,6 +106,23 @@ class MainShellActivityTest {
 
         assertNotNull(bottomNav)
         assertEquals(2, bottomNav.menu.size())
+    }
+
+    @Test
+    fun mapViewBackCallbackTakesPrecedenceOverShellBackCallback() {
+        val mapFragment = TestBackHandlingMapFragment()
+        MainShellActivity.fragmentFactoryForTests = { mapFragment }
+        val scenario = ActivityScenario.launch(MainShellActivity::class.java)
+        try {
+            scenario.onActivity { activity ->
+                activity.onBackPressedDispatcher.onBackPressed()
+                assertTrue(mapFragment.backHandled)
+                assertTrue(!activity.isFinishing)
+            }
+        } finally {
+            MainShellActivity.fragmentFactoryForTests = null
+            scenario.close()
+        }
     }
 
     @Test

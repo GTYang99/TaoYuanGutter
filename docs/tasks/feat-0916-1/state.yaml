@@ -2,8 +2,8 @@ task:
   id: feat-0916-1
   type: feature
 
-phase: verification
-status: verification_in_progress
+phase: implementation
+status: implementation_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -22,16 +22,19 @@ validation:
 
 git:
   branch: feat/表單合併測距功能
-  commit: "eef13b8"
+  commit: "f525593"
   status: committed
 
 verification:
-  result: pending
-  category: null
-  failed_acceptance_criteria: []
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-003
   not_verified_acceptance_criteria:
     - AC-001
+    - AC-002
     - AC-003
+    - AC-004
     - AC-005
 
 ci:
@@ -41,9 +44,10 @@ ci:
 release:
   status: pending
 
-blocking: []
 debug:
   status: completed
   root_cause: identified
 
+blocking:
+  - A normal editor with a visible pre-existing working polyline is unavailable for verification; the offline virtual-waypoint scenario preserves its rows but does not render that polyline.
 next_action: verification

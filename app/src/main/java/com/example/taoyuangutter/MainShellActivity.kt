@@ -24,7 +24,6 @@ class MainShellActivity : AppCompatActivity() {
         setupBottomNav()
 
         onBackPressedDispatcher.addCallback(
-            this,
             object : OnBackPressedCallback(true) {
                 override fun handleOnBackPressed() {
                     if (currentTabId != R.id.nav_map) {

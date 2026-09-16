@@ -27,6 +27,8 @@
 - Focused validation after AC-003 fix: `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`, `MainShellActivityTest`, and `GutterFormExitUiTest` all PASS on `emulator-5554`.
 - Debug fix `00c2943` validation: `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`, `MainShellActivityTest`, and `GutterFormExitUiTest` PASS on `emulator-5554`; formal Verification has not been restarted.
 - Verification response: the prior AC-002/AC-004 FAIL used `(975, 368)`, which missed the visible button at approximately y=98–198. The implementation-failure classification is withdrawn; both criteria are `NOT VERIFIED` pending a correct tap.
+- AC-003 Back-handling follow-up: the lifecycle-owned shell callback was registered only when the Activity reached `STARTED`, placing it above the map view's measurement callback and causing Android Back to finish the task. The shell callback is now registered immediately, before fragment creation, so the map view callback remains the active handler during measurement.
+- Focused regression validation: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ANDROID_SERIAL=emulator-5554 ./gradlew --no-daemon --console=plain :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.MainShellActivityTest`: PASS on Android Emulator `Medium_Phone` (Android 14). The added test asserts a map view lifecycle Back callback takes precedence and the shell Activity does not finish.
 
 ## Scope
 - Changed only the approved implementation files and the focused Android test host.

@@ -96,13 +96,13 @@
 - **Phase:** verification
 - **Category:** implementation_regression
 - **Priority:** P1
-- **Status:** open
+- **Status:** resolved
 - **Title:** 編輯面板上方主測距按鈕未進入量測模式
 - **Impact:** 使用者在編輯面板開啟時無法透過唯一允許的測距入口開始量測；AC-002 與 AC-004 失敗，Release 受阻。
 - **Evidence:** 固定提交 `6838499` 在 Android 14 `emulator-5554` 的離線編輯面板中，主按鈕位於 y=305–430、sheet 位於 y=702–2337。點擊 `(975, 368)` 後 sheet 未收起且未顯示量測面板；重試一次結果相同。截圖：`/private/tmp/tyg-feat-0916-1-verification/editor-measure-fail.png`。
-- **Next action:** debug
-- **Owner:** developer / debug
-- **Re-verification:** At committed revision `eef13b8` on Android 14 `emulator-5554`, the editor measurement button at `(975, 368)` still left `design_bottom_sheet` visible and did not display `measurePanel`; one retry had the same result. The `00c2943` bounds correction did not resolve the runtime failure.
+- **Next action:** verification
+- **Owner:** verification
+- **Resolution:** The reported `(975, 368)` coordinate missed the actual button. At revision `eef13b8`, the correct button bounds were x=913–1038 and y=84–209; tapping `(975, 148)` entered measurement, hid the editor sheet, displayed distance, reset successfully, and Android Back restored the sheet.
 
 ## ISS-FEAT-0916-1-009
 - **Task:** feat-0916-1
@@ -116,3 +116,19 @@
 - **Resolution:** 撤回 AC-002/AC-004 的 FAIL，改列 `NOT VERIFIED`；下一輪先記錄實際 bounds，再點擊按鈕。
 - **Next action:** verification
 - **Owner:** verifier
+
+## ISS-FEAT-0916-1-010
+- **Task:** feat-0916-1
+- **Phase:** verification
+- **Category:** implementation_regression
+- **Priority:** P1
+- **Status:** open
+- **Title:** 清單來源測距的 Android 返回鍵結束整個 app
+- **Impact:** 使用者從 `新增側溝清單` 進入測距後無法透過 Android 返回鍵回復相同清單與圖層狀態，直接違反 AC-003 並阻擋 Release。
+- **Evidence:** 固定提交 `eef13b8` 於 Android 14 `emulator-5554`。清單主按鈕可進入測距，兩個點位顯示 `90 公尺`；接著送出 Android Back（`keyevent 4`）後，UI 顯示 Android launcher 而非 `新增側溝清單`。重新登入後的受控重試重現相同結果。相關截圖：`/private/tmp/tyg-feat-0916-1-verification-r2/list-measured.png`、`list-restored.png`。
+- **Expected:** Android Back 優先退出測距，還原同一個清單 BottomSheet 與使用者原本的 scope 圖層偏好。
+- **Actual:** App task 關閉並回到 launcher。
+- **Next action:** debug
+- **Owner:** developer
+- **Re-verification:** `a83f745` 在乾淨分離工作區建置並安裝至 Android 14 `emulator-5554`。登入後重跑清單兩點量距，仍顯示 `90 公尺`；Android Back 再次回到 launcher，未恢復 `AddGutterListBottomSheet`。修正未解決問題，issue 保持 open。
+- **Debug update:** `a83f745` 只改變程式碼在 `onCreate` 中的排列，仍使用 `addCallback(this, ...)`。該 lifecycle-owner overload 到 Activity `ON_START` 才加入 dispatcher，晚於 Fragment view callback，因此 shell callback 仍有最高優先權。最小修正改為直接加入 dispatcher，並保留在 `showTab()` 前。
