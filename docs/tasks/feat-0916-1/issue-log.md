@@ -122,13 +122,14 @@
 - **Phase:** verification
 - **Category:** implementation_regression
 - **Priority:** P1
-- **Status:** open
+- **Status:** resolved
 - **Title:** 清單來源測距的 Android 返回鍵結束整個 app
 - **Impact:** 使用者從 `新增側溝清單` 進入測距後無法透過 Android 返回鍵回復相同清單與圖層狀態，直接違反 AC-003 並阻擋 Release。
 - **Evidence:** 固定提交 `eef13b8` 於 Android 14 `emulator-5554`。清單主按鈕可進入測距，兩個點位顯示 `90 公尺`；接著送出 Android Back（`keyevent 4`）後，UI 顯示 Android launcher 而非 `新增側溝清單`。重新登入後的受控重試重現相同結果。相關截圖：`/private/tmp/tyg-feat-0916-1-verification-r2/list-measured.png`、`list-restored.png`。
 - **Expected:** Android Back 優先退出測距，還原同一個清單 BottomSheet 與使用者原本的 scope 圖層偏好。
 - **Actual:** App task 關閉並回到 launcher。
-- **Next action:** debug
+- **Next action:** verification of remaining AC-003 layer-state conditions
 - **Owner:** developer
 - **Re-verification:** `a83f745` 在乾淨分離工作區建置並安裝至 Android 14 `emulator-5554`。登入後重跑清單兩點量距，仍顯示 `90 公尺`；Android Back 再次回到 launcher，未恢復 `AddGutterListBottomSheet`。修正未解決問題，issue 保持 open。
 - **Debug update:** `a83f745` 只改變程式碼在 `onCreate` 中的排列，仍使用 `addCallback(this, ...)`。該 lifecycle-owner overload 到 Activity `ON_START` 才加入 dispatcher，晚於 Fragment view callback，因此 shell callback 仍有最高優先權。最小修正改為直接加入 dispatcher，並保留在 `showTab()` 前。
+- **Resolution:** `0c5107d` 改以非 lifecycle-owner overload 在 `showTab()` 前立即註冊 shell callback。乾淨 detached worktree `/private/tmp/tyg-feat-0916-1-verification-r4` 的 Android 14 `emulator-5554` 重測：從同一清單開啟量測後送出 Android Back，焦點仍為 `MainShellActivity`，且 `新增側溝清單` 已恢復；不再回到 launcher。

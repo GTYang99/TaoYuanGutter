@@ -2,8 +2,8 @@ task:
   id: feat-0916-1
   type: feature
 
-phase: implementation
-status: implementation_in_progress
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -26,13 +26,10 @@ git:
   status: committed
 
 verification:
-  result: fail
-  category: implementation
-  failed_acceptance_criteria:
-    - AC-003
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
-    - AC-001
-    - AC-002
     - AC-003
     - AC-004
     - AC-005

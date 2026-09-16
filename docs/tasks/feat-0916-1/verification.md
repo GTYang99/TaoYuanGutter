@@ -78,3 +78,27 @@ FAIL
 **Result:** FAIL. `ISS-FEAT-0916-1-010` remains open and routes back to Debug.
 
 Evidence: `ac003-list-open.png`, `ac003-measured.png`, and `ac003-restored.png` under the isolated verification worktree.
+
+## Re-verification — `0c5107d`
+
+### Fixed Revision and Environment
+
+- Commit under test: `0c5107da1a97c16c040ae8689a158b2b2f91d55c` (`0c5107d`, `fix(feat-0916-1): prioritize measurement back callback`).
+- Worktree: clean detached `/private/tmp/tyg-feat-0916-1-verification-r4`; no tracked source files changed during the test.
+- Device: `emulator-5554`, `Medium_Phone (AVD)`, Android 14; package `com.example.taoyuangutter`, debug variant.
+- Preconditions: user completed normal login; opened `新增側溝清單` from the main `+` action.
+
+### AC-003 Focused Re-test
+
+1. With `新增側溝清單` open, tapped the exposed main-map `測量距離` control at `(975, 84)`.
+2. Confirmed the list hid and the measurement panel appeared while the focused window remained `MainShellActivity`.
+3. Sent Android Back (`adb -s emulator-5554 shell input keyevent 4`).
+4. Confirmed the focused window remained `MainShellActivity` and the same `新增側溝清單` UI was restored, including its close and add controls.
+
+**Back-restoration subcase: PASS.** This directly resolves the behavior reported in `ISS-FEAT-0916-1-010`; Android Back no longer exits to the launcher.
+
+**AC-003 overall: NOT VERIFIED.** The authenticated list available for this run did not expose pre-existing scope lines or working-layer segments/nodes. Their hide/preserve/restore behavior, including reconciliation with the latest `showPlan` preference, therefore remains unproven.
+
+## Current Final Result
+
+NOT VERIFIED — AC-003’s Android Back failure is resolved at `0c5107d`; remaining AC-003 layer-state evidence, AC-004’s pre-existing working polyline, AC-005’s outstanding regressions, and CI are still required before Release.
