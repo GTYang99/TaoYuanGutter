@@ -49,6 +49,7 @@ class MainShellActivityTest {
         var addClicked = false
         var confirmedClose = false
         var measureClicked = false
+        var lastListSheet: com.example.taoyuangutter.gutter.AddGutterListBottomSheet? = null
 
         fun showList(withContent: Boolean = true) {
             com.example.taoyuangutter.gutter.AddGutterListBottomSheet().also {
@@ -61,7 +62,8 @@ class MainShellActivityTest {
                         }
                     )
                 )
-            }.show(childFragmentManager, "test-add-gutter-list")
+            }.also { lastListSheet = it }
+                .show(childFragmentManager, "test-add-gutter-list")
         }
 
         override fun onAddGutterListAdd() { addClicked = true }
@@ -431,6 +433,40 @@ class MainShellActivityTest {
         assertNotNull(measure)
         assertTrue(measure.isClickable)
         assertEquals("測距", measure.contentDescription)
+    }
+
+    @Test
+    fun addGutterListMeasurementHideAndShowKeepsSameFragment() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        instrumentation.uiAutomation.executeShellCommand("settings put global animator_duration_scale 0").close()
+        instrumentation.uiAutomation.executeShellCommand("settings put global transition_animation_scale 0").close()
+        instrumentation.uiAutomation.executeShellCommand("settings put global window_animation_scale 0").close()
+        MainShellActivity.fragmentFactoryForTests = { TestAddGutterHostFragment() }
+        val scenario = ActivityScenario.launch(MainShellActivity::class.java)
+        try {
+            val sheetRef = AtomicReference<com.example.taoyuangutter.gutter.AddGutterListBottomSheet?>()
+            scenario.onActivity { activity ->
+                val host = activity.supportFragmentManager
+                    .findFragmentById(R.id.shell_container) as TestAddGutterHostFragment
+                host.showList(withContent = false)
+                sheetRef.set(host.lastListSheet)
+            }
+            instrumentation.waitForIdleSync()
+            val original = sheetRef.get()!!
+            scenario.onActivity { original.hideForMeasure { } }
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { original.showAfterMeasure() }
+            instrumentation.waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertTrue(original.isAdded)
+                val host = activity.supportFragmentManager
+                    .findFragmentById(R.id.shell_container) as TestAddGutterHostFragment
+                assertEquals(original, host.lastListSheet)
+            }
+        } finally {
+            MainShellActivity.fragmentFactoryForTests = null
+            scenario.close()
+        }
     }
 
     @Test
