@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -242,6 +243,11 @@ class MapWorkspaceFragment : Fragment(),
     private val submittedPolylines = mutableListOf<Polyline>()
     private var currentWaypoints: List<Waypoint> = emptyList()
     private var measureManager: DistanceMeasureManager? = null
+    private enum class MeasureSource { LIST, EDIT }
+    private var measureSource: MeasureSource? = null
+    private var measureSourceList: AddGutterListBottomSheet? = null
+    private var measureSourceEdit: AddGutterBottomSheet? = null
+    private lateinit var measureBackCallback: OnBackPressedCallback
     private lateinit var measureConfig: MeasureConfig
     private var noDitchMarker: com.google.android.gms.maps.model.Marker? = null
     private var noDitchPickedLatLng: LatLng? = null
@@ -378,6 +384,10 @@ class MapWorkspaceFragment : Fragment(),
         )
         noDitchModeUiController.setupPanelInsets()
         noDitchModeUiController.bind()
+        measureBackCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() { exitMeasureMode() }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, measureBackCallback)
         mainMapLoadIndicatorController.setBottomInset(currentSheetBottomInsetPx)
         isOfflineMainMode = false
 
@@ -605,7 +615,7 @@ class MapWorkspaceFragment : Fragment(),
             if (!mapOverlayController.currentState().showPlan) return@setOnPolylineClickListener
             openInspectBottomSheet(polyline)
         }
-        map.setOnMapClickListener { latLng -> handleMainMapTap(latLng) }
+        installNormalMapClickListener()
         map.setOnCameraIdleListener {
             handleMainMapCameraIdle()
             if (mapOverlayController.currentState().showNoDitchPoints) {
@@ -1400,8 +1410,51 @@ class MapWorkspaceFragment : Fragment(),
         if (mgr.isMeasuring) exitMeasureMode() else enterMeasureMode()
     }
 
-    private fun enterMeasureMode() { measureModeUiController.enter(measureManager) }
-    private fun exitMeasureMode() { measureModeUiController.exit(measureManager) }
+    private fun installNormalMapClickListener() {
+        googleMap?.setOnMapClickListener { latLng -> handleMainMapTap(latLng) }
+    }
+
+    override fun onAddGutterListMeasure(sheet: AddGutterListBottomSheet) {
+        if (measureManager?.isMeasuring == true) return
+        measureSource = MeasureSource.LIST
+        measureSourceList = sheet
+        sheet.hideForMeasure { enterMeasureMode() }
+    }
+
+    override fun onGutterMeasure(sheet: AddGutterBottomSheet) {
+        if (measureManager?.isMeasuring == true) return
+        measureSource = MeasureSource.EDIT
+        measureSourceEdit = sheet
+        sheet.hideSelf()
+        enterMeasureMode()
+    }
+
+    private fun enterMeasureMode() {
+        if (measureSource == MeasureSource.LIST) {
+            gutterMapController.clearWorkingLayer()
+            scopeGutterPolylineController.setVisible(false)
+        }
+        measureBackCallback.isEnabled = measureSource != null
+        measureModeUiController.enter(measureManager)
+    }
+
+    private fun exitMeasureMode() {
+        if (measureManager?.isMeasuring != true && measureSource == null) return
+        measureModeUiController.exit(measureManager)
+        installNormalMapClickListener()
+        when (measureSource) {
+            MeasureSource.LIST -> {
+                scopeGutterPolylineController.setVisible(mapOverlayController.currentState().showPlan)
+                measureSourceList?.showAfterMeasure()
+            }
+            MeasureSource.EDIT -> measureSourceEdit?.showSelf()
+            null -> Unit
+        }
+        measureSource = null
+        measureSourceList = null
+        measureSourceEdit = null
+        measureBackCallback.isEnabled = false
+    }
     private fun updateMeasureDistanceDisplay(meters: Double?) { measureModeUiController.updateDistanceDisplay(meters) }
 
     private fun enterNoDitchMode() {

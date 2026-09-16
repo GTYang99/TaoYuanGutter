@@ -18,6 +18,7 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
         fun onAddGutterListAdd()
         fun onAddGutterListSelect(draft: GutterSessionDraft)
         fun onAddGutterListConfirmedClose()
+        fun onAddGutterListMeasure(sheet: AddGutterListBottomSheet)
     }
 
     var drafts: List<GutterSessionDraft> = emptyList()
@@ -39,7 +40,32 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
         binding.rvAddGutterList.adapter = adapter
         adapter.submitList(drafts)
         binding.btnAddGutterListAdd.setOnClickListener { (parentFragment as? Host)?.onAddGutterListAdd() }
+        binding.btnAddGutterListMeasure.setOnClickListener {
+            (parentFragment as? Host)?.onAddGutterListMeasure(this)
+        }
         binding.btnAddGutterListClose.setOnClickListener { confirmClose() }
+    }
+
+    fun hideForMeasure(onHidden: () -> Unit) {
+        val sheetView = (dialog as? BottomSheetDialog)?.findViewById<View>(
+            com.google.android.material.R.id.design_bottom_sheet
+        ) ?: return onHidden()
+        dialog?.window?.setDimAmount(0f)
+        dialog?.setCanceledOnTouchOutside(false)
+        sheetView.animate().translationY(sheetView.height.toFloat()).setDuration(250)
+            .withEndAction {
+                dialog?.window?.decorView?.visibility = View.INVISIBLE
+                onHidden()
+            }.start()
+    }
+
+    fun showAfterMeasure() {
+        dialog?.window?.decorView?.visibility = View.VISIBLE
+        val sheetView = (dialog as? BottomSheetDialog)?.findViewById<View>(
+            com.google.android.material.R.id.design_bottom_sheet
+        ) ?: return
+        sheetView.translationY = sheetView.height.toFloat()
+        sheetView.animate().translationY(0f).setDuration(250).start()
     }
 
     private fun confirmClose() {

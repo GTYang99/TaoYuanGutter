@@ -34,6 +34,17 @@
                 android:src="@drawable/ic_close"
                 android:tint="@color/inputFieldHint" />
 
+            <ImageButton
+                android:id="@+id/btnAddGutterListMeasure"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_centerVertical="true"
+                android:layout_toStartOf="@id/btnAddGutterListAdd"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="測距"
+                android:src="@drawable/ic_ruler"
+                android:tint="@color/colorPrimary" />
+
             <LinearLayout
                 android:id="@+id/btnAddGutterListAdd"
                 android:layout_width="wrap_content"

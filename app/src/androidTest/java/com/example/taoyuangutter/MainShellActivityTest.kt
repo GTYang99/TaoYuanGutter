@@ -66,6 +66,7 @@ class MainShellActivityTest {
         override fun onAddGutterListAdd() { addClicked = true }
         override fun onAddGutterListSelect(draft: GutterSessionDraft) = Unit
         override fun onAddGutterListConfirmedClose() { confirmedClose = true }
+        override fun onAddGutterListMeasure(sheet: com.example.taoyuangutter.gutter.AddGutterListBottomSheet) = Unit
     }
 
     @Test

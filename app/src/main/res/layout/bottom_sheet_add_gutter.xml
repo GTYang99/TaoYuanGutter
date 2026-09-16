@@ -59,6 +59,19 @@
             app:barrierDirection="end"
             app:constraint_referenced_ids="btnClose,tvCancel" />
 
+        <ImageButton
+            android:id="@+id/btnMeasureGutter"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="測距"
+            android:padding="12dp"
+            android:src="@drawable/ic_ruler"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnAddNode"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/colorPrimary" />
+
         <!-- 標題 -->
         <TextView
             android:id="@+id/tvSheetTitle"

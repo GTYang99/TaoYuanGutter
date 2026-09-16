@@ -121,6 +121,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
          * 由 Host 存草稿，若有 SPI_NUM 則嘗試重新載入檢視資料。
          */
         fun onStoreDitchNetworkClosed(spiNum: String?, waypoints: List<Waypoint>)
+        fun onGutterMeasure(sheet: AddGutterBottomSheet)
     }
 
     /**
@@ -884,6 +885,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         // 調轉按鈕：所有模式皆顯示且可點擊
         binding.btnReverse.visibility = View.VISIBLE
         binding.btnReverse.setOnClickListener { reverseWaypoints() }
+        binding.btnMeasureGutter.setOnClickListener { locationPickerHost()?.onGutterMeasure(this) }
 
         if (isInspectMode) {
             // 檢視模式：隱藏新增節點、提交與刪除按鈕
