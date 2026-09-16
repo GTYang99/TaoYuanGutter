@@ -16,10 +16,10 @@
 - `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest :app:assembleDebug`: PASS.
 - After adding focused coverage, `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest`: PASS — Android Emulator `Medium_Phone` (Android 14); 37 tests, 0 failures, 0 errors, 0 skipped. The focused tests cover list measurement callback wiring, editor measurement-entry layout, and same-fragment list hide/show restoration.
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
-- Physical feature smoke test for the map interaction and layer restoration portions of AC-002–AC-004: NOT VERIFIED — the connected suite covers entry wiring but does not drive Google Maps measurement, Android Back restoration, or scope/working-layer visibility end to end.
+- Emulator feature smoke test for the map interaction and layer restoration portions of AC-002–AC-004: NOT VERIFIED — the connected suite covers entry wiring but does not drive scope/working-layer visibility end to end.
 - Emulator smoke evidence: on `Medium_Phone` / `emulator-5554` in offline edit flow, the editor measurement entry was visible and clickable; system Back during measurement restored the same editor sheet. This provides partial evidence for AC-001, AC-003, and AC-004; map-point measurement and layer visibility remain NOT VERIFIED.
 - Emulator main-map measurement smoke: on `Medium_Phone` / `emulator-5554`, the main measurement button opened the panel, a map tap displayed `11446.69 公里`, reset cleared the start point, and close removed the measurement panel. This is PASS evidence for the existing measurement behavior in AC-004.
-- Physical-device smoke test: NOT VERIFIED — no device validation was run in this turn.
+- Login-dependent multi-gutter list smoke test: NOT VERIFIED — no test credentials were used; emulator-only validation remains limited to offline flow and instrumentation coverage.
 
 ## Scope
 - Changed only the approved implementation files and the focused Android test host.
