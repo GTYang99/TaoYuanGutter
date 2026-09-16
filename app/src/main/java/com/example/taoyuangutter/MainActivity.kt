@@ -325,6 +325,7 @@ class MainActivity : AppCompatActivity(),
      */
     var measureConfig = MeasureConfig()
     private var measureManager: DistanceMeasureManager? = null
+    private var measureSourceSheet: AddGutterBottomSheet? = null
 
     private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
     private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
@@ -953,6 +954,12 @@ class MainActivity : AppCompatActivity(),
         binding.btnAddGutter.visibility = View.GONE
         binding.locationPickerOverlay.root.visibility = View.VISIBLE
         mapCameraController.setPersistentBottomInset(0)
+    }
+
+    override fun onGutterMeasure(sheet: AddGutterBottomSheet) {
+        if (measureManager?.isMeasuring == true) return
+        measureSourceSheet = sheet
+        sheet.hideSelf { enterMeasureMode() }
     }
 
     override fun onGutterSubmitted(waypoints: List<Waypoint>) {
@@ -2424,6 +2431,8 @@ class MainActivity : AppCompatActivity(),
     /** 離開測距模式：隱藏準星與底部面板，還原 FAB 樣式。 */
     private fun exitMeasureMode() {
         measureModeUiController.exit(measureManager)
+        measureSourceSheet?.showSelf()
+        measureSourceSheet = null
     }
 
     /**

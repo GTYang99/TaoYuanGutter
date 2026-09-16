@@ -12,8 +12,11 @@
 ## Developer Validation
 - `git diff --check`: PASS.
 - XML well-formedness check with `xmllint --noout` on both modified layouts: PASS.
-- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`: NOT VERIFIED — Gradle reached manifest processing but stopped because the local `MAPS_API_KEY` placeholder is not configured. No API key was available to add or expose.
-- ADB device discovery: NOT VERIFIED — ADB could not start its daemon in this environment (`Operation not permitted`); no device was changed.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`: PASS.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest :app:assembleDebug`: PASS.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest`: PASS — device `XQ-AU52`, Android 12; 34 tests, 0 failures, 0 errors, 0 skipped.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
+- Physical feature smoke test for AC-001–AC-005: NOT VERIFIED — the connected suite passed, but it contains no focused test for the new sheet measurement flow.
 - Physical-device smoke test: NOT VERIFIED — no device validation was run in this turn.
 
 ## Scope
