@@ -19,6 +19,8 @@
 | Mapper targeted tests | PASS | `StoreDitchNodeRequestMapperTest` |
 | Physical device AC-001..AC-004 | NOT VERIFIED | No device/API session available in this phase |
 
+Environment evidence: `adb devices` could not start its daemon (`could not install smartsocket listener: Operation not permitted`), and `emulator -list-avds` is unavailable in the workspace shell. No connected-device test was claimed as PASS.
+
 ## Limitations
 
 - Existing unused legacy location helper methods remain in `GutterFormActivity`; the sheet-open path no longer invokes them and the visible import UI no longer exposes location controls.
