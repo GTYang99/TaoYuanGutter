@@ -105,12 +105,32 @@ phase: debug
 category: implementation_regression
 priority: P1
 title: Successfully uploaded gutter remains in Add Gutter List
-status: open
+status: resolved
 impact: A completed multi-gutter session item can be shown again and selected as if it were pending.
 evidence:
   - MapWorkspaceFragment.finalizePhotoUploadFlow defers multi-session draft cleanup by assigning pendingSuccessfulMultiDraftCleanup when SPI_NUM is present.
   - The actual deleteDraftAndLocalPhotos and multiGutterSessionCoordinator.remove calls occur only in inspectLauncher return handling.
   - AddGutterListBottomSheet receives a one-time drafts snapshot and exposes no successful-item removal or refresh operation.
-next_action: debug
+  - Fixed in commit 75758b8: successful upload now immediately removes the draft before opening inspection.
+next_action: verification
+owner: developer
+```
+
+## ISS-007
+
+```yaml
+issue_id: ISS-007
+task_id: feat-0917
+phase: debug
+category: implementation_regression
+priority: P1
+title: Scope-search gutter segments are hidden after returning from inspection
+status: resolved
+impact: After add, upload, inspect, and back navigation, the map can appear to have no gutter segments even when scopeSearch has reloaded them.
+evidence:
+  - inspectLauncher reloads the viewport through loadGuttersByViewport before reopening the multi-gutter list.
+  - showAddGutterList then unconditionally called scopeGutterPolylineController.setVisible(false).
+  - Fixed in commit d92885a: list opening now follows the main map layer toggle (showPlan) instead of hiding the scope layer.
+next_action: verification
 owner: developer
 ```
