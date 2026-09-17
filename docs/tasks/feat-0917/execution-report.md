@@ -16,6 +16,7 @@
 - New-point validation no longer requires `XY_NUM`; edit validation continues to require it.
 - Waypoint rows show `已填寫資料` when form data exists even before backend-generated `XY_NUM` is available.
 - MainActivity now clears the target-panel visibility state when the inspect/edit sheet closes, restoring the map-side buttons.
+- The actual inspect→edit return path in `MapWorkspaceFragment` now clears the same target-panel state; this fixes the previously missed path used by the “上一頁” action.
 
 ## Validation
 
@@ -30,6 +31,7 @@
 | Connection-control UI regression test | PASS | Added assertions for Connect Point / Cant Open mutual exclusion, Connect Pipe default, and virtual-point hiding; targeted `GutterBasicInfoUiTest` on `Medium_Phone` Android 14; BUILD SUCCESSFUL in 45s |
 | Bug-fix UI regression test | PASS | `GutterBasicInfoUiTest` now verifies create-mode `XY_NUM` marker is hidden and remark preset removal; targeted connected test on `Medium_Phone` Android 14; BUILD SUCCESSFUL in 50s |
 | Map button restoration fix | PASS | `:app:compileDebugKotlin` and `:app:testDebugUnitTest` passed; targeted UI suite passed. Full connected suite had 35/36 tests pass; one unrelated `RootViewWithoutFocusException` occurred in `MainShellActivityTest.addGutterListWiresAddAndCloseConfirmationCallbacks`. |
+| Inspect-edit “上一頁” path fix | PASS | `MapWorkspaceFragment` compile and JVM tests passed; fix committed as `ae48a82`. Full connected-suite limitation remains the unrelated emulator focus failure above. |
 | Mapper targeted tests | PASS | `StoreDitchNodeRequestMapperTest` |
 | Store response contract tests | PASS | `StoreDitchResponseParsingTest` verifies generated start/node/end `XY_NUM` parsing; targeted request/response test command completed successfully |
 | Physical/API AC-002..AC-004 | NOT VERIFIED | Connected UI test does not provide authenticated API request/response evidence |

@@ -30,6 +30,7 @@
 - Bug-fix revision compile and JVM tests: PASS.
 - Bug-fix `GutterBasicInfoUiTest`: PASS on `emulator-5554`, `Medium_Phone`, Android 14.
 - Map button restoration fix compile/JVM validation: PASS. Full connected suite was not fully green because one unrelated emulator focus failure occurred in `MainShellActivityTest.addGutterListWiresAddAndCloseConfirmationCallbacks`; 35/36 tests passed.
+- Follow-up verification identified the missed runtime branch in `MapWorkspaceFragment.unlockInspectUiIfIdle()` and added the same `setTargetPanelVisible(false)` cleanup. Compile and JVM tests pass on the follow-up revision.
 
 ## Regression Review
 
