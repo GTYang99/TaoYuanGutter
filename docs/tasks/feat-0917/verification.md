@@ -29,6 +29,7 @@
 - Targeted `StoreDitchResponseParsingTest` plus `StoreDitchNodeRequestMapperTest`: PASS; generated start/node/end `XY_NUM` response parsing and request serialization are covered.
 - Bug-fix revision compile and JVM tests: PASS.
 - Bug-fix `GutterBasicInfoUiTest`: PASS on `emulator-5554`, `Medium_Phone`, Android 14.
+- Map button restoration fix compile/JVM validation: PASS. Full connected suite was not fully green because one unrelated emulator focus failure occurred in `MainShellActivityTest.addGutterListWiresAddAndCloseConfirmationCallbacks`; 35/36 tests passed.
 
 ## Regression Review
 
