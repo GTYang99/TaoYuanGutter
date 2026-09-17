@@ -1033,9 +1033,10 @@ class MapWorkspaceFragment : Fragment(),
     private fun showAddGutterList() {
         val sheet = AddGutterListBottomSheet().also { it.drafts = multiGutterSessionCoordinator.drafts() }
         addGutterListSheet = sheet
-        // The list page owns the scope-layer visibility while it is open.
-        // Keep the working layer untouched so existing segments/nodes remain visible.
-        scopeGutterPolylineController.setVisible(false)
+        // The add-list is not an editing surface. Keep the scope-search layer
+        // aligned with the main map layer toggle so a return from Inspect does
+        // not immediately hide the freshly reloaded gutter segments.
+        scopeGutterPolylineController.setVisible(mapOverlayController.currentState().showPlan)
         sheet.show(childFragmentManager, "AddGutterListBottomSheet")
         mainBlockingUiController.setTargetPanelVisible(true)
     }
