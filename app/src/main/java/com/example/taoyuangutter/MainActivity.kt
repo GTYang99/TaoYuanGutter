@@ -1132,7 +1132,8 @@ class MainActivity : AppCompatActivity(),
         nodes: List<DitchNode>,
         pendingDraftId: Long?,
         token: String,
-        originalWaypoints: List<WaypointSnapshot>? = null
+        originalWaypoints: List<WaypointSnapshot>? = null,
+        skipPhotoUpload: Boolean = false
     ) {
         lifecycleScope.launch {
             try {
@@ -1145,11 +1146,15 @@ class MainActivity : AppCompatActivity(),
                     "PhotoUpload",
                     "photo upload mode=${if (currentSessionResumedFromDraft) "FULL_DRAFT" else "EDIT_DIFF_OR_DEFAULT"}, resumedFromDraft=$currentSessionResumedFromDraft, originalWaypoints=${originalWaypoints?.size ?: 0}"
                 )
-                when (val result = uploadWaypointPhotos(
-                    waypoints = uploadWaypoints,
-                    nodes = nodes,
-                    token = token
-                )) {
+                when (val result = if (skipPhotoUpload) {
+                    PhotoUploadManager.UploadBatchResult.Completed(0)
+                } else {
+                    uploadWaypointPhotos(
+                        waypoints = uploadWaypoints,
+                        nodes = nodes,
+                        token = token
+                    )
+                }) {
                     is PhotoUploadManager.UploadBatchResult.Completed -> {
                         val failCount = result.failCount
                         mainBlockingUiController.setInspectLoading(false)
@@ -1434,7 +1439,8 @@ class MainActivity : AppCompatActivity(),
             nodes = nodes,
             pendingDraftId = pendingDraftId,
             token = token,
-            originalWaypoints = pendingEditOriginalWaypoints
+            originalWaypoints = pendingEditOriginalWaypoints,
+            skipPhotoUpload = true
         )
         pendingEditOriginalWaypoints = null
     }

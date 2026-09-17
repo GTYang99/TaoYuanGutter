@@ -965,7 +965,8 @@ class MapWorkspaceFragment : Fragment(),
             nodes = nodes,
             pendingDraftId = pendingDraftId,
             token = token,
-            originalWaypoints = pendingEditOriginalWaypoints
+            originalWaypoints = pendingEditOriginalWaypoints,
+            skipPhotoUpload = true
         )
         pendingEditOriginalWaypoints = null
     }
@@ -2118,7 +2119,8 @@ class MapWorkspaceFragment : Fragment(),
         nodes: List<DitchNode>,
         pendingDraftId: Long?,
         token: String,
-        originalWaypoints: List<WaypointSnapshot>? = null
+        originalWaypoints: List<WaypointSnapshot>? = null,
+        skipPhotoUpload: Boolean = false
     ) {
         lifecycleScope.launch {
             try {
@@ -2127,7 +2129,11 @@ class MapWorkspaceFragment : Fragment(),
                     originalWaypoints = originalWaypoints,
                     resumedFromDraft = currentSessionResumedFromDraft
                 )
-                when (val result = uploadWaypointPhotos(uploadWaypoints, nodes, token)) {
+                when (val result = if (skipPhotoUpload) {
+                    PhotoUploadManager.UploadBatchResult.Completed(0)
+                } else {
+                    uploadWaypointPhotos(uploadWaypoints, nodes, token)
+                }) {
                     is PhotoUploadManager.UploadBatchResult.Completed -> {
                         val failCount = result.failCount
                         mainBlockingUiController.setInspectLoading(false)
