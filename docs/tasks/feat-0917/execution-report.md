@@ -44,4 +44,4 @@ Environment note: an initial workspace-shell `adb` attempt could not start its d
 
 - Existing unused legacy location helper methods remain in `GutterFormActivity`; the sheet-open path no longer invokes them and the visible import UI no longer exposes location controls.
 - Independent verification, CI, and authenticated API request/response evidence remain pending.
-- Physical-device reproduction of the add → upload → inspect → back flow remains NOT VERIFIED because no available device/ADB session was present for this revision.
+- Physical-device reproduction of the add → upload → inspect → back flow was not executed at the user's direction; its result remains NOT VERIFIED.
