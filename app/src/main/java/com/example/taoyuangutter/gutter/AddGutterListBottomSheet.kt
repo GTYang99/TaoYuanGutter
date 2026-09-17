@@ -2,6 +2,8 @@ package com.example.taoyuangutter.gutter
 
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -42,6 +44,28 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
         binding.btnAddGutterListClose.setOnClickListener { confirmClose() }
     }
 
+    fun hideForMeasure(onHidden: () -> Unit) {
+        val sheetView = (dialog as? BottomSheetDialog)?.findViewById<View>(
+            com.google.android.material.R.id.design_bottom_sheet
+        ) ?: return onHidden()
+        dialog?.window?.setDimAmount(0f)
+        dialog?.setCanceledOnTouchOutside(false)
+        sheetView.animate().translationY(sheetView.height.toFloat()).setDuration(250)
+            .withEndAction {
+                dialog?.window?.decorView?.visibility = View.INVISIBLE
+                onHidden()
+            }.start()
+    }
+
+    fun showAfterMeasure() {
+        dialog?.window?.decorView?.visibility = View.VISIBLE
+        val sheetView = (dialog as? BottomSheetDialog)?.findViewById<View>(
+            com.google.android.material.R.id.design_bottom_sheet
+        ) ?: return
+        sheetView.translationY = sheetView.height.toFloat()
+        sheetView.animate().translationY(0f).setDuration(250).start()
+    }
+
     private fun confirmClose() {
         // The alert is about leaving the current add-list session, not about
         // whether every row already has enough data to be persisted.
@@ -67,6 +91,8 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
         ) ?: return
         bottomSheet.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         val height = (resources.displayMetrics.heightPixels * 0.8f).toInt()
+        dialog?.window?.setGravity(Gravity.BOTTOM)
+        dialog?.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, height)
         bottomSheet.layoutParams.height = height
         bottomSheet.requestLayout()
         (dialog as? BottomSheetDialog)?.behavior?.apply {
@@ -74,6 +100,51 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
             skipCollapsed = true
         }
         dialog?.window?.setDimAmount(0f)
+
+        var routeToActivity = false
+        val originalCb = dialog?.window?.callback ?: return
+        dialog?.window?.callback = object : android.view.Window.Callback by originalCb {
+            override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+                if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+                    routeToActivity = isTouchOutsideSheetContent(event)
+                    if (routeToActivity && isInsideMainMeasureButton(event)) {
+                        requireActivity().findViewById<View>(R.id.btnMeasureDistance)?.performClick()
+                        routeToActivity = false
+                        return true
+                    }
+                }
+                val handled = if (routeToActivity) requireActivity().dispatchTouchEvent(event)
+                else originalCb.dispatchTouchEvent(event)
+                if (event.actionMasked == MotionEvent.ACTION_UP || event.actionMasked == MotionEvent.ACTION_CANCEL) {
+                    routeToActivity = false
+                }
+                return handled
+            }
+        }
+    }
+
+    private fun isTouchOutsideSheetContent(event: MotionEvent): Boolean {
+        val content = getSheetView() ?: return false
+        val loc = IntArray(2)
+        content.getLocationOnScreen(loc)
+        val left = loc[0].toFloat()
+        val top = loc[1].toFloat()
+        val right = left + content.width
+        val bottom = top + content.height
+        return event.rawX < left || event.rawX > right ||
+            event.rawY < top || event.rawY > bottom
+    }
+
+    private fun getSheetView(): View? =
+        (dialog as? BottomSheetDialog)
+            ?.findViewById(com.google.android.material.R.id.design_bottom_sheet)
+
+    private fun isInsideMainMeasureButton(event: MotionEvent): Boolean {
+        val button = requireActivity().findViewById<View>(R.id.btnMeasureDistance) ?: return false
+        val loc = IntArray(2)
+        button.getLocationOnScreen(loc)
+        return event.rawX >= loc[0] && event.rawX <= loc[0] + button.width &&
+            event.rawY >= loc[1] && event.rawY <= loc[1] + button.height
     }
 
     override fun onCancel(dialog: android.content.DialogInterface) {

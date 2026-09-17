@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -325,6 +326,8 @@ class MainActivity : AppCompatActivity(),
      */
     var measureConfig = MeasureConfig()
     private var measureManager: DistanceMeasureManager? = null
+    private var measureSourceSheet: AddGutterBottomSheet? = null
+    private lateinit var measureBackCallback: OnBackPressedCallback
 
     private lateinit var gutterFormLauncher: ActivityResultLauncher<Intent>
     private lateinit var inspectLauncher: ActivityResultLauncher<Intent>
@@ -348,6 +351,10 @@ class MainActivity : AppCompatActivity(),
         draftCoordinator.cleanupEmptyDrafts()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        measureBackCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() { exitMeasureMode() }
+        }
+        onBackPressedDispatcher.addCallback(this, measureBackCallback)
         applySystemBarInsets()
         mainBlockingUiController = MainBlockingUiController(
             context = this,
@@ -639,6 +646,7 @@ class MainActivity : AppCompatActivity(),
                 }
                 activeSheet = sheet
                 sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
+                mainBlockingUiController.setTargetPanelVisible(true)
 
                 // 初始化地圖：繪製線段大頭針並將視角自動對齊至整條側溝
                 currentWaypoints = wps.toMutableList()
@@ -1833,6 +1841,7 @@ class MainActivity : AppCompatActivity(),
             return
         }
         isInspectUiLocked = false
+        mainBlockingUiController.setTargetPanelVisible(false)
         mainBlockingUiController.setMainButtonsEnabled(true)
         consumePendingForceReloadIfPossible()
     }
@@ -1916,11 +1925,13 @@ class MainActivity : AppCompatActivity(),
             },
             showSheet = { sheet ->
                 sheet.show(supportFragmentManager, AddGutterBottomSheet.TAG)
+                mainBlockingUiController.setTargetPanelVisible(true)
             },
             onMapSessionReady = { draftId, isOffline, sheet ->
                 currentSessionDraftId = draftId
                 currentSessionIsOffline = isOffline
                 activeSheet = sheet
+                mainBlockingUiController.setTargetPanelVisible(true)
                 draftCoordinator.ensureDraftExists(
                     draftId = draftId,
                     waypoints = sheet.getWaypoints(),
@@ -1950,6 +1961,9 @@ class MainActivity : AppCompatActivity(),
         sheet: AddGutterBottomSheet,
         initialWaypointCount: Int = 0
     ) {
+        // The sheet may be assigned after the coordinator invokes showSheet;
+        // apply the map-control policy at the binding boundary as well.
+        mainBlockingUiController.setTargetPanelVisible(true)
         gutterSheetSessionBinder.bind(
             sheet = sheet,
             config = GutterSheetSessionBinder.Config(
@@ -2418,12 +2432,25 @@ class MainActivity : AppCompatActivity(),
 
     /** 進入測距模式：顯示底部面板，準心暫時隱藏，等使用者點選起點後才顯示。 */
     private fun enterMeasureMode() {
+        if (measureSourceSheet == null && activeSheet?.isAdded == true) {
+            measureSourceSheet = activeSheet
+            measureSourceSheet?.hideSelf {
+                measureBackCallback.isEnabled = true
+                enterMeasureMode()
+            }
+            return
+        }
         measureModeUiController.enter(measureManager)
     }
 
     /** 離開測距模式：隱藏準星與底部面板，還原 FAB 樣式。 */
     private fun exitMeasureMode() {
+        val hadSourceSheet = measureSourceSheet != null
         measureModeUiController.exit(measureManager)
+        measureSourceSheet?.showSelf()
+        measureSourceSheet = null
+        if (::measureBackCallback.isInitialized) measureBackCallback.isEnabled = false
+        mainBlockingUiController.setTargetPanelVisible(hadSourceSheet)
     }
 
     /**

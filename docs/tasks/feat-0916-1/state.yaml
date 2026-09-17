@@ -1,0 +1,51 @@
+task:
+  id: feat-0916-1
+  type: feature
+
+phase: verification
+status: verification_not_verified
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+
+git:
+  branch: feat/表單合併測距功能
+  commit: "0c5107d"
+  status: committed
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-003
+    - AC-004
+    - AC-005
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+debug:
+  status: completed
+  root_cause: identified
+
+blocking:
+  - A normal editor with a visible pre-existing working polyline is unavailable for verification; the offline virtual-waypoint scenario preserves its rows but does not render that polyline.
+  - Upload-blocking and normal-editor listener restoration with pre-existing geometry remain unavailable in the production emulator flow.
+next_action: verification

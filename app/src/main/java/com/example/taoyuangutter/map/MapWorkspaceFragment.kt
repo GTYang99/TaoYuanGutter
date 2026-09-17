@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
@@ -242,6 +243,11 @@ class MapWorkspaceFragment : Fragment(),
     private val submittedPolylines = mutableListOf<Polyline>()
     private var currentWaypoints: List<Waypoint> = emptyList()
     private var measureManager: DistanceMeasureManager? = null
+    private enum class MeasureSource { LIST, EDIT }
+    private var measureSource: MeasureSource? = null
+    private var measureSourceList: AddGutterListBottomSheet? = null
+    private var measureSourceEdit: AddGutterBottomSheet? = null
+    private lateinit var measureBackCallback: OnBackPressedCallback
     private lateinit var measureConfig: MeasureConfig
     private var noDitchMarker: com.google.android.gms.maps.model.Marker? = null
     private var noDitchPickedLatLng: LatLng? = null
@@ -353,7 +359,7 @@ class MapWorkspaceFragment : Fragment(),
             context = requireContext(),
             binding = binding,
             isMeasuring = { measureManager?.isMeasuring == true },
-            isSheetActive = { activeSheet != null || inspectSheet != null || isInspecting || isInspectUiLocked }
+            isSheetActive = { addGutterListSheet != null || activeSheet != null || inspectSheet != null || isInspecting || isInspectUiLocked }
         )
         mainMapLoadIndicatorController = MainMapLoadIndicatorController(requireContext(), binding)
         measureConfig = MeasureConfig()
@@ -378,6 +384,10 @@ class MapWorkspaceFragment : Fragment(),
         )
         noDitchModeUiController.setupPanelInsets()
         noDitchModeUiController.bind()
+        measureBackCallback = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() { exitMeasureMode() }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, measureBackCallback)
         mainMapLoadIndicatorController.setBottomInset(currentSheetBottomInsetPx)
         isOfflineMainMode = false
 
@@ -498,9 +508,15 @@ class MapWorkspaceFragment : Fragment(),
             editLatLngSnapshot = try { Gson().fromJson(json, type) } catch (_: Exception) { null }
         }
 
+        val restoredList = childFragmentManager.findFragmentByTag("AddGutterListBottomSheet") as? AddGutterListBottomSheet
+        if (restoredList != null) {
+            addGutterListSheet = restoredList
+            mainBlockingUiController.setTargetPanelVisible(true)
+        }
         val restoredSheet = childFragmentManager.findFragmentByTag(AddGutterBottomSheet.TAG) as? AddGutterBottomSheet ?: return
         if (restoredSheet.isAddMode()) {
             activeSheet = restoredSheet
+            mainBlockingUiController.setTargetPanelVisible(true)
             bindAddGutterSheet(restoredSheet)
         } else {
             inspectSheet = restoredSheet
@@ -605,7 +621,7 @@ class MapWorkspaceFragment : Fragment(),
             if (!mapOverlayController.currentState().showPlan) return@setOnPolylineClickListener
             openInspectBottomSheet(polyline)
         }
-        map.setOnMapClickListener { latLng -> handleMainMapTap(latLng) }
+        installNormalMapClickListener()
         map.setOnCameraIdleListener {
             handleMainMapCameraIdle()
             if (mapOverlayController.currentState().showNoDitchPoints) {
@@ -1031,7 +1047,11 @@ class MapWorkspaceFragment : Fragment(),
     private fun showAddGutterList() {
         val sheet = AddGutterListBottomSheet().also { it.drafts = multiGutterSessionCoordinator.drafts() }
         addGutterListSheet = sheet
+        // The list page owns the scope-layer visibility while it is open.
+        // Keep the working layer untouched so existing segments/nodes remain visible.
+        scopeGutterPolylineController.setVisible(false)
         sheet.show(childFragmentManager, "AddGutterListBottomSheet")
+        mainBlockingUiController.setTargetPanelVisible(true)
     }
 
     private fun returnToMultiGutterListAfterUploadFailure() {
@@ -1051,6 +1071,8 @@ class MapWorkspaceFragment : Fragment(),
     override fun onAddGutterListAdd() {
         val item = multiGutterSessionCoordinator.addItem()
         addGutterListSheet?.dismissAllowingStateLoss()
+        addGutterListSheet = null
+        mainBlockingUiController.setTargetPanelVisible(false)
         currentSessionResumedFromDraft = false
         gutterSessionUiCoordinator.startAddSession(
             isOfflineMainMode = isOfflineMainMode,
@@ -1061,6 +1083,8 @@ class MapWorkspaceFragment : Fragment(),
 
     override fun onAddGutterListSelect(draft: GutterSessionDraft) {
         addGutterListSheet?.dismissAllowingStateLoss()
+        addGutterListSheet = null
+        mainBlockingUiController.setTargetPanelVisible(false)
         currentSessionResumedFromDraft = true
         gutterSessionUiCoordinator.resumeDraft(
             draft = draft,
@@ -1131,6 +1155,7 @@ class MapWorkspaceFragment : Fragment(),
     }
 
     private fun bindAddGutterSheet(sheet: AddGutterBottomSheet, initialWaypointCount: Int = 0) {
+        mainBlockingUiController.setTargetPanelVisible(true)
         gutterSheetSessionBinder.bind(
             sheet = sheet,
             config = GutterSheetSessionBinder.Config(initialWaypointCount = initialWaypointCount, refitOnGrowth = true),
@@ -1390,6 +1415,7 @@ class MapWorkspaceFragment : Fragment(),
         }
         activeSheet = sheet
         sheet.show(childFragmentManager, AddGutterBottomSheet.TAG)
+        mainBlockingUiController.setTargetPanelVisible(true)
         currentWaypoints = wps.toMutableList()
         refreshWorkingMarkers(wps)
         fitInspectRouteAboveSheet(wps)
@@ -1400,8 +1426,50 @@ class MapWorkspaceFragment : Fragment(),
         if (mgr.isMeasuring) exitMeasureMode() else enterMeasureMode()
     }
 
-    private fun enterMeasureMode() { measureModeUiController.enter(measureManager) }
-    private fun exitMeasureMode() { measureModeUiController.exit(measureManager) }
+    private fun installNormalMapClickListener() {
+        googleMap?.setOnMapClickListener { latLng -> handleMainMapTap(latLng) }
+    }
+
+    private fun enterMeasureMode() {
+        if (measureSource == null) {
+            val listSheet = addGutterListSheet
+            val editSheet = activeSheet
+            if (listSheet != null && listSheet.isAdded) {
+                measureSource = MeasureSource.LIST
+                measureSourceList = listSheet
+                listSheet.hideForMeasure { enterMeasureMode() }
+                return
+            }
+            if (editSheet != null && editSheet.isAdded) {
+                measureSource = MeasureSource.EDIT
+                measureSourceEdit = editSheet
+                editSheet.hideSelf { enterMeasureMode() }
+                return
+            }
+        }
+        measureBackCallback.isEnabled = measureSource != null
+        measureModeUiController.enter(measureManager)
+    }
+
+    private fun exitMeasureMode() {
+        if (measureManager?.isMeasuring != true && measureSource == null) return
+        val source = measureSource
+        measureModeUiController.exit(measureManager)
+        installNormalMapClickListener()
+        when (source) {
+            MeasureSource.LIST -> {
+                scopeGutterPolylineController.setVisible(mapOverlayController.currentState().showPlan)
+                measureSourceList?.showAfterMeasure()
+            }
+            MeasureSource.EDIT -> measureSourceEdit?.showSelf()
+            null -> Unit
+        }
+        measureSource = null
+        measureSourceList = null
+        measureSourceEdit = null
+        measureBackCallback.isEnabled = false
+        mainBlockingUiController.setTargetPanelVisible(source != null)
+    }
     private fun updateMeasureDistanceDisplay(meters: Double?) { measureModeUiController.updateDistanceDisplay(meters) }
 
     private fun enterNoDitchMode() {
@@ -1671,6 +1739,7 @@ class MapWorkspaceFragment : Fragment(),
             return
         }
         isInspectUiLocked = false
+        mainBlockingUiController.setTargetPanelVisible(false)
         mainBlockingUiController.setMainButtonsEnabled(true)
         consumePendingForceReloadIfPossible()
     }

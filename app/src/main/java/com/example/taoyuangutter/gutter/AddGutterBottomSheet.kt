@@ -7,6 +7,7 @@ import android.text.Spannable
 import android.text.SpannableStringBuilder
 import android.text.style.AbsoluteSizeSpan
 import android.view.LayoutInflater
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -585,6 +586,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         dialog?.setOnShowListener {
             val sheetView = getSheetView()
             val sheetHeight = (resources.displayMetrics.heightPixels * 0.7f).toInt()
+            dialog?.window?.setGravity(Gravity.BOTTOM)
+            dialog?.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, sheetHeight)
             sheetView?.layoutParams?.height = sheetHeight
             sheetView?.requestLayout()
             // 清除 design_bottom_sheet 容器的預設背景，
@@ -621,6 +624,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 override fun dispatchTouchEvent(event: MotionEvent): Boolean {
                     if (event.actionMasked == MotionEvent.ACTION_DOWN) {
                         routeToActivity = isTouchOutsideSheetContent(event)
+                        if (routeToActivity && isInsideMainMeasureButton(event)) {
+                            requireActivity().findViewById<View>(R.id.btnMeasureDistance)?.performClick()
+                            routeToActivity = false
+                            return true
+                        }
                     }
                     val handled = if (routeToActivity) {
                         requireActivity().dispatchTouchEvent(event)
@@ -640,7 +648,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun isTouchOutsideSheetContent(event: MotionEvent): Boolean {
-        val content = _binding?.root ?: getSheetView() ?: return false
+        // Use the actual bottom-sheet container. The binding root may fill the
+        // dialog window and therefore misclassify the map area as sheet content.
+        val content = getSheetView() ?: return false
         val loc = IntArray(2)
         content.getLocationOnScreen(loc)
         val left = loc[0].toFloat()
@@ -651,6 +661,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             event.rawX > right ||
             event.rawY < top ||
             event.rawY > bottom
+    }
+
+    private fun isInsideMainMeasureButton(event: MotionEvent): Boolean {
+        val button = requireActivity().findViewById<View>(R.id.btnMeasureDistance) ?: return false
+        val loc = IntArray(2)
+        button.getLocationOnScreen(loc)
+        return event.rawX >= loc[0] && event.rawX <= loc[0] + button.width &&
+            event.rawY >= loc[1] && event.rawY <= loc[1] + button.height
     }
 
     private fun getBehavior(): BottomSheetBehavior<View>? {
@@ -673,7 +691,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     /** MainActivity 取得目前 sheet 內的 waypoints（新增模式用） */
     fun getWaypoints(): List<Waypoint> = waypoints.toList()
 
-    fun hideSelf() {
+    fun hideSelf(onHidden: (() -> Unit)? = null) {
         val sheetView = getSheetView() ?: return
         // 先把遮罩清掉，動畫結束後將整個 dialog 視窗隱藏
         // 讓地圖的 pan/zoom gesture 可以完整穿透
@@ -685,6 +703,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             .withEndAction {
                 dialog?.window?.decorView?.visibility = android.view.View.INVISIBLE
                 locationPickerHost()?.onSheetViewportInsetChanged(0)
+                onHidden?.invoke()
             }
             .start()
     }
