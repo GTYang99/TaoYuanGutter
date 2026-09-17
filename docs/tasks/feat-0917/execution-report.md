@@ -17,12 +17,13 @@
 | Unit tests | PASS | `./gradlew :app:testDebugUnitTest` |
 | Full Gradle JVM tests | PASS | `./gradlew test` |
 | Android test compilation | PASS | `./gradlew :app:compileDebugAndroidTestKotlin` |
+| Connected UI test | PASS | `Medium_Phone` Android 14 (`emulator-5554`), `GutterBasicInfoUiTest`, `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterBasicInfoUiTest` |
 | Mapper targeted tests | PASS | `StoreDitchNodeRequestMapperTest` |
-| Physical device AC-001..AC-004 | NOT VERIFIED | No device/API session available in this phase |
+| Physical/API AC-002..AC-004 | NOT VERIFIED | Connected UI test does not provide authenticated API request/response evidence |
 
 Environment evidence: `adb devices` could not start its daemon (`could not install smartsocket listener: Operation not permitted`), and `emulator -list-avds` is unavailable in the workspace shell. No connected-device test was claimed as PASS.
 
 ## Limitations
 
 - Existing unused legacy location helper methods remain in `GutterFormActivity`; the sheet-open path no longer invokes them and the visible import UI no longer exposes location controls.
-- Independent verification, CI, and physical-device request/response evidence remain pending.
+- Independent verification, CI, and authenticated API request/response evidence remain pending.
