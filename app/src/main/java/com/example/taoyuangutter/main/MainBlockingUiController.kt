@@ -171,10 +171,10 @@ class MainBlockingUiController(
             stopSpinnerAnimation()
             binding.pbInspectLoading.hide()
         }
-        // The shared loading overlay already displays the progress text.
-        // Keep the secondary label hidden to avoid rendering the same status twice.
-        binding.tvPhotoUploadProgress.visibility = if (photoUploadBlockingVisible) View.VISIBLE else View.GONE
-        binding.tvInspectLoading.visibility = if (photoUploadBlockingVisible) View.GONE else View.VISIBLE
+        // Show progress once, in the shared overlay centre. The separate
+        // top-level label is retained only for layout compatibility.
+        binding.tvPhotoUploadProgress.visibility = View.GONE
+        binding.tvInspectLoading.visibility = View.VISIBLE
         if (photoUploadBlockingVisible) {
             val progressText = context.getString(
                 R.string.msg_photo_upload_overlay_progress,

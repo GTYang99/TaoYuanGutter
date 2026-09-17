@@ -182,12 +182,35 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             queuePhotoDraftSync()
             return
         }
-        // Photo upload has one owner: AddGutterBottomSheet uploads all pending
-        // replacement photos immediately before storeDitch. Do not start a
-        // second background upload here; doing so races the submit-time gate
-        // and can create an unclaimed duplicate image.
-        updatePhotoUploadState(slot, PhotoUploadSlotState.STATE_IDLE, imgId = null, error = null)
+        if (PhotoUploadSlotState.isAlreadyUploaded(currentFormData, slot)) {
+            android.util.Log.d(
+                "PhotoUpload",
+                "既有照片已有伺服器狀態，略過啟動上傳 slot=$slot imgId=${currentFormPhotoImgId(slot)} state=${currentFormPhotoUploadState(slot)}"
+            )
+            return
+        }
+        val token = LoginActivity.getSavedToken(this)
+        if (token.isNullOrBlank()) {
+            updatePhotoUploadState(slot, PhotoUploadSlotState.STATE_FAILED, error = getString(R.string.msg_login_first))
+            queuePhotoDraftSync()
+            return
+        }
+        val resolvedDraftId = sessionDraftId.takeIf { it > 0L } ?: return
+        val resolvedPhotoPath = (currentFormData["photo$slot"] as? String)?.takeIf { it.isNotBlank() } ?: photoPath
+        // Preserve immediate, per-photo feedback. The coordinator writes the
+        // resulting img_id back to the draft; the submit gate reuses it and
+        // uploads only slots that have not reached success.
+        updatePhotoUploadState(slot, PhotoUploadSlotState.STATE_UPLOADING)
         queuePhotoDraftSync()
+        PhotoSlotUploadCoordinator.enqueueUpload(
+            context = applicationContext,
+            repository = gutterRepository,
+            draftId = resolvedDraftId,
+            waypointIndex = currentIndex,
+            slot = slot,
+            photoPath = resolvedPhotoPath,
+            token = token
+        )
     }
 
     fun beginPhotoDraftBatch() {
