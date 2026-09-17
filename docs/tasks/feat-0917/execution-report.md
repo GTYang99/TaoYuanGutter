@@ -15,6 +15,7 @@
 |---|---|---|
 | Debug APK build | PASS | `./gradlew :app:assembleDebug`; `app/build/outputs/apk/debug/app-debug.apk` |
 | Unit tests | PASS | `./gradlew :app:testDebugUnitTest` |
+| Full Gradle JVM tests | PASS | `./gradlew test` |
 | Android test compilation | PASS | `./gradlew :app:compileDebugAndroidTestKotlin` |
 | Mapper targeted tests | PASS | `StoreDitchNodeRequestMapperTest` |
 | Physical device AC-001..AC-004 | NOT VERIFIED | No device/API session available in this phase |
