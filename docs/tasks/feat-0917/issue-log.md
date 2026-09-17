@@ -95,3 +95,22 @@ evidence:
 next_action: plan_review
 owner: planning
 ```
+
+## ISS-006
+
+```yaml
+issue_id: ISS-006
+task_id: feat-0917
+phase: debug
+category: implementation_regression
+priority: P1
+title: Successfully uploaded gutter remains in Add Gutter List
+status: open
+impact: A completed multi-gutter session item can be shown again and selected as if it were pending.
+evidence:
+  - MapWorkspaceFragment.finalizePhotoUploadFlow defers multi-session draft cleanup by assigning pendingSuccessfulMultiDraftCleanup when SPI_NUM is present.
+  - The actual deleteDraftAndLocalPhotos and multiGutterSessionCoordinator.remove calls occur only in inspectLauncher return handling.
+  - AddGutterListBottomSheet receives a one-time drafts snapshot and exposes no successful-item removal or refresh operation.
+next_action: debug
+owner: developer
+```
