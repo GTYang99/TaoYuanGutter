@@ -18,10 +18,11 @@
 | Full Gradle JVM tests | PASS | `./gradlew test` |
 | Android test compilation | PASS | `./gradlew :app:compileDebugAndroidTestKotlin` |
 | Connected UI test | PASS | `Medium_Phone` Android 14 (`emulator-5554`), `GutterBasicInfoUiTest`, `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterBasicInfoUiTest` |
+| Full connected Android test suite | PASS | `Medium_Phone` Android 14 (`emulator-5554`), `ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest --no-daemon`; BUILD SUCCESSFUL in 4m 36s |
 | Mapper targeted tests | PASS | `StoreDitchNodeRequestMapperTest` |
 | Physical/API AC-002..AC-004 | NOT VERIFIED | Connected UI test does not provide authenticated API request/response evidence |
 
-Environment evidence: `adb devices` could not start its daemon (`could not install smartsocket listener: Operation not permitted`), and `emulator -list-avds` is unavailable in the workspace shell. No connected-device test was claimed as PASS.
+Environment note: an initial workspace-shell `adb` attempt could not start its daemon, but the Android Studio emulator environment was subsequently available. Validation was run against the fixed `Medium_Phone` AVD on `emulator-5554`.
 
 ## Limitations
 
