@@ -1010,6 +1010,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     return@setOnClickListener
                 }
 
+                // Lock immediately before launching the suspend submit flow.
+                // Without this, rapid taps can start two upload/storeDitch
+                // coroutines for the same photos.
+                binding.btnSubmitGutter.isEnabled = false
+                binding.btnSubmitGutter.text = "上傳中…"
                 lifecycleScope.launch {
                     syncLatestDraftStateIntoWaypoints()
                     repairWaypointPhotosFromPendingIfNeeded(waypoints)
