@@ -66,6 +66,18 @@ class GutterBasicInfoUiTest {
     }
 
     @Test
+    fun connectionControlsHaveRequiredDefaultsAndCantOpenIsMutuallyExclusive() {
+        launchForm(hashMapOf()).use {
+            onView(withId(R.id.cbConnectPoint)).check(matches(isNotChecked()))
+            onView(withId(R.id.rbConnectPipe0)).check(matches(isChecked()))
+            onView(withId(R.id.cbConnectPoint)).perform(androidx.test.espresso.action.ViewActions.click())
+            onView(withId(R.id.cbCantOpen)).check(matches(isNotChecked()))
+            onView(withId(R.id.cbCantOpen)).perform(androidx.test.espresso.action.ViewActions.click())
+            onView(withId(R.id.cbConnectPoint)).check(matches(isNotChecked()))
+        }
+    }
+
+    @Test
     fun remarkPresetChipsAreShownWithExpectedLabels() {
         launchForm(hashMapOf()).use {
             listOf(
@@ -100,6 +112,8 @@ class GutterBasicInfoUiTest {
             onView(withId(R.id.cbIsVirtual)).check(matches(isChecked()))
             onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             onView(withId(R.id.cbCantOpen)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
+            onView(withId(R.id.cbConnectPoint)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
+            onView(withId(R.id.layoutConnectPipe)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             listOf(
                 R.id.tvGutterTypeTitle,
                 R.id.layoutGutterTypeSelector,

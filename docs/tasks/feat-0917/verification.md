@@ -2,7 +2,7 @@
 
 ## Revision and Worktree
 
-- Revision under test: `ba36fcd` (`docs(feat-0917): record full emulator validation`)
+- Revision under test: current implementation revision after the validation commit below
 - Branch: `feat/銜接點連結管自帶節點名`
 - Tracked worktree changes: none
 - Untracked `.worktrees/` exists and is unrelated; it was not included in the revision.
@@ -23,6 +23,7 @@
 - `./gradlew test --no-daemon`: PASS.
 - `./gradlew :app:compileDebugAndroidTestKotlin --no-daemon`: PASS.
 - `./gradlew :app:connectedDebugAndroidTest --no-daemon`: PASS on `emulator-5554`, `Medium_Phone`, Android 14; completed in 4m 36s.
+- Targeted `GutterBasicInfoUiTest` after adding connection-control assertions: PASS on `emulator-5554`, `Medium_Phone`, Android 14; `BUILD SUCCESSFUL` in 45s.
 - Targeted `StoreDitchNodeRequestMapperTest`: PASS.
 
 ## Regression Review

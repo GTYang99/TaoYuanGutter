@@ -19,6 +19,7 @@
 | Android test compilation | PASS | `./gradlew :app:compileDebugAndroidTestKotlin` |
 | Connected UI test | PASS | `Medium_Phone` Android 14 (`emulator-5554`), `GutterBasicInfoUiTest`, `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterBasicInfoUiTest` |
 | Full connected Android test suite | PASS | `Medium_Phone` Android 14 (`emulator-5554`), `ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest --no-daemon`; BUILD SUCCESSFUL in 4m 36s |
+| Connection-control UI regression test | PASS | Added assertions for Connect Point / Cant Open mutual exclusion, Connect Pipe default, and virtual-point hiding; targeted `GutterBasicInfoUiTest` on `Medium_Phone` Android 14; BUILD SUCCESSFUL in 45s |
 | Mapper targeted tests | PASS | `StoreDitchNodeRequestMapperTest` |
 | Physical/API AC-002..AC-004 | NOT VERIFIED | Connected UI test does not provide authenticated API request/response evidence |
 
