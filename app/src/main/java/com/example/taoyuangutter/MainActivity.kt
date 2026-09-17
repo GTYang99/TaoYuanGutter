@@ -681,6 +681,7 @@ class MainActivity : AppCompatActivity(),
     }
 
     override fun onDestroy() {
+        myLocationController.cancelPendingLocationRequest()
         runCatching { unregisterReceiver(waypointLocationChangedReceiver) }
         authExpiredHandler.reset()
         super.onDestroy()

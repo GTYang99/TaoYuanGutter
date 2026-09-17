@@ -2,8 +2,8 @@ task:
   id: debug-0917-location
   type: debug
 
-phase: debug
-status: debug_complete
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -12,22 +12,28 @@ planning:
   status: completed
 
 plan_review:
-  status: pending
+  status: approved
 
 implementation:
-  status: pending
+  status: completed
+  build:
+    status: not_verified
+    reason: Java Runtime unavailable in the local environment
+  unit_tests:
+    status: not_verified
+    reason: Java Runtime unavailable in the local environment
 
 debug:
   status: completed
   root_cause: identified
 
 validation:
-  status: pending
+  status: limited
 
 git:
   branch: fix/debug-0917-location-speed
   commit: ""
-  status: pending
+  status: ready_to_commit
 
 verification:
   result: pending
@@ -42,4 +48,7 @@ release:
   status: pending
 
 blocking: []
-next_action: implementation_debug
+blocking:
+  - A supported JDK is required to build the fixed APK and run the targeted unit tests.
+  - The fixed APK must be installed on Sony XQ-AU52 for AC-001 through AC-003 device verification.
+next_action: verification

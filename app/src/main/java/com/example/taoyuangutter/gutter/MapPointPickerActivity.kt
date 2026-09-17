@@ -32,6 +32,7 @@ import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.example.taoyuangutter.map.MarkerIconFactory
+import com.example.taoyuangutter.map.MyLocationController
 import com.example.taoyuangutter.gutter.WaypointType
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -58,6 +59,13 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
 
     // ── 現在位置 ──────────────────────────────────────────────────────────
     private val fusedLocationClient by lazy { LocationServices.getFusedLocationProviderClient(this) }
+    private val myLocationController by lazy {
+        MyLocationController(
+            context = this,
+            fusedLocationClient = fusedLocationClient,
+            mapProvider = { googleMap }
+        )
+    }
 
     private val locationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -191,21 +199,17 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
 
     @Suppress("MissingPermission")
     private fun enableMyLocationAndJump() {
-        val map = googleMap ?: return
-        try {
-            map.isMyLocationEnabled = true
-        } catch (_: SecurityException) { /* permission revoked between check and call */ }
-
-        fusedLocationClient.lastLocation.addOnSuccessListener { location ->
-            if (location != null) {
-                val here = LatLng(location.latitude, location.longitude)
-                map.animateCamera(CameraUpdateFactory.newLatLngZoom(here, 18f))
-            } else {
+        myLocationController.enableMyLocationAndMove(
+            onLocationUpdated = {},
+            onLocationUnavailable = {
                 Toast.makeText(this, getString(R.string.msg_location_not_available), Toast.LENGTH_SHORT).show()
             }
-        }.addOnFailureListener {
-            Toast.makeText(this, String.format(getString(R.string.msg_location_failed), it.message), Toast.LENGTH_SHORT).show()
-        }
+        )
+    }
+
+    override fun onDestroy() {
+        myLocationController.cancelPendingLocationRequest()
+        super.onDestroy()
     }
 
     override fun onMapReady(map: GoogleMap) {

@@ -33,6 +33,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.example.taoyuangutter.map.LocationFixQualityPolicy
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -807,16 +808,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
 		    private fun ensureImportLocationPermissionAndFetch(sheet: ImportExistingWaypointBottomSheet) {
 		        pendingImportSheetForLocation = sheet
-		        // Prefer using host (MainActivity) last known location for instant lookup.
-		        if (tryLoadNearbyFromHost(sheet)) return
+		        val hostLocation = tryLoadNearbyFromHost(sheet)
 		        val granted = ContextCompat.checkSelfPermission(
 		            this,
 		            Manifest.permission.ACCESS_FINE_LOCATION
 		        ) == PackageManager.PERMISSION_GRANTED
 		        if (granted) {
-		            requestCurrentGpsAndLoadNearby(sheet)
+		            requestCurrentGpsAndLoadNearby(sheet, hostLocation)
 		            return
 		        }
+		        if (hostLocation != null) return
 		        if (importLocationPermissionAttempts >= 2) {
 		            sheet.showNearbyAutoError("尚未授權定位權限，無法查詢附近點位")
 		            return
@@ -825,23 +826,46 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		        importLocationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
 		    }
 
-		    private fun tryLoadNearbyFromHost(sheet: ImportExistingWaypointBottomSheet): Boolean {
-		        val latLng = hostLastLatLng ?: return false
+		    private fun tryLoadNearbyFromHost(sheet: ImportExistingWaypointBottomSheet): Location? {
+		        val latLng = hostLastLatLng ?: return null
 		        // Use host location immediately; do not require fine-location permission here.
 		        stopImportLocationUpdates()
 		        showImportMyLocationMarker(latLng)
 		        sheet.startNearbyAutoSearch(latLng)
-		        return true
+		        return Location("host").apply {
+		            latitude = latLng.latitude
+		            longitude = latLng.longitude
+		            time = hostLastLocationTime
+		            if (hostLastLocationAccuracy >= 0f) accuracy = hostLastLocationAccuracy
+		        }
 		    }
 
 		    @android.annotation.SuppressLint("MissingPermission")
-		    private fun requestCurrentGpsAndLoadNearby(sheet: ImportExistingWaypointBottomSheet) {
+		    private fun requestCurrentGpsAndLoadNearby(sheet: ImportExistingWaypointBottomSheet, initialLocation: Location? = null) {
 		        // Guard: sheet may already be dismissing.
 		        if (sheet.isRemoving) return
 
 		        stopImportLocationUpdates()
-		        importBestLocation = null
-		        sheet.showLocating("定位中…")
+		        fusedLocationClient.lastLocation
+		            .addOnSuccessListener { cached ->
+		                if (sheet.isRemoving || isFinishing) return@addOnSuccessListener
+		                val accepted = initialLocation ?: cached?.takeIf { LocationFixQualityPolicy.isUsableCached(it) }
+		                if (initialLocation == null && accepted != null) {
+		                    val latLng = LatLng(accepted.latitude, accepted.longitude)
+		                    showImportMyLocationMarker(latLng)
+		                    sheet.startNearbyAutoSearch(latLng)
+		                }
+		                requestHighAccuracyImportLocation(sheet, accepted)
+		            }
+		            .addOnFailureListener {
+		                if (!sheet.isRemoving && !isFinishing) requestHighAccuracyImportLocation(sheet, initialLocation)
+		            }
+		    }
+
+		    @android.annotation.SuppressLint("MissingPermission")
+		    private fun requestHighAccuracyImportLocation(sheet: ImportExistingWaypointBottomSheet, accepted: Location?) {
+		        importBestLocation = accepted
+		        if (accepted == null) sheet.showLocating("定位中…")
 
 		        val request = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1_000L)
 		            .setMinUpdateIntervalMillis(500L)
@@ -850,6 +874,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
 		        val callback = object : LocationCallback() {
 		            override fun onLocationResult(result: LocationResult) {
+		                if (sheet.isRemoving || isFinishing) return
 		                val now = System.currentTimeMillis()
 		                val freshLocations = result.locations
 		                    .filter { loc -> (now - loc.time) <= importLocationStaleMs }
@@ -863,15 +888,17 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		                    if (best == null || locAcc < bestAcc) importBestLocation = loc
 		                }
 
-		                // Accept only when accuracy is good enough (fresh + accurate).
+		                // Preserve the existing high-accuracy threshold for an initial result.
 		                val accurate = freshLocations.firstOrNull { loc ->
 		                    loc.hasAccuracy() && loc.accuracy <= importLocationAccuracyM
 		                } ?: return
 
 		                stopImportLocationUpdates()
-		                val latLng = LatLng(accurate.latitude, accurate.longitude)
-		                showImportMyLocationMarker(latLng)
-		                sheet.startNearbyAutoSearch(latLng)
+		                if (LocationFixQualityPolicy.shouldUseRefinement(accepted, accurate)) {
+		                    val latLng = LatLng(accurate.latitude, accurate.longitude)
+		                    showImportMyLocationMarker(latLng)
+		                    sheet.startNearbyAutoSearch(latLng)
+		                }
 		            }
 		        }
 
@@ -883,7 +910,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		            if (importLocationCallback != callback) return@launch
 		            stopImportLocationUpdates()
 		            sheet.hideLocating()
-		            sheet.showNearbyAutoError("定位逾時，請到空曠處或開啟定位服務後再試一次")
+		            if (accepted == null) {
+		                sheet.showNearbyAutoError("定位逾時，請到空曠處或開啟定位服務後再試一次")
+		            }
 		        }
 		    }
 
@@ -1415,6 +1444,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     override fun onDestroy() {
+        stopImportLocationUpdates()
         unregisterPhotoUploadListeners()
         authExpiredHandler.reset()
         if (isFinishing) discardCantOpenSnapshot()
