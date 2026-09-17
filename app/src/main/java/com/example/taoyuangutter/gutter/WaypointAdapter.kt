@@ -54,6 +54,12 @@ class WaypointAdapter(
         val statusView = holder.binding.tvWaypointStatus
         val xyNum = item.basicData["XY_NUM"]?.trim()?.takeIf { it.isNotEmpty() }
             ?: item.basicData["xyNum"]?.trim()?.takeIf { it.isNotEmpty() }
+        val hasFilledFormData = listOf(
+            "NODE_TYP", "NODE_X", "NODE_Y", "NODE_LE", "MAT_TYP",
+            "COVER_DEP", "NODE_DEP", "NODE_WID", "IS_BROKEN",
+            "IS_HANGING", "IS_SILT", "IS_CANTOPEN", "is_connect_point",
+            "is_connect_pipe", "NODE_NOTE", "photo1", "photo2", "photo3"
+        ).any { !item.basicData[it].isNullOrBlank() }
 
         // 修改顯示邏輯：只要有編號，就一定要顯示標籤
         if (xyNum != null) {
@@ -69,6 +75,17 @@ class WaypointAdapter(
             val fg = primary
             statusView.backgroundTintList = android.content.res.ColorStateList.valueOf(bg)
             statusView.setTextColor(fg)
+        } else if (hasFilledFormData) {
+            statusView.text = ctx.getString(R.string.msg_data_filled)
+            val primary = MaterialColors.getColor(
+                holder.itemView,
+                com.google.android.material.R.attr.colorPrimary,
+                Color.parseColor("#6236FF")
+            )
+            statusView.backgroundTintList = android.content.res.ColorStateList.valueOf(
+                ColorUtils.setAlphaComponent(primary, (0.12f * 255).toInt())
+            )
+            statusView.setTextColor(primary)
         } else {
             statusView.text = ctx.getString(R.string.msg_no_data)
             val bg = ColorUtils.setAlphaComponent(

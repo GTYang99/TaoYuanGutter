@@ -899,7 +899,9 @@ class GutterBasicInfoFragment : Fragment() {
 
         binding.tvGutterTypeRequired.visibility = View.VISIBLE
         binding.tvLocationRequired.visibility = View.VISIBLE
-        binding.tvMeasureIdRequired.visibility = View.VISIBLE
+        val requiresMeasureId = arguments?.getBoolean(ARG_IS_EDIT_MODE) == true ||
+            arguments?.getBoolean(ARG_VIEW_MODE) == true
+        binding.tvMeasureIdRequired.visibility = if (requiresMeasureId) View.VISIBLE else View.GONE
         binding.tvOverviewPhotoRequired.visibility = if (overviewPhotoRequired) View.VISIBLE else View.GONE
         binding.tvCoverThicknessRequired.visibility = if (coverThicknessRequired) View.VISIBLE else View.GONE
         binding.tvWidthPhotoRequired.visibility = if (widthDepthPhotosRequired) View.VISIBLE else View.GONE
@@ -1064,8 +1066,11 @@ class GutterBasicInfoFragment : Fragment() {
                 val preset = chip.text.toString()
                 val current = binding.etRemarks.text?.toString().orEmpty()
                 val parts = current.split('，').map { it.trim() }.filter { it.isNotEmpty() }
-                if (parts.any { it == preset }) return@setOnClickListener
-                val updated = (parts + preset).joinToString("，")
+                val updated = if (parts.any { it == preset }) {
+                    parts.filterNot { it == preset }.joinToString("，")
+                } else {
+                    (parts + preset).joinToString("，")
+                }
                 binding.etRemarks.setText(updated)
                 binding.etRemarks.setSelection(updated.length)
             }

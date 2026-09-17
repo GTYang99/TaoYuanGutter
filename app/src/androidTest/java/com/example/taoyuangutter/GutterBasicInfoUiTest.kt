@@ -24,6 +24,7 @@ class GutterBasicInfoUiTest {
         launchForm(hashMapOf()).use { scenario ->
             onView(withId(R.id.rbIsBroken0)).check(matches(isChecked()))
             onView(withId(R.id.rbIsSilt0)).check(matches(isChecked()))
+            onView(withId(R.id.tvMeasureIdRequired)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             onView(withId(R.id.btnTakePhotoSlot1)).check(matches(withText("拍攝照片（概況）")))
             onView(withId(R.id.btnTakePhotoSlot2)).check(matches(withText("拍攝照片（寬度）")))
@@ -102,7 +103,7 @@ class GutterBasicInfoUiTest {
             onView(withId(R.id.chipRemarkWelding)).perform(androidx.test.espresso.action.ViewActions.click())
             onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，花圃，焊接")))
             onView(withId(R.id.chipRemarkFlowerbed)).perform(androidx.test.espresso.action.ViewActions.click())
-            onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，花圃，焊接")))
+            onView(withId(R.id.etRemarks)).check(matches(withText("現場確認，焊接")))
         }
     }
 
