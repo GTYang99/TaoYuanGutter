@@ -134,3 +134,73 @@ evidence:
 next_action: verification
 owner: developer
 ```
+
+## ISS-008
+
+```yaml
+issue_id: ISS-008
+task_id: feat-0917
+phase: verification
+category: environment
+priority: P1
+title: Fixed-revision Gradle verification cannot start without Java Runtime
+status: resolved
+impact: The shell lacked a system Java Runtime, but the fixed-revision checks were completed using Android Studio's bundled JDK in a commit-only temporary clone.
+repro_steps:
+  - Create a source snapshot from commit 0595b7c7782e3041b3637ed7505d90d53d8fb3ba.
+  - Run ./gradlew :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleDebug --no-daemon.
+expected: Gradle starts and produces validation results.
+actual: The environment reports that no Java Runtime can be located.
+evidence:
+  - docs/tasks/feat-0917/verification.md
+  - Fixed commit-only clone validation completed successfully: 66 Gradle tasks, including unit tests, Android-test compilation, and APK assembly.
+next_action: infrastructure
+owner: infrastructure
+```
+
+## ISS-009
+
+```yaml
+issue_id: ISS-009
+task_id: feat-0917
+phase: verification
+category: environment
+priority: P1
+title: Connected Android test run stalls on the Android 14 emulator
+status: open
+impact: The Sony test device completed all 36 tests, but the overall Gradle task cannot reach a terminal result because the Android 14 emulator produces no result file.
+repro_steps:
+  - Start app:connectedDebugAndroidTest from Android Studio.
+  - Observe execution on Medium_Phone(AVD) - 14 and XQ-AU52 - 12.
+expected: Both devices complete and Gradle reports a final exit status.
+actual: XQ-AU52 reports 36 tests, 0 failures, 0 errors, 0 skipped; the Gradle task was cancelled after 8m32s while no Android 14 result XML was produced.
+evidence:
+  - app/build/outputs/androidTest-results/connected/debug/XQ-AU52 - 12/TEST-adb-QV710EDR3A-hF5XZF._adb-tls-connect._tcp.xml
+  - docs/tasks/feat-0917/verification.md
+next_action: infrastructure
+owner: infrastructure
+```
+
+## ISS-010
+
+```yaml
+issue_id: ISS-010
+task_id: feat-0917
+phase: verification
+category: environment
+priority: P1
+title: First fixed-revision Sony connected run had transient resumed-activity failures
+status: resolved
+impact: The first fixed-revision Sony run had three NoActivityResumedException failures; the targeted rerun passed 1/1 and the final full suite passed 36/36.
+repro_steps:
+  - Use commit-only clone at 0595b7c7782e3041b3637ed7505d90d53d8fb3ba.
+  - Set ANDROID_SERIAL to adb-QV710EDR3A-hF5XZF._adb-tls-connect._tcp.
+  - Run ./gradlew :app:connectedDebugAndroidTest --no-daemon.
+expected: All Sony connected tests complete successfully.
+actual: The first full run reported 33 passed and 3 failed with NoActivityResumedException in existing GutterBasicInfoUiTest cases. The targeted rerun passed 1/1, and the final full run passed 36/36.
+evidence:
+  - /private/tmp/tyg-feat0917-verification/app/build/outputs/androidTest-results/connected/debug/TEST-XQ-AU52 - 12.xml
+  - docs/tasks/feat-0917/verification.md
+next_action: verification
+owner: infrastructure
+```

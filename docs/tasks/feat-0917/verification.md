@@ -2,46 +2,94 @@
 
 ## Revision and Worktree
 
-- Revision under test: `5530da348ce499fcb0244cb2e1e0afa2788b36a9`
+- Revision under test: `0595b7c7782e3041b3637ed7505d90d53d8fb3ba`
 - Branch: `feat/銜接點連結管自帶節點名`
-- Tracked worktree changes: none
+- Verification used a source snapshot created from the committed revision because the repository could not create a Git worktree.
+- The developer worktree has an excluded uncommitted change in `app/src/main/java/com/example/taoyuangutter/api/GutterApiService.kt` (`DEMO_URL` → `BASE_URL`); it was not included in this verification snapshot.
 - Untracked `.worktrees/` exists and is unrelated; it was not included in the revision.
+- Physical verification target: Sony XQ-AU52 API 31, serial `adb-QV710EDR3A-hF5XZF._adb-tls-connect._tcp`.
 
 ## Acceptance Criteria
 
 | Criterion | Result | Evidence and limitation |
 |---|---|---|
-| AC-001 | PASS | Source review covers form ordering, Cant Open/Connect Point mutual exclusion, Connect Pipe default, virtual-point reset/hide, and inspect-to-edit prefill. `GutterBasicInfoUiTest` and the full `connectedDebugAndroidTest` suite pass on `Medium_Phone` Android 14. |
+| AC-001 | NOT VERIFIED | Source review covers form ordering, Cant Open/Connect Point mutual exclusion, Connect Pipe default, virtual-point reset/hide, and inspect-to-edit prefill. Fixed-revision Sony local smoke now confirms the controls, mode reset, virtual draft creation, and draft reopen; the complete non-virtual draft/inspect/edit flow is still not independently completed. |
 | AC-002 | NOT VERIFIED | Mapper tests verify integer request serialization and virtual omission; source review verifies Boolean response prefill. Authenticated device request/response evidence for create/draft/edit/virtual flows is unavailable. |
 | AC-003 | NOT VERIFIED | Mapper tests verify create omission and edit preservation; source review verifies create hiding/validation and generated XY_NUM mapping. Authenticated create/edit API evidence and independent device confirmation are unavailable. |
 | AC-004 | NOT VERIFIED | Source review verifies the no-query endpoint and import-sheet behavior; the full connected suite passes. The planned physical import smoke flow and authenticated endpoint response evidence were not captured. |
 
 ## Validation Evidence
 
-- `./gradlew :app:assembleDebug --no-daemon`: PASS.
-- `./gradlew :app:testDebugUnitTest --no-daemon`: PASS.
-- `./gradlew test --no-daemon`: PASS.
-- Latest revision full JVM regression run: `./gradlew test --no-daemon`: PASS, BUILD SUCCESSFUL in 9s.
-- `./gradlew :app:compileDebugAndroidTestKotlin --no-daemon`: PASS.
-- `./gradlew :app:connectedDebugAndroidTest --no-daemon`: PASS on `emulator-5554`, `Medium_Phone`, Android 14; completed in 4m 36s.
-- Targeted `GutterBasicInfoUiTest` after adding connection-control assertions: PASS on `emulator-5554`, `Medium_Phone`, Android 14; `BUILD SUCCESSFUL` in 45s.
-- Targeted `StoreDitchNodeRequestMapperTest`: PASS.
-- Targeted `StoreDitchResponseParsingTest` plus `StoreDitchNodeRequestMapperTest`: PASS; generated start/node/end `XY_NUM` response parsing and request serialization are covered.
-- Bug-fix revision compile and JVM tests: PASS.
-- Bug-fix `GutterBasicInfoUiTest`: PASS on `emulator-5554`, `Medium_Phone`, Android 14.
-- Map button restoration fix compile/JVM validation: PASS. Full connected suite was not fully green because one unrelated emulator focus failure occurred in `MainShellActivityTest.addGutterListWiresAddAndCloseConfirmationCallbacks`; 35/36 tests passed.
-- Follow-up verification identified the missed runtime branch in `MapWorkspaceFragment.unlockInspectUiIfIdle()` and added the same `setTargetPanelVisible(false)` cleanup. Compile and JVM tests pass on the follow-up revision.
+- Fixed-revision source review: PASS. The committed revision contains the planned DTO, mapper, form, inspect-to-edit, generated-`XY_NUM`, import API, and targeted test paths.
+- Fixed-revision Gradle validation: PASS. In a commit-only clone at `0595b7c7782e3041b3637ed7505d90d53d8fb3ba`, `./gradlew :app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleDebug --no-daemon` completed successfully in 2m16s using Android Studio's bundled JDK and the existing local SDK/API-key configuration. No production or task-repository files were changed by this run.
+- Fixed-revision Sony connected suite: PASS. `ANDROID_SERIAL=adb-QV710EDR3A-hF5XZF._adb-tls-connect._tcp ./gradlew :app:connectedDebugAndroidTest --no-daemon` ran only on XQ-AU52 and completed in 2m39s; the result XML reports 36 tests, 0 failures, 0 errors, and 0 skipped. A prior run had three transient `NoActivityResumedException` failures; the targeted rerun passed 1/1, followed by this successful full rerun. See ISS-010.
+
+- Device installation smoke: PASS for installation/startup only. Android Studio most recently reported `Install successfully finished in 1 s 58 ms`; device package query returned `package:com.example.taoyuangutter`, version `1.0.0`, and the resumed activity was `com.example.taoyuangutter/.login.LoginActivity`.
+- Device crash smoke: PASS for the limited check. The last 120 logcat entries contained no `FATAL EXCEPTION`, `AndroidRuntime`, or app-package crash lines.
+- The device smoke used the open working tree through Android Studio, so it is environment evidence only; the excluded uncommitted `GutterApiService.kt` change was not included in the committed revision evidence.
+- Follow-up Sony device launch: Android Studio reported `Install successfully finished in 1 m 12 s 434 ms`, launched `com.example.taoyuangutter.login.LoginActivity`, and connected to the app process on XQ-AU52. This confirms installation/startup only; it is not an acceptance-criteria pass.
+- Fixed-revision Android 14 local-form smoke: installed `/private/tmp/tyg-feat0917-verification/app/build/outputs/apk/debug/app-debug.apk`, entered `離線填寫表單` and the start-node form, and observed `無法開蓋`／`銜接點`, `虛擬點`, photo controls, `連接管` below `淤積程度` with `無` selected, and the remark preset controls. Selecting `銜接點` then `無法開蓋` left only `無法開蓋` selected and disabled the depth-photo action; toggling `虛擬點` hid the affected controls and photos, and restoring it returned the normal form. No data was submitted.
+- Fixed-revision Sony XQ-AU52 manual local-form smoke: reinstalled the same APK, reached `MainShellActivity` using the device's existing session, opened the add-gutter list and start-node form, and confirmed the same local form entry and field structure. No new login or data submission was performed.
+- Fixed-revision Sony local draft smoke: created a virtual/pending-deploy start node without API submission; the add-gutter sheet showed `起點` as `已填寫資料`, and reopening that row preserved both `虛擬點` and `待架站` checked. The test stopped before final gutter submission.
+- Fixed-revision Sony create-form inspection: after restoring normal-point mode, the form exposed `匯入既有點位資料` with a `選擇` entry point; the create-form accessibility tree contained no visible `XY_NUM` field or label. The import selector was not activated because it would require the unavailable API.
+- Fixed-revision Sony reopened-draft bottom-field inspection: accessibility navigation showed `連接管` immediately below `淤積程度`, with `無` checked. Because the reopened record was a virtual draft, the control was disabled in that state; non-virtual editability remains unverified.
+- Fixed-revision Sony incomplete-form exit: attempting to leave the non-complete local form displayed `尚未填寫完畢` and required confirmation before returning to the add-gutter sheet; no data was submitted or discarded during this check.
+- Fixed-revision Sony non-virtual `節點1` inspection: a newly added node showed `虛擬點`, `待架站`, `無法開蓋`, and `銜接點` unchecked by default; bottom navigation confirmed `連接管` is enabled with `無` checked. The node was not submitted.
+- Fixed-revision Sony non-virtual save attempt: checking `待架站` did not permit the incomplete node to complete; the `節點1` form remained open after pressing `完成`. No draft/API submission was recorded.
+- Fixed-revision Sony photo prerequisite attempt: after selecting `U形溝（明溝）` and `無法開蓋`, the overview-photo action opened the app camera permission and preview. The preview exposed no usable accessibility capture control and the ADB session became unresponsive; no photo or submission is claimed. Sony disconnected after the ADB service was safely restarted.
+- Latest Sony recovery check: ADB lists XQ-AU52 as connected, but a read-only `getprop` shell request produced no response and Android Studio still reports `Failed to initialize the device agent`; no further device mutation was attempted.
+- Latest Sony transport reset: `adb reconnect device` changed XQ-AU52 to `offline`; mDNS discovery returned no active wireless-ADB service. Android Studio's Running Devices surface remained blank, so the next physical inspection checkpoint could not be reached. The Android 14 emulator remained responsive and showed the fixed-revision start-node form, including `虛擬點`, `待架站`, photo actions, and `完成`; no emulator data was submitted.
+- Follow-up Sony reconnect: ADB again listed XQ-AU52 as `device`, but the shell health/activity query produced no response. Android Studio's `Retry` still shows `Failed to initialize the device agent`, with device controls disabled. The physical inspection remains blocked at the device-agent layer.
+- A full local ADB service restart was attempted without touching app data. After restart, only the Android 14 emulator reappeared; Sony XQ-AU52 did not reconnect, and Android Studio's screenshot path reported `InterruptedByTimeoutException`. Further physical inspection requires the Sony wireless/USB ADB endpoint or device agent to recover externally.
+- Sony local-flow smoke: from the login screen, `繼續填寫表單` reached the map screen and displayed the location-permission prompt. After permission was allowed, the map and local form flow continued without submitting data.
+- After location permission was allowed, the map loaded and the add button opened the gutter form. The form visibly rendered the gutter type selector, start/end node rows, and `完成` action; no submission was performed.
+- The start-node entry opened successfully and rendered the `起點` page with measurement-state checkboxes, location editing, type selection, and photo actions. No node data was submitted.
+- The physical Sony screen showed all five remark preset chips (`花圃`, `焊接`, `車庫`, `水泥封邊`, `線條固定`) beside the remarks field. Selecting the first chip visibly filled `花圃`, and selecting the second appended `，焊接`; selecting the first chip again removed `花圃` rather than duplicating it, leaving `焊接`. No submission was performed.
+- The same Sony screen visibly placed `連接管` below `淤積程度`, with the required `無／有` choices and `無` selected by default; this is physical UI evidence only and does not replace fixed-revision verification.
+- On the Sony start-node screen, selecting `無法開蓋` checked that state and cleared/blocked `銜接點`; selecting `銜接點` first and then `無法開蓋` likewise left only `無法開蓋` selected. The depth-photo action became disabled in that state. No submission was performed.
+- Toggling the start-node `虛擬點` control visibly hid the `無法開蓋`、`銜接點`、淤積程度、連接管與照片欄位，只保留待架站與定位操作；after restoring the toggle to off, the three mutually affected states remained unchecked. No submission was performed.
+- Follow-up Sony physical inspection after USB ADB recovery: the fixed-revision app launched from the home screen, `離線填寫表單` reached `MainShellActivity`, and the add-gutter flow opened the `起點` editor. The physical accessibility tree showed `匯入既有點位資料`／`選擇`, `虛擬點` unchecked, `待架站`／`無法開蓋`／`銜接點` unchecked, both photo actions enabled, and `完成`; no data was submitted.
+- In the same Sony inspection, selecting `銜接點` and then `無法開蓋` left `無法開蓋=true`, `銜接點=false`, and disabled `拍攝照片（深度）`; selecting `虛擬點` hid the mutually affected controls, and restoring it returned them unchecked with both photo actions enabled. This is physical local-form evidence only; API and photo capture remain unverified.
+- Sony USB ADB camera checkpoint: with `U形溝（明溝）` selected and `無法開蓋=true`, `拍攝照片（概況）` opened the camera permission prompt. Selecting `僅允許這一次` reached the in-app preview; the accessibility tree exposed only `取消`／`返回` and no capture control. The preview was cancelled, returning to the form with `無法開蓋=true`, overview-photo action enabled, and depth-photo action disabled. No photo was captured or submitted.
+- Sony USB ADB virtual-draft checkpoint: switching `虛擬點=true` and `待架站=true` hid the non-virtual controls; pressing the local `完成` returned to `新增側溝` with `起點` marked `已填寫資料` and a `虛擬點` badge. Reopening the row showed both `虛擬點=true` and `待架站=true`. No gutter/API submission was performed.
+- Sony USB ADB incomplete-exit checkpoint: pressing the form back action on an incomplete start-node form produced the confirmation dialog `尚未填寫完畢` with `確認`; the form did not leave immediately. No confirmation/discard action was taken.
+- Sony USB ADB bottom-field checkpoint: after temporarily switching the reopened draft to the non-virtual view and scrolling within the form, the accessibility tree placed `連接管` immediately after `淤積程度`; `rbConnectPipe0` (`無`) was checked and `rbConnectPipe1` (`有`) was unchecked. The control was disabled for this reopened virtual-origin draft. The original `虛擬點=true`／`待架站=true` state was restored afterward.
+- Sony USB ADB independent non-virtual endpoint checkpoint: opening the separate `終點` row showed `虛擬點=false`, `待架站=false`, `無法開蓋=false`, and `銜接點=false` by default. After scrolling, `連接管` appeared immediately after `淤積程度`; `無` was initially checked and enabled. Selecting `有` changed the radio state, then selecting `無` restored the original default. No endpoint save or API submission was performed.
+- Sony USB ADB non-virtual pending validation checkpoint: on the independent `終點` form, setting `待架站=true` while leaving the required non-virtual data incomplete and pressing `完成` left the app in `GutterFormActivity`; the endpoint was not marked completed and no API submission occurred.
+- Sony USB ADB endpoint mutual-exclusion checkpoint: selecting `銜接點` produced `cbConnectPoint=true`, `cbCantOpen=false`, and an enabled depth-photo action. Selecting `無法開蓋` then produced `cbCantOpen=true`, `cbConnectPoint=false`, and disabled the depth-photo action. Both controls were restored to unchecked afterward.
+- Sony USB ADB measurement-field checkpoint: the non-virtual `終點` form rendered the required `側溝測量深度（公分）` and `溝蓋板厚度（公分）` inputs, plus the `拍攝照片（寬度）` action, in the lower form area. No measurement value or photo was entered.
+- Sony wireless ADB pending-draft checkpoint: the `待上傳草稿` view listed an `離線草稿` entry alongside multiple `側溝草稿` entries. Opening the offline entry returned to an `離線草稿` sheet containing both `起點` and `終點` rows and the local `完成` action. No upload, deletion, or API submission was performed.
+- Sony wireless ADB offline-draft detail checkpoint: the reopened offline draft exposed `起點`、`節點1`、`終點` rows, each with `暫無資料`. Opening `節點1` showed a fresh local form with `虛擬點=false`, `待架站=false`, `無法開蓋=false`, `銜接點=false`, an unselected gutter type, and enabled overview/depth photo actions. No node save or submission was performed.
+- Follow-up Sony wireless ADB tree read on the offline `節點1` form confirmed the same local defaults and enabled `拍攝照片（概況）`／`拍攝照片（深度）` actions; this offline-draft screen exposed no `匯入既有點位資料`、`選擇`、`XY_NUM` or transmission control. This is evidence about the offline-draft path only and does not verify the normal API/import path.
+- Sony wireless ADB local selector checkpoint: opening `節點1` 的 `截面形式` selector displayed the four physical options `U形溝（明溝）`、`U形溝（加蓋）`、`L形溝與暗溝渠併用`、`其他`. The selector was dismissed without choosing an option; the form returned to `請選擇`, with both photo actions still enabled. No save or submission was performed.
+- Sony wireless ADB local form checkpoint: selecting `U形溝（加蓋）` on the offline `節點1` form updated the selector text and exposed the local `側溝測量深度（公分）` input (`etDepth`), while `拍攝照片（概況）` and `拍攝照片（深度）` remained enabled. No measurement was entered and no save or submission was performed.
+- Sony wireless ADB unsaved-form checkpoint: pressing the back action after selecting `U形溝（加蓋）` displayed `尚未填寫完畢` with `確認`; pressing back again dismissed the confirmation and kept the form open with the selected type. No discard, save, or submission was performed.
+- Sony wireless ADB local branch checkpoint: changing the unsaved `節點1` selector to `其他` updated the displayed type and kept the local measurement/photo area visible, including `側溝測量深度（公分）`, overview/depth photo actions, and the `無法開蓋`／`銜接點` controls. No additional text was entered and no save or submission was performed.
+- Sony wireless ADB location-picker checkpoint: opening `編輯定位` displayed the local map overlay with `請拖曳地圖至目標點位` and `取消`／`確定` actions. `取消` returned to the `節點1` form without changing location data; no coordinate was confirmed or submitted.
+- Sony wireless ADB incomplete-submit checkpoint: with the offline `節點1` form still missing required local values, pressing `完成` left the resumed activity as `GutterFormActivity`; the form did not complete or return to the draft sheet. No local save or API submission occurred. The accessibility tree did not expose a readable error string, so no specific validation message is claimed.
+- Sony wireless ADB visual camera checkpoint: opening `拍攝照片（概況）` showed the in-app camera preview in a screenshot with a visible shutter control, a visible cancel control, and the instruction `請轉為橫向拍照`. The accessibility tree exposed only the cancel/back controls, so the shutter was not activated; the preview was cancelled and the app returned to `GutterFormActivity`. No photo was captured or saved.
+- Sony wireless ADB orientation checkpoint: temporarily locking the display to landscape and reopening the camera still showed `請轉為橫向拍照`; this demonstrates that the camera flow depends on the device's physical orientation/sensor state, not only logical display rotation. The preview was cancelled, the rotation mode was restored to `free`, and the app returned to `GutterFormActivity`. No photo was captured.
+- Sony physical-orientation follow-up: the device later reported actual landscape orientation (`mCurrentOrientation=3`), but the unsaved `GutterFormActivity` was no longer resumed after the orientation change and the app returned to `MainActivity`. Re-entering the existing `待上傳草稿` reached its local side-gutter-kind sheet; no new node, photo, save, or API submission was performed.
+- Focused non-API emulator pass: on `emulator-5554`, the start-node form showed the expected controls; selecting `銜接點` then `無法開蓋` left only `無法開蓋` checked and disabled the depth-photo action; enabling `虛擬點` removed the affected controls/photo actions, and restoring it returned the normal form. Pressing `完成` with required values missing left the activity as `GutterFormActivity`. No save or API submission occurred.
+- Focused non-API Sony pass: on XQ-AU52, the existing offline `節點1` form produced the same mutual-exclusion and depth-photo behavior, Virtual-point hiding/restoration, and incomplete-submit blocking; the activity remained `GutterFormActivity` after `完成`. No save or API submission occurred.
+
+- A connected Gradle run was started from Android Studio as `app:connectedDebugAndroidTest` against `Medium_Phone(AVD) - 14` and `XQ-AU52 - 12`. It was cancelled after 8m32s because the Android 14 emulator leg did not produce a result; Android Studio reported `Build cancelled` and `BUILD FAILED` due to task cancellation.
+- The same run produced a Sony XQ-AU52 result XML with 36 tests, 0 failures, 0 errors, and 0 skipped. This is recorded as partial open-worktree evidence only; the Android 14 emulator leg did not complete.
+- ISS-009 records the environment blocker: the Android 14 emulator leg produced no result XML and caused the connected task to be cancelled.
+
+- Previously recorded developer validation reports these checks as PASS, but they were not independently rerun for this verification snapshot: APK build, JVM tests, Android-test compilation, connected Android tests, targeted UI tests, mapper tests, and response parsing tests.
+- The fixed-revision Sony connected suite now passes 36/36. The earlier Android 14 emulator leg remains limited to an interrupted run without a final summary; see ISS-009.
 
 ## Regression Review
 
-The full Android connected test suite and JVM test suite passed. Changed mapper, form, inspect-to-edit, import, and response-mapping paths are covered by source review and targeted tests. No implementation failure was observed. CI status and authenticated API evidence remain unavailable.
+The fixed-revision JVM/build checks and final Sony connected test suite passed. Source review found no implementation contradiction in the inspected paths. CI status and authenticated API evidence remain unavailable.
 
 ## Result
 
 `NOT VERIFIED`
 
-The implementation and bug-fix follow-up are committed and developer validation is green, but Release cannot proceed because AC-002 through AC-004 still lack the planned independent device/API evidence and CI results.
+The implementation and bug-fix follow-up are committed. Release cannot proceed because AC-002 through AC-004 still lack the planned independent device/API evidence, and CI results are unavailable.
 
 ## Next Action
 
-Run the planned authenticated emulator flows with request/response capture for AC-002 and AC-003, plus the import smoke flow for AC-004, then update this report and state. Obtain CI results before Release.
+Run the planned authenticated emulator flows with request/response capture for AC-002 and AC-003, plus the import smoke flow for AC-004. Obtain CI results before Release.
