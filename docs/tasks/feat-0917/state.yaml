@@ -26,7 +26,7 @@ validation:
 
 git:
   branch: feat/銜接點連結管自帶節點名
-  commit: 5530da348ce499fcb0244cb2e1e0afa2788b36a9
+  commit: 791ee8e
   status: committed
 
 verification:
