@@ -1717,6 +1717,7 @@ class MapWorkspaceFragment : Fragment(),
             return
         }
         isInspectUiLocked = false
+        mainBlockingUiController.setTargetPanelVisible(false)
         mainBlockingUiController.setMainButtonsEnabled(true)
         consumePendingForceReloadIfPossible()
     }
