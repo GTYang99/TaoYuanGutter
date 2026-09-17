@@ -204,11 +204,6 @@ class MapWorkspaceFragment : Fragment(),
     /** True while an add-list sheet is temporarily hidden behind GutterFormActivity. */
     private var isAddFormHandoffActive: Boolean = false
     private var addGutterListSheet: AddGutterListBottomSheet? = null
-    private data class PendingSuccessfulMultiDraftCleanup(
-        val draftId: Long,
-        val waypoints: List<Waypoint>
-    )
-    private var pendingSuccessfulMultiDraftCleanup: PendingSuccessfulMultiDraftCleanup? = null
     private var initialSpiState: String? = null
     private var activeSheet: AddGutterBottomSheet? = null
     private var pickingIndex: Int = -1
@@ -315,16 +310,6 @@ class MapWorkspaceFragment : Fragment(),
             if (result.resultCode == GutterInspectActivity.RESULT_EDIT_DITCH) {
                 handleInspectEditResult(result.data)
             } else {
-                val completedMultiDraft = pendingSuccessfulMultiDraftCleanup
-                pendingSuccessfulMultiDraftCleanup = null
-                if (completedMultiDraft != null) {
-                    draftCoordinator.deleteDraftAndLocalPhotos(
-                        requireContext(),
-                        completedMultiDraft.draftId,
-                        fallbackWaypoints = completedMultiDraft.waypoints
-                    )
-                    multiGutterSessionCoordinator.remove(completedMultiDraft.draftId)
-                }
                 isInEditingMode = false
                 inspectPreviewIntent = null
                 shouldReturnToInspectPreview = false
@@ -334,7 +319,7 @@ class MapWorkspaceFragment : Fragment(),
                 gutterMapController.clearPreviewLayer()
                 clearWorkingMarkers()
                 loadGuttersByViewport(showFeedback = true)
-                if (completedMultiDraft != null && isMultiGutterSession && isAdded) {
+                if (isMultiGutterSession && isAdded) {
                     showAddGutterList()
                 }
             }
@@ -2141,17 +2126,15 @@ class MapWorkspaceFragment : Fragment(),
                             activeSheet?.dismissAllowingStateLoss()
                             activeSheet = null
                             pendingDraftId?.let { draftId ->
-                                if (isMultiGutterSession && !spiNum.isNullOrBlank()) {
-                                    pendingSuccessfulMultiDraftCleanup =
-                                        PendingSuccessfulMultiDraftCleanup(draftId, persistedWaypoints)
-                                } else {
-                                    draftCoordinator.deleteDraftAndLocalPhotos(
-                                        requireContext(),
-                                        draftId,
-                                        fallbackWaypoints = persistedWaypoints
-                                    )
-                                    if (isMultiGutterSession) multiGutterSessionCoordinator.remove(draftId)
-                                }
+                                // A successful item must leave the add-list
+                                // session immediately, not only after the
+                                // later inspect Activity returns.
+                                draftCoordinator.deleteDraftAndLocalPhotos(
+                                    requireContext(),
+                                    draftId,
+                                    fallbackWaypoints = persistedWaypoints
+                                )
+                                if (isMultiGutterSession) multiGutterSessionCoordinator.remove(draftId)
                             }
                             currentSessionDraftId = null
                             currentSessionResumedFromDraft = false
