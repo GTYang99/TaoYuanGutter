@@ -37,10 +37,10 @@
 | Check | Command | Result |
 |---|---|---|
 | Source whitespace | `git diff --check` | PASS |
-| Targeted unit tests | `./gradlew testDebugUnitTest --tests 'com.example.taoyuangutter.map.LocationFixQualityPolicyTest' --tests 'com.example.taoyuangutter.main.MainMapLocationRecenterReloadTrackerTest'` | NOT VERIFIED — Gradle cannot locate a Java Runtime. |
-| Debug APK | `./gradlew assembleDebug` | NOT VERIFIED — not attempted after the same Java Runtime failure. |
-| Fixed-build device test | Install the committed debug APK and run AC-001 to AC-003 on Sony XQ-AU52 | NOT VERIFIED — no APK could be built locally. |
+| Targeted unit tests | `PATH='/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin:…' ./gradlew testDebugUnitTest --tests 'com.example.taoyuangutter.map.LocationFixQualityPolicyTest' --tests 'com.example.taoyuangutter.main.MainMapLocationRecenterReloadTrackerTest'` | PASS |
+| Debug APK | `PATH='/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin:…' ./gradlew assembleDebug` | PASS — `app/build/outputs/apk/debug/app-debug.apk` |
+| Fixed-build device test | Installed the debug APK on Sony XQ-AU52 and launched the app | NOT VERIFIED — an initial ANR dialog appeared, but a clean relaunch reached the login screen. Authenticated map cases cannot proceed without a test session (ISS-003). |
 
 ## Recommended Next Action
 
-- Run the recorded Gradle commands with a supported JDK, install the resulting APK on Sony XQ-AU52, and verify an immediate cached first center/search plus at most one ≥10 m accuracy refinement.
+- Sign in to the fixed APK on Sony XQ-AU52, then verify the defined map-location cases. Reinvestigate ISS-002 only if the ANR recurs after authentication.
