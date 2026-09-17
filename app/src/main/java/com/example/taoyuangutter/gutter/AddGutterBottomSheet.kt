@@ -1969,6 +1969,43 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         return@forEach
                     }
 
+                    val resolvedDraftId = draftId.takeIf { it > 0L }
+                    if (resolvedDraftId != null &&
+                        PhotoSlotUploadCoordinator.isUploading(resolvedDraftId, index, slot)
+                    ) {
+                        val completed = PhotoSlotUploadCoordinator.awaitCompletion(
+                            context = ctx,
+                            draftId = resolvedDraftId,
+                            waypointIndex = index,
+                            slot = slot
+                        )
+                        if (completed?.state == PhotoUploadSlotState.STATE_SUCCESS &&
+                            completed.imgId != null
+                        ) {
+                            PhotoUploadSlotState.writeState(
+                                waypoint.basicData,
+                                slot,
+                                state = completed.state,
+                                imgId = completed.imgId,
+                                error = null
+                            )
+                            return@forEach
+                        }
+                        if (completed?.state == PhotoUploadSlotState.STATE_FAILED) {
+                            PhotoUploadSlotState.writeState(
+                                waypoint.basicData,
+                                slot,
+                                state = completed.state,
+                                imgId = null,
+                                error = completed.error
+                            )
+                            return false
+                        }
+                        // Do not fall through to a second upload if the
+                        // existing worker timed out or produced no result.
+                        return false
+                    }
+
                     val result = repository.uploadNodeImage(
                         context = ctx,
                         nodeId = null,

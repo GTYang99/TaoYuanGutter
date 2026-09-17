@@ -8,6 +8,7 @@ import com.example.taoyuangutter.pending.GutterSessionRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
@@ -31,6 +32,37 @@ object PhotoSlotUploadCoordinator {
     fun isUploading(draftId: Long, waypointIndex: Int, slot: Int): Boolean {
         if (draftId <= 0L || slot !in 1..3) return false
         return inFlight.containsKey(taskKey(draftId, waypointIndex, slot))
+    }
+
+    /**
+     * Waits for an already queued upload instead of starting a second upload.
+     * The draft is the source of truth because the form can be recreated while
+     * the coordinator continues in its application-scoped worker.
+     */
+    suspend fun awaitCompletion(
+        context: Context,
+        draftId: Long,
+        waypointIndex: Int,
+        slot: Int,
+        timeoutMs: Long = 30_000L
+    ): Snapshot? {
+        val key = taskKey(draftId, waypointIndex, slot)
+        val deadline = System.currentTimeMillis() + timeoutMs
+        val repository = GutterSessionRepository(context.applicationContext)
+        while (inFlight.containsKey(key) && System.currentTimeMillis() < deadline) {
+            delay(50L)
+        }
+        val waypoint = repository.getById(draftId)?.waypoints?.getOrNull(waypointIndex)
+            ?: return null
+        val state = PhotoUploadSlotState.readState(waypoint.basicData, slot)
+        return Snapshot(
+            draftId = draftId,
+            waypointIndex = waypointIndex,
+            slot = slot,
+            state = state,
+            imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot),
+            error = PhotoUploadSlotState.readError(waypoint.basicData, slot)
+        )
     }
 
     fun registerListener(
