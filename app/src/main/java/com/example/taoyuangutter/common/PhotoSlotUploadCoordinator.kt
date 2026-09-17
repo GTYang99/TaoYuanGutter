@@ -136,7 +136,7 @@ object PhotoSlotUploadCoordinator {
 
             when (result) {
                 is ApiResult.Success -> {
-                    val snapshot = updateDraftAndNotify(
+                    updateDraftAndNotify(
                         context = context,
                         draftId = draftId,
                         waypointIndex = waypointIndex,
@@ -146,10 +146,18 @@ object PhotoSlotUploadCoordinator {
                         imgId = result.data.data?.imgId,
                         error = null
                     )
-                    snapshot?.let { completed[key] = it }
+                    completed[key] = Snapshot(
+                        draftId = draftId,
+                        waypointIndex = waypointIndex,
+                        slot = slot,
+                        photoPath = photoPath.trim(),
+                        state = PhotoUploadSlotState.STATE_SUCCESS,
+                        imgId = result.data.data?.imgId,
+                        error = null
+                    )
                 }
                 is ApiResult.Error -> {
-                    val snapshot = updateDraftAndNotify(
+                    updateDraftAndNotify(
                         context = context,
                         draftId = draftId,
                         waypointIndex = waypointIndex,
@@ -159,7 +167,15 @@ object PhotoSlotUploadCoordinator {
                         imgId = null,
                         error = result.message
                     )
-                    snapshot?.let { completed[key] = it }
+                    completed[key] = Snapshot(
+                        draftId = draftId,
+                        waypointIndex = waypointIndex,
+                        slot = slot,
+                        photoPath = photoPath.trim(),
+                        state = PhotoUploadSlotState.STATE_FAILED,
+                        imgId = null,
+                        error = result.message
+                    )
                 }
             }
             inFlight.remove(key)
