@@ -2,8 +2,8 @@ task:
   id: feat-0917
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -22,17 +22,21 @@ implementation:
   apk: app/build/outputs/apk/debug/app-debug.apk
 
 validation:
-  status: pending
+  status: completed
 
 git:
   branch: feat/銜接點連結管自帶節點名
-  commit: e56f5e3d19a709617592950cc90fc97cdf07b58b
+  commit: ba36fcd
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-002
+    - AC-003
+    - AC-004
 
 ci:
   build: pending
