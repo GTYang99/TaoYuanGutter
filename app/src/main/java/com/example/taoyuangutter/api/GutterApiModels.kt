@@ -348,6 +348,10 @@ data class NodeDetails(
      * 由於型別不穩定，先以 Any? 接住，使用 [isCantOpenAsBoolean] 取值。
      */
     @SerializedName("IS_CANTOPEN") val isCantOpen: Any?,
+    /** 銜接點：檢視／編輯 response 為 Boolean，缺值視為 false。 */
+    @SerializedName("is_connect_point") val isConnectPoint: Boolean? = null,
+    /** 連接管：檢視／編輯 response 為 Boolean，缺值視為 false。 */
+    @SerializedName("is_connect_pipe") val isConnectPipe: Boolean? = null,
     /** 溝體結構受損：0=否 1=是 */
     @SerializedName("IS_BROKEN")  val isBroken: String?,
     /** 附掛或過路管線：0=無 1=有 */
@@ -509,11 +513,14 @@ data class StoreDitchNodeRequest(
     @SerializedName("longitude")  val longitude: Double,
     /** 高程（Z 值）；目前依 API 規則固定送 null */
     @SerializedName("NODE_LE")    val nodeLe: Double?,
-    @SerializedName("XY_NUM")     val xyNum: String,
+    /** 新增時由後端產生；更新時保留既有值。 */
+    @SerializedName("XY_NUM")     val xyNum: String? = null,
     /** 待架站：0=false、1=true */
     @SerializedName("is_pendingDeploy") val isPendingDeploy: Int = 0,
     /** 無法開蓋：0=false、1=true */
-    @SerializedName("IS_CANTOPEN") val isCantOpen: Int,
+    @SerializedName("IS_CANTOPEN") val isCantOpen: Int? = null,
+    @SerializedName("is_connect_point") val isConnectPoint: Int? = null,
+    @SerializedName("is_connect_pipe") val isConnectPipe: Int? = null,
     /** 是否為虛擬點：true/false */
     @SerializedName("is_virtual") val isVirtual: Boolean = false,
     /** 深度（公分） */

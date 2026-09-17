@@ -147,15 +147,12 @@ interface GutterApiService {
     ): Response<NodeDetailsResponse>
 
     /**
-     * 以經緯度查詢最近點位清單。
-     *
-     * GET /api/v1/node/closestNodeDetails?lng=...&lat=...
+     * 查詢最近存檔點位清單。
+     * GET /api/v1/node/closestNodeDetails
      * Authorization: Bearer {token}
      */
     @GET("api/v1/node/closestNodeDetails")
     suspend fun getClosestNodeDetails(
-        @Query("lng")            lng: Double,
-        @Query("lat")            lat: Double,
         @Header("Authorization") authorization: String
     ): Response<NodeDetailsResponse>
 

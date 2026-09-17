@@ -460,6 +460,8 @@ class GutterInspectActivity : AppCompatActivity() {
                 "NODE_DEP" to nodeDetails.nodeDepAsString,
                 "NODE_WID" to nodeDetails.nodeWidAsString,
                 "IS_CANTOPEN" to (if (nodeDetails.isCantOpenAsBoolean) "1" else "0"),
+                "is_connect_point" to (if (nodeDetails.isConnectPoint == true) "1" else "0"),
+                "is_connect_pipe" to (if (nodeDetails.isConnectPipe == true) "1" else "0"),
                 "IS_PENDING_DEPLOY" to (if (parseLooseBoolean(node.isPendingDeploy)) "1" else "0"),
                 "is_virtual" to (if (parseLooseBoolean(nodeDetails.isVirtual)) "1" else "0"),
                 "IS_BROKEN" to (nodeDetails.isBroken ?: ""),

@@ -513,14 +513,12 @@ class GutterRepository(
     }
 
     /**
-     * 以經緯度查詢最近點位清單。
-     * GET /api/v1/node/closestNodeDetails?lng=...&lat=...
+     * 查詢最近存檔點位清單。
+     * GET /api/v1/node/closestNodeDetails
      */
-    suspend fun getClosestNodeDetails(lng: Double, lat: Double, token: String): ApiResult<NodeDetailsResponse> {
+    suspend fun getClosestNodeDetails(token: String): ApiResult<NodeDetailsResponse> {
         return try {
             val response = api.getClosestNodeDetails(
-                lng = lng,
-                lat = lat,
                 authorization = "Bearer $token"
             )
             val reqUrl = runCatching { response.raw().request.url.toString() }.getOrNull()
@@ -538,7 +536,7 @@ class GutterRepository(
                     val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
                     android.util.Log.e(
                         "GutterRepository",
-                        "getClosestNodeDetails failed: lat=$lat, lng=$lng, code=${response.code()}, message=${body.message}, detail=$detail"
+                        "getClosestNodeDetails failed: code=${response.code()}, message=${body.message}, detail=$detail"
                     )
                     ApiResult.Error(
                         message = detail ?: body.message ?: "查詢失敗",
@@ -553,7 +551,7 @@ class GutterRepository(
         } catch (e: CancellationException) {
             throw e
         } catch (e: JsonSyntaxException) {
-            android.util.Log.e("GutterRepository", "getClosestNodeDetails json parse failed: lat=$lat, lng=$lng", e)
+            android.util.Log.e("GutterRepository", "getClosestNodeDetails json parse failed", e)
             ApiResult.Error(message = "資料解析失敗")
         } catch (e: Exception) {
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")

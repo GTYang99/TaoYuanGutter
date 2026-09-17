@@ -48,6 +48,42 @@ class StoreDitchNodeRequestMapperTest {
         assertTrue(json.contains("101"))
     }
 
+    @Test
+    fun newNodeOmitsXyNumAndSendsConnectionFlagsAsIntegers() {
+        val waypoint = waypoint(
+            "is_connect_point" to "1",
+            "is_connect_pipe" to "0"
+        )
+        val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, null, 1))
+
+        assertFalse(json.contains("\"XY_NUM\""))
+        assertTrue(json.contains("\"is_connect_point\":1"))
+        assertTrue(json.contains("\"is_connect_pipe\":0"))
+    }
+
+    @Test
+    fun virtualNodeOmitsCantOpenAndConnectionFlags() {
+        val waypoint = waypoint(
+            "IS_CANTOPEN" to "1",
+            "is_connect_point" to "1",
+            "is_connect_pipe" to "1",
+            "is_virtual" to "1"
+        )
+        val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, null, 1))
+
+        assertFalse(json.contains("\"IS_CANTOPEN\""))
+        assertFalse(json.contains("\"is_connect_point\""))
+        assertFalse(json.contains("\"is_connect_pipe\""))
+    }
+
+    @Test
+    fun editNodePreservesExistingXyNum() {
+        val waypoint = waypoint("XY_NUM" to "E0001")
+        val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, 42, 1))
+
+        assertTrue(json.contains("\"XY_NUM\":\"E0001\""))
+    }
+
     private fun waypoint(vararg entries: Pair<String, String>): Waypoint = Waypoint(
         type = WaypointType.NODE,
         label = "節點1",

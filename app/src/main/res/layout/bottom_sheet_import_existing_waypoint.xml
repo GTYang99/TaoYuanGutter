@@ -48,7 +48,8 @@
             android:contentDescription="現在位置"
             android:padding="12dp"
             android:src="@drawable/ic_my_location"
-            android:tint="@color/colorPrimary" />
+            android:tint="@color/colorPrimary"
+            android:visibility="gone" />
     </LinearLayout>
 
     <!-- Capsule tabs -->
@@ -126,7 +127,7 @@
         android:textColor="@color/text_grey"
         android:textSize="13sp"
         android:visibility="gone"
-        android:text="請點選上方地圖以查詢附近點位" />
+        android:text="載入最近存檔點位中…" />
 
     <!-- Content container with loading overlay (positioned at top half of list) -->
     <FrameLayout

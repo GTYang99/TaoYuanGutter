@@ -60,6 +60,14 @@
                     app:buttonTint="@color/colorPrimary"
                     android:text="@string/field_cannot_open" />
 
+                <com.google.android.material.checkbox.MaterialCheckBox
+                    android:id="@+id/cbConnectPoint"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="16dp"
+                    app:buttonTint="@color/colorPrimary"
+                    android:text="@string/field_connect_point" />
+
             </LinearLayout>
         </LinearLayout>
 
@@ -1352,6 +1360,71 @@
                 android:paddingBottom="10dp" />
 
         </RadioGroup>
+
+        <!-- 連接管：位於淤積程度下方，必選無／有，預設無。 -->
+        <LinearLayout
+            android:id="@+id/layoutConnectPipe"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="4dp">
+                <TextView
+                    android:id="@+id/tvConnectPipeTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/field_connect_pipe"
+                    android:textSize="13sp"
+                    android:textColor="@color/textColorSecondary" />
+                <TextView
+                    android:id="@+id/tvConnectPipeRequired"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="4dp"
+                    android:text="*"
+                    android:textColor="#7B4FFF"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+            <RadioGroup
+                android:id="@+id/rgConnectPipe"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:background="@color/white"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+                <RadioButton
+                    android:id="@+id/rbConnectPipe0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hanging_no"
+                    android:buttonTint="@color/colorPrimary"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="14sp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:paddingEnd="20dp" />
+                <RadioButton
+                    android:id="@+id/rbConnectPipe1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/hanging_yes"
+                    android:buttonTint="@color/colorPrimary"
+                    android:textColor="@color/textColorPrimary"
+                    android:textSize="14sp"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp" />
+            </RadioGroup>
+        </LinearLayout>
 
         <!-- ⑫ 補充說明 ─────────────────────────────────────────── -->
         <TextView

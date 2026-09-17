@@ -1,0 +1,45 @@
+task:
+  id: feat-0917
+  type: feature
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: resolved
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+  build: passed
+  unit_tests: passed
+  android_test_compile: passed
+  apk: app/build/outputs/apk/debug/app-debug.apk
+
+validation:
+  status: pending
+
+git:
+  branch: feat/銜接點連結管自帶節點名
+  commit: 7760a31
+  status: committed
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification

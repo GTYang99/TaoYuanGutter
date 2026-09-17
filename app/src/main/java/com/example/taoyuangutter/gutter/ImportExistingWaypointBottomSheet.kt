@@ -76,7 +76,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     private var selected: NodeDetails? = null
     // Keep two pages' list content independent.
     private var nearbyRows: List<ImportWaypointAdapter.Row> =
-        listOf(ImportWaypointAdapter.Row.State("使用目前位置查詢附近點位"))
+        listOf(ImportWaypointAdapter.Row.State("載入最近存檔點位中…"))
     private var searchRows: List<ImportWaypointAdapter.Row> =
         listOf(ImportWaypointAdapter.Row.State("請輸入座標編號 (XY_NUM) 後按搜尋"))
     private var searchJob: Job? = null
@@ -120,10 +120,8 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
         // Default: Nearby
         renderPage(Page.NEARBY)
-        pendingAutoNearbyLatLng?.let { latLng ->
-            pendingAutoNearbyLatLng = null
-            startNearbyAutoSearch(latLng)
-        }
+        pendingAutoNearbyLatLng = null
+        startNearbyAutoSearch()
         pendingAutoNearbyError?.let { msg ->
             pendingAutoNearbyError = null
             showNearbyAutoError(msg)
@@ -250,7 +248,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
      * Nearby page: automatically query closest nodes by the given GPS lat/lng.
      * This replaces the old "tap map to pick a center" flow.
      */
-    fun startNearbyAutoSearch(latLng: LatLng) {
+    fun startNearbyAutoSearch(latLng: LatLng? = null) {
         if (!isAdded) {
             pendingAutoNearbyLatLng = latLng
             return
@@ -260,10 +258,9 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
             return
         }
         if (currentPage != Page.NEARBY) return
-        binding.tvNearbyHint.isVisible = true
-        binding.tvNearbyHint.text = "使用目前位置查詢附近點位中…"
+        binding.tvNearbyHint.isVisible = false
         clearSelection()
-        performClosestSearch(latLng)
+        performClosestSearch()
     }
 
     /** Nearby page: show a locating state (no API call). */
@@ -320,7 +317,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
     private fun setupTabs() {
         binding.tabLayout.removeAllTabs()
-        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("附近點位"), true)
+        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("最近存檔點位"), true)
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText("搜尋點位"), false)
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
@@ -348,9 +345,9 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
             Page.NEARBY -> {
                 binding.searchBar.isVisible = false
                 binding.tvNearbyHint.isVisible = true
-                binding.tvNearbyHint.text = "使用目前位置查詢附近點位"
+                binding.tvNearbyHint.text = ""
                 // Use VISIBLE/INVISIBLE (not GONE) to prevent the centered title from "jumping".
-                binding.btnMyLocation.visibility = View.VISIBLE
+                binding.btnMyLocation.visibility = View.GONE
                 callbacks?.onMapPickModeChanged(false)
                 adapter.updateRows(nearbyRows)
                 
@@ -385,8 +382,8 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
     private fun setupButtons() {
         binding.btnClose.setOnClickListener { dismissAllowingStateLoss() }
-        binding.btnMyLocation.isVisible = true
-        binding.btnMyLocation.setOnClickListener { callbacks?.onRequestMyLocation() }
+        binding.btnMyLocation.isVisible = false
+        binding.btnMyLocation.setOnClickListener(null)
 
         binding.btnImport.isEnabled = false
         binding.btnImport.backgroundTintList =
@@ -442,7 +439,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         if (!message.isNullOrBlank()) binding.tvLoading.text = message
     }
 
-    private fun performClosestSearch(latLng: LatLng) {
+    private fun performClosestSearch(latLng: LatLng? = null) {
         val ctx = requireContext()
         val token = LoginActivity.getSavedToken(ctx)
         if (token.isNullOrEmpty()) {
@@ -453,16 +450,12 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
         closestJob?.cancel()
         setLoading(true, "載入中…")
-        binding.tvNearbyHint.text =
-            "查詢位置：(${String.format("%.6f", latLng.latitude)}, ${String.format("%.6f", latLng.longitude)})"
         val seq = ++closestSeq
         val targetPage = Page.NEARBY
 
         closestJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val result = gutterRepository.getClosestNodeDetails(
-                    lng = latLng.longitude,
-                    lat = latLng.latitude,
                     token = token
                 )
                 if (seq != closestSeq) return@launch

@@ -1236,8 +1236,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 when (val result = repository.storeDitch(request, token)) {
                     is ApiResult.Success -> {
                         val resolvedSpiNum = result.data.data?.spiNum
-                        val nodes = result.data.data?.nodes ?: emptyList()
-                        locationPickerHost()?.onGutterSaved(resolvedSpiNum, validWaypoints, nodes)
+                        val responseData = result.data.data
+                        val nodes = responseData?.nodes ?: emptyList()
+                        val persistedWaypoints = applyGeneratedXyNums(validWaypoints, responseData?.xyNum)
+                        locationPickerHost()?.onGutterSaved(resolvedSpiNum, persistedWaypoints, nodes)
                     }
                     is ApiResult.Error -> {
                         android.util.Log.e(
@@ -2254,6 +2256,25 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 node
             }
         )
+    }
+
+    /** 新增成功後將後端產生的座標編號交回草稿／檢視／編輯流程。 */
+    private fun applyGeneratedXyNums(
+        waypoints: List<Waypoint>,
+        xyNum: com.example.taoyuangutter.api.DitchXyNum?
+    ): List<Waypoint> {
+        if (xyNum == null) return waypoints
+        var middleIndex = 0
+        return waypoints.map { waypoint ->
+            val value = when (waypoint.type) {
+                WaypointType.START -> xyNum.start
+                WaypointType.END -> xyNum.end
+                WaypointType.NODE -> xyNum.nodes?.getOrNull(middleIndex++)
+            }
+            if (value.isNullOrBlank()) waypoint else waypoint.copy(
+                basicData = HashMap(waypoint.basicData).apply { put("XY_NUM", value) }
+            )
+        }
     }
 
     private fun updateCurveToggleUi() {

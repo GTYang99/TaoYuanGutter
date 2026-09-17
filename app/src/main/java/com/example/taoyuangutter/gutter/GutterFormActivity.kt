@@ -785,12 +785,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		            }
 		        }
 
-		        importSheet = sheet
-		        sheet.show(supportFragmentManager, "ImportExistingWaypointBottomSheet")
-		        // Spec update: open Nearby tab and immediately query by GPS current location.
-		        pendingImportSheetForLocation = sheet
-		        importLocationPermissionAttempts = 0
-		        ensureImportLocationPermissionAndFetch(sheet)
+	        importSheet = sheet
+	        sheet.show(supportFragmentManager, "ImportExistingWaypointBottomSheet")
+	        // The import sheet loads recent stored points directly; this flow has no
+	        // GPS permission, location callback, map marker, or coordinate query.
 		    }
 
 		    private fun updateImportMapClickListener() {
