@@ -2,7 +2,7 @@
 
 ## Revision and Worktree
 
-- Revision under test: current implementation revision after the validation commit below
+- Revision under test: `5530da348ce499fcb0244cb2e1e0afa2788b36a9`
 - Branch: `feat/銜接點連結管自帶節點名`
 - Tracked worktree changes: none
 - Untracked `.worktrees/` exists and is unrelated; it was not included in the revision.
