@@ -2,20 +2,24 @@ task:
   id: debug-0917-location
   type: debug
 
-phase: planning
-status: plan_in_progress
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: not_required
 
 planning:
-  status: in_progress
+  status: completed
 
 plan_review:
   status: pending
 
 implementation:
   status: pending
+
+debug:
+  status: completed
+  root_cause: identified
 
 validation:
   status: pending
@@ -37,6 +41,5 @@ ci:
 release:
   status: pending
 
-blocking:
-  - Runtime device evidence is required before the debug root cause and minimum fix scope can be approved.
-next_action: planning
+blocking: []
+next_action: implementation_debug
