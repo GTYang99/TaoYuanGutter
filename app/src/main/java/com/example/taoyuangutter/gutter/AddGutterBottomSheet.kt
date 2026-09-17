@@ -2065,6 +2065,19 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             (1..3).forEach { slot ->
                 val photoKey = "photo$slot"
                 if (merged[photoKey].isNullOrBlank()) return@forEach
+                // Preserve server metadata only when the form returned the same
+                // photo. A non-empty but different URI is a replacement and
+                // must remain without the old img_id until its upload succeeds.
+                val samePhoto = existing[photoKey]?.trim() == data[photoKey]?.trim()
+                if (!samePhoto) {
+                    listOf(
+                        "photo${slot}CapturedAt",
+                        "photo${slot}ImgId",
+                        "photo${slot}UploadState",
+                        "photo${slot}UploadError"
+                    ).forEach(merged::remove)
+                    return@forEach
+                }
                 listOf(
                     "photo${slot}CapturedAt",
                     "photo${slot}ImgId",
