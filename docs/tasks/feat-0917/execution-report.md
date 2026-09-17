@@ -9,6 +9,13 @@
 - Changed closest-node import to call `GET /api/v1/node/closestNodeDetails` without location query parameters and removed the opened-sheet GPS trigger and location UI.
 - Added mapper JSON regression tests for create/edit/virtual payload behavior.
 
+## Bug Fix Follow-up
+
+- Required-marker updates now keep `XY_NUM` hidden for create mode while preserving it for edit/view.
+- Remark preset chips now toggle: tapping an existing preset removes only that preset.
+- New-point validation no longer requires `XY_NUM`; edit validation continues to require it.
+- Waypoint rows show `已填寫資料` when form data exists even before backend-generated `XY_NUM` is available.
+
 ## Validation
 
 | Check | Result | Evidence |
@@ -20,6 +27,7 @@
 | Connected UI test | PASS | `Medium_Phone` Android 14 (`emulator-5554`), `GutterBasicInfoUiTest`, `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterBasicInfoUiTest` |
 | Full connected Android test suite | PASS | `Medium_Phone` Android 14 (`emulator-5554`), `ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest --no-daemon`; BUILD SUCCESSFUL in 4m 36s |
 | Connection-control UI regression test | PASS | Added assertions for Connect Point / Cant Open mutual exclusion, Connect Pipe default, and virtual-point hiding; targeted `GutterBasicInfoUiTest` on `Medium_Phone` Android 14; BUILD SUCCESSFUL in 45s |
+| Bug-fix UI regression test | PASS | `GutterBasicInfoUiTest` now verifies create-mode `XY_NUM` marker is hidden and remark preset removal; targeted connected test on `Medium_Phone` Android 14; BUILD SUCCESSFUL in 50s |
 | Mapper targeted tests | PASS | `StoreDitchNodeRequestMapperTest` |
 | Store response contract tests | PASS | `StoreDitchResponseParsingTest` verifies generated start/node/end `XY_NUM` parsing; targeted request/response test command completed successfully |
 | Physical/API AC-002..AC-004 | NOT VERIFIED | Connected UI test does not provide authenticated API request/response evidence |

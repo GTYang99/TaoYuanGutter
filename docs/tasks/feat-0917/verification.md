@@ -27,6 +27,8 @@
 - Targeted `GutterBasicInfoUiTest` after adding connection-control assertions: PASS on `emulator-5554`, `Medium_Phone`, Android 14; `BUILD SUCCESSFUL` in 45s.
 - Targeted `StoreDitchNodeRequestMapperTest`: PASS.
 - Targeted `StoreDitchResponseParsingTest` plus `StoreDitchNodeRequestMapperTest`: PASS; generated start/node/end `XY_NUM` response parsing and request serialization are covered.
+- Bug-fix revision compile and JVM tests: PASS.
+- Bug-fix `GutterBasicInfoUiTest`: PASS on `emulator-5554`, `Medium_Phone`, Android 14.
 
 ## Regression Review
 
@@ -36,7 +38,7 @@ The full Android connected test suite and JVM test suite passed. Changed mapper,
 
 `NOT VERIFIED`
 
-The implementation is committed and developer validation is green, but Release cannot proceed because AC-002 through AC-004 still lack the planned independent device/API evidence and CI results.
+The implementation and bug-fix follow-up are committed and developer validation is green, but Release cannot proceed because AC-002 through AC-004 still lack the planned independent device/API evidence and CI results.
 
 ## Next Action
 
