@@ -19,6 +19,13 @@
 
 - ISS-001 records the missing-Java environment limitation. No test or build result is represented as a pass without execution.
 
+## Verification Handoff
+
+- Commit under test: `1059f16cff194bb5e727ad17f181acecfac33583` on `refactor/refactor-0917-wms-styles`.
+- Package: `com.example.taoyuangutter`.
+- APK: NOT VERIFIED; no debug APK was built because Gradle could not find a Java Runtime.
+- Device preconditions: authenticated map session, network access to GeoServer, and request capture available. No account credentials are recorded here.
+
 ## Recommended Next Action
 
 - On a machine with a supported JDK, run the recorded targeted test command, `./gradlew assembleDebug`, then perform the three-entry-point device verification described in `plan.md`.

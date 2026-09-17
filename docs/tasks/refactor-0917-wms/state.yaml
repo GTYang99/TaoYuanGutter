@@ -30,8 +30,8 @@ validation:
 
 git:
   branch: refactor/refactor-0917-wms-styles
-  commit: ""
-  status: ready_to_commit
+  commit: 1059f16cff194bb5e727ad17f181acecfac33583
+  status: committed_revision_ready_for_verification
 
 verification:
   result: pending
