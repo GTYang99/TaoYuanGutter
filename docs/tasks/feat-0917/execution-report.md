@@ -15,7 +15,7 @@
 |---|---|---|
 | Debug APK build | PASS | `./gradlew :app:assembleDebug`; `app/build/outputs/apk/debug/app-debug.apk` |
 | Unit tests | PASS | `./gradlew :app:testDebugUnitTest` |
-| Full Gradle JVM tests | PASS | `./gradlew test` |
+| Full Gradle JVM tests | PASS | Latest revision: `JAVA_HOME=... ./gradlew test --no-daemon`; BUILD SUCCESSFUL in 9s |
 | Android test compilation | PASS | `./gradlew :app:compileDebugAndroidTestKotlin` |
 | Connected UI test | PASS | `Medium_Phone` Android 14 (`emulator-5554`), `GutterBasicInfoUiTest`, `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterBasicInfoUiTest` |
 | Full connected Android test suite | PASS | `Medium_Phone` Android 14 (`emulator-5554`), `ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest --no-daemon`; BUILD SUCCESSFUL in 4m 36s |

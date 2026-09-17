@@ -21,6 +21,7 @@
 - `./gradlew :app:assembleDebug --no-daemon`: PASS.
 - `./gradlew :app:testDebugUnitTest --no-daemon`: PASS.
 - `./gradlew test --no-daemon`: PASS.
+- Latest revision full JVM regression run: `./gradlew test --no-daemon`: PASS, BUILD SUCCESSFUL in 9s.
 - `./gradlew :app:compileDebugAndroidTestKotlin --no-daemon`: PASS.
 - `./gradlew :app:connectedDebugAndroidTest --no-daemon`: PASS on `emulator-5554`, `Medium_Phone`, Android 14; completed in 4m 36s.
 - Targeted `GutterBasicInfoUiTest` after adding connection-control assertions: PASS on `emulator-5554`, `Medium_Phone`, Android 14; `BUILD SUCCESSFUL` in 45s.
