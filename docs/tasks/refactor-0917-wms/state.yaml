@@ -1,0 +1,50 @@
+task:
+  id: refactor-0917-wms
+  type: refactor
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+  build:
+    status: not_verified
+    reason: Java Runtime unavailable in the local environment
+
+  unit_tests:
+    status: not_verified
+    reason: Java Runtime unavailable in the local environment
+
+validation:
+  status: limited
+
+git:
+  branch: refactor/refactor-0917-wms-styles
+  commit: ""
+  status: ready_to_commit
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking:
+  - ISS-001: Local Gradle validation cannot start because no Java Runtime is available.
+next_action: verification
