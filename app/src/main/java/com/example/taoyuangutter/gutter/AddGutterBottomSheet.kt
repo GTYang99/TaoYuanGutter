@@ -1970,6 +1970,21 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     }
 
                     val resolvedDraftId = draftId.takeIf { it > 0L }
+                    val completed = resolvedDraftId?.let {
+                        PhotoSlotUploadCoordinator.completedFor(it, index, slot, photoPath.orEmpty())
+                    }
+                    if (completed?.state == PhotoUploadSlotState.STATE_SUCCESS &&
+                        completed.imgId != null
+                    ) {
+                        PhotoUploadSlotState.writeState(
+                            waypoint.basicData,
+                            slot,
+                            state = completed.state,
+                            imgId = completed.imgId,
+                            error = null
+                        )
+                        return@forEach
+                    }
                     if (resolvedDraftId != null &&
                         PhotoSlotUploadCoordinator.isUploading(resolvedDraftId, index, slot)
                     ) {

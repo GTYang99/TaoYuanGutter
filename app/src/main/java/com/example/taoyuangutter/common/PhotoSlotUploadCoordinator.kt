@@ -17,6 +17,7 @@ object PhotoSlotUploadCoordinator {
         val draftId: Long,
         val waypointIndex: Int,
         val slot: Int,
+        val photoPath: String,
         val state: String,
         val imgId: Int? = null,
         val error: String? = null
@@ -25,6 +26,7 @@ object PhotoSlotUploadCoordinator {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val listeners = ConcurrentHashMap<String, MutableSet<(Snapshot) -> Unit>>()
     private val inFlight = ConcurrentHashMap<String, Unit>()
+    private val completed = ConcurrentHashMap<String, Snapshot>()
 
     private fun taskKey(draftId: Long, waypointIndex: Int, slot: Int): String =
         "$draftId:$waypointIndex:$slot"
@@ -32,6 +34,16 @@ object PhotoSlotUploadCoordinator {
     fun isUploading(draftId: Long, waypointIndex: Int, slot: Int): Boolean {
         if (draftId <= 0L || slot !in 1..3) return false
         return inFlight.containsKey(taskKey(draftId, waypointIndex, slot))
+    }
+
+    fun completedFor(
+        draftId: Long,
+        waypointIndex: Int,
+        slot: Int,
+        photoPath: String
+    ): Snapshot? {
+        val snapshot = completed[taskKey(draftId, waypointIndex, slot)] ?: return null
+        return snapshot.takeIf { it.photoPath == photoPath.trim() }
     }
 
     /**
@@ -59,6 +71,7 @@ object PhotoSlotUploadCoordinator {
             draftId = draftId,
             waypointIndex = waypointIndex,
             slot = slot,
+            photoPath = waypoint.basicData["photo$slot"]?.trim().orEmpty(),
             state = state,
             imgId = PhotoUploadSlotState.readImgId(waypoint.basicData, slot),
             error = PhotoUploadSlotState.readError(waypoint.basicData, slot)
@@ -99,6 +112,7 @@ object PhotoSlotUploadCoordinator {
     ) {
         val key = taskKey(draftId, waypointIndex, slot)
         if (inFlight.putIfAbsent(key, Unit) != null) return
+        completed.remove(key)
 
         scope.launch {
             updateDraftAndNotify(
@@ -122,7 +136,7 @@ object PhotoSlotUploadCoordinator {
 
             when (result) {
                 is ApiResult.Success -> {
-                    updateDraftAndNotify(
+                    val snapshot = updateDraftAndNotify(
                         context = context,
                         draftId = draftId,
                         waypointIndex = waypointIndex,
@@ -132,9 +146,10 @@ object PhotoSlotUploadCoordinator {
                         imgId = result.data.data?.imgId,
                         error = null
                     )
+                    snapshot?.let { completed[key] = it }
                 }
                 is ApiResult.Error -> {
-                    updateDraftAndNotify(
+                    val snapshot = updateDraftAndNotify(
                         context = context,
                         draftId = draftId,
                         waypointIndex = waypointIndex,
@@ -144,6 +159,7 @@ object PhotoSlotUploadCoordinator {
                         imgId = null,
                         error = result.message
                     )
+                    snapshot?.let { completed[key] = it }
                 }
             }
             inFlight.remove(key)
@@ -159,15 +175,15 @@ object PhotoSlotUploadCoordinator {
         state: String,
         imgId: Int?,
         error: String?
-    ) {
+    ): Snapshot? {
         val repository = GutterSessionRepository(context.applicationContext)
-        val draft = repository.getById(draftId) ?: return
-        if (waypointIndex !in draft.waypoints.indices) return
+        val draft = repository.getById(draftId) ?: return null
+        if (waypointIndex !in draft.waypoints.indices) return null
 
         val target = draft.waypoints[waypointIndex]
         val currentPhotoPath = target.basicData["photo$slot"]?.trim().orEmpty()
         if (currentPhotoPath.isEmpty() || currentPhotoPath != expectedPhotoPath.trim()) {
-            return
+            return null
         }
 
         val updatedWaypoints = draft.waypoints.toMutableList()
@@ -185,10 +201,12 @@ object PhotoSlotUploadCoordinator {
             draftId = draftId,
             waypointIndex = waypointIndex,
             slot = slot,
+            photoPath = expectedPhotoPath.trim(),
             state = state,
             imgId = resolvedImgId,
             error = error
         )
         listeners[taskKey(draftId, waypointIndex, slot)]?.toList()?.forEach { it(snapshot) }
+        return snapshot
     }
 }
