@@ -11,6 +11,36 @@ import org.junit.Test
 
 class StoreDitchResponseParsingTest {
     @Test
+    fun parsesGeneratedXyNumbersAndConnectionFlagsFromStoreResponse() {
+        val response = Gson().fromJson(
+            """
+            {
+              "success": true,
+              "message": "新增成功",
+              "data": {
+                "ditch_id": 10233,
+                "SPI_NUM": "3207-ZZ-00208",
+                "XY_NUM": {"起點": "A-START", "節點": ["A-NODE"], "終點": "A-END"},
+                "nodes": [
+                  {
+                    "node_id": 10889,
+                    "NODE_ATT": "1",
+                    "NODE_NUM": "A-NODE",
+                    "url": []
+                  }
+                ]
+              }
+            }
+            """.trimIndent(),
+            StoreDitchResponse::class.java
+        )
+
+        assertEquals("A-START", response.data?.xyNum?.start)
+        assertEquals(listOf("A-NODE"), response.data?.xyNum?.nodes)
+        assertEquals("A-END", response.data?.xyNum?.end)
+    }
+
+    @Test
     fun parsesStoreDitchUrlIdsAndMapsThemToDraftPhotoIds() {
         val response = Gson().fromJson(
             """

@@ -21,6 +21,7 @@
 | Full connected Android test suite | PASS | `Medium_Phone` Android 14 (`emulator-5554`), `ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest --no-daemon`; BUILD SUCCESSFUL in 4m 36s |
 | Connection-control UI regression test | PASS | Added assertions for Connect Point / Cant Open mutual exclusion, Connect Pipe default, and virtual-point hiding; targeted `GutterBasicInfoUiTest` on `Medium_Phone` Android 14; BUILD SUCCESSFUL in 45s |
 | Mapper targeted tests | PASS | `StoreDitchNodeRequestMapperTest` |
+| Store response contract tests | PASS | `StoreDitchResponseParsingTest` verifies generated start/node/end `XY_NUM` parsing; targeted request/response test command completed successfully |
 | Physical/API AC-002..AC-004 | NOT VERIFIED | Connected UI test does not provide authenticated API request/response evidence |
 
 Environment note: an initial workspace-shell `adb` attempt could not start its daemon, but the Android Studio emulator environment was subsequently available. Validation was run against the fixed `Medium_Phone` AVD on `emulator-5554`.
