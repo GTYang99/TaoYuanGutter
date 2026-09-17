@@ -1,0 +1,42 @@
+task:
+  id: debug-0917-location
+  type: debug
+
+phase: planning
+status: plan_in_progress
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: in_progress
+
+plan_review:
+  status: pending
+
+implementation:
+  status: pending
+
+validation:
+  status: pending
+
+git:
+  branch: fix/debug-0917-location-speed
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking:
+  - Runtime device evidence is required before the debug root cause and minimum fix scope can be approved.
+next_action: planning
