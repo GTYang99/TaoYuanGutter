@@ -2127,7 +2127,13 @@ class MainActivity : AppCompatActivity(),
                 latLng = LatLng(lat, lng),
                 basicData = hashMapOf(
                     "IS_PENDING_DEPLOY" to (if (parseLooseBoolean(node.isPendingDeploy)) "1" else "0"),
-                    "is_virtual" to (if (parseLooseBoolean(node.isVirtual)) "1" else "0")
+                    "is_virtual" to (if (parseLooseBoolean(node.isVirtual)) "1" else "0"),
+                    "photo1ImgId" to (node.photoImage("1")?.id?.toString() ?: ""),
+                    "photo2ImgId" to (node.photoImage("2")?.id?.toString() ?: ""),
+                    "photo3ImgId" to (node.photoImage("3")?.id?.toString() ?: ""),
+                    "photo1UploadState" to if (node.photoImage("1")?.id != null) "success" else "idle",
+                    "photo2UploadState" to if (node.photoImage("2")?.id != null) "success" else "idle",
+                    "photo3UploadState" to if (node.photoImage("3")?.id != null) "success" else "idle"
                 ),
                 uid = node.nodeId?.toString() ?: "${type.name}_${lat}_${lng}"
             )
