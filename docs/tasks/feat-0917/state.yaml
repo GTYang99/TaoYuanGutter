@@ -28,6 +28,8 @@ validation:
     - ':app:connectedDebugAndroidTest PASS (36 tests)'
     - ':app:testDebugUnitTest --tests InspectionPresentationTest PASS (3 tests)'
     - ':app:compileDebugKotlin PASS'
+    - ':app:testDebugUnitTest --tests PhotoUploadCandidateResolverTest PASS'
+    - ':app:compileDebugKotlin PASS'
 
 git:
   branch: feat/銜接點連結管自帶節點名

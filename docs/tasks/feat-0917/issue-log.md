@@ -260,13 +260,13 @@ phase: debug
 category: implementation_regression
 priority: P2
 title: Imported photo flow can start a zero-work upload progress overlay
-status: open
+status: resolved
 impact: After importing a point whose photos already have server img_id values, the app can briefly show photo upload progress with zero completions before closing it.
 evidence:
-  - AddGutterBottomSheet.countPendingPhotoUploads decides whether to show the overlay from a snapshot of local path/state only.
-  - ensureWaypointPhotosUploadedBeforeSubmit has extra later skip conditions: already-uploaded state, completed PhotoSlotUploadCoordinator result, and in-flight coordinator completion.
-  - GutterFormActivity imports/downloads photo paths asynchronously, then writes img_id and success state; that update can occur after counting but before processing.
-  - A candidate can therefore start the overlay, become already uploaded before its processing turn, then be skipped; all skipped candidates produce the observed 0/X flash.
-next_action: implementation_debug
+  - GutterFormActivity imports/downloads photo paths asynchronously, then writes img_id and success state only after download completes.
+  - AddGutterBottomSheet therefore sees an imported server photo as pending during that interval and can start its upload progress overlay.
+  - Fixed by recording each imported node image's server img_id and success state before starting the local preview download.
+  - PhotoUploadCandidateResolverTest covers a server image before any local photo path exists and proves it is already excluded by the shared upload guard.
+next_action: verification
 owner: developer
 ```

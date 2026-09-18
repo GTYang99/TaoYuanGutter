@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.gutter
 
+import com.example.taoyuangutter.api.NodeImg
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.example.taoyuangutter.common.PhotoUploadSlotState
 import org.junit.Assert.assertEquals
@@ -80,6 +81,20 @@ class PhotoUploadCandidateResolverTest {
         assertEquals("101", result.basicData["photo1ImgId"])
         assertEquals("success", result.basicData["photo1UploadState"])
         assertEquals("content://imported-one", result.basicData["photo1"])
+    }
+
+    @Test
+    fun importedServerImageIsExcludedBeforeItsLocalPreviewDownloads() {
+        val formData = hashMapOf<String, String>()
+
+        applyImportedPhotoUploadState(
+            formData,
+            listOf(NodeImg(url = "https://example.test/photo.jpg", fileCategory = "1", id = 101))
+        )
+
+        assertEquals("101", formData["photo1ImgId"])
+        assertEquals(PhotoUploadSlotState.STATE_SUCCESS, formData["photo1UploadState"])
+        assertEquals(true, PhotoUploadSlotState.isAlreadyUploaded(formData, 1))
     }
 
     @Test
