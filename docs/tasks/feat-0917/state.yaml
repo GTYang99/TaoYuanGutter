@@ -33,7 +33,7 @@ validation:
 
 git:
   branch: feat/銜接點連結管自帶節點名
-  commit: b2ba985
+  commit: 3997a39
   status: committed
 
 verification:

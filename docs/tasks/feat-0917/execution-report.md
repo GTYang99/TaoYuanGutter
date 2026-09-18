@@ -58,3 +58,4 @@
 | `:app:compileDebugKotlin` | PASS |
 
 - Physical-device validation was not run, per the earlier user direction.
+- Implementation commit: `3997a39` (`fix(feat-0917): preserve imported photo upload state`).
