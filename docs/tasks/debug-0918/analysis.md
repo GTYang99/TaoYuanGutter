@@ -22,10 +22,11 @@ alignment in the existing-waypoint import sheet.
 
 `handleImportedNodeDetails()` resolves photo URLs by `fileCategory` 1, 2,
 and 3, then calls `downloadImageToLocalContentUri()` sequentially. The local
-URI is used to prefill the photo fields. The only ID source in this flow is
+URI is used to prefill the photo fields. The original parser only inspected
 `nodeDetails.nodeImg[].id` (with the model's `img_id` compatibility alias).
-The later `storeDitch.data.nodes[].url[].id` response is not available at this
-point; it is produced only after the save request completes.
+The supplied response shape uses `url[].id`; that allowed the URL download to
+succeed while the ID was dropped before form state was created. The import
+model now accepts both shapes.
 
 The later upload gate uses `PhotoUploadSlotState.isAlreadyUploaded()`: a slot
 with a numeric `photo{slot}ImgId`, **or merely a `success` state**, is skipped.
@@ -108,17 +109,15 @@ maps each `url[].id` by `fileCategory` into `photo1ImgId` / `photo2ImgId` /
 
 The remaining distinction is flow ownership: this mapper runs after a
 successful `storeDitch` save in the map hosts. The existing-point import picker
-itself queries `nodeDetails` / `closestNodeDetails`, whose model uses
-`NodeDetails.nodeImg`. If that endpoint returns the same image ID, it is
-already accepted as `NodeImg.id`; if it omits the ID, the import flow cannot
-invent it from the URL. The previous fix only protects IDs already present in
-form state; it cannot obtain the first ID from a later `storeDitch` response.
+itself queries `nodeDetails` / `closestNodeDetails`, whose model now accepts
+both `NodeDetails.nodeImg` and `NodeDetails.url`. If the endpoint returns an
+image ID in either shape, the ID is routed into the form state; the previous
+fix only protected IDs that were already present.
 
 ## Updated conclusion
 
-The correct root-cause boundary is an API response-shape / flow distinction,
-not a claim that the server has no image ID. `storeDitch` response IDs are
-available and mapped, but they are temporally too late for direct import. The
-failing import must be checked against its actual `nodeDetails` /
-`closestNodeDetails` payload. If it contains no ID, backend/API contract
-support is required before the client can reliably avoid re-uploading.
+The correct root-cause boundary was an API response-shape mismatch: the
+client handled `node_img[]` but not the equivalent `url[]` shape. The code now
+maps `url[].id` into the form's `photo{slot}ImgId`; runtime verification must
+still confirm that the imported form carries the ID through the submit gate
+and does not call `nodeImage` for unchanged photos.

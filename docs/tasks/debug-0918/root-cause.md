@@ -26,11 +26,11 @@ direct-import form retroactively before that form decides whether to call
 Therefore the previous conclusion that the server response lacks an image ID
 was too broad. It was only true for the earlier `nodeDetails` fixture used in
 the import investigation. The concrete loss boundary for direct import is
-the API contract: `GutterFormActivity.handleImportedNodeDetails()` reads only
-`NodeDetails.nodeImg[].id` (or its `img_id` alias). It does not receive the
-later `storeDitch.data.nodes[].url[].id`. If the import/detail response has
-only the photo URL, the app has no numeric ID to place in
-`photo{slot}ImgId`; the URL alone cannot be converted into `img_id`.
+the response-shape parser: `GutterFormActivity.handleImportedNodeDetails()`
+read only `NodeDetails.nodeImg[].id` (or its `img_id` alias). When the response
+used the `storeDitch`-style `url[].id` shape, the URL was available for
+download but the image metadata was silently ignored, so no numeric ID reached
+`photo{slot}ImgId`.
 
 For the inspect → edit flow, `GutterInspectActivity.preloadEditableWaypoints()`
 does have a fallback from `nodeDetails.nodeImg[].id` to
@@ -49,13 +49,10 @@ payload. It does not prove the direct import endpoint provides the same ID.
 
 ### Regression risk
 
-The previous production fix protects an ID that is already in form state, but
-it cannot create one when direct import receives only a URL. Endpoint-level
-verification still requires the actual `nodeDetails` /
-`closestNodeDetails` payload used by the failing import. If that payload omits
-the ID, the required fix is an API response-contract change or a separate
-server lookup that returns the image ID; changing only the client-side
-`storeDitch` mapper cannot solve that case.
+The production fix now accepts both `node_img[]` and `url[]` in
+`NodeDetails`, prefers a record that contains an ID, and routes the resolved
+record through import/edit form prefill. A runtime import test is still needed
+to confirm the exact backend endpoint response and final upload call count.
 
 ## Issue 2: `0910刪除資料` is on by default
 

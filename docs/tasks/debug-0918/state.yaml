@@ -12,8 +12,8 @@ planning:
   status: completed
 
 debug:
-  status: investigating
-  root_cause: direct_import_cannot_use_post_save_storeDitch_id; import_endpoint_id_contract_unverified
+  status: root_cause_confirmed
+  root_cause: nodeDetails_url_shape_was_not_parsed_for_import_img_id
   issues:
     - ISS-DBG-0918-001
     - ISS-DBG-0918-002
@@ -25,7 +25,7 @@ implementation:
     - deleted_area_layer_default_off
     - existing_waypoint_title_full_row_centering
     - photo_img_id_preservation_fallback
-  photo_flow: storeDitch_url_id_mapped; direct_import_source_contract_unverified
+  photo_flow: node_img_and_url_shapes_mapped_to_photo_img_id
 
 validation:
   status: completed
@@ -39,7 +39,7 @@ git:
   status: committed
 
 verification:
-  result: pending_import_endpoint_payload_and_runtime_trace
+  result: pending_runtime_import_and_upload_call_count
 
 ci:
   build: pending
@@ -51,4 +51,4 @@ release:
 blocking:
   - Physical UI verification and CI evidence are not available.
 
-next_action: investigation
+next_action: verification

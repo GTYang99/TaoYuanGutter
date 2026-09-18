@@ -2180,9 +2180,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 waypoints[targetIndex].latLng = LatLng(lat, lng)
                             }
 
-                            val p1 = nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.url ?: ""
-                            val p2 = nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.url ?: ""
-                            val p3 = nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.url ?: ""
+                            val image1 = nd.photoImage("1")
+                            val image2 = nd.photoImage("2")
+                            val image3 = nd.photoImage("3")
+                            val p1 = image1?.url ?: ""
+                            val p2 = image2?.url ?: ""
+                            val p3 = image3?.url ?: ""
                             val capturedAt1 = nd.safeCapturedAt(0, "AddGutterSheet", "preload edit waypoint")
                             val capturedAt2 = nd.safeCapturedAt(1, "AddGutterSheet", "preload edit waypoint")
                             val capturedAt3 = nd.safeCapturedAt(2, "AddGutterSheet", "preload edit waypoint")
@@ -2221,7 +2224,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 if (capturedAt2 != null) put("photo2CapturedAt", capturedAt2)
                                 if (capturedAt3 != null) put("photo3CapturedAt", capturedAt3)
                                 PhotoImgIdResolver.resolve(
-                                    nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.id,
+                                    image1?.id,
                                     this,
                                     1
                                 )?.let {
@@ -2229,7 +2232,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                     put("photo1UploadState", PhotoUploadSlotState.STATE_SUCCESS)
                                 }
                                 PhotoImgIdResolver.resolve(
-                                    nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.id,
+                                    image2?.id,
                                     this,
                                     2
                                 )?.let {
@@ -2237,7 +2240,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                     put("photo2UploadState", PhotoUploadSlotState.STATE_SUCCESS)
                                 }
                                 PhotoImgIdResolver.resolve(
-                                    nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.id,
+                                    image3?.id,
                                     this,
                                     3
                                 )?.let {

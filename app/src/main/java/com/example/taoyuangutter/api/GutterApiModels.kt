@@ -369,11 +369,32 @@ data class NodeDetails(
     @SerializedName("is_virtual") val isVirtual: String? = null,
     /** 已上傳的照片列表 */
     @SerializedName("node_img")   val nodeImg: List<NodeImg> = emptyList(),
+    /**
+     * 相同照片資料的另一種回應 shape。部分節點查詢/儲存 API 使用
+     * `url[]`，其元素同樣包含 url、fileCategory 與 server image id。
+     */
+    @SerializedName("url")        val url: List<NodeImg> = emptyList(),
     /** 照片拍攝時間，依 fileCategory 1/2/3 順序對應 */
     @SerializedName("captured_at") val capturedAt: List<String> = emptyList(),
     /** 與查詢點的距離（closestNodeDetails 會回傳，可能為字串數字） */
     @SerializedName("distance")   val distance: String? = null
 ) {
+    /**
+     * 依照片類別讀取 server image metadata。
+     * `node_img[]` 優先；若該 shape 缺少資料或缺少 id，補用 `url[]`。
+     */
+    fun photoImage(fileCategory: String): NodeImg? {
+        // Gson may leave omitted constructor-default collections as null when
+        // it allocates the model reflectively, so normalize both shapes here.
+        val nodeImage = nodeImg.orEmpty().firstOrNull { it.fileCategory == fileCategory }
+        val urlImage = url.orEmpty().firstOrNull { it.fileCategory == fileCategory }
+        return when {
+            nodeImage?.id != null -> nodeImage
+            urlImage?.id != null -> urlImage
+            else -> nodeImage ?: urlImage
+        }
+    }
+
     /**
      * 將深度轉為純數字字串（去掉不必要的小數點，如 1.0 → "1"、1.5 → "1.5"）。
      * 若 API 未回傳則回傳空字串。

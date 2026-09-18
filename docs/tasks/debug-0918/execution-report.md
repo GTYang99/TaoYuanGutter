@@ -14,13 +14,16 @@
   `photo{slot}ImgId` instead of clearing it. Downloaded unchanged photos are
   still not re-uploaded; replacement photos still upload and carry the
   returned ID through the existing-node `storeDitch` update.
+- Updated `NodeDetails` photo parsing to accept both `node_img[]` and the
+  `url[]` response shape shown by the supplied `storeDitch` payload. Import,
+  edit preload, and inspect preload now use the same ID-aware resolver.
 
 ## Validation
 
 | Check | Result | Evidence |
 |---|---|---|
 | `git diff --check` | PASS | No whitespace errors. |
-| Focused unit tests | PASS | `PhotoImgIdResolverTest`, `StoreDitchResponseParsingTest`, `StoreDitchResponseWaypointMapperTest`, `PhotoUploadCandidateResolverTest`, and `StoreDitchNodeRequestMapperTest` passed. |
+| Focused unit tests | PASS | 19 tests passed, including `NodeImgDeserializationTest` for `url[].id`, `PhotoImgIdResolverTest`, store response mapping, and upload-candidate tests. |
 | Debug build | PASS | `:app:assembleDebug` completed successfully. |
 | Physical UI verification | NOT VERIFIED | No device screenshot/manual run was performed in this pass. |
 | CI | NOT VERIFIED | No CI workflow/result is available in the repository. |

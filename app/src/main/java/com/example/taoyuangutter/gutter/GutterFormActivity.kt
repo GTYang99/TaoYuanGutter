@@ -616,9 +616,12 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         // 匯入時同步下載照片到本機（依序 1→2→3）
         lifecycleScope.launch {
             try {
-                val photo1Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.url
-                val photo2Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.url
-                val photo3Url = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.url
+                val photo1 = nodeDetails.photoImage("1")
+                val photo2 = nodeDetails.photoImage("2")
+                val photo3 = nodeDetails.photoImage("3")
+                val photo1Url = photo1?.url
+                val photo2Url = photo2?.url
+                val photo3Url = photo3?.url
                 val photoUrls = listOf(photo1Url, photo2Url, photo3Url)
                 val totalPhotos = photoUrls.count { !it.isNullOrBlank() }
                 var downloadedPhotoCount = 0
@@ -661,7 +664,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     1,
                     state = if (!p1.isNullOrBlank() && photo1Url != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
                     imgId = PhotoImgIdResolver.resolve(
-                        nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.id,
+                        photo1?.id,
                         currentFormData,
                         1
                     )
@@ -670,7 +673,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     2,
                     state = if (!p2.isNullOrBlank() && photo2Url != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
                     imgId = PhotoImgIdResolver.resolve(
-                        nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.id,
+                        photo2?.id,
                         currentFormData,
                         2
                     )
@@ -679,7 +682,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                     3,
                     state = if (!p3.isNullOrBlank() && photo3Url != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
                     imgId = PhotoImgIdResolver.resolve(
-                        nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id,
+                        photo3?.id,
                         currentFormData,
                         3
                     )

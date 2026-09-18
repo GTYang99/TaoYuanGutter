@@ -415,7 +415,7 @@ class GutterInspectActivity : AppCompatActivity() {
                     return ""
                 }
                 val url = node.url.firstOrNull { it.fileCategory == category }?.url
-                    ?: nodeDetails.nodeImg.firstOrNull { it.fileCategory == category }?.url
+                    ?: nodeDetails.photoImage(category)?.url
                 if (url.isNullOrBlank()) {
                     Log.d(TAG, "edit preload photo absent nodeId=${node.nodeId} category=$category")
                     photoIssues.add("nodeId=${node.nodeId} category=$category")
@@ -470,13 +470,13 @@ class GutterInspectActivity : AppCompatActivity() {
                 "photo1" to photo1,
                 "photo2" to photo2,
                 "photo3" to photo3,
-                "photo1ImgId" to (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.id?.toString()
+                "photo1ImgId" to (nodeDetails.photoImage("1")?.id?.toString()
                     ?: node.url.firstOrNull { it.fileCategory == "1" }?.id?.toString()
                     ?: ""),
-                "photo2ImgId" to (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.id?.toString()
+                "photo2ImgId" to (nodeDetails.photoImage("2")?.id?.toString()
                     ?: node.url.firstOrNull { it.fileCategory == "2" }?.id?.toString()
                     ?: ""),
-                "photo3ImgId" to (nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id?.toString()
+                "photo3ImgId" to (nodeDetails.photoImage("3")?.id?.toString()
                     ?: node.url.firstOrNull { it.fileCategory == "3" }?.id?.toString()
                     ?: ""),
                 "photo1UploadState" to (if (photo1.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE),
