@@ -30,13 +30,17 @@ validation:
 
 git:
   branch: fix/debug-0917-location-speed
-  commit: ""
-  status: ready_to_commit
+  commit: 4086c34
+  status: committed
 
 verification:
   result: not_verified
   category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-003
 
 ci:
   build: pending
@@ -45,7 +49,6 @@ ci:
 release:
   status: pending
 
-blocking: []
 blocking:
-  - ISS-003: Authenticated Sony device session is required for AC-001 through AC-003 physical verification.
+  - A newer materially better GPS fix, standalone-picker access, and form/import nearby data are required to complete the remaining physical acceptance cases.
 next_action: verification
