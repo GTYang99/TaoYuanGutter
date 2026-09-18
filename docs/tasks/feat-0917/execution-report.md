@@ -33,3 +33,15 @@
 - Authenticated API request/response capture was not run separately beyond automated/device tests.
 - Untracked `.worktrees/` remains untouched.
 - No physical-device test was run for these two display fixes per user direction.
+
+## ISS-013 Negative Presence Wording Fix
+
+- Changed only the inspection display mapping for `附掛或過路管線` and `連結管`: present is `有`, absent is `無`.
+- Left `溝體結構受損` on its existing `是／否` wording.
+
+| Check | Result |
+|---|---|
+| `:app:testDebugUnitTest --tests com.example.taoyuangutter.gutter.InspectionPresentationTest` | PASS, 3 tests |
+| `:app:compileDebugKotlin` | PASS |
+
+- Physical-device testing was not run, per user direction.

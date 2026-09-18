@@ -202,9 +202,9 @@ class GutterInspectPhotosFragment : Fragment() {
             val detailValues = mapOf(
                 "側溝材質" to normalizeDisplayValue(mapMaterialType(details?.matTyp)),
                 "溝體結構受損" to normalizeDisplayValue(mapBoolean01(details?.isBroken == "1")),
-                "附掛或過路管線" to normalizeDisplayValue(mapBoolean01(details?.isHanging == "1")),
+                "附掛或過路管線" to normalizeDisplayValue(inspectionPresenceValue(details?.isHanging == "1")),
                 "淤積程度" to normalizeDisplayValue(mapSilt(details?.isSilt)),
-                "連結管" to normalizeDisplayValue(mapBoolean01(details?.isConnectingAsBoolean))
+                "連結管" to normalizeDisplayValue(inspectionPresenceValue(details?.isConnectingAsBoolean))
             )
             inspectionDetailFieldOrder().forEach { label ->
                 binding.layoutFields.addView(createFieldRow(label, detailValues.getValue(label)))
@@ -518,3 +518,10 @@ internal fun inspectionDetailFieldOrder(): List<String> = listOf(
     "淤積程度",
     "連結管"
 )
+
+/** Uses the approved presence wording for inspection attributes that represent an attached item. */
+internal fun inspectionPresenceValue(value: Boolean?): String = when (value) {
+    true -> "有"
+    false -> "無"
+    null -> ""
+}

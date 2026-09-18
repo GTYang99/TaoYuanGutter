@@ -30,4 +30,11 @@ class InspectionPresentationTest {
             inspectionDetailFieldOrder()
         )
     }
+
+    @Test
+    fun hangingAndConnectingPresenceUseHasOrNoneWording() {
+        assertEquals("有", inspectionPresenceValue(true))
+        assertEquals("無", inspectionPresenceValue(false))
+        assertEquals("", inspectionPresenceValue(null))
+    }
 }

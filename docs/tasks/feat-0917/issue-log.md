@@ -239,14 +239,15 @@ task_id: feat-0917
 phase: debug
 category: implementation_regression
 priority: P1
-title: Inspection treats hanging and connecting values as false outside the exact string "1"
-status: open
-impact: Existing gutter inspection can display no hanging pipeline and no connecting pipe even when the source response represents enabled values in a compatible Boolean form.
+title: Inspection uses inconsistent negative wording for hanging and connecting fields
+status: resolved
+impact: The inspection page shows "否" for absent hanging pipelines and connecting pipes, while the approved UI wording is "無".
 evidence:
-  - GutterInspectPhotosFragment maps hanging with details.isHanging == "1" and connecting with isConnectingAsBoolean.
-  - NodeDetails.isConnectingAsBoolean also accepts only the exact trimmed string "1".
-  - The same inspection view therefore converts Boolean-like "true" values or unmodelled key aliases into false. Raw API payload for the observed record is still required to distinguish Boolean-form response from a missing/renamed field.
-next_action: implementation_debug
+  - GutterInspectPhotosFragment routes both fields through mapBoolean01, whose false value is "否".
+  - User decision: on the inspection page, the two fields must show "無" when absent.
+  - Fixed with inspectionPresenceValue in the inspection renderer; false now maps to "無" and true maps to "有" for only these two fields.
+  - InspectionPresentationTest verifies true, false, and null display values.
+next_action: verification
 owner: developer
 ```
 

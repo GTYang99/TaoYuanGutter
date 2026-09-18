@@ -2,8 +2,8 @@ task:
   id: feat-0917
   type: feature
 
-phase: debug
-status: debug_complete
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: resolved
@@ -16,6 +16,7 @@ plan_review:
 
 implementation:
   status: completed
+  mode: debug_fix
 
 validation:
   status: completed
@@ -25,6 +26,8 @@ validation:
     - ':app:assembleDebug PASS'
     - ':app:compileDebugAndroidTestKotlin PASS'
     - ':app:connectedDebugAndroidTest PASS (36 tests)'
+    - ':app:testDebugUnitTest --tests InspectionPresentationTest PASS (3 tests)'
+    - ':app:compileDebugKotlin PASS'
 
 git:
   branch: feat/銜接點連結管自帶節點名
@@ -65,4 +68,4 @@ release:
 blocking:
   - Physical authenticated acceptance flows were not executed.
   - External CI results are unavailable.
-next_action: implementation_debug
+next_action: verification
