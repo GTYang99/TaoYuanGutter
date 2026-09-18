@@ -51,3 +51,9 @@
 
 - Reverted the earlier ISS-014 implementation in `14f6c78`. It only moved when import success state was written and did not eliminate the mismatch between progress counting and actual upload eligibility.
 - No validation result is claimed for the withdrawn implementation. ISS-014 is reopened for the revised, single-candidate-source fix plan.
+
+## ISS-014 Candidate-Source Fix Rollback
+
+- The candidate-source implementation from `d5dfd3f` was also withdrawn after the user confirmed the defect remained.
+- Rollback commit: `4a8d55a`.
+- The candidate planner source/test files were removed by the rollback. ISS-014 remains unresolved; no PASS is claimed for either withdrawn fix.
