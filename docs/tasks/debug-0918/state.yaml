@@ -35,7 +35,7 @@ validation:
 
 git:
   branch: "feat/銜接點連結管自帶節點名"
-  commit: 81022d7
+  commit: f750b80
   status: committed
 
 verification:
