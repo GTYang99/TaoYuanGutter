@@ -45,3 +45,4 @@
 | `:app:compileDebugKotlin` | PASS |
 
 - Physical-device testing was not run, per user direction.
+- Implementation commit: `b2ba985` (`fix(feat-0917): use absence wording in inspection`).

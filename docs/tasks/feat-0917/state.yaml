@@ -31,7 +31,7 @@ validation:
 
 git:
   branch: feat/銜接點連結管自帶節點名
-  commit: a5f2844
+  commit: b2ba985
   status: committed
 
 verification:
