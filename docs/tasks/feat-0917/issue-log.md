@@ -230,3 +230,42 @@ evidence:
 next_action: implementation_debug
 owner: developer
 ```
+
+## ISS-013
+
+```yaml
+issue_id: ISS-013
+task_id: feat-0917
+phase: debug
+category: implementation_regression
+priority: P1
+title: Inspection treats hanging and connecting values as false outside the exact string "1"
+status: open
+impact: Existing gutter inspection can display no hanging pipeline and no connecting pipe even when the source response represents enabled values in a compatible Boolean form.
+evidence:
+  - GutterInspectPhotosFragment maps hanging with details.isHanging == "1" and connecting with isConnectingAsBoolean.
+  - NodeDetails.isConnectingAsBoolean also accepts only the exact trimmed string "1".
+  - The same inspection view therefore converts Boolean-like "true" values or unmodelled key aliases into false. Raw API payload for the observed record is still required to distinguish Boolean-form response from a missing/renamed field.
+next_action: implementation_debug
+owner: developer
+```
+
+## ISS-014
+
+```yaml
+issue_id: ISS-014
+task_id: feat-0917
+phase: debug
+category: implementation_regression
+priority: P2
+title: Imported photo flow can start a zero-work upload progress overlay
+status: open
+impact: After importing a point whose photos already have server img_id values, the app can briefly show photo upload progress with zero completions before closing it.
+evidence:
+  - AddGutterBottomSheet.countPendingPhotoUploads decides whether to show the overlay from a snapshot of local path/state only.
+  - ensureWaypointPhotosUploadedBeforeSubmit has extra later skip conditions: already-uploaded state, completed PhotoSlotUploadCoordinator result, and in-flight coordinator completion.
+  - GutterFormActivity imports/downloads photo paths asynchronously, then writes img_id and success state; that update can occur after counting but before processing.
+  - A candidate can therefore start the overlay, become already uploaded before its processing turn, then be skipped; all skipped candidates produce the observed 0/X flash.
+next_action: implementation_debug
+owner: developer
+```

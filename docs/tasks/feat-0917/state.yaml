@@ -2,8 +2,8 @@ task:
   id: feat-0917
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: resolved
@@ -47,11 +47,13 @@ verification:
     - external_ci_not_verified
 
 debug:
-  status: resolved
+  status: completed
   root_cause: identified
   issues:
     - ISS-011
     - ISS-012
+    - ISS-013
+    - ISS-014
 
 ci:
   build: not_verified
@@ -63,4 +65,4 @@ release:
 blocking:
   - Physical authenticated acceptance flows were not executed.
   - External CI results are unavailable.
-next_action: verification
+next_action: implementation_debug

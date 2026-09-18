@@ -35,3 +35,18 @@ Only the multi-gutter list transition is changed. The normal map layer toggle re
 ## Confidence
 
 Root-cause confidence: 99%. The observed output maps directly to the only two code paths that build these labels and fields.
+
+# Root Cause: ISS-013 and ISS-014
+
+## ISS-013 — Strict Boolean parsing in the inspection renderer
+
+The inspection renderer evaluates hanging with `details.isHanging == "1"`; connecting delegates to `isConnectingAsBoolean`, which also checks only `"1"`. Values represented as `true`/`"true"`, or supplied under an existing compatibility alias, become false and are rendered as the negative option. The specific live response has not been captured, so confidence is 85%; the raw nodeDetails payload is the remaining evidence needed to distinguish a Boolean-format response from an absent/renamed field.
+
+## ISS-014 — Progress count and actual upload candidate selection are different operations
+
+`countPendingPhotoUploads()` triggers the blocking overlay before `ensureWaypointPhotosUploadedBeforeSubmit()` evaluates all of its later skip conditions. Import writes photo paths first and asynchronously writes server `img_id`/success state afterwards. If that state arrives between count and processing, every counted photo can be skipped as already uploaded, leaving the overlay with `0/X` before it closes.
+
+## Minimum Fix Scope
+
+- Normalize hanging/connecting response values at the NodeDetails boundary using one shared loose Boolean parser, while retaining canonical `"0"`/`"1"` behavior; confirm any required JSON aliases from captured response evidence.
+- Build one resolved pending-photo candidate list before showing the overlay, including server image IDs and coordinator-completed slots; use that same list for upload execution.
