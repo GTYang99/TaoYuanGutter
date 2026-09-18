@@ -39,7 +39,7 @@ git:
   status: committed
 
 verification:
-  result: unit_and_debug_build_pass; physical_ui_and_ci_not_verified
+  result: full_unit_tests_debug_and_instrumentation_build_pass; device_runtime_and_ci_not_verified
 
 ci:
   build: not_verified
@@ -49,6 +49,7 @@ release:
   status: pending
 
 blocking:
-  - Physical UI verification and CI evidence are not available.
+  - No Android device/emulator is connected for instrumentation runtime verification.
+  - CI evidence is not available.
 
 next_action: verification

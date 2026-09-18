@@ -28,7 +28,9 @@
 |---|---|---|
 | `git diff --check` | PASS | No whitespace errors. |
 | Focused unit tests | PASS | Targeted photo-ID/import tests passed, including `NodeImgDeserializationTest`, `PhotoImgIdResolverTest`, and upload-candidate tests for ID-present vs ID-missing slots. |
+| Full unit test suite | PASS | `:app:testDebugUnitTest` completed successfully. |
 | Debug build | PASS | `:app:assembleDebug` completed successfully. |
+| Instrumentation test APK | PASS | `:app:assembleDebugAndroidTest` completed successfully; test runtime was not executed because no device was connected. |
 | Physical UI verification | NOT VERIFIED | No device screenshot/manual run was performed in this pass. |
 | CI | NOT VERIFIED | No CI workflow/result is available in the repository. |
 
