@@ -13,7 +13,7 @@ planning:
 
 debug:
   status: root_cause_confirmed
-  root_cause: nodeDetails_url_shape_was_not_parsed_for_import_img_id
+  root_cause: import_endpoint_node_img_omits_image_id_before_submit
   issues:
     - ISS-DBG-0918-001
     - ISS-DBG-0918-002
@@ -25,7 +25,7 @@ implementation:
     - deleted_area_layer_default_off
     - existing_waypoint_title_full_row_centering
     - photo_img_id_preservation_fallback
-  photo_flow: node_img_and_url_shapes_mapped_to_photo_img_id
+  photo_flow: storeDitch_id_available_post_submit_but_import_id_missing
 
 validation:
   status: completed
@@ -39,7 +39,7 @@ git:
   status: committed
 
 verification:
-  result: pending_runtime_import_and_upload_call_count
+  result: pending_import_endpoint_id_contract_and_runtime_trace
 
 ci:
   build: pending

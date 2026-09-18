@@ -26,11 +26,17 @@ direct-import form retroactively before that form decides whether to call
 Therefore the previous conclusion that the server response lacks an image ID
 was too broad. It was only true for the earlier `nodeDetails` fixture used in
 the import investigation. The concrete loss boundary for direct import is
-the response-shape parser: `GutterFormActivity.handleImportedNodeDetails()`
-read only `NodeDetails.nodeImg[].id` (or its `img_id` alias). When the response
-used the `storeDitch`-style `url[].id` shape, the URL was available for
-download but the image metadata was silently ignored, so no numeric ID reached
+the import API contract: `GutterFormActivity.handleImportedNodeDetails()`
+reads the selected `NodeDetails` returned by `getClosestNodeDetails` or
+`getNodeDetailsByXyNum`. The authoritative fixture contains
+`node_img[].url` and `fileCategory`, but no `id` or `img_id`. The client can
+download the photo, but has no server image ID to place in
 `photo{slot}ImgId`.
+
+The supplied `storeDitch` response is a different contract and is available
+only after the form's photo-upload phase. Its
+`data.nodes[].url[].id` cannot retroactively populate the pre-submit import
+form.
 
 For the inspect → edit flow, `GutterInspectActivity.preloadEditableWaypoints()`
 does have a fallback from `nodeDetails.nodeImg[].id` to
@@ -49,10 +55,10 @@ payload. It does not prove the direct import endpoint provides the same ID.
 
 ### Regression risk
 
-The production fix now accepts both `node_img[]` and `url[]` in
-`NodeDetails`, prefers a record that contains an ID, and routes the resolved
-record through import/edit form prefill. A runtime import test is still needed
-to confirm the exact backend endpoint response and final upload call count.
+The client now defensively accepts both `node_img[]` and `url[]` when an ID is
+actually present. That does not solve the observed fixture, because the ID is
+omitted entirely. The required API fix is to return `node_img[].id`/`img_id`,
+or expose a server lookup that maps the existing photo URL to its image ID.
 
 ## Issue 2: `0910刪除資料` is on by default
 

@@ -22,11 +22,12 @@ alignment in the existing-waypoint import sheet.
 
 `handleImportedNodeDetails()` resolves photo URLs by `fileCategory` 1, 2,
 and 3, then calls `downloadImageToLocalContentUri()` sequentially. The local
-URI is used to prefill the photo fields. The original parser only inspected
-`nodeDetails.nodeImg[].id` (with the model's `img_id` compatibility alias).
-The supplied response shape uses `url[].id`; that allowed the URL download to
-succeed while the ID was dropped before form state was created. The import
-model now accepts both shapes.
+URI is used to prefill the photo fields. The import APIs are
+`getClosestNodeDetails` and `getNodeDetailsByXyNum`, and the selected object is
+`NodeDetails`. The authoritative import fixture has `node_img[].url` and
+`fileCategory`, but no `id`/`img_id`, so the URL download succeeds while no ID
+can be written into form state. The client additionally accepts `url[].id`
+when present, but cannot derive an ID from a URL alone.
 
 The later upload gate uses `PhotoUploadSlotState.isAlreadyUploaded()`: a slot
 with a numeric `photo{slot}ImgId`, **or merely a `success` state**, is skipped.
@@ -111,13 +112,14 @@ The remaining distinction is flow ownership: this mapper runs after a
 successful `storeDitch` save in the map hosts. The existing-point import picker
 itself queries `nodeDetails` / `closestNodeDetails`, whose model now accepts
 both `NodeDetails.nodeImg` and `NodeDetails.url`. If the endpoint returns an
-image ID in either shape, the ID is routed into the form state; the previous
-fix only protected IDs that were already present.
+image ID in either shape, the ID is routed into the form state. The observed
+fixture returns neither ID field, so the client-only fix cannot prevent
+re-upload in that case.
 
 ## Updated conclusion
 
-The correct root-cause boundary was an API response-shape mismatch: the
-client handled `node_img[]` but not the equivalent `url[]` shape. The code now
-maps `url[].id` into the form's `photo{slot}ImgId`; runtime verification must
-still confirm that the imported form carries the ID through the submit gate
-and does not call `nodeImage` for unchanged photos.
+The correct root-cause boundary is the missing ID in the direct-import API
+response. `storeDitch.data.nodes[].url[].id` proves the server has the ID in
+that response, but does not make it available during pre-submit import. The
+client can complete this fix only after the import endpoint returns the same
+ID or provides a lookup endpoint.
