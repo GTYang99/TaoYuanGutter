@@ -25,7 +25,8 @@
 - Result: PASS — ran with Android Studio OpenJDK 25 and a temporary ignored `MAPS_API_KEY=test` placeholder.
 - Debug build: PASS — `./gradlew assembleDebug --console=plain` succeeded with the same temporary placeholder.
 - CI: NOT VERIFIED — no CI result was supplied.
-- Emulator test: NOT VERIFIED — Android 14 `sdk_gphone64_arm64` installed the debug APK and launched `LoginActivity`. The map flow requires a test account; `MainActivity` cannot be started directly because it is not exported. A functional Maps API key is also unavailable.
+- Emulator startup: PASS — fixed revision `5fad9e2` passed the focused JVM test and debug APK build, was installed on Android 14 `sdk_gphone64_arm64`, and launched `LoginActivity`.
+- Emulator WMTS flow: NOT VERIFIED — the map flow requires a test account; `MainActivity` cannot be started directly because it is not exported. A functional Maps API key is also unavailable.
 
 ## Regression Review
 - `git diff --check` passed with no whitespace errors.
