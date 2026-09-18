@@ -1,5 +1,7 @@
 # Implementation Execution Report
 
+> Superseded for the new API/UI revision: this report documents the earlier lowercase-key, Int-request, Boolean-response implementation. It is historical evidence only and must not be used to approve AC-001 through AC-003 of the current plan.
+
 ## Implemented
 
 - Added `is_connect_point` and `is_connect_pipe` to read DTOs, form draft data, inspect-to-edit handoff, request mapping, and JSON serialization.

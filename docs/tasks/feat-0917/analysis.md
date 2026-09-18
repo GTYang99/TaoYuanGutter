@@ -2,45 +2,42 @@
 
 ## Task Classification
 
-- Type: `feature`; this adds persisted point attributes and changes creation/import behavior.
+- Type: `feature`; API 契約與 UI 行為更新，必須重新經過完整 Plan Review。
 
 ## Current Behavior
 
-- `GutterBasicInfoFragment` owns field order, mode-specific enablement, `collectData()` and draft notification. It has Cant Open and groups through Silt, but no connect-point/connect-pipe controls.
-- `NodeDetails`, prefill paths, `StoreDitchNodeRequestMapper` and `StoreDitchNodeRequest` lack the new fields. The mapper always emits `XY_NUM`; submit validation requires and checks it for duplicates.
-- `GutterInspectActivity` converts `NodeDetails` into editable waypoint `basicData` before it launches the edit form. It currently maps `IS_CANTOPEN` but has no keys for the two new attributes; without this handoff, an unchanged edit would fall back to false and overwrite existing server values.
-- `GutterBasicInfoFragment.newInstance()` copies point data through an explicit argument whitelist, then `prefillData()` reads that same whitelist. New `basicData` keys are discarded unless both argument constants/mappings and prefill initialization are extended.
-- The import sheet waits for current location and calls `getClosestNodeDetails(lng, lat, token)`, displays query coordinates, markers and a sheet-local location button.
+- 已提交的實作、mapper 與測試仍使用 `is_connect_point`／`is_connect_pipe`，request 為 Int `0/1`，read DTO 為 Boolean；與新版 `IS_TIEINPOINT`／`IS_CONNECTING` Boolean request、String response 不相容。
+- `GutterBasicInfoFragment` 已是欄位順序、草稿通知、虛擬點模式和資料收集的所有權人；`GutterInspectActivity` 將 `NodeDetails` 交接至可編輯 `basicData`。
+- `WaypointAdapter` 目前只知道舊 key，檢視點位名稱的標記組裝尚未覆蓋銜接點／待架站的新排序。
+- 先前的 execution 與 verification 證據驗證的是舊契約，不能證明 AC-001 至 AC-003。
 
 ## Expected Behavior
 
-- Connect Point and Cant Open are mutually exclusive. Connect Pipe is an independent required no/yes state defaulting to no. Both persist through `Waypoint.basicData`, which existing draft serialization already retains.
-- Create omits `XY_NUM` and consumes the server-generated response value; edit preserves but cannot alter its existing value.
-- Import immediately loads recent stored points with no GPS, permission, map click, coordinate UI or map markers.
+- 非虛擬點以 Boolean 固定送出大寫 key；讀取時將 String `"0"`／`"1"` 及缺值安全正規化為 Boolean。
+- 表單採互斥、灰化而非只取消勾選的 UX；虛擬點依規則清除、隱藏並省略欄位，草稿一致。
+- 檢視下拉以點位名稱附加銜接點與最後的待架站標記；虛擬點不顯示連結管。
 
 ## Affected Modules and Dependencies
 
-- `fragment_gutter_basic_info.xml`, `GutterBasicInfoFragment.kt`, `GutterInspectActivity.kt`: controls, mutual exclusion, mode policy, inspect-to-edit readback handoff, prefill and collection.
-- `GutterApiModels.kt`, `StoreDitchNodeRequestMapper.kt`: DTOs, nullable/omitted create XY_NUM and new attribute mapping.
-- `AddGutterBottomSheet.kt`: create/update response handling and system-name session update.
-- `GutterApiService.kt`, `GutterRepository.kt`, `GutterFormActivity.kt`, `ImportExistingWaypointBottomSheet.kt`, `bottom_sheet_import_existing_waypoint.xml`: no-query import API and removal of location orchestration/UI.
-- Existing focused tests: `StoreDitchNodeRequestMapperTest` and `GutterBasicInfoUiTest`; add import/API coverage.
+- `GutterApiModels.kt`、`StoreDitchNodeRequestMapper.kt`：大寫 JSON key、Boolean request、String response 與 omission 行為。
+- `GutterInspectActivity.kt`、`GutterBasicInfoFragment.kt`、`WaypointAdapter.kt`：readback 正規化、表單／草稿交接、互斥灰化、檢視名稱與欄位可見性。
+- `fragment_gutter_basic_info.xml`、`strings.xml`：控制項位置與「連結管」文案。
+- `StoreDitchNodeRequestMapperTest.kt`、`GutterBasicInfoUiTest.kt` 及新增的 DTO／檢視格式測試：新版契約資料覆蓋。
+- 既有 XY_NUM 與最近存檔點位匯入相關檔案仍在任務範圍，但其已完成證據需在新 revision 重新回歸。
 
 ## Risks
 
-- JSON null serialization must be proven to omit, not serialize, create `XY_NUM`.
-- Connect Point must remain limited to mutual exclusion with Cant Open; selecting it must preserve normal point detail values, validation requirements and all photo slots.
-- New controls must be included in all reorder, virtual, view and import-lock lists.
-- Inspect-to-edit must map both nullable read values into `basicData` before form construction; otherwise a no-op edit can write default false values back to the server.
-- The `basicData` mapping must cross both `GutterInspectActivity` and the Fragment argument/prefill boundary; testing mapper output alone cannot prove UI or submission preservation.
-- Removed location jobs/callbacks must not produce stale import-sheet updates.
+- Gson 的 Boolean request 與 String response 不可共用同一欄位型別；需要明確 DTO／轉換邊界。
+- 遺漏任一 `basicData`、argument whitelist、draft serialization 或 adapter key，會造成 no-op edit／草稿資料被寫回 false。
+- 雙 `"1"` 是資料異常；若未在 readback 正規化，UI 會違反互斥規則。
+- 將虛擬點的 omitted key 誤序列化成 `false`，會違反後端契約。
+- `nodeDetails` 預載失敗不是 response 缺欄位：前者沒有權威值，若仍以 `DitchNode` fallback 開放提交，會把 server 既有 true 值覆寫成 false。照片下載失敗不影響這兩項 readback，可維持獨立的可續行警告。
 
 ## Assumptions
 
-- The documented `XY_NUM` response can be associated with current waypoints by existing point role/order.
-- `is_connect_point` and `is_connect_pipe` are Boolean on all edit/inspect read responses; missing means false.
-- 虛擬點不適用 Cant Open、Connect Point、Connect Pipe；切換時三者清除且 payload 省略，與既有虛擬點保留 Pending Deploy 的行為一致。
+- 合法 response 值為 `"0"`／`"1"`；欄位缺失的指定 fallback 為 false。
+- 原有無法開蓋與待架站的既有顯示規則保留；待架站的唯一來源為 `IS_PENDING_DEPLOY`／`node.isPendingDeploy`，`IS_HANGING` 只代表附掛或過路管線；本次只新增銜接點標記及其指定順序。
 
 ## Potential Issues
 
-- `ISS-001` is resolved. Test-discovered data loss, serialization or import lifecycle failures are implementation regressions and must enter Debug.
+- `ISS-008` 為已分類的 requirement/planning gap。新版測試若發現資料遺失、序列化或 UI 回歸，應分類為 `implementation_regression` 並進 Debug。

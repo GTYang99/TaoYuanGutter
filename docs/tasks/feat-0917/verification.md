@@ -1,5 +1,7 @@
 # Verification Report
 
+> Superseded for the new API/UI revision: this report verified the prior contract. The current task requires a new implementation revision and independent verification against `requirement.md`, `plan.md`, and `test-data.md`.
+
 ## Revision and Worktree
 
 - Revision under test: `0595b7c7782e3041b3637ed7505d90d53d8fb3ba`

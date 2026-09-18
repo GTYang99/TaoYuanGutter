@@ -2,8 +2,8 @@ task:
   id: feat-0917
   type: feature
 
-phase: verification
-status: verification_not_verified
+phase: plan_review
+status: approved
 
 knowledge_resolution:
   status: resolved
@@ -15,29 +15,26 @@ plan_review:
   status: approved
 
 implementation:
-  status: completed
-  build: passed
-  unit_tests: passed
-  android_test_compile: passed
-  apk: app/build/outputs/apk/debug/app-debug.apk
+  status: superseded_by_api_ui_revision
 
 validation:
-  status: completed
+  status: superseded_by_api_ui_revision
 
 git:
   branch: feat/銜接點連結管自帶節點名
-  commit: 0595b7c7782e3041b3637ed7505d90d53d8fb3ba
-  status: committed_revision_under_test
+  commit: ae48a82
+  status: committed
 
 verification:
-  result: not_verified
-  category: environment
+  result: superseded_by_api_ui_revision
+  category: requirement
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-001
     - AC-002
     - AC-003
     - AC-004
+    - AC-005
 
 ci:
   build: pending
@@ -46,9 +43,5 @@ ci:
 release:
   status: pending
 
-blocking:
-  - The working tree contains an excluded, uncommitted GutterApiService.kt BASE_URL change; it is not part of the revision under test.
-  - Physical device authenticated acceptance flows were not independently executed; the fixed-revision Sony connected suite completed 36/36 tests.
-  - Sony XQ-AU52 wireless ADB/device-agent path was unstable; USB ADB has recovered and local form inspection resumed. The photo-dependent non-virtual draft completion remains unverified because the camera preview exposes no capture control.
-  - ISS-009: Android 14 emulator leg of connectedDebugAndroidTest was interrupted without a result XML or final Gradle status; Sony XQ-AU52 completed 36/36 tests.
-next_action: verification
+blocking: []
+next_action: implementation
