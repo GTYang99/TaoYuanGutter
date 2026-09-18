@@ -35,11 +35,11 @@ validation:
 
 git:
   branch: "feat/銜接點連結管自帶節點名"
-  commit: pending_final_commit
-  status: ready_to_commit
+  commit: 81022d7
+  status: committed
 
 verification:
-  result: pending
+  result: pending_independent_verification
 
 ci:
   build: pending
