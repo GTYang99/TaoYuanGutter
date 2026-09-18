@@ -25,7 +25,7 @@ validation:
 
 git:
   branch: codex/refactor-wms-layer-link-0918
-  commit: cf63365
+  commit: 1f1d682
   status: committed
 
 verification:

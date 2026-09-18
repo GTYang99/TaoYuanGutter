@@ -1,9 +1,10 @@
 # Verification Report
 
 ## Revision Under Test
-- Commit: `cf63365` (`refactor(refactor-0918): use WMTS background layers`)
+- Commit: `1f1d682` (`docs(refactor-0918): record emulator startup validation`)
 - Branch: `codex/refactor-wms-layer-link-0918`
-- Source worktree before verification: clean at `cf63365`.
+- `cf63365..1f1d682` contains task-evidence-only commits; no `app/src/main` or `app/src/test` source changes.
+- Source worktree during verification: tracked source clean; unrelated untracked `.worktrees/` preserved.
 
 ## Implementation Review
 - `Wmts3857RequestBuilder` builds the specified GWC WMTS endpoint with `SERVICE=WMTS`, `VERSION=1.0.0`, `REQUEST=GetTile`, `TILEMATRIXSET=WebMercatorQuad`, and Google tile `zoom/y/x` mapped to `TILEMATRIX/TILEROW/TILECOL`.
@@ -22,8 +23,9 @@
 
 ## Test and CI Review
 - Focused test command: `./gradlew testDebugUnitTest --tests com.example.taoyuangutter.map.Wmts3857TileProviderTest --console=plain`
-- Result: PASS — ran with Android Studio OpenJDK 25 and a temporary ignored `MAPS_API_KEY=test` placeholder.
-- Debug build: PASS — `./gradlew assembleDebug --console=plain` succeeded with the same temporary placeholder.
+- Result: PASS on `1f1d682` — ran with Android Studio OpenJDK 25; Gradle completed the focused WMTS test successfully. The existing ignored local `MAPS_API_KEY` placeholder was used only for manifest configuration.
+- Debug build: Existing evidence PASS on source-equivalent revision `5fad9e2`; not rerun in this limited verification scope.
+- Verification scope: limited to the WMTS contract test and source-scope review; no full regression suite or new emulator exploration was run.
 - CI: NOT VERIFIED — no CI result was supplied.
 - Emulator startup: PASS — fixed revision `5fad9e2` passed the focused JVM test and debug APK build, was installed on Android 14 `sdk_gphone64_arm64`, and launched `LoginActivity`.
 - Emulator WMTS flow: NOT VERIFIED — the map flow requires a test account; `MainActivity` cannot be started directly because it is not exported. A functional Maps API key is also unavailable.
