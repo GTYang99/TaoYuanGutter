@@ -46,16 +46,3 @@
 
 - Physical-device testing was not run, per user direction.
 - Implementation commit: `b2ba985` (`fix(feat-0917): use absence wording in inspection`).
-
-## ISS-014 Imported Photo Upload Guard Fix
-
-- Imported `node_img` entries now write their server `img_id` and `success` state to the form immediately, before asynchronous local preview downloads begin.
-- The submit guard therefore excludes server-owned imported images even when the user submits before preview download completion; no zero-work upload overlay is started for those images.
-
-| Check | Result |
-|---|---|
-| `:app:testDebugUnitTest --tests com.example.taoyuangutter.gutter.PhotoUploadCandidateResolverTest` | PASS |
-| `:app:compileDebugKotlin` | PASS |
-
-- Physical-device validation was not run, per the earlier user direction.
-- Implementation commit: `3997a39` (`fix(feat-0917): preserve imported photo upload state`).

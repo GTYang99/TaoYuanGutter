@@ -610,11 +610,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         setImportedWaypointLocked(true)
         pagerAdapter.getBasicInfoFragment()?.prefillDataFromImport(nodeDetails)
         syncImportedVirtualState(parseLooseBoolean(nodeDetails.isVirtual))
-        // The node image belongs to the server before its preview download
-        // finishes. Persist that fact now so a quick form submission never
-        // treats an imported image as a new upload candidate.
-        applyImportedPhotoUploadState(currentFormData, nodeDetails.nodeImg)
-        syncCurrentWaypointFromCurrentFormData()
         val isCantOpen = nodeDetails.isCantOpenAsBoolean
 
         // 匯入時同步下載照片到本機（依序 1→2→3）
