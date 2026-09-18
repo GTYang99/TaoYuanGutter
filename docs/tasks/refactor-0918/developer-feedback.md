@@ -4,17 +4,21 @@
 - Verification result is `NOT VERIFIED` only for AC-004: isolated WMTS tile failure while the rest of the map remains usable.
 - AC-001, AC-002, and AC-003 have passing evidence and do not require rework from this finding.
 
-## Required Development Follow-up
+## Interpretation
+- `NOT VERIFIED` is an evidence gap, not proof of an implementation defect. Do not enter Debug or change production behavior based on this result alone.
 
-### 1. Add a safe WMTS endpoint injection seam
+## Required Verification Follow-up
+
+### 1. Provide an isolated failure environment
+- Prefer a local mock endpoint, server-side failure switch, or test proxy that fails only the three WMTS GetTile requests.
+- Re-run AC-004 on the Android emulator and record that the map, controls, and unrelated WMS overlays remain usable.
+
+## Optional Development Follow-up
+
+### 1. Add a safe WMTS endpoint injection seam if test infrastructure cannot be provided
 - `Wmts3857RequestBuilder` currently fixes the production endpoint in `BASE_URL`.
 - Add an optional, test-only or constructor-injected base URL while keeping the production default unchanged.
-- This will allow the emulator to target a local mock endpoint that returns WMTS errors without blocking unrelated app traffic.
-
-### 2. Add an isolated failure test
-- Make the mock endpoint fail only the three WMTS GetTile requests (`roadServey`, `legacyDitch`, `regions`).
-- Verify on the Android emulator that the base map, controls, and unrelated WMS overlays remain usable when those requests fail.
-- Capture the request/log evidence and map-control result for AC-004.
+- This is a separate testability change requiring plan approval; it is not a fix implied by the current `NOT VERIFIED` result.
 
 ### 3. Preserve the current contract
 - Keep `STYLE=` empty, `WebMercatorQuad`, and the existing production endpoint as defaults.
