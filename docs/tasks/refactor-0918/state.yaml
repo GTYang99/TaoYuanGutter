@@ -21,11 +21,11 @@ validation:
   status: completed_with_device_limitation
   unit_test: passed
   build: passed
-  emulator: not_verified_test_account_and_maps_api_key_unavailable
+  physical_device: partial_ac004_all_network_failure
 
 git:
   branch: codex/refactor-wms-layer-link-0918
-  commit: c6cb4bf
+  commit: 9b6ff35
   status: committed
 
 verification:
@@ -43,5 +43,5 @@ release:
   status: pending
 
 blocking:
-  - WMTS-only tile failure injection is unavailable; the emulator test could only block all app network traffic
+  - WMTS-only tile failure injection is unavailable; the physical-device attempt could only block all app network traffic
 next_action: infrastructure

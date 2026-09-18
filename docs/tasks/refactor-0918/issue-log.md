@@ -18,9 +18,9 @@
 - phase: verification
 - category: environment
 - priority: P2
-- title: Emulator map-verification prerequisites unavailable
+- title: WMTS-only physical failure injection unavailable
 - status: open
-- impact: The Android 14 emulator, existing authenticated session, and functional Maps rendering are available. A safe WMTS-only outage control is not available; the limited all-network outage test cannot prove isolated WMTS failure behavior.
-- evidence: `emulator-5554` (Android 14/API 34) installed the debug APK, entered `MainShellActivity` through the existing login session, and kept the map controls usable after the three affected overlays were toggled while an unreachable proxy blocked network. Proxy settings were removed afterward. The earlier direct-launch limitation for `MainActivity` remains irrelevant because the normal login flow was used.
+- impact: The physical Sony XQ-AU52, authenticated session, and functional Maps rendering are available. A safe WMTS-only outage control is not available; the limited all-network outage test cannot prove isolated WMTS failure behavior.
+- evidence: Sony XQ-AU52 (Android 12/API 31) installed the current worktree APK, entered `MainShellActivity`, and kept map controls usable after the three affected overlays were toggled while an unreachable local proxy blocked network. Physical screenshot is stored at `docs/tasks/refactor-0918/evidence/ac004-physical-network-failure.png`; proxy settings were removed afterward.
 - next_action: infrastructure
 - owner: environment
