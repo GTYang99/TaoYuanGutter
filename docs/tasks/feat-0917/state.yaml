@@ -2,8 +2,8 @@ task:
   id: feat-0917
   type: feature
 
-phase: debug
-status: debug_complete
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: resolved
@@ -28,7 +28,7 @@ validation:
 
 git:
   branch: feat/銜接點連結管自帶節點名
-  commit: d988f8d
+  commit: a5f2844
   status: committed
 
 verification:
@@ -47,7 +47,7 @@ verification:
     - external_ci_not_verified
 
 debug:
-  status: completed
+  status: resolved
   root_cause: identified
   issues:
     - ISS-011
@@ -63,4 +63,4 @@ release:
 blocking:
   - Physical authenticated acceptance flows were not executed.
   - External CI results are unavailable.
-next_action: implementation_debug
+next_action: verification

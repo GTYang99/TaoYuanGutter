@@ -11,6 +11,8 @@
 - Changed UI copy to `連結管`, placed it after `淤積程度`, defaulting to `無`.
 - Blocked inspect-to-edit when nodeDetails preload fails; photo-only issues may still continue with warning.
 - Added label/status display for `(銜接點)` and `(待架站)` with pending-deploy last.
+- Removed `(銜接點)` from the editable add-gutter waypoint list; inspection spinner labels remain independent.
+- Reordered inspection details to material, structural damage, hanging pipeline, silt, connecting pipe, then remarks.
 - Preserved create XY_NUM omission and edit XY_NUM preservation.
 - Kept recent saved waypoint import no-query `closestNodeDetails` behavior.
 
@@ -24,8 +26,10 @@
 | `:app:assembleDebug` | PASS |
 | `:app:compileDebugAndroidTestKotlin` | PASS |
 | `:app:connectedDebugAndroidTest` | PASS, 36 tests on `adb-QV710EDR3A-hF5XZF (2)._adb-tls-connect._tcp` |
+| `InspectionPresentationTest` + `:app:compileDebugKotlin` | PASS |
 
 ## Notes
 
 - Authenticated API request/response capture was not run separately beyond automated/device tests.
 - Untracked `.worktrees/` remains untouched.
+- No physical-device test was run for these two display fixes per user direction.
