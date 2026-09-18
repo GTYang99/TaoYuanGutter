@@ -28,8 +28,8 @@ validation:
 
 git:
   branch: feat/銜接點連結管自帶節點名
-  commit: pending
-  status: uncommitted_implementation_ready
+  commit: d988f8d
+  status: committed
 
 verification:
   result: passed_with_limitations

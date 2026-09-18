@@ -3,7 +3,7 @@
 ## Revision
 
 - Branch: `feat/銜接點連結管自帶節點名`
-- Implementation commit: pending at report update time.
+- Implementation commit: `d988f8d`
 
 ## Automated Evidence
 
