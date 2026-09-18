@@ -7,16 +7,20 @@
 - Changed the existing-waypoint import header to a `FrameLayout` so the title
   is centered against the full header row while the back and optional location
   controls retain their 48dp hit areas.
-- Kept the imported-photo contract unchanged: downloaded unchanged photos are
-  not re-uploaded; replacement photos still upload and carry the returned
-  `img_id` through the existing-node `storeDitch` update.
+- Preserved the `storeDitch` response contract: `data.nodes[].url[].id` is
+  mapped to the corresponding `photo{slot}ImgId` by `fileCategory`.
+- Added an import handoff fallback: a returned detail-response ID takes
+  precedence, while a missing detail-response ID preserves the existing
+  `photo{slot}ImgId` instead of clearing it. Downloaded unchanged photos are
+  still not re-uploaded; replacement photos still upload and carry the
+  returned ID through the existing-node `storeDitch` update.
 
 ## Validation
 
 | Check | Result | Evidence |
 |---|---|---|
 | `git diff --check` | PASS | No whitespace errors. |
-| Focused unit tests | PASS | `MapOverlayControllerStateTest`, `PhotoUploadCandidateResolverTest`, and `StoreDitchNodeRequestMapperTest` passed. |
+| Focused unit tests | PASS | `PhotoImgIdResolverTest`, `StoreDitchResponseParsingTest`, `StoreDitchResponseWaypointMapperTest`, `PhotoUploadCandidateResolverTest`, and `StoreDitchNodeRequestMapperTest` passed. |
 | Debug build | PASS | `:app:assembleDebug` completed successfully. |
 | Physical UI verification | NOT VERIFIED | No device screenshot/manual run was performed in this pass. |
 | CI | NOT VERIFIED | No CI workflow/result is available in the repository. |

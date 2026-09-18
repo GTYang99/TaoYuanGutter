@@ -64,6 +64,7 @@ import com.example.taoyuangutter.common.PhotoCapturedAtResolver
 import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 import com.example.taoyuangutter.common.PhotoSlotUploadCoordinator
 import com.example.taoyuangutter.common.PhotoUploadSlotState
+import com.example.taoyuangutter.common.PhotoImgIdResolver
 import com.example.taoyuangutter.common.PhotoUriStore
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.databinding.ActivityGutterFormBinding
@@ -659,17 +660,29 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 updatePhotoUploadState(
                     1,
                     state = if (!p1.isNullOrBlank() && photo1Url != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
-                    imgId = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.id
+                    imgId = PhotoImgIdResolver.resolve(
+                        nodeDetails.nodeImg.firstOrNull { it.fileCategory == "1" }?.id,
+                        currentFormData,
+                        1
+                    )
                 )
                 updatePhotoUploadState(
                     2,
                     state = if (!p2.isNullOrBlank() && photo2Url != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
-                    imgId = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.id
+                    imgId = PhotoImgIdResolver.resolve(
+                        nodeDetails.nodeImg.firstOrNull { it.fileCategory == "2" }?.id,
+                        currentFormData,
+                        2
+                    )
                 )
                 updatePhotoUploadState(
                     3,
                     state = if (!p3.isNullOrBlank() && photo3Url != null) PhotoUploadSlotState.STATE_SUCCESS else PhotoUploadSlotState.STATE_IDLE,
-                    imgId = nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id
+                    imgId = PhotoImgIdResolver.resolve(
+                        nodeDetails.nodeImg.firstOrNull { it.fileCategory == "3" }?.id,
+                        currentFormData,
+                        3
+                    )
                 )
                 // Re-apply the Activity's authoritative photo state after all
                 // import callbacks so the first-open Fragment cannot remain

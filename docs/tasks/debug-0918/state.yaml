@@ -2,8 +2,8 @@ task:
   id: debug-0918
   type: debug
 
-phase: investigation
-status: investigation_in_progress
+phase: verification
+status: verification_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -12,8 +12,8 @@ planning:
   status: completed
 
 debug:
-  status: investigating
-  root_cause: response_shape_boundary_under_review
+  status: root_cause_confirmed
+  root_cause: storeDitch_id_lost_at_import_detail_handoff_when_response_id_missing
   issues:
     - ISS-DBG-0918-001
     - ISS-DBG-0918-002
@@ -24,7 +24,8 @@ implementation:
   changes:
     - deleted_area_layer_default_off
     - existing_waypoint_title_full_row_centering
-  photo_flow: unchanged_pending_import_endpoint_capture
+    - photo_img_id_preservation_fallback
+  photo_flow: storeDitch_url_id_mapped_and_preserved
 
 validation:
   status: completed
@@ -34,8 +35,8 @@ validation:
 
 git:
   branch: "feat/銜接點連結管自帶節點名"
-  commit: f3e2ba0
-  status: committed
+  commit: pending_final_commit
+  status: ready_to_commit
 
 verification:
   result: pending
@@ -50,4 +51,4 @@ release:
 blocking:
   - Physical UI verification and CI evidence are not available.
 
-next_action: investigation
+next_action: verification

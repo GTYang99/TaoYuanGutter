@@ -32,6 +32,7 @@ import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 import com.example.taoyuangutter.common.PhotoSlotUploadCoordinator
 import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.example.taoyuangutter.common.PhotoUploadSlotState
+import com.example.taoyuangutter.common.PhotoImgIdResolver
 import com.example.taoyuangutter.common.UploadFailureClassifier
 import com.example.taoyuangutter.databinding.BottomSheetAddGutterBinding
 import com.example.taoyuangutter.login.AuthExpiredHandler
@@ -2219,15 +2220,27 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 if (capturedAt1 != null) put("photo1CapturedAt", capturedAt1)
                                 if (capturedAt2 != null) put("photo2CapturedAt", capturedAt2)
                                 if (capturedAt3 != null) put("photo3CapturedAt", capturedAt3)
-                                nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.id?.let {
+                                PhotoImgIdResolver.resolve(
+                                    nd.nodeImg.firstOrNull { it.fileCategory == "1" }?.id,
+                                    this,
+                                    1
+                                )?.let {
                                     put("photo1ImgId", it.toString())
                                     put("photo1UploadState", PhotoUploadSlotState.STATE_SUCCESS)
                                 }
-                                nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.id?.let {
+                                PhotoImgIdResolver.resolve(
+                                    nd.nodeImg.firstOrNull { it.fileCategory == "2" }?.id,
+                                    this,
+                                    2
+                                )?.let {
                                     put("photo2ImgId", it.toString())
                                     put("photo2UploadState", PhotoUploadSlotState.STATE_SUCCESS)
                                 }
-                                nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.id?.let {
+                                PhotoImgIdResolver.resolve(
+                                    nd.nodeImg.firstOrNull { it.fileCategory == "3" }?.id,
+                                    this,
+                                    3
+                                )?.let {
                                     put("photo3ImgId", it.toString())
                                     put("photo3UploadState", PhotoUploadSlotState.STATE_SUCCESS)
                                 }

@@ -23,10 +23,12 @@ this ID after a successful `storeDitch` through
 
 Therefore the previous conclusion that the server response lacks an image ID
 was too broad. It was only true for the earlier `nodeDetails` fixture used in
-the import investigation. The correct question is now whether the import
-query endpoint (`nodeDetails` / `closestNodeDetails`) returns the same ID and
-whether that value survives the handoff into `GutterFormActivity`; the
-`storeDitch` response mapping itself is already correct.
+the import investigation. The concrete loss boundary is the subsequent
+`nodeDetails` / `closestNodeDetails` refresh and handoff: when that response
+omits `nodeImg[].id`, the import code must not replace an ID already obtained
+from `storeDitch` with `null`. The `storeDitch` response mapping itself is
+correct; the fix is to prefer a newly returned ID and otherwise retain the
+existing `photo{slot}ImgId`.
 
 ### Affected files
 
@@ -34,13 +36,16 @@ whether that value survives the handoff into `GutterFormActivity`; the
 - `app/src/main/java/com/example/taoyuangutter/common/PhotoUploadSlotState.kt`
 - `app/src/main/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapper.kt`
 - `app/src/main/java/com/example/taoyuangutter/api/GutterApiModels.kt`
+- `app/src/main/java/com/example/taoyuangutter/common/PhotoImgIdResolver.kt`
 
 ### Regression risk
 
-No production fix should be selected until the import endpoint response is
-captured. The save-response path already maps `url[].id` by file category;
-the next evidence boundary is the actual `nodeDetails` / `closestNodeDetails`
-payload and the imported `NodeDetails.nodeImg[].id` value.
+The production fix now protects the handoff even when the import endpoint
+omits the ID: a non-null ID from the refreshed response wins, otherwise the
+existing form-state ID is retained. A fully captured `nodeDetails` /
+`closestNodeDetails` payload would still be useful for endpoint-level
+verification, but it is no longer required to infer the save-response
+mapping.
 
 ## Issue 2: `0910刪除資料` is on by default
 

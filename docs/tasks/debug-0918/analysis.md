@@ -110,14 +110,14 @@ successful `storeDitch` save in the map hosts. The existing-point import picker
 itself queries `nodeDetails` / `closestNodeDetails`, whose model uses
 `NodeDetails.nodeImg`. If that endpoint returns the same image ID, it is
 already accepted as `NodeImg.id`; if it omits the ID, the import flow cannot
-invent it from the URL. The supplied `storeDitch` response proves that the
-server does provide the ID in the save response and that the save-response
-mapping is not the root cause.
+invent it from the URL. Before this fix, that omitted ID could overwrite the
+already-known form-state ID during the later refresh/import handoff. The fix
+now keeps the existing ID in that case, while a newly returned response ID
+takes precedence.
 
 ## Updated conclusion
 
 The correct root-cause boundary is an API response-shape / flow distinction,
 not a claim that the server has no image ID. `storeDitch` response IDs are
-available and mapped. Any remaining import issue must be checked at the
-`nodeDetails` / `closestNodeDetails` response used by the picker, or at the
-handoff from that response into `GutterFormActivity`.
+available and mapped. The import handoff must preserve that ID when a later
+detail response contains only the URL/category fields.
