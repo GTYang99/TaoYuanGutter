@@ -40,4 +40,4 @@
 - Category: environment
 - Failed acceptance criteria: none observed
 - Not verified acceptance criteria: AC-004
-- Required next action: provide an isolated WMTS-only failure control usable by the physical device, then repeat AC-004; CI must also report build and test results before release.
+- Required next action: AC-004 is deferred by user decision; retain `NOT VERIFIED` and do not run further tests until resumed. CI must also report build and test results before release.

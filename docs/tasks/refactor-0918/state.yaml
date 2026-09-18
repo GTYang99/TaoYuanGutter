@@ -44,4 +44,5 @@ release:
 
 blocking:
   - WMTS-only tile failure injection is unavailable; the physical-device attempt could only block all app network traffic
+  - User requested AC-004 verification be deferred; retain NOT VERIFIED
 next_action: infrastructure

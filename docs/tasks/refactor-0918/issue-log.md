@@ -24,3 +24,9 @@
 - evidence: Sony XQ-AU52 (Android 12/API 31) installed the current worktree APK, entered `MainShellActivity`, and kept map controls usable after the three affected overlays were toggled while an unreachable local proxy blocked network. Physical screenshot is stored at `docs/tasks/refactor-0918/evidence/ac004-physical-network-failure.png`; proxy settings were removed afterward.
 - next_action: infrastructure
 - owner: environment
+
+## User Decision
+- task_id: refactor-0918
+- phase: verification
+- decision: Defer AC-004 physical verification; keep the criterion `NOT VERIFIED`.
+- production_code_change: none
