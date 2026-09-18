@@ -20,7 +20,7 @@
 - priority: P2
 - title: Emulator map-verification prerequisites unavailable
 - status: open
-- impact: The fixed revision starts successfully on Android 14 `sdk_gphone64_arm64`, but it opens the login screen. No test account or authorized functional Maps API key is available, so map overlay behavior cannot be validated.
-- evidence: Fixed revision `5fad9e2` passed its focused test and debug assembly, then was installed on the Android 14 emulator. The launcher opens `com.example.taoyuangutter/.login.LoginActivity`; directly starting `MainActivity` is denied because it is not exported. The project Secrets plugin also requires `MAPS_API_KEY` from ignored `local.properties`.
+- impact: The Android 14 emulator, existing authenticated session, and functional Maps rendering are available. A safe WMTS-only outage control is not available; the limited all-network outage test cannot prove isolated WMTS failure behavior.
+- evidence: `emulator-5554` (Android 14/API 34) installed the debug APK, entered `MainShellActivity` through the existing login session, and kept the map controls usable after the three affected overlays were toggled while an unreachable proxy blocked network. Proxy settings were removed afterward. The earlier direct-launch limitation for `MainActivity` remains irrelevant because the normal login flow was used.
 - next_action: infrastructure
 - owner: environment

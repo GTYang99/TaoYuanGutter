@@ -19,7 +19,7 @@
 | AC-001 | PASS | `Wmts3857TileProviderTest` passed; it verifies all approved layers' WMTS endpoint parameters, formats, and z/y/x matrix mapping. |
 | AC-002 | PASS | The same passing test verifies `STYLE` decodes to an empty value for every approved layer. |
 | AC-003 | PASS | Static scope review confirms all three entry points use the same provider and excluded layers remain unchanged; `assembleDebug` compiled the affected Android code successfully. |
-| AC-004 | NOT VERIFIED | Source retains `null` tile URL degradation, but no compile or physical-device failure-path evidence is available. |
+| AC-004 | NOT VERIFIED | Limited Android 14 emulator attempt: with the three WMTS overlays toggled off/on while an unreachable global proxy blocked network, the map UI remained alive and controls remained visible after a pan; however, all network traffic was blocked, so this does not prove WMTS-only failure isolation. |
 
 ## Test and CI Review
 - Focused test command: `./gradlew testDebugUnitTest --tests com.example.taoyuangutter.map.Wmts3857TileProviderTest --console=plain`
@@ -28,7 +28,8 @@
 - Verification scope: limited to the WMTS contract test and source-scope review; no full regression suite or new emulator exploration was run.
 - CI: NOT VERIFIED — no CI result was supplied.
 - Emulator startup: PASS — fixed revision `5fad9e2` passed the focused JVM test and debug APK build, was installed on Android 14 `sdk_gphone64_arm64`, and launched `LoginActivity`.
-- Emulator WMTS flow: NOT VERIFIED — the map flow requires a test account; `MainActivity` cannot be started directly because it is not exported. A functional Maps API key is also unavailable.
+- Emulator AC-004 attempt: PARTIAL EVIDENCE — `emulator-5554`, Android 14/API 34, package `com.example.taoyuangutter`; an existing authenticated session entered `MainShellActivity`, the map loaded, and the three affected overlay controls were toggled off/on. A temporary unreachable proxy (`10.0.2.2:59999`) produced a visible layer-load-failure state while the map and controls remained available. The proxy was removed afterward and verified as `null`.
+- Emulator WMTS-only failure: NOT VERIFIED — the available safe failure method blocked all app network traffic; no isolated WMTS endpoint outage or approved server-side failure control was available.
 
 ## Regression Review
 - `git diff --check` passed with no whitespace errors.

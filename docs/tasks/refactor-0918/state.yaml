@@ -43,5 +43,5 @@ release:
   status: pending
 
 blocking:
-  - Test account and functional Google Maps API key unavailable for Android 14 emulator verification
+  - WMTS-only tile failure injection is unavailable; the emulator test could only block all app network traffic
 next_action: infrastructure
