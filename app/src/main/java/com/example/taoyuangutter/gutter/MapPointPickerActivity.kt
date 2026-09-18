@@ -243,7 +243,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
                 val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
                     baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
                     layers = "roadServey",
-                    styles = "TY_RSGDBIP_道路調查",
+                    styles = "",
                     format = "image/png"
                 )
                 planWmsOverlay = map.addTileOverlay(
