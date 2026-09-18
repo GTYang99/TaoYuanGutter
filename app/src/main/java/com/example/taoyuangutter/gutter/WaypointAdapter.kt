@@ -26,18 +26,6 @@ class WaypointAdapter(
     /** false = 隱藏拖曳把手（檢視模式） */
     var showDragHandle: Boolean = true
 
-    private fun buildDisplayLabel(item: Waypoint): String {
-        val suffixes = mutableListOf<String>()
-        if (item.basicData["IS_TIEINPOINT"].toBooleanLoose()) suffixes += "(銜接點)"
-        if (item.basicData["IS_PENDING_DEPLOY"].toBooleanLoose()) suffixes += "(待架站)"
-        return item.label + suffixes.joinToString(separator = "")
-    }
-
-    private fun String?.toBooleanLoose(): Boolean = when (this?.trim()?.lowercase()) {
-        "1", "true", "yes", "y", "on" -> true
-        else -> false
-    }
-
     inner class ViewHolder(val binding: ItemWaypointBinding) :
         RecyclerView.ViewHolder(binding.root) {
         /** 供 ItemTouchHelper 直接操作前景平移 */
@@ -58,7 +46,7 @@ class WaypointAdapter(
         val isLast  = position == items.size - 1
 
         // 節點標籤
-        holder.binding.tvWaypointLabel.text = buildDisplayLabel(item)
+        holder.binding.tvWaypointLabel.text = editableWaypointDisplayLabel(item)
 
         // 虛擬點 badge
         holder.binding.tvVirtualBadge.visibility = if (item.isVirtual) View.VISIBLE else View.GONE
@@ -157,4 +145,12 @@ class WaypointAdapter(
     }
 
     override fun getItemCount(): Int = items.size
+}
+
+/** The editable add-gutter list deliberately does not expose inspection-only point statuses. */
+internal fun editableWaypointDisplayLabel(item: Waypoint): String {
+    val isPendingDeploy = item.basicData["IS_PENDING_DEPLOY"]
+        ?.trim()
+        ?.lowercase() in setOf("1", "true", "yes", "y", "on")
+    return item.label + if (isPendingDeploy) "(待架站)" else ""
 }

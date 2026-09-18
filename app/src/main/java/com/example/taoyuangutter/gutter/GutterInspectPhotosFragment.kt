@@ -199,11 +199,16 @@ class GutterInspectPhotosFragment : Fragment() {
                 )
             )
             binding.layoutFields.addView(createFieldRow("側溝測量深度(公分)", normalizeDisplayValue(details?.nodeDepAsString)))
-            binding.layoutFields.addView(createFieldRow("側溝材質", normalizeDisplayValue(mapMaterialType(details?.matTyp))))
-            binding.layoutFields.addView(createFieldRow("淤積程度", normalizeDisplayValue(mapSilt(details?.isSilt))))
-            binding.layoutFields.addView(createFieldRow("連結管", normalizeDisplayValue(mapBoolean01(details?.isConnectingAsBoolean))))
-            binding.layoutFields.addView(createFieldRow("溝體結構受損", normalizeDisplayValue(mapBoolean01(details?.isBroken == "1"))))
-            binding.layoutFields.addView(createFieldRow("附掛或過路管線", normalizeDisplayValue(mapBoolean01(details?.isHanging == "1"))))
+            val detailValues = mapOf(
+                "側溝材質" to normalizeDisplayValue(mapMaterialType(details?.matTyp)),
+                "溝體結構受損" to normalizeDisplayValue(mapBoolean01(details?.isBroken == "1")),
+                "附掛或過路管線" to normalizeDisplayValue(mapBoolean01(details?.isHanging == "1")),
+                "淤積程度" to normalizeDisplayValue(mapSilt(details?.isSilt)),
+                "連結管" to normalizeDisplayValue(mapBoolean01(details?.isConnectingAsBoolean))
+            )
+            inspectionDetailFieldOrder().forEach { label ->
+                binding.layoutFields.addView(createFieldRow(label, detailValues.getValue(label)))
+            }
         }
         binding.layoutFields.addView(createFieldRow("補充說明", normalizeDisplayValue(details?.note)))
     }
@@ -504,3 +509,12 @@ class GutterInspectPhotosFragment : Fragment() {
         }
     }
 }
+
+/** The visual order for point attributes after measurements/photos on the inspection page. */
+internal fun inspectionDetailFieldOrder(): List<String> = listOf(
+    "側溝材質",
+    "溝體結構受損",
+    "附掛或過路管線",
+    "淤積程度",
+    "連結管"
+)
