@@ -1,9 +1,9 @@
 # Verification Report
 
 ## Revision Under Test
-- Commit: `1f1d682` (`docs(refactor-0918): record emulator startup validation`)
+- Commit: `c6cb4bf` (`docs(refactor-0918): record AC-004 emulator attempt`)
 - Branch: `codex/refactor-wms-layer-link-0918`
-- `cf63365..1f1d682` contains task-evidence-only commits; no `app/src/main` or `app/src/test` source changes.
+- `cf63365..c6cb4bf` contains task-evidence-only commits; no `app/src/main` or `app/src/test` source changes.
 - Source worktree during verification: tracked source clean; unrelated untracked `.worktrees/` preserved.
 
 ## Implementation Review
@@ -23,7 +23,7 @@
 
 ## Test and CI Review
 - Focused test command: `./gradlew testDebugUnitTest --tests com.example.taoyuangutter.map.Wmts3857TileProviderTest --console=plain`
-- Result: PASS on `1f1d682` — ran with Android Studio OpenJDK 25; Gradle completed the focused WMTS test successfully. The existing ignored local `MAPS_API_KEY` placeholder was used only for manifest configuration.
+- Result: PASS on source-equivalent revision `c6cb4bf` — ran with Android Studio OpenJDK 25; Gradle completed the focused WMTS test successfully. The existing ignored local `MAPS_API_KEY` placeholder was used only for manifest configuration.
 - Debug build: Existing evidence PASS on source-equivalent revision `5fad9e2`; not rerun in this limited verification scope.
 - Verification scope: limited to the WMTS contract test and source-scope review; no full regression suite or new emulator exploration was run.
 - CI: NOT VERIFIED — no CI result was supplied.
