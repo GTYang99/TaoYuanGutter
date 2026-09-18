@@ -25,7 +25,7 @@
 - Result: PASS — ran with Android Studio OpenJDK 25 and a temporary ignored `MAPS_API_KEY=test` placeholder.
 - Debug build: PASS — `./gradlew assembleDebug --console=plain` succeeded with the same temporary placeholder.
 - CI: NOT VERIFIED — no CI result was supplied.
-- Physical-device test: NOT VERIFIED — Sony XQ-AU52 (Android 12) is connected, but no authorized functional Google Maps API key is available for a map-capable debug build.
+- Emulator test: NOT VERIFIED — Android 14 `sdk_gphone64_arm64` installed the debug APK and launched `LoginActivity`. The map flow requires a test account; `MainActivity` cannot be started directly because it is not exported. A functional Maps API key is also unavailable.
 
 ## Regression Review
 - `git diff --check` passed with no whitespace errors.
@@ -36,4 +36,4 @@
 - Category: environment
 - Failed acceptance criteria: none observed
 - Not verified acceptance criteria: AC-004
-- Required next action: provide a local authorized Google Maps API key for the connected Android 12 test device, then run the plan's WMTS failure-path check; CI must also report build and test results before release.
+- Required next action: provide a simulator test account and a local authorized Google Maps API key, then run the plan's emulator WMTS failure-path check; CI must also report build and test results before release.

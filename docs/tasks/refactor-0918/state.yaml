@@ -21,7 +21,7 @@ validation:
   status: completed_with_device_limitation
   unit_test: passed
   build: passed
-  physical_device: not_verified_maps_api_key_unavailable
+  emulator: not_verified_test_account_and_maps_api_key_unavailable
 
 git:
   branch: codex/refactor-wms-layer-link-0918
@@ -43,5 +43,5 @@ release:
   status: pending
 
 blocking:
-  - Functional Google Maps API key unavailable for physical verification on connected Android 12 device
+  - Test account and functional Google Maps API key unavailable for Android 14 emulator verification
 next_action: infrastructure

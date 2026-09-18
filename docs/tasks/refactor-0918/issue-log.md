@@ -18,9 +18,9 @@
 - phase: verification
 - category: environment
 - priority: P2
-- title: Functional Google Maps API key unavailable for device verification
+- title: Emulator map-verification prerequisites unavailable
 - status: open
-- impact: A Sony XQ-AU52 on Android 12 is connected, but the locally assembled APK uses `MAPS_API_KEY=test`; installing it cannot reliably validate map or overlay behavior.
-- evidence: `adb devices -l` reports the device, and the project Secrets plugin requires `MAPS_API_KEY` from ignored `local.properties`; no authorized functional key is present in this worktree.
+- impact: Android 14 `sdk_gphone64_arm64` installed the debug APK, but it opens the login screen. No test account or authorized functional Maps API key is available, so map overlay behavior cannot be validated.
+- evidence: `adb` reports the Android 14 emulator; package installation succeeded and launcher activity is `com.example.taoyuangutter/.login.LoginActivity`. Directly starting `MainActivity` is denied because it is not exported. The project Secrets plugin also requires `MAPS_API_KEY` from ignored `local.properties`.
 - next_action: infrastructure
 - owner: environment
