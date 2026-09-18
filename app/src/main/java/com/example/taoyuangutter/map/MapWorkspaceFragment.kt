@@ -392,6 +392,7 @@ class MapWorkspaceFragment : Fragment(),
     }
 
     override fun onDestroyView() {
+        myLocationController.cancelPendingLocationRequest()
         authExpiredHandler.reset()
         super.onDestroyView()
         _binding = null

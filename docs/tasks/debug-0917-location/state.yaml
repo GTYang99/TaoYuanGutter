@@ -1,0 +1,54 @@
+task:
+  id: debug-0917-location
+  type: debug
+
+phase: verification
+status: verification_not_verified
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+  build:
+    status: passed
+  unit_tests:
+    status: passed
+
+debug:
+  status: completed
+  root_cause: identified
+
+validation:
+  status: failed
+
+git:
+  branch: fix/debug-0917-location-speed
+  commit: 4086c34
+  status: committed
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-003
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking:
+  - A newer materially better GPS fix, standalone-picker access, and form/import nearby data are required to complete the remaining physical acceptance cases.
+next_action: verification
