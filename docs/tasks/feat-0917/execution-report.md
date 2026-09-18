@@ -64,3 +64,4 @@
 | `:app:compileDebugKotlin` | PASS |
 
 - Physical-device validation is `NOT VERIFIED` per the user's prior direction.
+- Implementation commit: `d5dfd3f` (`fix(feat-0917): align pending photo upload candidates`).

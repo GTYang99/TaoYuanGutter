@@ -33,7 +33,7 @@ validation:
 
 git:
   branch: feat/銜接點連結管自帶節點名
-  commit: 14f6c78
+  commit: d5dfd3f
   status: committed
 
 verification:
