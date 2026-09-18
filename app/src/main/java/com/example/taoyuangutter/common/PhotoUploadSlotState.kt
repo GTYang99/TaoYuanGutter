@@ -20,9 +20,9 @@ object PhotoUploadSlotState {
     fun readState(data: Map<String, String>, slot: Int): String =
         data[stateKey(slot)]?.trim()?.takeIf { it.isNotEmpty() } ?: STATE_IDLE
 
-    /** True when the slot is already backed by a server image. */
+    /** True only when the slot has a server image ID that storeDitch can reference. */
     fun isAlreadyUploaded(data: Map<String, String>, slot: Int): Boolean =
-        readImgId(data, slot) != null || readState(data, slot) == STATE_SUCCESS
+        readImgId(data, slot) != null
 
     fun readError(data: Map<String, String>, slot: Int): String? =
         data[errorKey(slot)]?.trim()?.takeIf { it.isNotEmpty() }

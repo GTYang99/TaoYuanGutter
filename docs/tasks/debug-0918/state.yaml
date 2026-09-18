@@ -13,7 +13,7 @@ planning:
 
 debug:
   status: root_cause_confirmed
-  root_cause: import_endpoint_node_img_omits_image_id_before_submit
+  root_cause: missing_image_id_is_treated_as_uploaded_and_main_map_mapper_drops_existing_ids
   issues:
     - ISS-DBG-0918-001
     - ISS-DBG-0918-002
@@ -25,7 +25,7 @@ implementation:
     - deleted_area_layer_default_off
     - existing_waypoint_title_full_row_centering
     - photo_img_id_preservation_fallback
-  photo_flow: storeDitch_id_available_post_submit_but_import_id_missing
+  photo_flow: only_numeric_img_id_skips_upload; missing_id_uploads_then_storeDitch_references_response_id
 
 validation:
   status: completed
@@ -39,11 +39,11 @@ git:
   status: committed
 
 verification:
-  result: pending_import_endpoint_id_contract_and_runtime_trace
+  result: unit_and_debug_build_pass; physical_ui_and_ci_not_verified
 
 ci:
-  build: pending
-  test: pending
+  build: not_verified
+  test: not_verified
 
 release:
   status: pending

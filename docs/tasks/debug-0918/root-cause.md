@@ -4,18 +4,27 @@
 
 ### Primary cause
 
-The import flow downloads each existing remote photo to a local URI, then
-marks the slot `success` even when the API response does not contain a server
-image ID. `PhotoUploadSlotState.isAlreadyUploaded()` treats `success` alone as
-an uploaded slot, so the submit path skips multipart upload. The mapper also
-cannot send `img_ids` when `photo{slot}ImgId` is absent.
+There are two related paths:
+
+1. The direct existing-point import response can contain only a remote URL and
+   `fileCategory`, without `id`/`img_id`. The app downloads that URL and marks
+   the local slot `success`, but this does not give `storeDitch` a server image
+   ID.
+2. The upload guard previously treated `UploadState=success` alone as proof
+   that a server image existed. Therefore an imported photo with no ID was
+   skipped by `nodeImage`, and `storeDitch` had no `img_ids` value to reference.
+
+The correct invariant is: only a numeric `photo{slot}ImgId` means the slot is
+already server-backed and may skip upload. A downloaded photo without an ID
+must remain eligible for `nodeImage`, whose response supplies the ID before
+`storeDitch` is called.
 
 This is proven by `docs/tasks/dbg-0910/evidence/node_details_A0910pt52.json`:
 the response contains a category-1 URL but no `id`/`img_id`. The current
 `handleImportedNodeDetails()` then calls `updatePhotoUploadState()` with the
 download result as `success` and the absent ID as `null`.
 
-The newly supplied `storeDitch` response changes the evidence assessment:
+The newly supplied `ditchDetails`/`storeDitch` response changes the evidence assessment:
 `data.nodes[].url[].id` is the server image ID (`id=12339` is the same value
 conceptually referred to as `img_id`). The client parses this ID after a
 successful `storeDitch` through `StoreDitchResponseWaypointMapper`, but that
@@ -39,10 +48,12 @@ only after the form's photo-upload phase. Its
 form.
 
 For the inspect → edit flow, `GutterInspectActivity.preloadEditableWaypoints()`
-does have a fallback from `nodeDetails.nodeImg[].id` to
+has a fallback from `nodeDetails.nodeImg[].id` to
 `DitchDetails.nodes[].url[].id`. The supplied fixture proves that this path
 can work when the `url[].id` values are present in the `getDitchDetails`
-payload. It does not prove the direct import endpoint provides the same ID.
+payload. A second loss point was found in the main-map `NodeDetails →
+Waypoint` mapper: it dropped the photo IDs before opening the edit form. That
+mapper now preserves the IDs and marks only ID-backed slots as uploaded.
 
 ### Affected files
 
@@ -51,6 +62,7 @@ payload. It does not prove the direct import endpoint provides the same ID.
 - `app/src/main/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapper.kt`
 - `app/src/main/java/com/example/taoyuangutter/api/GutterApiModels.kt`
 - `app/src/main/java/com/example/taoyuangutter/common/PhotoImgIdResolver.kt`
+- `app/src/main/java/com/example/taoyuangutter/common/PhotoUploadSlotState.kt`
 - `app/src/main/java/com/example/taoyuangutter/gutter/GutterInspectActivity.kt`
 
 ### Regression risk

@@ -2,9 +2,9 @@
 
 This is the minimum implementation scope after root-cause analysis.
 
-1. Record the clarified contract: unchanged imported/downloaded photos are
-   intentionally excluded from `nodeImage`; only replaced/new photos upload,
-   and their returned IDs reach existing-node `storeDitch`.
+1. Enforce the clarified contract: a photo is excluded from `nodeImage` only
+   when a numeric server image ID already exists; URL-only imported photos
+   upload once so their returned IDs reach existing-node `storeDitch`.
 2. Preserve the existing replacement behavior: replacing or deleting a photo
    clears the old association and makes the new local photo eligible where
    required.

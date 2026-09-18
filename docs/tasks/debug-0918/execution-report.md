@@ -17,13 +17,17 @@
 - Updated `NodeDetails` photo parsing to accept both `node_img[]` and the
   `url[]` response shape shown by the supplied `storeDitch` payload. Import,
   edit preload, and inspect preload now use the same ID-aware resolver.
+- Preserved `url[].id` when `NodeDetails` is converted into main-map inspect
+  waypoints, and changed the upload guard to skip only slots with a numeric
+  server image ID. URL-only imported photos now remain upload candidates so
+  the `nodeImage` response can provide the ID before `storeDitch`.
 
 ## Validation
 
 | Check | Result | Evidence |
 |---|---|---|
 | `git diff --check` | PASS | No whitespace errors. |
-| Focused unit tests | PASS | 19 tests passed, including `NodeImgDeserializationTest` for `url[].id`, `PhotoImgIdResolverTest`, store response mapping, and upload-candidate tests. |
+| Focused unit tests | PASS | Targeted photo-ID/import tests passed, including `NodeImgDeserializationTest`, `PhotoImgIdResolverTest`, and upload-candidate tests for ID-present vs ID-missing slots. |
 | Debug build | PASS | `:app:assembleDebug` completed successfully. |
 | Physical UI verification | NOT VERIFIED | No device screenshot/manual run was performed in this pass. |
 | CI | NOT VERIFIED | No CI workflow/result is available in the repository. |

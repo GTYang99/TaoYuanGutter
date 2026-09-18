@@ -29,8 +29,9 @@ URI is used to prefill the photo fields. The import APIs are
 can be written into form state. The client additionally accepts `url[].id`
 when present, but cannot derive an ID from a URL alone.
 
-The later upload gate uses `PhotoUploadSlotState.isAlreadyUploaded()`: a slot
-with a numeric `photo{slot}ImgId`, **or merely a `success` state**, is skipped.
+The later upload gate uses `PhotoUploadSlotState.isAlreadyUploaded()`: only a
+slot with a numeric `photo{slot}ImgId` is skipped. A `success` state without an
+ID is not sufficient because `storeDitch` cannot reference that photo.
 The `StoreDitchNodeRequestMapper` reads numeric IDs and maps them to `img_ids`,
 for both create and update requests, except for virtual points and the
 excluded slots of cannot-open points.
@@ -42,14 +43,12 @@ succeeds. That means the current implementation skips multipart upload even
 though no server image ID is available, and the mapper emits no `img_ids` for
 that slot.
 
-Thus the actual current model is not simply “a slot with `img_id` does not
-upload.” It is “a slot with `img_id` **or success state** does not upload.”
-For an imported response that has no image ID, this is intentional under the
-approved existing-point behavior: the app treats the downloaded photo as an
-existing server-backed photo, does not call `nodeImage`, and does not add an
-`img_ids` field for that unchanged slot. A newly captured/replaced photo is a
-different state and remains eligible for multipart upload; its returned new
-`img_id` is then sent in the existing-node `storeDitch` update.
+Therefore the intended rule is “a slot with `img_id` does not upload; a slot
+without `img_id` must upload if it has a usable local photo.” For an imported
+response that has no image ID, the downloaded photo remains a multipart upload
+candidate; the returned new `img_id` is then sent in the existing-node
+`storeDitch` update. A response that already has `url[].id` is preserved and
+skips the redundant upload.
 
 ### Deleted-area layer
 
