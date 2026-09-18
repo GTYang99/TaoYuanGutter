@@ -6,8 +6,9 @@
 - category: environment
 - priority: P2
 - title: Java Runtime unavailable for Gradle validation
-- status: open
-- impact: Focused JVM test and debug assembly cannot run in this worktree.
-- evidence: `./gradlew testDebugUnitTest --tests com.example.taoyuangutter.map.Wmts3857TileProviderTest --console=plain` ended before Gradle execution with `Unable to locate a Java Runtime`.
-- next_action: infrastructure
+- status: resolved
+- impact: Initially blocked focused JVM test and debug assembly.
+- evidence: Android Studio's bundled OpenJDK 25 ran the focused test successfully; `assembleDebug` also succeeded with a temporary ignored `MAPS_API_KEY=test` placeholder.
+- resolution: Use Android Studio's bundled JDK and a temporary non-secret local manifest placeholder for local validation.
+- next_action: verification
 - owner: environment

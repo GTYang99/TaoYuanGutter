@@ -15,15 +15,16 @@
 
 | AC | Result | Evidence / limitation |
 |---|---|---|
-| AC-001 | NOT VERIFIED | Static review matches the required WMTS parameters, but the focused JVM test could not start because Java Runtime is missing. |
-| AC-002 | NOT VERIFIED | Source explicitly sets `STYLE` to an empty value, but the request was not compiled or executed. |
-| AC-003 | NOT VERIFIED | Source scope confirms all three entry points use the same provider and excluded layers remain unchanged; no Android build or physical-device result is available. |
+| AC-001 | PASS | `Wmts3857TileProviderTest` passed; it verifies all approved layers' WMTS endpoint parameters, formats, and z/y/x matrix mapping. |
+| AC-002 | PASS | The same passing test verifies `STYLE` decodes to an empty value for every approved layer. |
+| AC-003 | PASS | Static scope review confirms all three entry points use the same provider and excluded layers remain unchanged; `assembleDebug` compiled the affected Android code successfully. |
 | AC-004 | NOT VERIFIED | Source retains `null` tile URL degradation, but no compile or physical-device failure-path evidence is available. |
 
 ## Test and CI Review
 - Focused test command: `./gradlew testDebugUnitTest --tests com.example.taoyuangutter.map.Wmts3857TileProviderTest --console=plain`
-- Result: NOT VERIFIED — host reports `Unable to locate a Java Runtime` before Gradle test execution.
-- Debug build, CI, and physical-device tests: NOT VERIFIED — same missing Java Runtime and no supplied device/test environment.
+- Result: PASS — ran with Android Studio OpenJDK 25 and a temporary ignored `MAPS_API_KEY=test` placeholder.
+- Debug build: PASS — `./gradlew assembleDebug --console=plain` succeeded with the same temporary placeholder.
+- CI and physical-device tests: NOT VERIFIED — no CI result or Android device/test environment was supplied.
 
 ## Regression Review
 - `git diff --check` passed with no whitespace errors.
@@ -33,5 +34,5 @@
 - Result: NOT VERIFIED
 - Category: environment
 - Failed acceptance criteria: none observed
-- Not verified acceptance criteria: AC-001, AC-002, AC-003, AC-004
-- Required next action: provide a Java-configured Android build environment and an Android 9+ test device; rerun the focused test, assemble debug APK, and perform the plan's limited three-entry-point device checks.
+- Not verified acceptance criteria: AC-004
+- Required next action: provide an Android 9+ test device and run the plan's WMTS failure-path check; CI must also report build and test results before release.

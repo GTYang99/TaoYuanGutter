@@ -12,15 +12,16 @@
 |---|---|---|
 | `git diff --check` | PASS | No whitespace errors reported. |
 | Source-scope inspection | PASS | Only the approved three layers instantiate `Wmts3857TileProvider`; unapproved WMS layers remain on `Wms3857TileProvider`. |
-| `./gradlew testDebugUnitTest --tests com.example.taoyuangutter.map.Wmts3857TileProviderTest --console=plain` | NOT VERIFIED | Could not start: environment reports `Unable to locate a Java Runtime`. |
-| `./gradlew assembleDebug` | NOT VERIFIED | Not attempted after the same missing Java Runtime limitation; it cannot execute in this environment. |
+| `./gradlew testDebugUnitTest --tests com.example.taoyuangutter.map.Wmts3857TileProviderTest --console=plain` | PASS | Passed with Android Studio OpenJDK 25 and a temporary ignored `MAPS_API_KEY=test` placeholder. |
+| `./gradlew assembleDebug --console=plain` | PASS | Debug APK assembled successfully with the same temporary ignored placeholder. |
 | Physical device test | NOT VERIFIED | No Android device and no reachable test environment were supplied. |
 
 ## Validation Limitation
-- The local environment has no Java Runtime, so Gradle cannot compile or execute the focused unit test. This is an environment limitation, not a passing test result.
-- The next required evidence is the focused JVM test and debug assembly on a Java-configured environment, followed by the defined physical-device scope.
+- The system Java path is unset, but Android Studio's bundled OpenJDK 25 successfully ran the focused test and assembled the debug APK.
+- A temporary ignored `local.properties` containing only `MAPS_API_KEY=test` was created for manifest substitution and removed after validation; no real key was used or committed.
+- The remaining required evidence is the defined physical-device WMTS failure-path scope.
 
 ## Handoff
 - Package: `com.example.taoyuangutter`
-- Build variant: `debug` (APK path is unavailable until `assembleDebug` succeeds)
+- Build variant: `debug` (`app/build/outputs/apk/debug/app-debug.apk`)
 - Preconditions: device can reach the specified HTTPS GeoServer WMTS endpoint; open the main map, point picker, and gutter form map.
