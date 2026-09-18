@@ -69,7 +69,7 @@ class GutterInspectActivity : AppCompatActivity() {
 
     private data class EditPreloadResult(
         val waypoints: List<Waypoint>,
-        val hasFailure: Boolean,
+        val hasDetailFailure: Boolean,
         val photoIssues: List<String>
     )
 
@@ -321,7 +321,9 @@ class GutterInspectActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val preloadResult = preloadEditableWaypoints(d, token)
-                if (preloadResult.hasFailure || preloadResult.photoIssues.isNotEmpty()) {
+                if (preloadResult.hasDetailFailure) {
+                    showEditPreloadRetryDialog(d, token)
+                } else if (preloadResult.photoIssues.isNotEmpty()) {
                     showEditPreloadWarning(
                         photoIssues = preloadResult.photoIssues,
                         onContinue = { openEditForm(preloadResult.waypoints) }
@@ -332,10 +334,8 @@ class GutterInspectActivity : AppCompatActivity() {
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
-                showEditPreloadWarning(
-                    photoIssues = emptyList(),
-                    onContinue = { openEditForm(ditchToWaypoints(d)) }
-                )
+                Log.w(TAG, "edit preload failed; blocking submit-capable edit", e)
+                showEditPreloadRetryDialog(d, token)
             } finally {
                 binding.btnEdit.isEnabled = true
                 binding.btnEdit.alpha = 1.0f
@@ -362,13 +362,13 @@ class GutterInspectActivity : AppCompatActivity() {
             )
         )
         val result = ditchToWaypoints(ditch).toMutableList()
-        var hasFailure = false
+        var hasDetailFailure = false
         val photoIssues = mutableListOf<String>()
 
         orderedNodes.forEachIndexed { idx, node ->
             val target = result.getOrNull(idx) ?: run {
                 Log.w(TAG, "edit preload target waypoint missing for nodeId=${node.nodeId} index=$idx")
-                hasFailure = true
+                hasDetailFailure = true
                 return@forEachIndexed
             }
             val nodeDetails = preloadedDetailsByNodeId[node.nodeId] ?: run {
@@ -378,7 +378,7 @@ class GutterInspectActivity : AppCompatActivity() {
                     is ApiResult.Success -> nodeResult.data.data?.firstOrNull()
                     is ApiResult.Error -> {
                         if (authExpiredHandler.handleIfAuthExpired(nodeResult)) {
-                            hasFailure = true
+                            hasDetailFailure = true
                             return@forEachIndexed
                         }
                         Log.w(
@@ -391,7 +391,7 @@ class GutterInspectActivity : AppCompatActivity() {
             }
             if (nodeDetails == null) {
                 Log.w(TAG, "edit preload nodeDetails unavailable nodeId=${node.nodeId}")
-                hasFailure = true
+                hasDetailFailure = true
                 return@forEachIndexed
             }
             val lat = nodeDetails.latitude?.toDoubleOrNull() ?: target.latLng?.latitude ?: wgsLatitudes.getOrNull(idx)
@@ -434,7 +434,6 @@ class GutterInspectActivity : AppCompatActivity() {
                         TAG,
                         "edit preload fallback photo download failed nodeId=${node.nodeId} category=$category url=$url"
                     )
-                    hasFailure = true
                     photoIssues.add("nodeId=${node.nodeId} category=$category")
                     ""
                 }
@@ -460,8 +459,8 @@ class GutterInspectActivity : AppCompatActivity() {
                 "NODE_DEP" to nodeDetails.nodeDepAsString,
                 "NODE_WID" to nodeDetails.nodeWidAsString,
                 "IS_CANTOPEN" to (if (nodeDetails.isCantOpenAsBoolean) "1" else "0"),
-                "is_connect_point" to (if (nodeDetails.isConnectPoint == true) "1" else "0"),
-                "is_connect_pipe" to (if (nodeDetails.isConnectPipe == true) "1" else "0"),
+                "IS_TIEINPOINT" to (if (nodeDetails.isTieInPointAsBoolean) "1" else "0"),
+                "IS_CONNECTING" to (if (nodeDetails.isConnectingAsBoolean && !isVirtualNode) "1" else "0"),
                 "IS_PENDING_DEPLOY" to (if (parseLooseBoolean(node.isPendingDeploy)) "1" else "0"),
                 "is_virtual" to (if (parseLooseBoolean(nodeDetails.isVirtual)) "1" else "0"),
                 "IS_BROKEN" to (nodeDetails.isBroken ?: ""),
@@ -517,7 +516,7 @@ class GutterInspectActivity : AppCompatActivity() {
 
         return EditPreloadResult(
             waypoints = result,
-            hasFailure = hasFailure,
+            hasDetailFailure = hasDetailFailure,
             photoIssues = photoIssues.distinct()
         )
     }
@@ -579,9 +578,18 @@ class GutterInspectActivity : AppCompatActivity() {
         val message = if (photoIssues.isNotEmpty()) {
             "照片數量不滿足，以下節點照片缺失或下載失敗：\n${photoIssues.joinToString("\n")}\n\n無法開蓋點位需有概況照 1 張，其餘點位需有 3 張。\n會覆蓋草稿資料\n仍要繼續進入編輯嗎？"
         } else {
-            "部分點位資料或照片下載失敗，進入編輯後可能需要補齊。"
+            "部分照片下載失敗，進入編輯後可能需要補齊。"
         }
         showEditEntryConfirmation(message = message, onContinue = onContinue)
+    }
+
+    private fun showEditPreloadRetryDialog(ditch: DitchDetails, token: String) {
+        MaterialAlertDialogBuilder(this)
+            .setTitle("無法進入編輯")
+            .setMessage("部分點位詳細資料載入失敗。為避免覆蓋伺服器上的銜接點或連結管狀態，請重新載入後再編輯。")
+            .setNegativeButton("取消", null)
+            .setPositiveButton("重試") { _, _ -> startPreload(ditch, token) }
+            .show()
     }
 
     private fun showEditEntryConfirmation(
@@ -633,6 +641,8 @@ class GutterInspectActivity : AppCompatActivity() {
                 "_nodeId" to node.nodeId.toString(),
                 "SPI_NUM" to d.spiNum,
                 "is_virtual" to (d.isVirtual ?: "0"),
+                "IS_TIEINPOINT" to "0",
+                "IS_CONNECTING" to "0",
                 "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0"),
                 "photo1ImgId" to (node.url.firstOrNull { it.fileCategory == "1" }?.id?.toString() ?: ""),
                 "photo2ImgId" to (node.url.firstOrNull { it.fileCategory == "2" }?.id?.toString() ?: ""),

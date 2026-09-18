@@ -296,6 +296,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val EXTRA_DATA_IS_HANGING  = "ex_is_hanging"
         const val EXTRA_DATA_IS_SILT     = "ex_is_silt"
         const val EXTRA_DATA_IS_CANTOPEN = "ex_is_cantopen"
+        const val EXTRA_DATA_IS_TIEINPOINT = "ex_is_tieinpoint"
+        const val EXTRA_DATA_IS_CONNECTING = "ex_is_connecting"
         const val EXTRA_DATA_IS_PENDING_DEPLOY = "ex_is_pending_deploy"
         const val EXTRA_DATA_IS_VIRTUAL  = "ex_is_virtual" // 新增：是否為虛擬點
         const val EXTRA_DATA_IS_IMPORTED = "ex_is_imported" // 新增：是否為匯入點位
@@ -340,6 +342,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val RESULT_DATA_IS_HANGING  = "r_is_hanging"
         const val RESULT_DATA_IS_SILT     = "r_is_silt"
         const val RESULT_DATA_IS_CANTOPEN = "r_is_cantopen"
+        const val RESULT_DATA_IS_TIEINPOINT = "r_is_tieinpoint"
+        const val RESULT_DATA_IS_CONNECTING = "r_is_connecting"
         const val RESULT_DATA_IS_PENDING_DEPLOY = "r_is_pending_deploy"
         const val RESULT_DATA_IS_VIRTUAL  = "r_is_virtual" // 新增：是否為虛擬點
         const val RESULT_DATA_IS_IMPORTED = "r_is_imported" // 新增：是否為匯入點位
@@ -1467,6 +1471,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         "IS_HANGING" to "",
         "IS_SILT"   to "",
         "IS_CANTOPEN" to "",
+        "IS_TIEINPOINT" to "0",
+        "IS_CONNECTING" to "0",
         "IS_PENDING_DEPLOY" to "",
         "NODE_NOTE" to "",
         "photo1"    to "", "photo2" to "", "photo3" to "",
@@ -1856,6 +1862,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun initializeCurrentFormData(initialData: Map<String, String>) {
         currentFormData.clear()
         currentFormData.putAll(PendingPhotoDraftState.promotePendingFilesToPhotos(this, initialData))
+        sanitizeConnectionFlagsForMode(currentFormData)
         enrichMissingPhotoCapturedAt(currentFormData)
         ensureCurrentFormCoordinates()
         logPhotoImgIdTrace("initializeCurrentFormData.beforeSync", currentFormData)
@@ -1874,6 +1881,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private fun mergeCurrentFormData(data: Map<String, String>) {
         val previous = HashMap(currentFormData)
         currentFormData.putAll(data)
+        sanitizeConnectionFlagsForMode(currentFormData)
         preservePhotoMetadataIfPhotoPresent(currentFormData, previous, 1)
         preservePhotoMetadataIfPhotoPresent(currentFormData, previous, 2)
         preservePhotoMetadataIfPhotoPresent(currentFormData, previous, 3)
@@ -1955,6 +1963,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         putIfAbsent("photo1CapturedAt", "")
         putIfAbsent("photo2CapturedAt", "")
         putIfAbsent("photo3CapturedAt", "")
+        sanitizeConnectionFlagsForMode(this)
         if (parseLooseBoolean(this["IS_CANTOPEN"])) {
             this["photo2"] = ""
             this["photo3"] = ""
@@ -1962,6 +1971,18 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             this["photo3CapturedAt"] = ""
             PhotoUploadSlotState.clear(this, 2)
             PhotoUploadSlotState.clear(this, 3)
+        }
+    }
+
+    private fun sanitizeConnectionFlagsForMode(target: MutableMap<String, String>) {
+        if (parseLooseBoolean(target["is_virtual"])) {
+            target.remove("IS_TIEINPOINT")
+            target.remove("IS_CONNECTING")
+            target.remove("IS_CANTOPEN")
+        } else {
+            target["IS_TIEINPOINT"] = if (parseLooseBoolean(target["IS_TIEINPOINT"])) "1" else "0"
+            target["IS_CONNECTING"] = if (parseLooseBoolean(target["IS_CONNECTING"])) "1" else "0"
+            if (parseLooseBoolean(target["IS_CANTOPEN"])) target["IS_TIEINPOINT"] = "0"
         }
     }
 
@@ -2352,7 +2373,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         ensureCurrentFormCoordinates()
         val existing = sessionWaypoints[currentIndex]
         logPhotoImgIdTrace("syncSessionDraftNow.existing", existing.basicData)
-        val mergedBasicData = HashMap(existing.basicData).apply { putAll(currentFormSnapshot()) }
+        val mergedBasicData = HashMap(existing.basicData).apply {
+            putAll(currentFormSnapshot())
+            sanitizeConnectionFlagsForMode(this)
+        }
         preservePhotoMetadataForPresentPhotos(mergedBasicData, existing.basicData)
         enrichMissingPhotoCapturedAt(mergedBasicData)
         logPhotoImgIdTrace("syncSessionDraftNow.merged", mergedBasicData)
@@ -2387,6 +2411,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         sessionWaypoints.clear()
         sessionWaypoints.addAll(normalizedWaypoints)
         val refreshedBasicData = sessionWaypoints[currentIndex].basicData
+        currentFormData.clear()
         currentFormData.putAll(refreshedBasicData)
         preservePhotoMetadataForPresentPhotos(currentFormData, refreshedBasicData)
         logPhotoImgIdTrace("syncSessionDraftNow.refreshedCurrentFormData", currentFormData)

@@ -2,8 +2,8 @@ task:
   id: feat-0917
   type: feature
 
-phase: plan_review
-status: approved
+phase: verification
+status: validated
 
 knowledge_resolution:
   status: resolved
@@ -15,33 +15,37 @@ plan_review:
   status: approved
 
 implementation:
-  status: superseded_by_api_ui_revision
+  status: completed
 
 validation:
-  status: superseded_by_api_ui_revision
+  status: passed
+  evidence:
+    - ':app:compileDebugKotlin PASS'
+    - ':app:testDebugUnitTest PASS (86 tests)'
+    - ':app:assembleDebug PASS'
+    - ':app:compileDebugAndroidTestKotlin PASS'
+    - ':app:connectedDebugAndroidTest PASS (36 tests)'
 
 git:
   branch: feat/銜接點連結管自帶節點名
-  commit: ae48a82
-  status: committed
+  commit: pending
+  status: uncommitted_implementation_ready
 
 verification:
-  result: superseded_by_api_ui_revision
+  result: passed_with_limitations
   category: requirement
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
-    - AC-001
-    - AC-002
-    - AC-003
-    - AC-004
-    - AC-005
+  not_verified_acceptance_criteria: []
+  limitations:
+    - live_authenticated_api_capture_not_verified
+    - external_ci_not_verified
 
 ci:
-  build: pending
-  test: pending
+  build: not_verified
+  test: not_verified
 
 release:
   status: pending
 
 blocking: []
-next_action: implementation
+next_action: commit_implementation

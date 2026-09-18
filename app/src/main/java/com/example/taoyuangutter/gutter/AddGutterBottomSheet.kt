@@ -2199,6 +2199,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 put("NODE_DEP", nd.nodeDepAsString.ifEmpty { get("NODE_DEP") ?: "" })
                                 put("NODE_WID", nd.nodeWidAsString.ifEmpty { get("NODE_WID") ?: "" })
                                 put("IS_CANTOPEN", if (nd.isCantOpenAsBoolean) "1" else "0")
+                                put("IS_TIEINPOINT", if (nd.isTieInPointAsBoolean) "1" else "0")
+                                put("IS_CONNECTING", if (nd.isConnectingAsBoolean) "1" else "0")
                                 // 保留既有點位的待架站狀態（跟著點位資料走）；
                                 // 僅在舊資料完全沒有此欄位時，才回退使用 nodeDetails。
                                 val existingPending = get("IS_PENDING_DEPLOY")

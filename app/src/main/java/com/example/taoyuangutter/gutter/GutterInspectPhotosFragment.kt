@@ -201,6 +201,7 @@ class GutterInspectPhotosFragment : Fragment() {
             binding.layoutFields.addView(createFieldRow("側溝測量深度(公分)", normalizeDisplayValue(details?.nodeDepAsString)))
             binding.layoutFields.addView(createFieldRow("側溝材質", normalizeDisplayValue(mapMaterialType(details?.matTyp))))
             binding.layoutFields.addView(createFieldRow("淤積程度", normalizeDisplayValue(mapSilt(details?.isSilt))))
+            binding.layoutFields.addView(createFieldRow("連結管", normalizeDisplayValue(mapBoolean01(details?.isConnectingAsBoolean))))
             binding.layoutFields.addView(createFieldRow("溝體結構受損", normalizeDisplayValue(mapBoolean01(details?.isBroken == "1"))))
             binding.layoutFields.addView(createFieldRow("附掛或過路管線", normalizeDisplayValue(mapBoolean01(details?.isHanging == "1"))))
         }
@@ -432,18 +433,19 @@ class GutterInspectPhotosFragment : Fragment() {
         }
         val xyNum = details?.xyNum?.trim().orEmpty().takeIf { it.isNotEmpty() } ?: "---"
         val statusSuffix = buildPointStatusSuffix(details)
-        return "$baseLabel ($xyNum)$statusSuffix"
+        return "$baseLabel（$xyNum）$statusSuffix"
     }
 
     private fun buildPointStatusSuffix(details: NodeDetails?): String {
         if (details == null) return ""
         val suffixes = mutableListOf<String>()
-        if (details.isCantOpenAsBoolean) suffixes += "（無法開蓋）"
+        if (details.isCantOpenAsBoolean) suffixes += "(無法開蓋)"
+        if (details.isTieInPointAsBoolean) suffixes += "(銜接點)"
         if (details.isVirtual?.trim()?.lowercase() in setOf("1", "true", "t", "y", "yes")) {
-            suffixes += "（虛擬點）"
+            suffixes += "(虛擬點)"
         }
         if (details.isPendingDeploy?.trim()?.lowercase() in setOf("1", "true", "t", "y", "yes")) {
-            suffixes += "（待架站）"
+            suffixes += "(待架站)"
         }
         return suffixes.joinToString(separator = "")
     }

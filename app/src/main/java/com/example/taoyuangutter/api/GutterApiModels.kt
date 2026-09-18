@@ -348,10 +348,10 @@ data class NodeDetails(
      * 由於型別不穩定，先以 Any? 接住，使用 [isCantOpenAsBoolean] 取值。
      */
     @SerializedName("IS_CANTOPEN") val isCantOpen: Any?,
-    /** 銜接點：檢視／編輯 response 為 Boolean，缺值視為 false。 */
-    @SerializedName("is_connect_point") val isConnectPoint: Boolean? = null,
-    /** 連接管：檢視／編輯 response 為 Boolean，缺值視為 false。 */
-    @SerializedName("is_connect_pipe") val isConnectPipe: Boolean? = null,
+    /** 銜接點：nodeDetails response 為 String "0"/"1"，缺值視為 false。 */
+    @SerializedName("IS_TIEINPOINT") val isTieInPoint: String? = null,
+    /** 連結管：nodeDetails response 為 String "0"/"1"，缺值視為 false。 */
+    @SerializedName("IS_CONNECTING") val isConnecting: String? = null,
     /** 溝體結構受損：0=否 1=是 */
     @SerializedName("IS_BROKEN")  val isBroken: String?,
     /** 附掛或過路管線：0=無 1=有 */
@@ -427,6 +427,12 @@ data class NodeDetails(
             }
             else -> false
         }
+
+    val isTieInPointAsBoolean: Boolean
+        get() = !isCantOpenAsBoolean && isTieInPoint?.trim() == "1"
+
+    val isConnectingAsBoolean: Boolean
+        get() = isConnecting?.trim() == "1"
 }
 
 private fun normalizeNumericLikeValue(value: Any?): String {
@@ -517,10 +523,12 @@ data class StoreDitchNodeRequest(
     @SerializedName("XY_NUM")     val xyNum: String? = null,
     /** 待架站：0=false、1=true */
     @SerializedName("is_pendingDeploy") val isPendingDeploy: Int = 0,
-    /** 無法開蓋：0=false、1=true */
-    @SerializedName("IS_CANTOPEN") val isCantOpen: Int? = null,
-    @SerializedName("is_connect_point") val isConnectPoint: Int? = null,
-    @SerializedName("is_connect_pipe") val isConnectPipe: Int? = null,
+    /** 無法開蓋：非虛擬點固定送 Boolean；虛擬點為 null 並省略 */
+    @SerializedName("IS_CANTOPEN") val isCantOpen: Boolean? = null,
+    /** 銜接點：非虛擬點固定送 Boolean；虛擬點為 null 並省略 */
+    @SerializedName("IS_TIEINPOINT") val isTieInPoint: Boolean? = null,
+    /** 連結管：非虛擬點固定送 Boolean；虛擬點為 null 並省略 */
+    @SerializedName("IS_CONNECTING") val isConnecting: Boolean? = null,
     /** 是否為虛擬點：true/false */
     @SerializedName("is_virtual") val isVirtual: Boolean = false,
     /** 深度（公分） */

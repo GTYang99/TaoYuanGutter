@@ -49,31 +49,50 @@ class StoreDitchNodeRequestMapperTest {
     }
 
     @Test
-    fun newNodeOmitsXyNumAndSendsConnectionFlagsAsIntegers() {
+    fun newNodeOmitsXyNumAndSendsUppercaseConnectionFlagsAsBooleans() {
         val waypoint = waypoint(
-            "is_connect_point" to "1",
-            "is_connect_pipe" to "0"
+            "IS_TIEINPOINT" to "1",
+            "IS_CONNECTING" to "0"
         )
         val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, null, 1))
 
         assertFalse(json.contains("\"XY_NUM\""))
-        assertTrue(json.contains("\"is_connect_point\":1"))
-        assertTrue(json.contains("\"is_connect_pipe\":0"))
+        assertTrue(json.contains("\"IS_CANTOPEN\":false"))
+        assertTrue(json.contains("\"IS_TIEINPOINT\":true"))
+        assertTrue(json.contains("\"IS_CONNECTING\":false"))
+        assertFalse(json.contains("is_connect_point"))
+        assertFalse(json.contains("is_connect_pipe"))
+    }
+
+    @Test
+    fun cantOpenWinsOverTieInPointInRequestPayload() {
+        val waypoint = waypoint(
+            "IS_CANTOPEN" to "1",
+            "IS_TIEINPOINT" to "1",
+            "IS_CONNECTING" to "1"
+        )
+        val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, null, 1))
+
+        assertTrue(json.contains("\"IS_CANTOPEN\":true"))
+        assertTrue(json.contains("\"IS_TIEINPOINT\":false"))
+        assertTrue(json.contains("\"IS_CONNECTING\":true"))
     }
 
     @Test
     fun virtualNodeOmitsCantOpenAndConnectionFlags() {
         val waypoint = waypoint(
             "IS_CANTOPEN" to "1",
-            "is_connect_point" to "1",
-            "is_connect_pipe" to "1",
+            "IS_TIEINPOINT" to "1",
+            "IS_CONNECTING" to "1",
             "is_virtual" to "1"
         )
         val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, null, 1))
 
         assertFalse(json.contains("\"IS_CANTOPEN\""))
-        assertFalse(json.contains("\"is_connect_point\""))
-        assertFalse(json.contains("\"is_connect_pipe\""))
+        assertFalse(json.contains("\"IS_TIEINPOINT\""))
+        assertFalse(json.contains("\"IS_CONNECTING\""))
+        assertFalse(json.contains("is_connect_point"))
+        assertFalse(json.contains("is_connect_pipe"))
     }
 
     @Test

@@ -6,10 +6,43 @@ import com.example.taoyuangutter.gutter.WaypointType
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class StoreDitchResponseParsingTest {
+    @Test
+    fun parsesNodeDetailsUppercaseConnectionStringsAndNormalizesCantOpenPriority() {
+        val response = Gson().fromJson(
+            """
+            {
+              "success": true,
+              "message": "OK",
+              "data": [
+                {"node_id": 1, "IS_CANTOPEN": "0", "IS_TIEINPOINT": "1", "IS_CONNECTING": "1"},
+                {"node_id": 2, "IS_CANTOPEN": "1", "IS_TIEINPOINT": "1", "IS_CONNECTING": "0"},
+                {"node_id": 3, "IS_CANTOPEN": "0"}
+              ]
+            }
+            """.trimIndent(),
+            NodeDetailsResponse::class.java
+        )
+
+        val normal = response.data!![0]
+        assertTrue(normal.isTieInPointAsBoolean)
+        assertTrue(normal.isConnectingAsBoolean)
+
+        val cantOpenWins = response.data!![1]
+        assertTrue(cantOpenWins.isCantOpenAsBoolean)
+        assertFalse(cantOpenWins.isTieInPointAsBoolean)
+        assertFalse(cantOpenWins.isConnectingAsBoolean)
+
+        val missingDefaults = response.data!![2]
+        assertFalse(missingDefaults.isTieInPointAsBoolean)
+        assertFalse(missingDefaults.isConnectingAsBoolean)
+    }
+
     @Test
     fun parsesGeneratedXyNumbersAndConnectionFlagsFromStoreResponse() {
         val response = Gson().fromJson(

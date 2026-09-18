@@ -156,8 +156,8 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_DATA_IS_HANGING  = "d_is_hanging"
         private const val ARG_DATA_IS_SILT     = "d_is_silt"
         private const val ARG_DATA_IS_CANTOPEN = "d_is_cantopen"
-        private const val ARG_DATA_IS_CONNECT_POINT = "d_is_connect_point"
-        private const val ARG_DATA_IS_CONNECT_PIPE = "d_is_connect_pipe"
+        private const val ARG_DATA_IS_CONNECT_POINT = "d_is_tieinpoint"
+        private const val ARG_DATA_IS_CONNECT_PIPE = "d_is_connecting"
         private const val ARG_DATA_NODE_NOTE   = "d_node_note"
         private const val ARG_DATA_IS_PENDING_DEPLOY = "d_is_pending_deploy"
         private const val ARG_DATA_IS_VIRTUAL  = "d_is_virtual" // 新增：虛擬點欄位
@@ -248,8 +248,8 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_DATA_IS_HANGING,  basicData["IS_HANGING"]  ?: basicData["isHanging"] ?: "")
                 putString(ARG_DATA_IS_SILT,     basicData["IS_SILT"]     ?: basicData["isSilt"] ?: "")
                 putString(ARG_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: basicData["isCantOpen"] ?: "")
-                putString(ARG_DATA_IS_CONNECT_POINT, basicData["is_connect_point"] ?: "")
-                putString(ARG_DATA_IS_CONNECT_PIPE, basicData["is_connect_pipe"] ?: "0")
+                putString(ARG_DATA_IS_CONNECT_POINT, basicData["IS_TIEINPOINT"] ?: "0")
+                putString(ARG_DATA_IS_CONNECT_PIPE, basicData["IS_CONNECTING"] ?: "0")
                 putString(ARG_DATA_NODE_NOTE,   basicData["NODE_NOTE"]   ?: basicData["remarks"] ?: "")
                 putString(ARG_PHOTO_1, basicData["photo1"] ?: "")
                 putString(ARG_PHOTO_2, basicData["photo2"] ?: "")
@@ -669,6 +669,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.cbConnectPoint.isChecked = parseLooseBoolean(isConnectPoint) && !cantOpenBool
             binding.rgConnectPipe.check(if (parseLooseBoolean(isConnectPipe)) R.id.rbConnectPipe1 else R.id.rbConnectPipe0)
             applyCantOpenUi(cantOpenBool)
+            applyConnectionMutualExclusionUi()
 
             binding.etRemarks.setText(nodeNote)
             if (nodeX.isEmpty() && nodeY.isEmpty()) prefillCoordinates()
@@ -713,9 +714,6 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     private fun setupConnectPointAndPipe() {
-        val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
-        binding.cbConnectPoint.isEnabled = !isViewMode && isFormEditable && !isImportLocked
-        binding.rgConnectPipe.setChildrenEnabled(!isViewMode && isFormEditable && !isImportLocked)
         binding.cbConnectPoint.setOnCheckedChangeListener { _, checked ->
             if (checked && binding.cbCantOpen.isChecked) {
                 binding.cbCantOpen.setOnCheckedChangeListener(null)
@@ -723,8 +721,26 @@ class GutterBasicInfoFragment : Fragment() {
                 binding.cbCantOpen.setOnCheckedChangeListener(this::onCantOpenToggleChanged)
                 applyCantOpenUi(false)
             }
+            applyConnectionMutualExclusionUi()
             notifyDraftChanged()
         }
+        applyConnectionMutualExclusionUi()
+    }
+
+    private fun applyConnectionMutualExclusionUi() {
+        if (_binding == null) return
+        val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
+        val baseEnabled = !isViewMode && isFormEditable && !isImportLocked && !isVirtualMode
+        val cantOpenChecked = binding.cbCantOpen.isChecked
+        val tieInChecked = binding.cbConnectPoint.isChecked
+
+        binding.cbCantOpen.isEnabled = baseEnabled && !tieInChecked
+        binding.cbConnectPoint.isEnabled = baseEnabled && !cantOpenChecked
+        binding.rgConnectPipe.setChildrenEnabled(baseEnabled)
+
+        binding.cbCantOpen.alpha = if (binding.cbCantOpen.isEnabled || cantOpenChecked) 1f else 0.5f
+        binding.cbConnectPoint.alpha = if (binding.cbConnectPoint.isEnabled || tieInChecked) 1f else 0.5f
+        binding.layoutConnectPipe.alpha = if (baseEnabled || !isVirtualMode) 1f else 0.5f
     }
 
     private fun onCantOpenToggleChanged(button: CompoundButton, checked: Boolean) {
@@ -738,9 +754,11 @@ class GutterBasicInfoFragment : Fragment() {
                         binding.cbCantOpen.isChecked = false
                         binding.cbCantOpen.setOnCheckedChangeListener(this::onCantOpenToggleChanged)
                     }
+                    applyConnectionMutualExclusionUi()
                     notifyDraftChanged()
                 }
             }
+            applyConnectionMutualExclusionUi()
             if (!button.isPressed) return
             button.isChecked = false
             if (!hasCantOpenContentToClear()) {
@@ -825,6 +843,7 @@ class GutterBasicInfoFragment : Fragment() {
         // 若整個表單不可編輯（檢視模式）或處於匯入鎖定狀態，一律禁用
         if (!isFormEditable || isImportLocked) {
             setCantOpenFieldsEnabled(false)
+            applyConnectionMutualExclusionUi()
             updateRequiredIndicators()
             return
         }
@@ -848,7 +867,7 @@ class GutterBasicInfoFragment : Fragment() {
             "applyCantOpenUi isCantOpen=$isCantOpen isUOpen=$isUOpen enableFields=$enableFields"
         )
 
-        binding.cbCantOpen.isEnabled = true
+        applyConnectionMutualExclusionUi()
         updateRequiredIndicators()
     }
 
@@ -1028,9 +1047,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.chipGroupRemarksPresets
         ).forEach { it.alpha = alpha }
 
-        binding.cbCantOpen.isEnabled = actualEnabled && !isVirtualMode
-        binding.cbConnectPoint.isEnabled = actualEnabled && !isVirtualMode
-        binding.rgConnectPipe.setChildrenEnabled(actualEnabled && !isVirtualMode)
+        applyConnectionMutualExclusionUi()
         binding.chipGroupRemarksPresets.isEnabled = actualEnabled
         for (index in 0 until binding.chipGroupRemarksPresets.childCount) {
             binding.chipGroupRemarksPresets.getChildAt(index).isEnabled = actualEnabled
@@ -1226,7 +1243,6 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsSilt,
             binding.rgConnectPipe
         ).forEach { it.setOnCheckedChangeListener(radioListener) }
-        binding.cbConnectPoint.setOnCheckedChangeListener { _, _ -> notifyDraftChanged() }
     }
 
     /** 收集表單資料（供 GutterFormActivity 提交用） */
@@ -1254,10 +1270,10 @@ class GutterBasicInfoFragment : Fragment() {
             "IS_BROKEN"   to brokenTextToCode(binding.rgIsBroken.getCheckedText()),
             "IS_HANGING"  to hangingTextToCode(binding.rgIsHanging.getCheckedText()),
             "IS_SILT"     to siltTextToCode(binding.rgIsSilt.getCheckedText()),
-            // 以 "1"/"" 形式存入 basicData（送出 API 時再轉為 JSON boolean）
-            "IS_CANTOPEN" to (if (binding.cbCantOpen.isChecked) "1" else ""),
-            "is_connect_point" to (if (binding.cbConnectPoint.isChecked) "1" else "0"),
-            "is_connect_pipe" to (if (binding.rgConnectPipe.checkedRadioButtonId == R.id.rbConnectPipe1) "1" else "0"),
+            // 以 "1"/"0" 形式存入 basicData（送出 API 時再轉為 JSON boolean）
+            "IS_CANTOPEN" to (if (binding.cbCantOpen.isChecked) "1" else "0"),
+            "IS_TIEINPOINT" to (if (binding.cbConnectPoint.isChecked && !binding.cbCantOpen.isChecked) "1" else "0"),
+            "IS_CONNECTING" to (if (binding.rgConnectPipe.checkedRadioButtonId == R.id.rbConnectPipe1) "1" else "0"),
             "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: ""),
             "photo1" to (photoUriSlot1?.toString() ?: ""),
             "photo2" to (photoUriSlot2?.toString() ?: ""),
@@ -1337,6 +1353,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.cbConnectPoint.isChecked = false
             binding.rgConnectPipe.check(R.id.rbConnectPipe0)
         }
+        applyConnectionMutualExclusionUi()
         updateRequiredIndicators()
         notifyDraftChanged()
     }
@@ -1387,11 +1404,11 @@ class GutterBasicInfoFragment : Fragment() {
             // 淤積狀態（API key 為 IS_SILT，值為字串）
             val siltText = isSiltCodeToText(nodeDetails.isSilt)
             rgIsSilt.setCheckedByText(siltText)
-            rgConnectPipe.check(if (nodeDetails.isConnectPipe == true) R.id.rbConnectPipe1 else R.id.rbConnectPipe0)
+            rgConnectPipe.check(if (nodeDetails.isConnectingAsBoolean) R.id.rbConnectPipe1 else R.id.rbConnectPipe0)
 
             // 無法開蓋狀態（使用 isCantOpenAsBoolean 方法處理型別轉換）
             cbCantOpen.isChecked = nodeDetails.isCantOpenAsBoolean
-            cbConnectPoint.isChecked = nodeDetails.isConnectPoint == true && !cbCantOpen.isChecked
+            cbConnectPoint.isChecked = nodeDetails.isTieInPointAsBoolean
 
             // 備註（API key 為 NOTE）
             etRemarks.setText(nodeDetails.note ?: "")
