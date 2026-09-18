@@ -260,15 +260,13 @@ phase: debug
 category: implementation_regression
 priority: P2
 title: Imported photo flow can start a zero-work upload progress overlay
-status: resolved
+status: open
 impact: After importing a point whose photos already have server img_id values, the app can briefly show photo upload progress with zero completions before closing it.
 evidence:
   - The prior early-state change was withdrawn in commit 14f6c78: it did not establish why the zero-work overlay appeared and was not an accepted fix.
   - countPendingPhotoUploads starts the overlay after checking usable paths and local success/img_id state only.
   - ensureWaypointPhotosUploadedBeforeSubmit then applies further exclusion rules for PhotoSlotUploadCoordinator.completedFor and isUploading/awaitCompletion; each can skip the repository upload after the overlay total has been chosen.
   - That count/execute mismatch directly produces the observed overlay state: started at 0/X, no onPendingPhotoUploadProgress callback, then immediately finished.
-  - Fixed by resolving coordinator results before the overlay is created, then using the same final candidate list for both overlay count and repository uploads.
-  - PendingPhotoUploadCandidatePlannerTest covers imported/server-owned and coordinator-resolved slots as zero candidates, and a new photo as one candidate.
-next_action: verification
+next_action: implementation_debug
 owner: developer
 ```

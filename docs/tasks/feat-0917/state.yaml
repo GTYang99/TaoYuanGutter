@@ -2,8 +2,8 @@ task:
   id: feat-0917
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: resolved
@@ -16,13 +16,11 @@ plan_review:
 
 implementation:
   status: completed
-  mode: debug_fix
+  mode: debug_fix_reverted
 
 validation:
   status: completed
   evidence:
-    - ':app:compileDebugKotlin PASS'
-    - ':app:testDebugUnitTest --tests PendingPhotoUploadCandidatePlannerTest --tests PhotoUploadCandidateResolverTest PASS'
     - ':app:compileDebugKotlin PASS'
     - ':app:testDebugUnitTest PASS (86 tests)'
     - ':app:assembleDebug PASS'
@@ -70,4 +68,4 @@ release:
 blocking:
   - Physical authenticated acceptance flows were not executed.
   - External CI results are unavailable.
-next_action: verification
+next_action: implementation_debug

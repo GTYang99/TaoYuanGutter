@@ -51,17 +51,3 @@
 
 - Reverted the earlier ISS-014 implementation in `14f6c78`. It only moved when import success state was written and did not eliminate the mismatch between progress counting and actual upload eligibility.
 - No validation result is claimed for the withdrawn implementation. ISS-014 is reopened for the revised, single-candidate-source fix plan.
-
-## ISS-014 Candidate-Source Fix
-
-- Replaced the independent progress count with one `PendingPhotoUploadCandidatePlanner` result.
-- Before creating the progress overlay, reconciles completed or in-flight single-photo coordinator uploads into the waypoint state; server-owned/imported photos with `img_id` remain excluded.
-- The same final candidates are the only entries submitted by the batch loop, so an empty set cannot open a `0/X` progress overlay.
-
-| Check | Result |
-|---|---|
-| `:app:testDebugUnitTest --tests PendingPhotoUploadCandidatePlannerTest --tests PhotoUploadCandidateResolverTest` | PASS |
-| `:app:compileDebugKotlin` | PASS |
-
-- Physical-device validation is `NOT VERIFIED` per the user's prior direction.
-- Implementation commit: `d5dfd3f` (`fix(feat-0917): align pending photo upload candidates`).
