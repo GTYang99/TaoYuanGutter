@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: validated
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -18,7 +18,7 @@ implementation:
   status: completed
 
 validation:
-  status: passed
+  status: completed
   evidence:
     - ':app:compileDebugKotlin PASS'
     - ':app:testDebugUnitTest PASS (86 tests)'
@@ -32,11 +32,17 @@ git:
   status: committed
 
 verification:
-  result: passed_with_limitations
-  category: requirement
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-003
+    - AC-004
+    - AC-005
   limitations:
+    - physical_authenticated_end_to_end_flows_not_executed_per_user_direction
     - live_authenticated_api_capture_not_verified
     - external_ci_not_verified
 
@@ -47,5 +53,7 @@ ci:
 release:
   status: pending
 
-blocking: []
-next_action: commit_implementation
+blocking:
+  - Physical authenticated acceptance flows were not executed.
+  - External CI results are unavailable.
+next_action: verification
