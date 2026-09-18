@@ -15,13 +15,18 @@ the response contains a category-1 URL but no `id`/`img_id`. The current
 `handleImportedNodeDetails()` then calls `updatePhotoUploadState()` with the
 download result as `success` and the absent ID as `null`.
 
-Therefore the current behavior for this real response is: download locally,
-do not re-upload, and send no image ID in `storeDitch`. This matches the
-approved existing-point contract recorded in `docs/tasks/feat-0911-1/`: an
-unchanged downloaded photo must not call `nodeImage`, and existing-point
-`storeDitch` must not carry unchanged photo metadata. It is not accurately
-described as “an existing `img_id` prevents upload”; the `success` state is
-also an intentional server-backed guard for imported photos without an ID.
+The newly supplied `storeDitch` response changes the evidence assessment:
+`data.nodes[].url[].id` is the server image ID (`id=12339` is the same value
+conceptually referred to as `img_id`). The client already parses and persists
+this ID after a successful `storeDitch` through
+`StoreDitchResponseWaypointMapper`.
+
+Therefore the previous conclusion that the server response lacks an image ID
+was too broad. It was only true for the earlier `nodeDetails` fixture used in
+the import investigation. The correct question is now whether the import
+query endpoint (`nodeDetails` / `closestNodeDetails`) returns the same ID and
+whether that value survives the handoff into `GutterFormActivity`; the
+`storeDitch` response mapping itself is already correct.
 
 ### Affected files
 
@@ -32,12 +37,10 @@ also an intentional server-backed guard for imported photos without an ID.
 
 ### Regression risk
 
-No production fix is indicated for the unchanged-import path. The required
-distinction is already implemented: imported/downloaded success is skipped;
-replacement capture clears the old metadata, uploads the new local photo, and
-the returned new ID is mapped into the existing-node `storeDitch` update.
-Further backend capture is useful integration evidence but is not needed to
-resolve whether unchanged imported photos should be re-uploaded.
+No production fix should be selected until the import endpoint response is
+captured. The save-response path already maps `url[].id` by file category;
+the next evidence boundary is the actual `nodeDetails` / `closestNodeDetails`
+payload and the imported `NodeDetails.nodeImg[].id` value.
 
 ## Issue 2: `0910刪除資料` is on by default
 

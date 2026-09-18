@@ -2,8 +2,8 @@ task:
   id: debug-0918
   type: debug
 
-phase: verification
-status: verification_in_progress
+phase: investigation
+status: investigation_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -12,8 +12,8 @@ planning:
   status: completed
 
 debug:
-  status: completed
-  root_cause: identified
+  status: investigating
+  root_cause: response_shape_boundary_under_review
   issues:
     - ISS-DBG-0918-001
     - ISS-DBG-0918-002
@@ -24,7 +24,7 @@ implementation:
   changes:
     - deleted_area_layer_default_off
     - existing_waypoint_title_full_row_centering
-  photo_flow: unchanged_intended_behavior
+  photo_flow: unchanged_pending_import_endpoint_capture
 
 validation:
   status: completed
@@ -50,4 +50,4 @@ release:
 blocking:
   - Physical UI verification and CI evidence are not available.
 
-next_action: verification
+next_action: investigation

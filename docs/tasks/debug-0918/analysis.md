@@ -88,10 +88,36 @@ centered in the remaining space rather than in the full title row.
 - A title-row layout fix must keep the back and location controls clickable
   without changing their hit targets.
 
-## Unknowns
+## New API evidence: `storeDitch` response
 
-- The exact backend response semantics for omitted `img_ids` are not captured
-  in this repository, but the approved task contract explicitly requires
-  unchanged existing photos to omit both `nodeImage` and existing-photo
-  metadata. This is sufficient to classify the current behavior; a backend
-  smoke capture would only provide additional integration evidence.
+The user-provided response for `POST /api/v1/ditch/storeDitch` contains the
+authoritative server image IDs under:
+
+`data.nodes[].url[].id`
+
+For example, node `10979`, `fileCategory=1`, has `id=12339`. In this response
+shape, `id` is the same server image identifier referred to elsewhere as
+`img_id`.
+
+The current client already parses this shape through `DitchDetails.nodes` →
+`DitchNode.url` → `NodeImageUrl.id`. `StoreDitchResponseWaypointMapper` then
+maps each `url[].id` by `fileCategory` into `photo1ImgId` / `photo2ImgId` /
+`photo3ImgId`. The mapping is exercised by
+`StoreDitchResponseParsingTest` and `StoreDitchResponseWaypointMapperTest`.
+
+The remaining distinction is flow ownership: this mapper runs after a
+successful `storeDitch` save in the map hosts. The existing-point import picker
+itself queries `nodeDetails` / `closestNodeDetails`, whose model uses
+`NodeDetails.nodeImg`. If that endpoint returns the same image ID, it is
+already accepted as `NodeImg.id`; if it omits the ID, the import flow cannot
+invent it from the URL. The supplied `storeDitch` response proves that the
+server does provide the ID in the save response and that the save-response
+mapping is not the root cause.
+
+## Updated conclusion
+
+The correct root-cause boundary is an API response-shape / flow distinction,
+not a claim that the server has no image ID. `storeDitch` response IDs are
+available and mapped. Any remaining import issue must be checked at the
+`nodeDetails` / `closestNodeDetails` response used by the picker, or at the
+handoff from that response into `GutterFormActivity`.
