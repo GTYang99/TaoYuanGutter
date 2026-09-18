@@ -1,0 +1,48 @@
+task:
+  id: refactor-0918
+  type: refactor
+
+phase: verification
+status: verification_not_verified
+
+knowledge_resolution:
+  status: completed
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed_with_device_limitation
+  unit_test: passed
+  build: passed
+  physical_device: partial_ac004_all_network_failure
+
+git:
+  branch: codex/refactor-wms-layer-link-0918
+  commit: 9b6ff35
+  status: committed
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-004
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking:
+  - WMTS-only tile failure injection is unavailable; the physical-device attempt could only block all app network traffic
+  - User requested AC-004 verification be deferred; retain NOT VERIFIED
+next_action: infrastructure

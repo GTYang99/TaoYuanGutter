@@ -1602,11 +1602,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         // 本次計畫調查 (roadServey) - 這裡由 showPossibleOverlay 控制，與 MainActivity 邏輯一致
         if (showPossibleOverlay) {
             if (planWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
-                    layers = "roadServey",
-                    styles = "",
-                    format = "image/png"
+                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
+                    com.example.taoyuangutter.map.BackgroundWmtsLayer.ROAD_SURVEY
                 )
                 planWmsOverlay = map.addTileOverlay(
                     com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(0f)
@@ -1617,11 +1614,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         // 水務局舊資料 (legacyDitch)
         if (showWaterOldOverlay) {
             if (waterOldWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
-                    layers = "legacyDitch",
-                    styles = "TY_RSGDBIP_水務局既有資料",
-                    format = "image/png8"
+                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
+                    com.example.taoyuangutter.map.BackgroundWmtsLayer.LEGACY_DITCH
                 )
                 waterOldWmsOverlay = map.addTileOverlay(
                     com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(0.1f)
@@ -1632,11 +1626,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         // 桃園行政區 (regions)
         if (showRegionOverlay) {
             if (regionWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
-                    layers = "regions",
-                    styles = "TY_RSGDBIP_桃園行政區",
-                    format = "image/png8"
+                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
+                    com.example.taoyuangutter.map.BackgroundWmtsLayer.REGIONS
                 )
                 regionWmsOverlay = map.addTileOverlay(
                     com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(-0.5f)

@@ -127,12 +127,7 @@ class MapOverlayController(
 
         if (showPossibleOverlay) {
             if (planWmsOverlay == null) {
-                val provider = Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
-                    layers = "roadServey",
-                    styles = "",
-                    format = "image/png"
-                )
+                val provider = Wmts3857TileProvider(BackgroundWmtsLayer.ROAD_SURVEY)
                 planWmsOverlay = map.addTileOverlay(
                     TileOverlayOptions().tileProvider(provider).zIndex(0f).transparency(0f)
                 )
@@ -144,12 +139,7 @@ class MapOverlayController(
 
         if (showWaterOldOverlay) {
             if (waterOldWmsOverlay == null) {
-                val provider = Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
-                    layers = "legacyDitch",
-                    styles = "TY_RSGDBIP_水務局既有資料",
-                    format = "image/png8"
-                )
+                val provider = Wmts3857TileProvider(BackgroundWmtsLayer.LEGACY_DITCH)
                 waterOldWmsOverlay = map.addTileOverlay(
                     TileOverlayOptions().tileProvider(provider).zIndex(0.1f).transparency(0f)
                 )
@@ -161,12 +151,7 @@ class MapOverlayController(
 
         if (showRegionOverlay) {
             if (regionWmsOverlay == null) {
-                val provider = Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
-                    layers = "regions",
-                    styles = "TY_RSGDBIP_桃園行政區",
-                    format = "image/png8"
-                )
+                val provider = Wmts3857TileProvider(BackgroundWmtsLayer.REGIONS)
                 regionWmsOverlay = map.addTileOverlay(
                     TileOverlayOptions().tileProvider(provider).zIndex(-0.5f).transparency(0f)
                 )
