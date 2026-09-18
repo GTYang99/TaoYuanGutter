@@ -2,8 +2,8 @@ task:
   id: feat-0917
   type: feature
 
-phase: verification
-status: verification_not_verified
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: resolved
@@ -46,6 +46,13 @@ verification:
     - live_authenticated_api_capture_not_verified
     - external_ci_not_verified
 
+debug:
+  status: completed
+  root_cause: identified
+  issues:
+    - ISS-011
+    - ISS-012
+
 ci:
   build: not_verified
   test: not_verified
@@ -56,4 +63,4 @@ release:
 blocking:
   - Physical authenticated acceptance flows were not executed.
   - External CI results are unavailable.
-next_action: verification
+next_action: implementation_debug

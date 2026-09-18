@@ -191,3 +191,40 @@ evidence:
 next_action: implementation
 owner: planning
 ```
+
+## ISS-011
+
+```yaml
+issue_id: ISS-011
+task_id: feat-0917
+phase: debug
+category: implementation_regression
+priority: P2
+title: Add-gutter waypoint list incorrectly shows the tie-in-point suffix
+status: open
+impact: While filling a new gutter, the waypoint list displays `(銜接點)`, although that suffix is required only for the inspection point selector.
+evidence:
+  - AddGutterBottomSheet creates and uses WaypointAdapter for its editable waypoint list.
+  - WaypointAdapter.buildDisplayLabel unconditionally appends `(銜接點)` when IS_TIEINPOINT is true.
+  - GutterInspectPhotosFragment owns its own spinner labels through pointLabel/buildPointStatusSuffix, so removing the editable-list suffix will not remove the inspection suffix.
+next_action: implementation_debug
+owner: developer
+```
+
+## ISS-012
+
+```yaml
+issue_id: ISS-012
+task_id: feat-0917
+phase: debug
+category: implementation_regression
+priority: P2
+title: Inspection point detail fields are not rendered in the approved order
+status: open
+impact: The inspection page shows the connecting-pipe field before structural damage and hanging-pipe fields, contrary to the specified form order.
+evidence:
+  - GutterInspectPhotosFragment.renderFields dynamically appends: material, silt, connecting pipe, broken, hanging, then note.
+  - Required order is: material, broken, hanging, silt, connecting pipe, note.
+next_action: implementation_debug
+owner: developer
+```
