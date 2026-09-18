@@ -22,9 +22,10 @@ alignment in the existing-waypoint import sheet.
 
 `handleImportedNodeDetails()` resolves photo URLs by `fileCategory` 1, 2,
 and 3, then calls `downloadImageToLocalContentUri()` sequentially. The local
-URI is used to prefill the photo fields. In the same flow, each slot receives
-the corresponding `nodeDetails.nodeImg[].id` and `success` state through
-`updatePhotoUploadState()`.
+URI is used to prefill the photo fields. The only ID source in this flow is
+`nodeDetails.nodeImg[].id` (with the model's `img_id` compatibility alias).
+The later `storeDitch.data.nodes[].url[].id` response is not available at this
+point; it is produced only after the save request completes.
 
 The later upload gate uses `PhotoUploadSlotState.isAlreadyUploaded()`: a slot
 with a numeric `photo{slot}ImgId`, **or merely a `success` state**, is skipped.
@@ -110,14 +111,14 @@ successful `storeDitch` save in the map hosts. The existing-point import picker
 itself queries `nodeDetails` / `closestNodeDetails`, whose model uses
 `NodeDetails.nodeImg`. If that endpoint returns the same image ID, it is
 already accepted as `NodeImg.id`; if it omits the ID, the import flow cannot
-invent it from the URL. Before this fix, that omitted ID could overwrite the
-already-known form-state ID during the later refresh/import handoff. The fix
-now keeps the existing ID in that case, while a newly returned response ID
-takes precedence.
+invent it from the URL. The previous fix only protects IDs already present in
+form state; it cannot obtain the first ID from a later `storeDitch` response.
 
 ## Updated conclusion
 
 The correct root-cause boundary is an API response-shape / flow distinction,
 not a claim that the server has no image ID. `storeDitch` response IDs are
-available and mapped. The import handoff must preserve that ID when a later
-detail response contains only the URL/category fields.
+available and mapped, but they are temporally too late for direct import. The
+failing import must be checked against its actual `nodeDetails` /
+`closestNodeDetails` payload. If it contains no ID, backend/API contract
+support is required before the client can reliably avoid re-uploading.

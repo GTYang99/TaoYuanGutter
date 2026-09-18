@@ -17,18 +17,26 @@ download result as `success` and the absent ID as `null`.
 
 The newly supplied `storeDitch` response changes the evidence assessment:
 `data.nodes[].url[].id` is the server image ID (`id=12339` is the same value
-conceptually referred to as `img_id`). The client already parses and persists
-this ID after a successful `storeDitch` through
-`StoreDitchResponseWaypointMapper`.
+conceptually referred to as `img_id`). The client parses this ID after a
+successful `storeDitch` through `StoreDitchResponseWaypointMapper`, but that
+callback happens after the form's photo-upload phase. It cannot populate a
+direct-import form retroactively before that form decides whether to call
+`nodeImage`.
 
 Therefore the previous conclusion that the server response lacks an image ID
 was too broad. It was only true for the earlier `nodeDetails` fixture used in
-the import investigation. The concrete loss boundary is the subsequent
-`nodeDetails` / `closestNodeDetails` refresh and handoff: when that response
-omits `nodeImg[].id`, the import code must not replace an ID already obtained
-from `storeDitch` with `null`. The `storeDitch` response mapping itself is
-correct; the fix is to prefer a newly returned ID and otherwise retain the
-existing `photo{slot}ImgId`.
+the import investigation. The concrete loss boundary for direct import is
+the API contract: `GutterFormActivity.handleImportedNodeDetails()` reads only
+`NodeDetails.nodeImg[].id` (or its `img_id` alias). It does not receive the
+later `storeDitch.data.nodes[].url[].id`. If the import/detail response has
+only the photo URL, the app has no numeric ID to place in
+`photo{slot}ImgId`; the URL alone cannot be converted into `img_id`.
+
+For the inspect → edit flow, `GutterInspectActivity.preloadEditableWaypoints()`
+does have a fallback from `nodeDetails.nodeImg[].id` to
+`DitchDetails.nodes[].url[].id`. The supplied fixture proves that this path
+can work when the `url[].id` values are present in the `getDitchDetails`
+payload. It does not prove the direct import endpoint provides the same ID.
 
 ### Affected files
 
@@ -37,15 +45,17 @@ existing `photo{slot}ImgId`.
 - `app/src/main/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapper.kt`
 - `app/src/main/java/com/example/taoyuangutter/api/GutterApiModels.kt`
 - `app/src/main/java/com/example/taoyuangutter/common/PhotoImgIdResolver.kt`
+- `app/src/main/java/com/example/taoyuangutter/gutter/GutterInspectActivity.kt`
 
 ### Regression risk
 
-The production fix now protects the handoff even when the import endpoint
-omits the ID: a non-null ID from the refreshed response wins, otherwise the
-existing form-state ID is retained. A fully captured `nodeDetails` /
-`closestNodeDetails` payload would still be useful for endpoint-level
-verification, but it is no longer required to infer the save-response
-mapping.
+The previous production fix protects an ID that is already in form state, but
+it cannot create one when direct import receives only a URL. Endpoint-level
+verification still requires the actual `nodeDetails` /
+`closestNodeDetails` payload used by the failing import. If that payload omits
+the ID, the required fix is an API response-contract change or a separate
+server lookup that returns the image ID; changing only the client-side
+`storeDitch` mapper cannot solve that case.
 
 ## Issue 2: `0910刪除資料` is on by default
 

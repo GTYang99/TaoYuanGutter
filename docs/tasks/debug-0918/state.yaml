@@ -2,8 +2,8 @@ task:
   id: debug-0918
   type: debug
 
-phase: verification
-status: verification_in_progress
+phase: investigation
+status: investigation_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -12,8 +12,8 @@ planning:
   status: completed
 
 debug:
-  status: root_cause_confirmed
-  root_cause: storeDitch_id_lost_at_import_detail_handoff_when_response_id_missing
+  status: investigating
+  root_cause: direct_import_cannot_use_post_save_storeDitch_id; import_endpoint_id_contract_unverified
   issues:
     - ISS-DBG-0918-001
     - ISS-DBG-0918-002
@@ -25,7 +25,7 @@ implementation:
     - deleted_area_layer_default_off
     - existing_waypoint_title_full_row_centering
     - photo_img_id_preservation_fallback
-  photo_flow: storeDitch_url_id_mapped_and_preserved
+  photo_flow: storeDitch_url_id_mapped; direct_import_source_contract_unverified
 
 validation:
   status: completed
@@ -39,7 +39,7 @@ git:
   status: committed
 
 verification:
-  result: pending_independent_verification
+  result: pending_import_endpoint_payload_and_runtime_trace
 
 ci:
   build: pending
@@ -51,4 +51,4 @@ release:
 blocking:
   - Physical UI verification and CI evidence are not available.
 
-next_action: verification
+next_action: investigation
