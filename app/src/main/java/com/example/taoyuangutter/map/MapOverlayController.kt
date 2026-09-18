@@ -18,7 +18,7 @@ class MapOverlayController(
         val showPossible: Boolean,
         val showRegion: Boolean,
         val showNoDitchPoints: Boolean,
-        val showDeletedArea: Boolean = true
+        val showDeletedArea: Boolean = false
     )
 
     private var currentTileOverlay: TileOverlay? = null
@@ -36,7 +36,7 @@ class MapOverlayController(
     private var showPossibleOverlay = true
     private var showRegionOverlay = true
     private var showNoDitchPointsOverlay = false
-    private var showDeletedAreaOverlay = true
+    private var showDeletedAreaOverlay = false
 
     fun currentLayer(): String = currentLayer
 

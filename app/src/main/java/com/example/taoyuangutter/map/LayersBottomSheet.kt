@@ -47,7 +47,7 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
         val showPossible = arguments?.getBoolean(ARG_SHOW_POSSIBLE, true) ?: true
         val showRegion = arguments?.getBoolean(ARG_SHOW_REGION, true) ?: true
         val showNoDitchPoints = arguments?.getBoolean(ARG_SHOW_NO_DITCH_POINTS, false) ?: false
-        val showDeletedArea = arguments?.getBoolean(ARG_SHOW_DELETED_AREA, true) ?: true
+        val showDeletedArea = arguments?.getBoolean(ARG_SHOW_DELETED_AREA, false) ?: false
         updateBasemapUi(selected)
 
         // Fill layer codes
@@ -153,7 +153,7 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
             showPossible: Boolean = true,
             showRegion: Boolean = true,
             showNoDitchPoints: Boolean = false,
-            showDeletedArea: Boolean = true
+            showDeletedArea: Boolean = false
         ): LayersBottomSheet =
             LayersBottomSheet().apply {
                 arguments = Bundle().apply {

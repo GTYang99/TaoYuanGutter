@@ -11,29 +11,17 @@
     <!-- Drag handle -->
 
     <!-- Header -->
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="56dp"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
         android:paddingStart="8dp"
         android:paddingEnd="8dp">
 
-        <ImageButton
-            android:id="@+id/btnClose"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="返回"
-            android:padding="12dp"
-            android:src="@drawable/ic_arrow_back"
-            android:tint="@color/colorPrimary" />
-
         <TextView
             android:id="@+id/tvTitle"
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
+            android:layout_gravity="center"
             android:gravity="center"
             android:text="@string/title_existing_waypoint"
             android:textColor="@color/colorPrimary"
@@ -41,16 +29,28 @@
             android:textStyle="bold" />
 
         <ImageButton
+            android:id="@+id/btnClose"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="start|center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="返回"
+            android:padding="12dp"
+            android:src="@drawable/ic_arrow_back"
+            android:tint="@color/colorPrimary" />
+
+        <ImageButton
             android:id="@+id/btnMyLocation"
             android:layout_width="48dp"
             android:layout_height="48dp"
+            android:layout_gravity="end|center_vertical"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="現在位置"
             android:padding="12dp"
             android:src="@drawable/ic_my_location"
             android:tint="@color/colorPrimary"
             android:visibility="gone" />
-    </LinearLayout>
+    </FrameLayout>
 
     <!-- Capsule tabs -->
     <LinearLayout

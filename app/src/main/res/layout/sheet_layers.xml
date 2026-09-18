@@ -127,7 +127,7 @@
                 android:id="@+id/cbDeletedArea"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:checked="true"
+                android:checked="false"
                 android:buttonTint="@color/colorPrimary"
                 android:text="@string/layers_sheet_deleted_area"
                 android:textColor="@color/black"

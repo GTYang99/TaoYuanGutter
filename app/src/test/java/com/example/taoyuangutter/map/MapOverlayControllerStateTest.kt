@@ -6,10 +6,10 @@ import org.junit.Test
 
 class MapOverlayControllerStateTest {
     @Test
-    fun deletedAreaIsEnabledByDefault() {
+    fun deletedAreaIsDisabledByDefault() {
         val controller = MapOverlayController(mapProvider = { null })
 
-        assertTrue(controller.currentState().showDeletedArea)
+        assertFalse(controller.currentState().showDeletedArea)
     }
 
     @Test

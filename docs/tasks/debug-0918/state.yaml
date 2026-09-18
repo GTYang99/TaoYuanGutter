@@ -1,0 +1,53 @@
+task:
+  id: debug-0918
+  type: debug
+
+phase: verification
+status: verification_in_progress
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+debug:
+  status: completed
+  root_cause: identified
+  issues:
+    - ISS-DBG-0918-001
+    - ISS-DBG-0918-002
+    - ISS-DBG-0918-003
+
+implementation:
+  status: completed
+  changes:
+    - deleted_area_layer_default_off
+    - existing_waypoint_title_full_row_centering
+  photo_flow: unchanged_intended_behavior
+
+validation:
+  status: completed
+  unit_tests: passed
+  debug_build: passed
+  physical_device: not_verified
+
+git:
+  branch: "feat/銜接點連結管自帶節點名"
+  commit: f3e2ba0
+  status: committed
+
+verification:
+  result: pending
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking:
+  - Physical UI verification and CI evidence are not available.
+
+next_action: verification
