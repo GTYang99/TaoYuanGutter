@@ -50,3 +50,26 @@ The inspection renderer evaluates hanging with `details.isHanging == "1"`; conne
 
 - Normalize hanging/connecting response values at the NodeDetails boundary using one shared loose Boolean parser, while retaining canonical `"0"`/`"1"` behavior; confirm any required JSON aliases from captured response evidence.
 - Build one resolved pending-photo candidate list before showing the overlay, including server image IDs and coordinator-completed slots; use that same list for upload execution.
+
+# Root Cause: ISS-014 (revised after rollback)
+
+## Observed behavior
+
+When an imported point's photos already have server `img_id` values, submitting the gutter can briefly show `照片上傳中…已完成 0/X（失敗 0）` and then close without a photo upload result.
+
+## Cause
+
+`AddGutterBottomSheet.countPendingPhotoUploads()` chooses the overlay total using only the local photo path, unchanged-photo rule, and `PhotoUploadSlotState.isAlreadyUploaded()`.
+
+The later `ensureWaypointPhotosUploadedBeforeSubmit()` repeats those checks but also examines `PhotoSlotUploadCoordinator.completedFor()` and `PhotoSlotUploadCoordinator.isUploading()/awaitCompletion()`. A slot resolved by the coordinator is written with its server image ID and then skipped, but it has already been counted. The host therefore starts the overlay with X candidates; no `onPendingPhotoUploadProgress()` is emitted for coordinator-resolved slots; `finally` calls `onPendingPhotoUploadFinished()`. This is the exact 0/X flash.
+
+The failure is not a requirement to defer all uploads until the final gutter request. Server-owned imported photos must remain excluded by their `img_id`; the defect is that progress creation and actual upload eligibility use different candidate definitions.
+
+## Rejected change
+
+The previous change wrote imported image success state earlier in `GutterFormActivity`. It was reverted in `14f6c78` because it did not make the overlay and actual-upload decisions use the same source of truth, so it could not prove the observed 0/X condition was fixed.
+
+## Confidence and remaining evidence
+
+- Root-cause confidence: 97% for the zero-work overlay. The code path has a direct start-with-count / skip-without-progress / finish sequence matching the text exactly.
+- The repository cannot prove which imported slot first reaches the coordinator without a focused trace from the affected flow. Existing `PhotoImgIdTraceDebugger` logging at `countPending.slot*` and `ensurePhotos.slot*` can confirm the slot-level state during the next reproduction, but is not required to identify the mismatch.

@@ -263,10 +263,10 @@ title: Imported photo flow can start a zero-work upload progress overlay
 status: open
 impact: After importing a point whose photos already have server img_id values, the app can briefly show photo upload progress with zero completions before closing it.
 evidence:
-  - AddGutterBottomSheet.countPendingPhotoUploads decides whether to show the overlay from a snapshot of local path/state only.
-  - ensureWaypointPhotosUploadedBeforeSubmit has extra later skip conditions: already-uploaded state, completed PhotoSlotUploadCoordinator result, and in-flight coordinator completion.
-  - GutterFormActivity imports/downloads photo paths asynchronously, then writes img_id and success state; that update can occur after counting but before processing.
-  - A candidate can therefore start the overlay, become already uploaded before its processing turn, then be skipped; all skipped candidates produce the observed 0/X flash.
+  - The prior early-state change was withdrawn in commit 14f6c78: it did not establish why the zero-work overlay appeared and was not an accepted fix.
+  - countPendingPhotoUploads starts the overlay after checking usable paths and local success/img_id state only.
+  - ensureWaypointPhotosUploadedBeforeSubmit then applies further exclusion rules for PhotoSlotUploadCoordinator.completedFor and isUploading/awaitCompletion; each can skip the repository upload after the overlay total has been chosen.
+  - That count/execute mismatch directly produces the observed overlay state: started at 0/X, no onPendingPhotoUploadProgress callback, then immediately finished.
 next_action: implementation_debug
 owner: developer
 ```

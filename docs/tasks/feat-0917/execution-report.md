@@ -46,3 +46,8 @@
 
 - Physical-device testing was not run, per user direction.
 - Implementation commit: `b2ba985` (`fix(feat-0917): use absence wording in inspection`).
+
+## ISS-014 Rollback
+
+- Reverted the earlier ISS-014 implementation in `14f6c78`. It only moved when import success state was written and did not eliminate the mismatch between progress counting and actual upload eligibility.
+- No validation result is claimed for the withdrawn implementation. ISS-014 is reopened for the revised, single-candidate-source fix plan.
