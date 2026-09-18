@@ -2,6 +2,7 @@ package com.example.taoyuangutter.gutter
 
 import com.example.taoyuangutter.BuildConfig
 import com.example.taoyuangutter.R
+import android.content.Context
 import android.os.Bundle
 import android.text.Spannable
 import android.text.SpannableStringBuilder
@@ -1899,35 +1900,105 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             .show()
     }
 
-    private fun countPendingPhotoUploads(candidateWaypoints: List<Waypoint>): Int {
-        val ctx = context ?: return 0
-        var count = 0
+    private fun clearCantOpenPhotoUploadState(candidateWaypoints: List<Waypoint>) {
         candidateWaypoints.forEach { waypoint ->
-            if (waypoint.isVirtual) return@forEach
-            val isCantOpen = parseLooseBoolean(waypoint.basicData["IS_CANTOPEN"])
-            (1..3).forEach { slot ->
-                if (isCantOpen && slot in 2..3) return@forEach
-                if (isUnchangedPhotoSlot(slot, waypoint)) return@forEach
-                val photoPath = waypoint.basicData["photo$slot"]
-                val pendingPath = waypoint.basicData["_pending_photo_${slot}_path"]
-                val usable = PhotoUploadValidator.isUsableForUpload(ctx, photoPath)
-                PhotoImgIdTraceDebugger.logPhotoSubmitSourceState(
-                    owner = TAG,
-                    stage = "countPending.slot$slot",
-                    label = waypoint.label,
-                    slot = slot,
-                    photoValue = photoPath,
-                    pendingValue = pendingPath,
-                    usable = usable
-                )
-                if (!usable) return@forEach
-                if (PhotoUploadSlotState.isAlreadyUploaded(waypoint.basicData, slot)) {
-                    return@forEach
-                }
-                count++
+            if (!waypoint.isVirtual && parseLooseBoolean(waypoint.basicData["IS_CANTOPEN"])) {
+                PhotoUploadSlotState.clear(waypoint.basicData, 2)
+                PhotoUploadSlotState.clear(waypoint.basicData, 3)
             }
         }
-        return count
+    }
+
+    private fun pendingPhotoUploadCandidates(
+        candidateWaypoints: List<Waypoint>,
+        ctx: Context
+    ): List<PendingPhotoUploadCandidatePlanner.Candidate> =
+        PendingPhotoUploadCandidatePlanner.resolve(
+            waypoints = candidateWaypoints,
+            isUnchangedPhoto = { waypoint, slot -> isUnchangedPhotoSlot(slot, waypoint) },
+            isUsableForUpload = { path -> PhotoUploadValidator.isUsableForUpload(ctx, path) }
+        )
+
+    /**
+     * Reconciles uploads initiated by the single-photo form before batch
+     * progress is calculated. A resolved slot is never counted as new work.
+     */
+    private suspend fun resolveCoordinatorPhotoUploads(
+        candidateWaypoints: List<Waypoint>,
+        ctx: Context
+    ): Boolean {
+        val resolvedDraftId = draftId.takeIf { it > 0L } ?: return true
+        val initialCandidates = pendingPhotoUploadCandidates(candidateWaypoints, ctx)
+        initialCandidates.forEach { candidate ->
+            val waypoint = candidateWaypoints[candidate.waypointIndex]
+            val completed = PhotoSlotUploadCoordinator.completedFor(
+                resolvedDraftId,
+                candidate.waypointIndex,
+                candidate.slot,
+                candidate.photoPath
+            )
+            if (completed?.state == PhotoUploadSlotState.STATE_SUCCESS && completed.imgId != null) {
+                PhotoUploadSlotState.writeState(
+                    waypoint.basicData,
+                    candidate.slot,
+                    state = completed.state,
+                    imgId = completed.imgId,
+                    error = null
+                )
+                return@forEach
+            }
+            if (!PhotoSlotUploadCoordinator.isUploading(resolvedDraftId, candidate.waypointIndex, candidate.slot)) {
+                // The coordinator stores completion before removing its
+                // in-flight marker. Recheck after the marker is gone so a
+                // just-finished upload cannot become a batch candidate.
+                val justCompleted = PhotoSlotUploadCoordinator.completedFor(
+                    resolvedDraftId,
+                    candidate.waypointIndex,
+                    candidate.slot,
+                    candidate.photoPath
+                )
+                if (justCompleted?.state == PhotoUploadSlotState.STATE_SUCCESS && justCompleted.imgId != null) {
+                    PhotoUploadSlotState.writeState(
+                        waypoint.basicData,
+                        candidate.slot,
+                        state = justCompleted.state,
+                        imgId = justCompleted.imgId,
+                        error = null
+                    )
+                }
+                return@forEach
+            }
+
+            val awaited = PhotoSlotUploadCoordinator.awaitCompletion(
+                context = ctx,
+                draftId = resolvedDraftId,
+                waypointIndex = candidate.waypointIndex,
+                slot = candidate.slot
+            )
+            when (awaited?.state) {
+                PhotoUploadSlotState.STATE_SUCCESS -> if (awaited.imgId != null) {
+                    PhotoUploadSlotState.writeState(
+                        waypoint.basicData,
+                        candidate.slot,
+                        state = awaited.state,
+                        imgId = awaited.imgId,
+                        error = null
+                    )
+                } else return false
+                PhotoUploadSlotState.STATE_FAILED -> {
+                    PhotoUploadSlotState.writeState(
+                        waypoint.basicData,
+                        candidate.slot,
+                        state = awaited.state,
+                        imgId = null,
+                        error = awaited.error
+                    )
+                    return false
+                }
+                else -> return false
+            }
+        }
+        return true
     }
 
     private suspend fun ensureWaypointPhotosUploadedBeforeSubmit(
@@ -1939,101 +2010,28 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         val mutableWaypoints = candidateWaypoints.map { waypoint ->
             waypoint.copy(basicData = HashMap(waypoint.basicData))
         }.toMutableList()
-        val pendingCount = countPendingPhotoUploads(mutableWaypoints)
+        clearCantOpenPhotoUploadState(mutableWaypoints)
+        if (!resolveCoordinatorPhotoUploads(mutableWaypoints, ctx)) return false
+        val uploadCandidates = pendingPhotoUploadCandidates(mutableWaypoints, ctx)
 
-        if (pendingCount > 0) {
+        if (uploadCandidates.isNotEmpty()) {
             hideSelf()
-            host?.onPendingPhotoUploadStarted(pendingCount)
+            host?.onPendingPhotoUploadStarted(uploadCandidates.size)
         }
 
         try {
-            mutableWaypoints.forEachIndexed { index, waypoint ->
-                if (waypoint.isVirtual) return@forEachIndexed
-                val isCantOpen = parseLooseBoolean(waypoint.basicData["IS_CANTOPEN"])
-                (1..3).forEach { slot ->
-                    if (isCantOpen && slot in 2..3) {
-                        PhotoUploadSlotState.clear(waypoint.basicData, slot)
-                        return@forEach
-                    }
-                    logPhotoImgIdTrace("ensurePhotos.beforeSlot$slot", waypoint.basicData, waypoint.label)
-                    if (isUnchangedPhotoSlot(slot, waypoint)) return@forEach
-                    val photoPath = waypoint.basicData["photo$slot"]
-                    val pendingPath = waypoint.basicData["_pending_photo_${slot}_path"]
-                    val usable = PhotoUploadValidator.isUsableForUpload(ctx, photoPath)
-                    PhotoImgIdTraceDebugger.logPhotoSubmitSourceState(
-                        owner = TAG,
-                        stage = "ensurePhotos.slot$slot",
-                        label = waypoint.label,
-                        slot = slot,
-                        photoValue = photoPath,
-                        pendingValue = pendingPath,
-                        usable = usable
-                    )
-                    if (!usable) return@forEach
-                    if (PhotoUploadSlotState.isAlreadyUploaded(waypoint.basicData, slot)) {
-                        return@forEach
-                    }
-
-                    val resolvedDraftId = draftId.takeIf { it > 0L }
-                    val completed = resolvedDraftId?.let {
-                        PhotoSlotUploadCoordinator.completedFor(it, index, slot, photoPath.orEmpty())
-                    }
-                    if (completed?.state == PhotoUploadSlotState.STATE_SUCCESS &&
-                        completed.imgId != null
-                    ) {
-                        PhotoUploadSlotState.writeState(
-                            waypoint.basicData,
-                            slot,
-                            state = completed.state,
-                            imgId = completed.imgId,
-                            error = null
-                        )
-                        return@forEach
-                    }
-                    if (resolvedDraftId != null &&
-                        PhotoSlotUploadCoordinator.isUploading(resolvedDraftId, index, slot)
-                    ) {
-                        val completed = PhotoSlotUploadCoordinator.awaitCompletion(
-                            context = ctx,
-                            draftId = resolvedDraftId,
-                            waypointIndex = index,
-                            slot = slot
-                        )
-                        if (completed?.state == PhotoUploadSlotState.STATE_SUCCESS &&
-                            completed.imgId != null
-                        ) {
-                            PhotoUploadSlotState.writeState(
-                                waypoint.basicData,
-                                slot,
-                                state = completed.state,
-                                imgId = completed.imgId,
-                                error = null
-                            )
-                            return@forEach
-                        }
-                        if (completed?.state == PhotoUploadSlotState.STATE_FAILED) {
-                            PhotoUploadSlotState.writeState(
-                                waypoint.basicData,
-                                slot,
-                                state = completed.state,
-                                imgId = null,
-                                error = completed.error
-                            )
-                            return false
-                        }
-                        // Do not fall through to a second upload if the
-                        // existing worker timed out or produced no result.
-                        return false
-                    }
-
-                    val result = repository.uploadNodeImage(
-                        context = ctx,
-                        nodeId = null,
-                        fileCategory = slot,
-                        imageUri = android.net.Uri.parse(photoPath),
-                        token = token
-                    )
-                    when (result) {
+            uploadCandidates.forEach { candidate ->
+                val index = candidate.waypointIndex
+                val waypoint = mutableWaypoints[index]
+                val slot = candidate.slot
+                val result = repository.uploadNodeImage(
+                    context = ctx,
+                    nodeId = null,
+                    fileCategory = slot,
+                    imageUri = android.net.Uri.parse(candidate.photoPath),
+                    token = token
+                )
+                when (result) {
                         is ApiResult.Success -> {
                             host?.onPendingPhotoUploadProgress(true)
                             PhotoUploadSlotState.writeState(
@@ -2073,8 +2071,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             return false
                         }
                     }
-                }
-                waypoints[index] = waypoint
             }
 
             mutableWaypoints.forEachIndexed { index, waypoint ->
@@ -2084,7 +2080,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             onWaypointsChanged?.invoke(waypoints.toList())
             return true
         } finally {
-            if (pendingCount > 0) {
+            if (uploadCandidates.isNotEmpty()) {
                 host?.onPendingPhotoUploadFinished()
             }
         }
