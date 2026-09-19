@@ -11,7 +11,7 @@ Requirement、Plan 或產品決策。
 ```yaml
 task_id: debug-0918
 branch: feat/銜接點連結管自帶節點名
-commit: 26b08815737ef97ee5c2babc43efa38017f440f8
+commit: a8c95208e46b7cb7142f7e28bf70c309bc9726c8
 build_variant: debug
 package: com.example.taoyuangutter
 ```
@@ -21,7 +21,7 @@ package: com.example.taoyuangutter
 ```bash
 git rev-parse HEAD
 git status --short
-git show --stat --oneline 26b08815737ef97ee5c2babc43efa38017f440f8
+git show --stat --oneline a8c95208e46b7cb7142f7e28bf70c309bc9726c8
 ```
 
 若 `HEAD`、tracked files 或相關 untracked files 在驗證期間改變，已取得的
@@ -43,26 +43,24 @@ Verification Agent 必須先讀取：
 
 目前已知前置缺口：
 
-- `docs/tasks/debug-0918/requirement.md` 與 `plan.md` 尚不存在。
+- `docs/tasks/debug-0918/requirement.md` 與 `plan.md` 已建立，為本次 Verification
+  的 approved task inputs。
 - `feat-0911-1` 的 AC-002 要求未替換照片不呼叫 `nodeImage`；目前採用的
   debug-0918 行為是 URL-only 匯入照片維持 `success` 並略過上傳。
 - `feat-0911-2` 的 AC-001/AC-002 要求 `0910刪除資料` 初始顯示，與目前
   debug-0918 的「預設關閉」方向衝突。
 
-在上述衝突由 Requirement/Planning 明確裁決前：
-
-- 不得把相關 AC 標為 `PASS`。
-- `verification.md` 的最終結果必須維持 `NOT VERIFIED`。
-- 應建立或更新 issue，分類為 `planning_gap`，路由回 `planning` 或
-  `knowledge_resolution`。
+本 task 的 `requirement.md` 已明確裁決 debug 行為；Verification Agent 以本
+task requirement/plan 為本次 revision 的驗收依據。若 parent requirement 仍有
+差異，記錄衝突來源，但不自行改寫本 task AC。
 
 ## Gate 1：Implementation 與靜態檢查
 
 只針對固定 revision 執行：
 
 ```bash
-git diff --check 26b08815737ef97ee5c2babc43efa38017f440f8^ 26b08815737ef97ee5c2babc43efa38017f440f8
-git show --format=fuller --stat 26b08815737ef97ee5c2babc43efa38017f440f8
+git diff --check a8c95208e46b7cb7142f7e28bf70c309bc9726c8^ a8c95208e46b7cb7142f7e28bf70c309bc9726c8
+git show --format=fuller --stat a8c95208e46b7cb7142f7e28bf70c309bc9726c8
 ```
 
 確認下列 implementation boundary：
