@@ -31,7 +31,7 @@ validation:
 
 git:
   branch: "fix/debug-0919-1-UI流程"
-  commit: 2db63b7
+  commit: 6d0c493
   status: committed
 
 verification:
@@ -40,6 +40,7 @@ verification:
   failed_acceptance_criteria: []
   passed_acceptance_criteria:
     - AC-001
+    - AC-002
     - AC-003
     - AC-004
   not_verified_acceptance_criteria: []
