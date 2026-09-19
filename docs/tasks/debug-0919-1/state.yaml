@@ -2,8 +2,8 @@ task:
   id: debug-0919-1
   type: debug
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -24,7 +24,10 @@ implementation:
   unit_tests: not_verified
 
 validation:
-  status: limited
+  status: completed
+  unit_tests: passed
+  debug_build: passed
+  physical_device: not_verified
 
 git:
   branch: "fix/debug-0919-1-UI流程"
@@ -32,16 +35,22 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-003
+    - AC-004
 
 ci:
-  build: pending
-  test: pending
+  build: not_verified
+  test: not_verified
 
 release:
   status: pending
 
-blocking: []
+blocking:
+  - No Android device or emulator is listed by adb devices for physical UI verification.
 next_action: verification

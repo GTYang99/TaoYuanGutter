@@ -20,8 +20,10 @@
 | Check | Result | Evidence / Limitation |
 |---|---|---|
 | `git diff --check` | PASS | No whitespace errors reported before staging. |
-| `./gradlew :app:testDebugUnitTest --no-daemon` | NOT VERIFIED | Environment has no Java Runtime: `Unable to locate a Java Runtime.` |
-| Android build | NOT VERIFIED | Gradle cannot start until a compatible Java Runtime is available. |
+| `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest --no-daemon` | PASS | `BUILD SUCCESSFUL in 12s`; 32 actionable tasks. |
+| `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:assembleDebug --no-daemon` | PASS | `BUILD SUCCESSFUL in 12s`; 42 actionable tasks. |
+| Debug APK | PASS | `app/build/outputs/apk/debug/app-debug.apk`; package `com.example.taoyuangutter`. |
+| `adb devices` | NOT VERIFIED | No Android device/emulator listed; physical UI verification cannot start. |
 | Physical device UI flows | NOT VERIFIED | No runtime verification performed in this implementation phase. |
 
 ## Changed Scope
