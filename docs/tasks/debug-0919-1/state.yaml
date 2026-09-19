@@ -44,9 +44,7 @@ verification:
     - AC-004
   partial_acceptance_criteria:
     - AC-002
-  not_verified_acceptance_criteria:
-    - AC-003
-    - AC-004
+  not_verified_acceptance_criteria: []
 
 ci:
   build: not_verified
@@ -57,5 +55,4 @@ release:
 
 blocking:
   - Complete/partial AC-002 UI data matrix was not produced in the offline session.
-  - Authenticated/test backend data is unavailable for AC-003 and AC-004.
 next_action: verification
