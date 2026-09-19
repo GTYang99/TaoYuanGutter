@@ -38,9 +38,11 @@ verification:
   result: not_verified
   category: environment
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
+  passed_acceptance_criteria:
     - AC-001
+  partial_acceptance_criteria:
     - AC-002
+  not_verified_acceptance_criteria:
     - AC-003
     - AC-004
 
@@ -52,5 +54,6 @@ release:
   status: pending
 
 blocking:
-  - No Android device or emulator is listed by adb devices for physical UI verification.
+  - Complete/partial AC-002 UI data matrix was not produced in the offline session.
+  - Authenticated/test backend data is unavailable for AC-003 and AC-004.
 next_action: verification
