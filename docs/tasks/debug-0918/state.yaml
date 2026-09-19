@@ -2,8 +2,8 @@ task:
   id: debug-0918
   type: debug
 
-phase: investigation
-status: investigation_in_progress
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -25,7 +25,7 @@ implementation:
     - deleted_area_layer_default_off
     - existing_waypoint_title_full_row_centering
     - photo_img_id_preservation_fallback
-  photo_flow: only_numeric_img_id_skips_upload; missing_id_uploads_then_storeDitch_references_response_id
+  photo_flow: unchanged_nodeDetails_url_only_photo_skips_upload; replacement_or_new_photo_uploads_and_uses_returned_img_id
 
 validation:
   status: completed
@@ -35,11 +35,14 @@ validation:
 
 git:
   branch: "feat/銜接點連結管自帶節點名"
-  commit: c05e172
+  commit: a8c9520
   status: committed
 
 verification:
-  result: full_unit_tests_debug_and_instrumentation_build_pass; device_runtime_and_ci_not_verified
+  result: not_verified
+  category: planning
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
 
 ci:
   build: not_verified
@@ -51,5 +54,7 @@ release:
 blocking:
   - No Android device/emulator is connected for instrumentation runtime verification.
   - CI evidence is not available.
+  - Verification inputs requirement.md and plan.md are missing from this task directory.
+  - User decisions confirm the intended photo-upload and deleted-layer behavior, but the required approved requirement.md and plan.md artifacts are still missing.
 
-next_action: verification
+next_action: planning
