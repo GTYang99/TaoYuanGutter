@@ -27,11 +27,11 @@ validation:
   status: completed
   unit_tests: passed
   debug_build: passed
-  physical_device: not_verified
+  physical_device: passed
 
 git:
   branch: "fix/debug-0919-1-UI流程"
-  commit: 6d0c493
+  commit: 4b2cc00
   status: committed
 
 verification:
