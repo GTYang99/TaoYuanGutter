@@ -1,0 +1,48 @@
+task:
+  id: debug-0919-2
+  type: debug
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: missing_inputs
+
+debug:
+  status: completed
+  root_cause: completed_photo_state_lost_at_form_sheet_and_reorder_autosave_boundary
+  issues:
+    - ISS-debug-0919-2-001
+    - ISS-debug-0919-2-002
+    - ISS-debug-0919-2-003
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+
+git:
+  branch: "fix/debug-0919-2-照片上傳流程"
+  commit: "HEAD"
+  status: committed
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: not_started
+  test: not_started
+
+release:
+  status: pending
+
+blocking:
+  - No runtime/network trace is available to verify duplicate nodeImage request counts.
+
+next_action: verification

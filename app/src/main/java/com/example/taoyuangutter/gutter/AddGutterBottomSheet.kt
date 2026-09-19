@@ -2109,36 +2109,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             val existing = waypoints[index].basicData
             logPhotoImgIdTrace("updateWaypointBasicData.existing", existing, waypoints[index].label)
             logPhotoImgIdTrace("updateWaypointBasicData.incoming", data, waypoints[index].label)
-            val merged = HashMap(existing)
-            merged.putAll(data)
-            (1..3).forEach { slot ->
-                val photoKey = "photo$slot"
-                if (merged[photoKey].isNullOrBlank()) return@forEach
-                // Preserve server metadata only when the form returned the same
-                // photo. A non-empty but different URI is a replacement and
-                // must remain without the old img_id until its upload succeeds.
-                val samePhoto = existing[photoKey]?.trim() == data[photoKey]?.trim()
-                if (!samePhoto) {
-                    listOf(
-                        "photo${slot}CapturedAt",
-                        "photo${slot}ImgId",
-                        "photo${slot}UploadState",
-                        "photo${slot}UploadError"
-                    ).forEach(merged::remove)
-                    return@forEach
-                }
-                listOf(
-                    "photo${slot}CapturedAt",
-                    "photo${slot}ImgId",
-                    "photo${slot}UploadState",
-                    "photo${slot}UploadError"
-                ).forEach { key ->
-                    val existingValue = existing[key]
-                    if (!existingValue.isNullOrBlank() && merged[key].isNullOrBlank()) {
-                        merged[key] = existingValue
-                    }
-                }
-            }
+            val merged = PhotoResultMetadataMerger.merge(existing, data)
             logPhotoImgIdTrace("updateWaypointBasicData.merged", merged, waypoints[index].label)
             waypoints[index].basicData = merged
             adapter.notifyItemChanged(index)
