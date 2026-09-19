@@ -14,6 +14,8 @@
 |---|---|---|
 | Targeted unit tests | PASS | `:app:testDebugUnitTest`; Gradle `BUILD SUCCESSFUL`. |
 | Debug build | PASS | `:app:assembleDebug`; Gradle `BUILD SUCCESSFUL`. |
+| `GutterBasicInfoUiTest` | PASS | `:app:connectedDebugAndroidTest` with runner class filter; `BUILD SUCCESSFUL` on `Medium_Phone` / Android 14. |
+| `GutterCantOpenUiTest` | PASS | `:app:connectedDebugAndroidTest` with runner class filter; `BUILD SUCCESSFUL` on `Medium_Phone` / Android 14. |
 | Committed diff whitespace check | PASS | `git show --check 07e3b5a`. |
 
 ## Acceptance Criteria
@@ -22,7 +24,7 @@ The four acceptance criteria are UI and flow behaviors. Runtime evidence below w
 
 | AC | Result | Evidence / remaining gap |
 |---|---|---|
-| AC-001 銜接點共同免填規則 | PASS (scoped UI evidence) | On `emulator-5554`, selecting `cbConnectPoint` disabled depth photo slots 2/3, depth, cover thickness, top width, broken/hanging/silt groups and connect-pipe group; slot 1 remained enabled. Full submit-path assertion remains covered by unit tests. |
+| AC-001 銜接點共同免填規則 | PASS | On `emulator-5554`, selecting `cbConnectPoint` disabled depth photo slots 2/3, depth, cover thickness, top width, broken/hanging/silt groups and connect-pipe group; slot 1 remained enabled. `GutterBasicInfoUiTest` and `GutterCantOpenUiTest` also passed. |
 | AC-002 完整上傳條件才顯示已填寫資料 | PARTIAL / NOT VERIFIED | Blank new waypoint rows showed `暫無資料`; completion predicate and upload-photo predicate pass unit tests. A complete photo-backed waypoint and a partial prefilled waypoint were not produced through UI. |
 | AC-003 匯入後不可編輯定位 | NOT VERIFIED | No authenticated/test backend data was available to complete the existing-waypoint import flow. |
 | AC-004 匯入後不可切換虛擬點 | NOT VERIFIED | No authenticated/test backend data was available to complete the existing-waypoint import flow. |

@@ -22,9 +22,11 @@
 | `git diff --check` | PASS | No whitespace errors reported before staging. |
 | `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest --no-daemon` | PASS | `BUILD SUCCESSFUL in 12s`; 32 actionable tasks. |
 | `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:assembleDebug --no-daemon` | PASS | `BUILD SUCCESSFUL in 12s`; 42 actionable tasks. |
+| `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterBasicInfoUiTest --no-daemon` | PASS | `BUILD SUCCESSFUL in 47s` on `Medium_Phone` / Android 14. |
+| `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterCantOpenUiTest --no-daemon` | PASS | `BUILD SUCCESSFUL in 44s` on `Medium_Phone` / Android 14. |
 | Debug APK | PASS | `app/build/outputs/apk/debug/app-debug.apk`; package `com.example.taoyuangutter`. |
 | `adb devices` | PASS | `emulator-5554` (`sdk_gphone64_arm64`) was available for runtime validation. |
-| AC-001 runtime UI flow | PASS (scoped) | Offline flow opened the form; selecting `銜接點` disabled the shared exemption fields and photo slots 2/3 while retaining slot 1. |
+| AC-001 runtime UI flow | PASS | Offline flow and instrumentation tests opened the form; selecting `銜接點` disabled the shared exemption fields and photo slots 2/3 while retaining slot 1. Existing no-open behavior also passed regression tests. |
 | AC-002 runtime UI flow | PARTIAL / NOT VERIFIED | New blank waypoint rows showed `暫無資料`; complete and partial prefilled waypoint matrix was not available through the UI session. |
 | AC-003/AC-004 runtime UI flows | NOT VERIFIED | Existing-waypoint import requires authenticated/test backend data not present in the offline session. |
 
