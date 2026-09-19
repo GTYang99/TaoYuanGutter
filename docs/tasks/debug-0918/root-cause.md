@@ -4,20 +4,23 @@
 
 ### Primary cause
 
-There are two related paths:
+There are two separate API paths:
 
 1. The direct existing-point import response can contain only a remote URL and
    `fileCategory`, without `id`/`img_id`. The app downloads that URL and marks
    the local slot `success`, but this does not give `storeDitch` a server image
    ID.
-2. The upload guard previously treated `UploadState=success` alone as proof
-   that a server image existed. Therefore an imported photo with no ID was
-   skipped by `nodeImage`, and `storeDitch` had no `img_ids` value to reference.
+2. `ditchDetails` is a whole-ditch response and can expose IDs under
+   `data.nodes[].url[].id`; `nodeDetails` is a single-node response and the
+   observed contract exposes only `node_img[].url` and `fileCategory`. The two
+   responses are not interchangeable and must not be joined by response order
+   or by an unrelated `ditch_id`.
 
-The correct invariant is: only a numeric `photo{slot}ImgId` means the slot is
-already server-backed and may skip upload. A downloaded photo without an ID
-must remain eligible for `nodeImage`, whose response supplies the ID before
-`storeDitch` is called.
+The correct invariant is: a downloaded unchanged imported photo is marked
+`success` and must not be uploaded again; a photo that the user replaces or
+captures clears the old state and becomes an upload candidate. The absence of
+an ID in `nodeDetails` is not a reason for the client to invent a cross-API
+mapping.
 
 This is proven by `docs/tasks/dbg-0910/evidence/node_details_A0910pt52.json`:
 the response contains a category-1 URL but no `id`/`img_id`. The current
@@ -68,9 +71,10 @@ mapper now preserves the IDs and marks only ID-backed slots as uploaded.
 ### Regression risk
 
 The client now defensively accepts both `node_img[]` and `url[]` when an ID is
-actually present. That does not solve the observed fixture, because the ID is
-omitted entirely. The required API fix is to return `node_img[].id`/`img_id`,
-or expose a server lookup that maps the existing photo URL to its image ID.
+actually present. For the observed URL-only import fixture, the client keeps
+the downloaded photo as an unchanged successful import and does not invent an
+ID or merge an unrelated `ditchDetails` response. Only a user replacement or
+new capture enters the upload path.
 
 ## Issue 2: `0910刪除資料` is on by default
 

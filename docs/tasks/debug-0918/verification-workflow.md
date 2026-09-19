@@ -44,8 +44,8 @@ Verification Agent 必須先讀取：
 目前已知前置缺口：
 
 - `docs/tasks/debug-0918/requirement.md` 與 `plan.md` 尚不存在。
-- `feat-0911-1` 的 AC-002 要求未替換照片不呼叫 `nodeImage`，與目前
-  debug-0918 的「無 `img_id` 必須補上傳」方向衝突。
+- `feat-0911-1` 的 AC-002 要求未替換照片不呼叫 `nodeImage`；目前採用的
+  debug-0918 行為是 URL-only 匯入照片維持 `success` 並略過上傳。
 - `feat-0911-2` 的 AC-001/AC-002 要求 `0910刪除資料` 初始顯示，與目前
   debug-0918 的「預設關閉」方向衝突。
 
@@ -67,8 +67,8 @@ git show --format=fuller --stat 26b08815737ef97ee5c2babc43efa38017f440f8
 
 確認下列 implementation boundary：
 
-1. `PhotoUploadSlotState.isAlreadyUploaded()` 只有在存在 numeric
-   `photo{slot}ImgId` 時才回傳 true。
+1. `PhotoUploadSlotState.isAlreadyUploaded()` 對未替換的 imported `success`
+   照片或已有 numeric `photo{slot}ImgId` 回傳 true；替換/新拍照會清除狀態。
 2. `NodeDetails.photoImage()` 同時支援 `node_img[]` 與 `url[]`，並接受
    `id`/`img_id`。
 3. `MainActivity` 與 `MapWorkspaceFragment` 的 `NodeDetails → Waypoint`
@@ -97,7 +97,7 @@ JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" \
 | 驗證項目 | 主要測試/證據 | 預期 |
 |---|---|---|
 | `url[].id` → `photo*_img_id` | `NodeImgDeserializationTest`, `StoreDitchResponseParsingTest`, `StoreDitchResponseWaypointMapperTest` | PASS |
-| 有 ID 跳過、無 ID 可上傳 | `PhotoUploadCandidateResolverTest` | PASS |
+| URL-only 未替換照片略過、替換照片可上傳 | `PhotoUploadCandidateResolverTest` | PASS |
 | image ID fallback | `PhotoImgIdResolverTest` | PASS |
 | deleted-area state | `MapOverlayControllerStateTest`, source review | PASS 或依批准 AC 判定 |
 | instrumentation artifact | `assembleDebugAndroidTest` | PASS；不等同 runtime PASS |
@@ -120,8 +120,8 @@ adb devices -l
 
 1. 以既有點位資料載入一個 URL 有值但無 `id` 的照片。
 2. 進入編輯表單，確認照片仍顯示。
-3. 儲存且不替換照片，檢查是否依批准需求呼叫或略過 `nodeImage`。
-4. 若執行 upload path，確認 `nodeImage` 回傳的 `img_id` 被帶入
+3. 儲存且不替換照片，確認不呼叫 `nodeImage`。
+4. 替換照片後，確認 `nodeImage` 回傳的 `img_id` 被帶入
    `storeDitch.img_ids`。
 5. 替換 slot 1、2、3 各一張照片，確認只上傳被替換 slot。
 6. 覆蓋草稿回復、無法開蓋、虛擬點與重新開啟編輯流程。

@@ -29,26 +29,26 @@ URI is used to prefill the photo fields. The import APIs are
 can be written into form state. The client additionally accepts `url[].id`
 when present, but cannot derive an ID from a URL alone.
 
-The later upload gate uses `PhotoUploadSlotState.isAlreadyUploaded()`: only a
-slot with a numeric `photo{slot}ImgId` is skipped. A `success` state without an
-ID is not sufficient because `storeDitch` cannot reference that photo.
+The later upload gate uses `PhotoUploadSlotState.isAlreadyUploaded()`: an
+unchanged imported photo is skipped when its state is `success`, even if the
+`nodeDetails` response has no image ID. A replaced/new photo clears that state
+and remains eligible for upload. Existing-node `storeDitch` does not need the
+unchanged photo's `img_ids` to be resent.
 The `StoreDitchNodeRequestMapper` reads numeric IDs and maps them to `img_ids`,
 for both create and update requests, except for virtual points and the
 excluded slots of cannot-open points.
 
 The supplied `A0910pt52` response is decisive for the edge case: its
 `node_img[0]` contains `url` and `fileCategory`, but no `id` or `img_id`.
-The import flow nevertheless writes `success` when the local download
-succeeds. That means the current implementation skips multipart upload even
-though no server image ID is available, and the mapper emits no `img_ids` for
-that slot.
+The import flow writes `success` when the local download succeeds. That is the
+expected unchanged-photo state: the photo is displayed locally, is not sent
+again to `nodeImage`, and its missing ID is not invented by the client.
 
-Therefore the intended rule is “a slot with `img_id` does not upload; a slot
-without `img_id` must upload if it has a usable local photo.” For an imported
-response that has no image ID, the downloaded photo remains a multipart upload
-candidate; the returned new `img_id` is then sent in the existing-node
-`storeDitch` update. A response that already has `url[].id` is preserved and
-skips the redundant upload.
+Therefore the intended rule is “an unchanged imported photo does not upload;
+a new or replaced photo uploads.” `img_id` is only required for a newly
+uploaded/replaced photo or for a `ditchDetails` response that already supplies
+it. The two API responses must not be merged across unrelated ditch/node
+records.
 
 ### Deleted-area layer
 
@@ -110,15 +110,17 @@ maps each `url[].id` by `fileCategory` into `photo1ImgId` / `photo2ImgId` /
 The remaining distinction is flow ownership: this mapper runs after a
 successful `storeDitch` save in the map hosts. The existing-point import picker
 itself queries `nodeDetails` / `closestNodeDetails`, whose model now accepts
-both `NodeDetails.nodeImg` and `NodeDetails.url`. If the endpoint returns an
-image ID in either shape, the ID is routed into the form state. The observed
-fixture returns neither ID field, so the client-only fix cannot prevent
-re-upload in that case.
+both `NodeDetails.nodeImg` and `NodeDetails.url`. The observed fixture returns
+only URL metadata; it is treated as an unchanged imported photo and is not
+re-uploaded. A `ditchDetails` response from another ditch must not be used to
+fill its missing ID.
 
 ## Updated conclusion
 
-The correct root-cause boundary is the missing ID in the direct-import API
-response. `storeDitch.data.nodes[].url[].id` proves the server has the ID in
-that response, but does not make it available during pre-submit import. The
-client can complete this fix only after the import endpoint returns the same
-ID or provides a lookup endpoint.
+The correct root-cause boundary is the different responsibilities of the two
+API contracts. `nodeDetails` is the authoritative single-node import/form
+source and supplies URL-only photo metadata; `ditchDetails` is the
+authoritative whole-ditch source and supplies node photo IDs for the ditch it
+describes. The client must preserve this separation: unchanged imported photos
+are displayed without re-upload, while newly captured or replaced photos are
+uploaded and their returned IDs are used by `storeDitch`.

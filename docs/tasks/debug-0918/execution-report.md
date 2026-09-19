@@ -18,9 +18,9 @@
   `url[]` response shape shown by the supplied `storeDitch` payload. Import,
   edit preload, and inspect preload now use the same ID-aware resolver.
 - Preserved `url[].id` when `NodeDetails` is converted into main-map inspect
-  waypoints, and changed the upload guard to skip only slots with a numeric
-  server image ID. URL-only imported photos now remain upload candidates so
-  the `nodeImage` response can provide the ID before `storeDitch`.
+  waypoints where an ID is actually present, while keeping URL-only imported
+  photos in the unchanged `success` state so they are not re-uploaded. Photo
+  replacement clears the state and remains eligible for `nodeImage`.
 
 ## Validation
 

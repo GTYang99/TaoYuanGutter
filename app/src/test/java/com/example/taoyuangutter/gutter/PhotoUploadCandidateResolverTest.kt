@@ -83,24 +83,24 @@ class PhotoUploadCandidateResolverTest {
     }
 
     @Test
-    fun importedExistingPhotoWithoutImageIdRemainsEligibleForUpload() {
+    fun importedExistingPhotoWithoutImageIdRemainsExcludedFromUpload() {
         val imported = waypoint(
             "photo1" to "content://imported-one",
             "photo1UploadState" to PhotoUploadSlotState.STATE_SUCCESS
         )
 
-        assertEquals(false, PhotoUploadSlotState.isAlreadyUploaded(imported.basicData, 1))
+        assertEquals(true, PhotoUploadSlotState.isAlreadyUploaded(imported.basicData, 1))
     }
 
     @Test
-    fun successfulImportedPhotoWithoutImageIdIsNotExcludedBySubmitUploadGuard() {
+    fun successfulImportedPhotoWithoutImageIdIsExcludedBySubmitUploadGuard() {
         val imported = waypoint(
             "photo1" to "content://imported-one",
             "photo1UploadState" to PhotoUploadSlotState.STATE_SUCCESS
         )
 
         // AddGutterBottomSheet's pre-submit guard must use this shared rule.
-        assertEquals(true, !PhotoUploadSlotState.isAlreadyUploaded(imported.basicData, 1))
+        assertEquals(false, !PhotoUploadSlotState.isAlreadyUploaded(imported.basicData, 1))
     }
 
     @Test
