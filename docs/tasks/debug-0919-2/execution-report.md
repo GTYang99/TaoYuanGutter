@@ -33,5 +33,10 @@ merging, the form-result completion boundary, and focused regression coverage.
 - Debug APK build passed with `:app:assembleDebug`.
 - Focused emulator instrumentation passed: 1 test,
   `GutterFormExitUiTest#completedVirtualFormLeavesWithoutWarning`.
+- Focused physical-device instrumentation passed on Sony XQ-AU52 / Android 12:
+  - `GutterFormExitUiTest#completedVirtualFormLeavesWithoutWarning`: 1/1.
+  - `Debug0919WaypointAdapterUiTest#listShowsNoDataForBlankAndPartialRowsButFilledForUploadCompleteRow`: 1/1.
+- The first physical-device case initially waited because the device display
+  was asleep; after waking the device, the same run completed successfully.
 - Full regression, real camera/network upload reproduction, CI, independent
   verification, and release were not run. They remain `NOT VERIFIED`.
