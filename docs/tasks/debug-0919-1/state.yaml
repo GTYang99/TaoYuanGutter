@@ -1,0 +1,47 @@
+task:
+  id: debug-0919-1
+  type: debug
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+debug:
+  status: completed
+  root_cause: identified_from_static_code_evidence
+
+plan_review:
+  status: pending
+
+implementation:
+  status: completed
+  build: not_verified
+  unit_tests: not_verified
+
+validation:
+  status: limited
+
+git:
+  branch: "fix/debug-0919-1-UI流程"
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification

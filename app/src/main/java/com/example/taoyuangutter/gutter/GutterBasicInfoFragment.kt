@@ -454,7 +454,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.tilCoordZ.visibility = View.GONE
         }
 
-        binding.btnPickLocation.isEnabled = !isViewMode
+        binding.btnPickLocation.isEnabled = !isViewMode && isFormEditable && !isImportLocked
         applyImportLockUi()
 
         // 點擊空白處關閉鍵盤
@@ -721,9 +721,11 @@ class GutterBasicInfoFragment : Fragment() {
                 binding.cbCantOpen.setOnCheckedChangeListener(this::onCantOpenToggleChanged)
                 applyCantOpenUi(false)
             }
+            applyCantOpenUi(binding.cbCantOpen.isChecked)
             applyConnectionMutualExclusionUi()
             notifyDraftChanged()
         }
+        applyCantOpenUi(binding.cbCantOpen.isChecked)
         applyConnectionMutualExclusionUi()
     }
 
@@ -733,14 +735,16 @@ class GutterBasicInfoFragment : Fragment() {
         val baseEnabled = !isViewMode && isFormEditable && !isImportLocked && !isVirtualMode
         val cantOpenChecked = binding.cbCantOpen.isChecked
         val tieInChecked = binding.cbConnectPoint.isChecked
+        val connectionPipeEnabled = baseEnabled && !cantOpenChecked && !tieInChecked
 
         binding.cbCantOpen.isEnabled = baseEnabled && !tieInChecked
         binding.cbConnectPoint.isEnabled = baseEnabled && !cantOpenChecked
-        binding.rgConnectPipe.setChildrenEnabled(baseEnabled)
+        binding.rgConnectPipe.setChildrenEnabled(connectionPipeEnabled)
 
         binding.cbCantOpen.alpha = if (binding.cbCantOpen.isEnabled || cantOpenChecked) 1f else 0.5f
         binding.cbConnectPoint.alpha = if (binding.cbConnectPoint.isEnabled || tieInChecked) 1f else 0.5f
-        binding.layoutConnectPipe.alpha = if (baseEnabled || !isVirtualMode) 1f else 0.5f
+        binding.layoutConnectPipe.alpha =
+            if (!isVirtualMode && !cantOpenChecked && !tieInChecked) 1f else 0.5f
     }
 
     private fun onCantOpenToggleChanged(button: CompoundButton, checked: Boolean) {
@@ -848,23 +852,33 @@ class GutterBasicInfoFragment : Fragment() {
             return
         }
 
+        val isConnectPoint = binding.cbConnectPoint.isChecked
+        val isDetailExempt = isCantOpen || isConnectPoint
         val isUOpen = isUOpenGutter()
         // 「無法開蓋」只控制其自身的必填/編輯狀態；
         // 「明溝」只影響溝蓋板厚度欄位，不應牽動待架站或 cbCantOpen。
-        val enableFields = !isCantOpen
+        val enableFields = !isDetailExempt
         setCantOpenFieldsEnabled(enableFields, forceCoverDisabled = isUOpen)
 
         // 核心修正：當「明溝」或「無法開蓋」時，僅針對「厚度輸入框」顯示白色遮罩
         // 確保 cbCantOpen 勾選框不在遮罩範圍內
-        binding.vCoverThicknessOverlay.visibility = if (isUOpen || isCantOpen) View.VISIBLE else View.GONE
-        if (isUOpen || isCantOpen) {
+        binding.vCoverThicknessOverlay.visibility = if (isUOpen || isDetailExempt) View.VISIBLE else View.GONE
+        if (isUOpen || isDetailExempt) {
             binding.vCoverThicknessOverlay.bringToFront()
+        }
+
+        (1..3).forEach { slot ->
+            renderPhotoSectionState(
+                slot = slot,
+                editable = isFormEditable && !isImportLocked,
+                isViewMode = !isFormEditable
+            )
         }
 
         // Log for debug
         Log.d(
             "GutterBasicInfo",
-            "applyCantOpenUi isCantOpen=$isCantOpen isUOpen=$isUOpen enableFields=$enableFields"
+            "applyCantOpenUi isCantOpen=$isCantOpen isConnectPoint=$isConnectPoint isUOpen=$isUOpen enableFields=$enableFields"
         )
 
         applyConnectionMutualExclusionUi()
@@ -910,11 +924,13 @@ class GutterBasicInfoFragment : Fragment() {
 
         val isVirtual = isVirtualMode
         val isCantOpen = binding.cbCantOpen.isChecked
+        val isConnectPoint = binding.cbConnectPoint.isChecked
+        val isDetailExempt = isCantOpen || isConnectPoint
         val isUOpen = isUOpenGutter()
-        val detailFieldsRequired = !isVirtual && !isCantOpen && !isUOpen
-        val widthDepthPhotosRequired = !isVirtual && !isCantOpen
+        val detailFieldsRequired = !isVirtual && !isDetailExempt && !isUOpen
+        val widthDepthPhotosRequired = !isVirtual && !isDetailExempt
         val overviewPhotoRequired = !isVirtual
-        val coverThicknessRequired = !isVirtual && !isCantOpen && !isUOpen
+        val coverThicknessRequired = !isVirtual && !isDetailExempt && !isUOpen
 
         binding.tvGutterTypeRequired.visibility = View.VISIBLE
         binding.tvLocationRequired.visibility = View.VISIBLE
@@ -976,7 +992,7 @@ class GutterBasicInfoFragment : Fragment() {
         binding.btnPickLocation.setOnClickListener {
             // 檢視模式不允許變更座標
             val isViewMode = arguments?.getBoolean(ARG_VIEW_MODE) ?: false
-            if (isViewMode) return@setOnClickListener
+            if (isViewMode || !isFormEditable || isImportLocked) return@setOnClickListener
             onRequestLocationPick?.invoke()
         }
     }
@@ -1053,6 +1069,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.chipGroupRemarksPresets.getChildAt(index).isEnabled = actualEnabled
         }
         binding.btnPendingDeploy.isEnabled = actualEnabled
+        binding.btnPickLocation.isEnabled = actualEnabled
         // Re-apply style (so view->edit mode transitions update colors correctly)
         setPendingDeploySelected(binding.btnPendingDeploy.isChecked)
 
@@ -1126,6 +1143,7 @@ class GutterBasicInfoFragment : Fragment() {
         val d = collectData()
         val isVirtual = parseLooseBoolean(d["is_virtual"])
         val isCantOpen = parseLooseBoolean(d["IS_CANTOPEN"])
+        val isConnectPoint = parseLooseBoolean(d["IS_TIEINPOINT"])
         val isUOpen = isUOpenGutter()
         val requiresXyNum = arguments?.getBoolean(ARG_IS_EDIT_MODE) == true ||
             arguments?.getBoolean(ARG_VIEW_MODE) == true
@@ -1145,7 +1163,7 @@ class GutterBasicInfoFragment : Fragment() {
         if (requiresXyNum && d["XY_NUM"].isNullOrEmpty()) return "測量座標編號"
 
         // 無法開蓋會清除後續細節欄位，因此維持既有免填規則。
-        if (isCantOpen) return null
+        if (isCantOpen || isConnectPoint) return null
 
         // 明溝僅免填溝蓋板厚度；其餘細節欄位仍須驗證。
         if (!isUOpen && d["COVER_DEP"].isNullOrEmpty()) return "溝蓋板厚度"
@@ -1430,15 +1448,21 @@ class GutterBasicInfoFragment : Fragment() {
 
     fun validateAllPhotos(): String? {
         val context = context ?: return "照片尚未準備完成"
-        if (!PhotoUploadValidator.isUsableForUpload(context, photoUriSlot1?.toString())) {
+        if (!isVirtualMode && !PhotoUploadValidator.isUsableForUpload(context, photoUriSlot1?.toString())) {
             return "測量位置及側溝概況"
         }
-        val isCantOpen = binding.cbCantOpen.isChecked
-        if (!isCantOpen && !PhotoUploadValidator.isUsableForUpload(context, photoUriSlot2?.toString())) {
-            return "側溝頂寬度"
-        }
-        if (!isCantOpen && !PhotoUploadValidator.isUsableForUpload(context, photoUriSlot3?.toString())) {
-            return "側溝測量深度"
+        val requiredSlots = GutterCompletionPolicy.requiredPhotoSlots(
+            isVirtual = isVirtualMode,
+            detailExempt = binding.cbCantOpen.isChecked || binding.cbConnectPoint.isChecked
+        )
+        requiredSlots.filter { it != 1 }.forEach { slot ->
+            val photo = when (slot) {
+                2 -> photoUriSlot2?.toString()
+                else -> photoUriSlot3?.toString()
+            }
+            if (!PhotoUploadValidator.isUsableForUpload(context, photo)) {
+                return if (slot == 2) "側溝頂寬度" else "側溝測量深度"
+            }
         }
         return null
     }
@@ -1604,7 +1628,8 @@ class GutterBasicInfoFragment : Fragment() {
             2 -> photoUriSlot2 != null
             else -> photoUriSlot3 != null
         }
-        val isCantOpenPhotoSlot = binding.cbCantOpen.isChecked && slot in 2..3
+        val isDetailExempt = binding.cbCantOpen.isChecked || binding.cbConnectPoint.isChecked
+        val isCantOpenPhotoSlot = isDetailExempt && slot in 2..3
         val button = when (slot) {
             1 -> binding.btnTakePhotoSlot1
             2 -> binding.btnTakePhotoSlot2

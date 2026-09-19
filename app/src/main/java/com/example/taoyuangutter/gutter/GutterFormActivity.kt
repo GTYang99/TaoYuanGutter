@@ -1813,7 +1813,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.fabSubmit.visibility = View.GONE
         binding.btnDone.setOnClickListener { saveAndFinish() }
         pagerAdapter.getBasicInfoFragment()?.setEditable(true)
-        binding.cbIsVirtual.isEnabled = true
+        applyVirtualToggleEnabled()
         logPhotoImgIdTrace("enterEditMode.after", currentFormData)
     }
 
@@ -1846,7 +1846,13 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private fun setImportedWaypointLocked(locked: Boolean) {
         importedWaypointLocked = locked
+        applyVirtualToggleEnabled()
         applyImportedWaypointLock()
+    }
+
+    private fun applyVirtualToggleEnabled() {
+        if (!::binding.isInitialized) return
+        binding.cbIsVirtual.isEnabled = !isViewMode && !importedWaypointLocked
     }
 
     private fun applyImportedWaypointLock() {
@@ -1863,7 +1869,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.fabSubmit.visibility = View.GONE
         binding.btnEdit.setOnClickListener { enterEditMode() }
         pagerAdapter.getBasicInfoFragment()?.setEditable(false)
-        binding.cbIsVirtual.isEnabled = false
+        applyVirtualToggleEnabled()
     }
 
     private fun initializeCurrentFormData(initialData: Map<String, String>) {
@@ -2589,7 +2595,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         // 先對 Activity 自有的 UI 進行立即反應
         applyVirtualModeUi(isVirtualInitial)
 
-        binding.cbIsVirtual.isEnabled = !isViewMode
+        applyVirtualToggleEnabled()
         binding.cbIsVirtual.setOnCheckedChangeListener { _, isChecked ->
             // 通知 Fragment
             pagerAdapter.getBasicInfoFragment()?.setVirtualMode(isChecked)
