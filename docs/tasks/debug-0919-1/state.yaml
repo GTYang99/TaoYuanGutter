@@ -20,8 +20,8 @@ plan_review:
 
 implementation:
   status: completed
-  build: not_verified
-  unit_tests: not_verified
+  build: passed
+  unit_tests: passed
 
 validation:
   status: completed
