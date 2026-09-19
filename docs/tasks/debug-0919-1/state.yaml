@@ -31,7 +31,7 @@ validation:
 
 git:
   branch: "fix/debug-0919-1-UI流程"
-  commit: 07e3b5a
+  commit: 2db63b7
   status: committed
 
 verification:
