@@ -54,4 +54,5 @@ release:
 
 blocking:
   - CI build and test results are not available in this workspace.
+  - Full connected suite had one transient MainShellActivity focus timeout; see ISS-debug-0919-1-001.
 next_action: release

@@ -33,8 +33,8 @@ The four acceptance criteria are UI and flow behaviors. Runtime evidence below w
 
 ## Environment Limitation
 
-The emulator became available after the initial handoff. Runtime evidence was collected on `emulator-5554`; the remaining blocking limitation is the missing complete/partial data setup for the full AC-002 matrix. The real backend fetch was not exercised, but the post-import state boundary is covered by a controlled fixture test.
+Runtime evidence was collected on `emulator-5554`. The scoped debug tests passed. One full-suite run had an unrelated Espresso window-focus timeout in `MainShellActivityTest`; its immediate isolated rerun passed without a code change. It is recorded as environment issue `ISS-debug-0919-1-001`. The real backend fetch was not exercised, but the post-import state boundary is covered by a controlled fixture test.
 
 ## Verification Decision
 
-`PASS` — all four acceptance criteria have runtime or controlled-fixture evidence. CI and release approval remain pending outside this verification result.
+`PASS for scoped acceptance criteria` — all four acceptance criteria have runtime or controlled-fixture evidence. Full-suite stability, CI and release approval remain pending outside this verification result.
