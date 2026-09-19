@@ -30,7 +30,8 @@ merging, the form-result completion boundary, and focused regression coverage.
   `NOT VERIFIED`.
 - Focused unit tests passed: 22 tests across the photo merge, upload candidate,
   `storeDitch` response, and request-mapper paths, plus a dedicated reversal
-  pending-count regression test; aggregate focused coverage is 23 tests.
+  pending-count and repository-call regression tests; aggregate focused
+  coverage is 24 tests.
 - Debug APK build passed with `:app:assembleDebug`.
 - Focused emulator instrumentation passed: 1 test,
   `GutterFormExitUiTest#completedVirtualFormLeavesWithoutWarning`.

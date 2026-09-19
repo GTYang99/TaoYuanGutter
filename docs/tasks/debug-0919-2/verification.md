@@ -2,7 +2,7 @@
 
 ## Revision under test
 
-- Commit: `2353029`
+- Commit: `cbf0a85`
 - Branch: `fix/debug-0919-2-照片上傳流程`
 - Worktree: no tracked changes; pre-existing untracked `.worktrees/` was not
   modified or included.
@@ -34,6 +34,8 @@ Evidence supporting the implementation:
   waypoint after reversal.
 - `PhotoUploadManagerPendingPhotosTest` verifies that successful photos remain
   out of the manager's pending-upload count after reversal.
+- The same test uses a repository proxy and records zero `uploadNodeImage`
+  calls for both the reversed-success and successful-replacement cases.
 - The focused unit suite verifies successful photo state is retained and the
   submit gate excludes a successful photo from upload candidates.
 - Physical device test passed:
@@ -50,6 +52,8 @@ Evidence supporting the implementation:
 
 - Focused unit tests verify a replacement retains the new `img_id`, removes the
   old ID, and maps retained IDs into the `storeDitch` request.
+- The repository call-counter case records zero `uploadNodeImage` calls after
+  the merged replacement has a successful new ID.
 - Physical device test passed:
   `GutterFormExitUiTest#completedVirtualFormLeavesWithoutWarning`.
 
@@ -59,7 +63,7 @@ again.
 
 ## Validation evidence
 
-- Exact-HEAD focused unit suite with `--rerun-tasks`: 23 tests, 0 failures,
+- Exact-HEAD focused unit suite with `--rerun-tasks`: 24 tests, 0 failures,
   0 errors.
 - `:app:assembleDebug`: passed.
 - Emulator focused instrumentation: 1/1 passed.
