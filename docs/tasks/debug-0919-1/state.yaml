@@ -28,8 +28,8 @@ validation:
 
 git:
   branch: "fix/debug-0919-1-UI流程"
-  commit: ""
-  status: pending
+  commit: 07e3b5a
+  status: committed
 
 verification:
   result: pending
