@@ -2,8 +2,8 @@ task:
   id: debug-0919-2
   type: debug
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_in_progress
 
 knowledge_resolution:
   status: not_required

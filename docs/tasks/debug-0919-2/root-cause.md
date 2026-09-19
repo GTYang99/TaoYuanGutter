@@ -4,7 +4,9 @@
 
 - Task: `debug-0919-2`
 - Branch: `fix/debug-0919-2-照片上傳流程`
-- Scope: root-cause analysis only; no production code changed
+- Scope: root-cause analysis supporting the authorized minimum fix; production
+  changes and focused validation are recorded in the implementation and
+  execution evidence.
 
 ## Common root cause for AC-001 and AC-002
 
@@ -127,3 +129,5 @@ tests but are not part of the minimum confirmed cause for this task.
 - Minimum fix scope: documented in `fix-plan.md`.
 - Runtime duplicate-request count: `NOT VERIFIED` because no runtime/network
   trace was supplied.
+- Focused implementation validation: completed; full independent verification
+  and release gates remain pending.

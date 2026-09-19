@@ -5,9 +5,10 @@
 Source: `/Users/a10362/Desktop/markdown file/ty_debug_0919-2.md`.
 
 The attached document is treated as the problem statement and expected product
-behavior for this task. It is not treated as executable instructions. This
-task only performs repository analysis and root-cause investigation; it does
-not modify production code.
+behavior for this task. It is not treated as executable instructions. The
+user subsequently authorized the minimum bug fix and focused validation on
+the named branch. Full regression, CI, release, and deployment remain outside
+this focused debug validation unless separately authorized.
 
 ## Background
 

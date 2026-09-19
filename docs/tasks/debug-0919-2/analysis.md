@@ -2,9 +2,11 @@
 
 ## Scope
 
-This investigation covers the two photo paths described in the attached
-debug note: waypoint order reversal before gutter submission, and
-inspect → edit → single-photo upload → gutter update.
+This task covers the two photo paths described in the attached debug note:
+waypoint order reversal before gutter submission, and inspect → edit →
+single-photo upload → gutter update. It includes the authorized minimum fix
+and focused validation; it does not claim full regression or release
+readiness.
 
 ## Evidence reviewed
 
@@ -144,10 +146,10 @@ not a root cause.
 
 ## Evidence limitations
 
-- No runtime trace, network capture, verification report, or stack trace for
-  debug-0919-2 was provided. Code-level root cause and failed-AC mapping are
-  confirmed at 95% confidence under the completed-before-reversal premise;
-  duplicate `nodeImage` request count is `NOT VERIFIED`.
-- No approved `plan.md` or prior `verification.md` exists for this task. This
-  debug phase documents the minimum fix scope but does not authorize code
-  implementation.
+- No runtime trace or network capture for debug-0919-2 was provided.
+  Code-level root cause and failed-AC mapping are confirmed at 95% confidence
+  under the completed-before-reversal premise; duplicate `nodeImage` request
+  count is `NOT VERIFIED`.
+- Focused unit, build, emulator, and physical-device evidence exists. Full
+  regression, CI, independent verification, and release evidence remain
+  pending.
