@@ -33,7 +33,7 @@ The four acceptance criteria are UI and flow behaviors. Runtime evidence below w
 
 ## Environment Limitation
 
-Runtime evidence was collected on `emulator-5554`. The scoped debug tests passed. One full-suite run had an unrelated Espresso window-focus timeout in `MainShellActivityTest`; its immediate isolated rerun passed without a code change. It is recorded as environment issue `ISS-debug-0919-1-001`. The real backend fetch was not exercised, but the post-import state boundary is covered by a controlled fixture test.
+Runtime evidence was collected on `emulator-5554`. The scoped debug tests and a subsequent complete connected-suite rerun passed. One earlier full-suite run had an unrelated Espresso window-focus timeout in `MainShellActivityTest`; isolated and subsequent full-suite reruns passed without a code change, and it is recorded as resolved transient issue `ISS-debug-0919-1-001`. The real backend fetch was not exercised, but the post-import state boundary is covered by a controlled fixture test.
 
 ## Verification Decision
 

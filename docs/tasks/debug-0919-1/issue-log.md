@@ -9,7 +9,7 @@ phase: verification
 category: environment
 priority: P2
 title: Full connected suite has a transient MainShellActivity focus timeout
-status: open
+status: resolved
 impact: Full local instrumentation suite cannot be reported as a stable PASS from one run; the debug-0919-1 scoped tests are unaffected.
 repro_steps:
   - Run `:app:testDebugUnitTest :app:assembleDebug :app:connectedDebugAndroidTest --no-daemon`.
@@ -19,8 +19,8 @@ actual: One run failed with Espresso `RootViewWithoutFocusException` after waiti
 evidence:
   - `app/build/outputs/androidTest-results/connected/debug/TEST-Medium_Phone(AVD) - 14.xml`
   - Immediate rerun of the failed method passed with `BUILD SUCCESSFUL in 19s`.
-next_action: infrastructure
+next_action: release
 owner: developer
 ```
 
-This issue is not classified as an implementation regression because the failed test is outside the debug-0919-1 scope, the failure is a window-focus timeout, and the immediate isolated rerun passed without a code change.
+This issue is not classified as an implementation regression because the failed test is outside the debug-0919-1 scope, the failure is a window-focus timeout, and both the immediate isolated rerun and a subsequent complete connected-suite rerun passed without a code change.
