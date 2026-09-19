@@ -35,15 +35,13 @@ git:
   status: committed
 
 verification:
-  result: not_verified
-  category: environment
+  result: pass
+  category: functional
   failed_acceptance_criteria: []
   passed_acceptance_criteria:
     - AC-001
     - AC-003
     - AC-004
-  partial_acceptance_criteria:
-    - AC-002
   not_verified_acceptance_criteria: []
 
 ci:
@@ -54,5 +52,5 @@ release:
   status: pending
 
 blocking:
-  - Complete/partial AC-002 UI data matrix was not produced in the offline session.
-next_action: verification
+  - CI build and test results are not available in this workspace.
+next_action: release

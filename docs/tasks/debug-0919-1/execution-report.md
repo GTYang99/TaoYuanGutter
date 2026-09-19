@@ -25,10 +25,11 @@
 | `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterBasicInfoUiTest --no-daemon` | PASS | `BUILD SUCCESSFUL in 47s` on `Medium_Phone` / Android 14. |
 | `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.GutterCantOpenUiTest --no-daemon` | PASS | `BUILD SUCCESSFUL in 44s` on `Medium_Phone` / Android 14. |
 | `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.Debug0919ImportedWaypointUiTest --no-daemon` | PASS | `BUILD SUCCESSFUL in 26s` on `Medium_Phone` / Android 14; covers preview, edit and recreation using the post-import state fixture. |
+| `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.Debug0919WaypointAdapterUiTest --no-daemon` | PASS | `BUILD SUCCESSFUL in 47s` on `Medium_Phone` / Android 14; covers blank, partial and upload-complete list status text. |
 | Debug APK | PASS | `app/build/outputs/apk/debug/app-debug.apk`; package `com.example.taoyuangutter`. |
 | `adb devices` | PASS | `emulator-5554` (`sdk_gphone64_arm64`) was available for runtime validation. |
 | AC-001 runtime UI flow | PASS | Offline flow and instrumentation tests opened the form; selecting `銜接點` disabled the shared exemption fields and photo slots 2/3 while retaining slot 1. Existing no-open behavior also passed regression tests. |
-| AC-002 runtime UI flow | PARTIAL / NOT VERIFIED | New blank waypoint rows showed `暫無資料`; complete and partial prefilled waypoint matrix was not available through the UI session. |
+| AC-002 runtime UI flow | PASS | `Debug0919WaypointAdapterUiTest` showed `暫無資料` for blank/partial rows and `已填寫資料` only for a row meeting all fields, coordinates and three usable photo slots. |
 | AC-003/AC-004 runtime UI flows | PASS (post-import state fixture) | `_isImported=1` fixture preserved `is_virtual=1`; `cbIsVirtual` and `btnPickLocation` stayed disabled through preview, edit and recreation. Real backend import request remains outside this offline run. |
 
 ## Changed Scope
@@ -37,4 +38,4 @@ Production files are limited to the gutter form, bottom sheet, adapter, shared c
 
 ## Handoff
 
-Implementation has runtime evidence for AC-001, AC-003 and AC-004; verification remains open until the AC-002 complete/partial matrix is exercised.
+All four acceptance criteria have runtime or controlled-fixture evidence; CI and release gates remain separate pending checks.
