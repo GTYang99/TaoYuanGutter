@@ -40,7 +40,7 @@ git:
 
 verification:
   result: not_verified
-  category: planning
+  category: environment
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria: []
 
@@ -54,7 +54,5 @@ release:
 blocking:
   - No Android device/emulator is connected for instrumentation runtime verification.
   - CI evidence is not available.
-  - Verification inputs requirement.md and plan.md are missing from this task directory.
-  - User decisions confirm the intended photo-upload and deleted-layer behavior, but the required approved requirement.md and plan.md artifacts are still missing.
 
-next_action: planning
+next_action: infrastructure

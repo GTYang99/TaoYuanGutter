@@ -24,19 +24,27 @@
 
 ## Validation
 
+### Fixed-revision rerun
+
+- Fixed production revision: `a8c95208e46b7cb7142f7e28bf70c309bc9726c8`.
+- Validation ran in a clean detached worktree at that revision. The main
+  worktree's unrelated `strings.xml` and `.worktrees/` changes were preserved.
+- The clean worktree required the existing local Android configuration to resolve
+  the map key; it was copied locally for the run and was not committed or
+  included in evidence.
+
 | Check | Result | Evidence |
 |---|---|---|
 | `git diff --check` | PASS | No whitespace errors. |
-| Focused unit tests | PASS | Targeted photo-ID/import tests passed, including `NodeImgDeserializationTest`, `PhotoImgIdResolverTest`, and upload-candidate tests for ID-present vs ID-missing slots. |
-| Full unit test suite | PASS | `:app:testDebugUnitTest` completed successfully. |
-| Debug build | PASS | `:app:assembleDebug` completed successfully. |
-| Instrumentation test APK | PASS | `:app:assembleDebugAndroidTest` completed successfully; test runtime was not executed because no device was connected. |
-| Physical UI verification | NOT VERIFIED | No device screenshot/manual run was performed in this pass. |
+| Focused unit tests | PASS | `:app:testDebugUnitTest --tests ...` completed successfully for the six debug-0918 targeted suites on the fixed revision. |
+| Debug build | PASS | `:app:assembleDebug` completed successfully on the fixed revision. |
+| Instrumentation test APK | PASS | `:app:assembleDebugAndroidTest` completed successfully on the fixed revision. |
+| Physical UI/API runtime verification | NOT VERIFIED | `adb devices -l` returned no attached device/emulator; import, upload, layer-toggle, and rendered-title cases could not run. |
 | CI | NOT VERIFIED | No CI workflow/result is available in the repository. |
 
 ## Limitations
 
 - The local Gradle run required Android Studio's bundled JDK and escalated
   access to the Gradle cache outside the workspace.
-- The unrelated working-tree change in `GutterApiService.kt` and the existing
-  `.worktrees/` directory were preserved and are not part of this change.
+- The unrelated working-tree change in `strings.xml` and the existing `.worktrees/`
+  directory were preserved and are not part of this change.

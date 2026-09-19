@@ -147,10 +147,12 @@ Verification Agent 必須在 `verification.md` 逐項填寫 `PASS`、`FAIL` 或
 
 | AC | 必要證據 | 目前狀態 |
 |---|---|---|
-| Photo ID preservation/upload rule | approved requirement + unit + device/API trace | NOT VERIFIED，待需求裁決及 runtime |
-| `0910刪除資料` initial state/toggle | approved requirement + source/unit + device UI | NOT VERIFIED，待需求裁決及 runtime |
-| `既有點位資料` title centering | approved requirement + XML review + device screenshot/assertion | NOT VERIFIED，待 runtime |
-| Regression: existing photo, replacement, draft, virtual/cannot-open | related tests + device flow | NOT VERIFIED，待 runtime |
+| AC-001 URL-only photo display/no re-upload | approved requirement + unit + device/API trace | NOT VERIFIED，待 runtime |
+| AC-002 replacement upload/returned `img_id` | approved requirement + unit + device/API trace | NOT VERIFIED，待 runtime |
+| AC-003 `ditchDetails`/`nodeDetails` mapping separation | approved requirement + source/unit | PASS，fixed-revision evidence |
+| AC-004 `0910刪除資料` initial state/toggle | approved requirement + source/unit + device UI | NOT VERIFIED，待 runtime |
+| AC-005 `既有點位資料` title centering | approved requirement + XML review + device screenshot/assertion | NOT VERIFIED，待 runtime |
+| AC-006 existing photo/replacement/draft/virtual/cannot-open regression | related tests + device flow | NOT VERIFIED，待 runtime |
 
 若需求裁決後發現 implementation 與 approved AC 不一致，分類為
 `implementation`，建立/更新 issue，`next_action: debug`；不得直接修改程式
@@ -166,7 +168,7 @@ status: verification_in_progress
 next_action: verification
 ```
 
-需求/計畫缺失或衝突：
+需求/計畫缺失或未裁決：
 
 ```yaml
 phase: verification
