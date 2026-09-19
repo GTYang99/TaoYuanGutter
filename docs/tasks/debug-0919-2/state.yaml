@@ -3,7 +3,7 @@ task:
   type: debug
 
 phase: verification
-status: verification_in_progress
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -31,9 +31,12 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
 
 ci:
   build: not_started
@@ -45,4 +48,4 @@ release:
 blocking:
   - No runtime/network trace is available to verify duplicate nodeImage request counts.
 
-next_action: verification
+next_action: infrastructure
