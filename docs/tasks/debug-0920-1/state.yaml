@@ -17,12 +17,13 @@ debug:
     - ISS-DBG-0920-003
     - ISS-DBG-0920-004
     - ISS-DBG-0920-005
+    - ISS-DBG-0920-006
+    - ISS-DBG-0920-007
 
 implementation:
   status: completed
-  scope: AC-002_to_AC-005
+  scope: AC-006_to_AC-007
 
-validation:
   status: completed
   static_source_review: completed
   targeted_unit_tests: pass
@@ -30,7 +31,7 @@ validation:
 
 git:
   branch: "fix/debug-0920-1-表單問題"
-  commit: "5e4f85d"
+  commit: "7c43493"
   status: committed
 
 verification:

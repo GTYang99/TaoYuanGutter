@@ -116,6 +116,29 @@ The edit form can show a required marker or return `測量座標編號` instead 
 - Silt compatibility must keep exactly three visible choices and display both the current severe code and supported legacy severe code as `嚴重`.
 - The measurement identifier must remain available for backend update identity even when it is removed from manual-entry validation or required UI.
 
+## AC-006 — Tie-in point transition skips confirmation and clearing
+
+### Root cause
+
+`GutterBasicInfoFragment.setupConnectPointAndPipe()` has only a mutual-exclusion listener. Unlike `cbCantOpen`, it never checks whether the user initiated the toggle, never displays a transition warning, and never invokes the shared clear/snapshot path. The checkbox can therefore become selected while all previously entered detail fields, measurement photos, and connecting-pipe data remain in the form.
+
+### Evidence
+
+- `GutterBasicInfoFragment.kt:722-736` directly applies mutual exclusion and draft notification for `cbConnectPoint`.
+- `onCantOpenToggleChanged()` at `:742-830` contains the existing confirmation and snapshot behavior that the tie-in transition should reuse.
+
+## AC-007 — Cant-open transition does not clear connecting pipe
+
+### Root cause
+
+The cant-open clear method omits `rgConnectPipe`, and the session snapshot's field list omits `IS_CONNECTING`. Thus the lower UI selection is neither cleared when entering cant-open nor captured/restored consistently when the user cancels the transition.
+
+### Evidence
+
+- `GutterBasicInfoFragment.clearCantOpenFieldsAndPhotos()` clears the detail radio groups but not `rgConnectPipe`.
+- `CantOpenSessionViewModel.CANT_OPEN_FIELDS` contains the other detail keys but not `IS_CONNECTING`.
+- `restoreCantOpenSessionState()` restores the other controls but not `rgConnectPipe`.
+
 ## Confidence Assessment
 
 Static root-cause confidence is at least 95% overall:
@@ -125,9 +148,11 @@ Static root-cause confidence is at least 95% overall:
 - AC-003: 99% — both reported edit-entry paths converge on the uniquely identified dialog helper.
 - AC-004: 99% — the form encoding is established by the current ancestor decision, while the inspection mapper contains the contradictory branch.
 - AC-005: 98% — approved prior requirements define the locked/read-only behavior, and current code directly enables, requires, and carries the same field across the edit flow.
+- AC-006: 99% — the missing behavior is isolated to the direct `cbConnectPoint` listener, and the existing `cbCantOpen` path provides the intended confirmation/snapshot contract.
+- AC-007: 99% — the omitted `rgConnectPipe` clear and missing `IS_CONNECTING` snapshot key are directly visible in the affected methods.
 
 Runtime confirmation is now available for all five ACs through targeted JVM/UI tests; the root-cause confidence is supported by both source evidence and observed behavior.
 
 ## Root Cause Status
 
-Root causes for AC-002 through AC-005 are confirmed by static code evidence plus approved prior decisions, and the minimum fixes are committed. AC-001's historical root cause is confirmed, its structural fix is already present in HEAD, and both JVM and UI tests cover the core exemption. All five ACs have now passed the scoped verification checks.
+Root causes for AC-002 through AC-007 are confirmed by static code evidence plus approved prior decisions, and the minimum fixes are implemented in `7c43493`. AC-001's historical root cause is confirmed, its structural fix is already present in HEAD, and all seven ACs have passed the scoped verification checks.

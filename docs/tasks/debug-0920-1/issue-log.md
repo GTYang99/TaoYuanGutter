@@ -112,3 +112,47 @@ evidence:
 next_action: release
 owner: developer
 ```
+
+## ISS-DBG-0920-006
+
+```yaml
+issue_id: ISS-DBG-0920-006
+task_id: debug-0920-1
+phase: verification
+category: implementation_regression
+priority: P1
+title: Tie-in point selection skips clear confirmation
+status: verified
+impact: Selecting 銜接點 could leave incompatible detail fields, photos, and connecting-pipe data in the form without warning.
+expected: Show the specified confirmation message; cancel preserves data; confirm clears the shared detail state.
+actual: The checkbox listener only applied mutual exclusion and notified the draft.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt
+  - commit 7c43493
+  - GutterBasicInfoUiTest.tieInPointWarnsBeforeClearingAndCancelPreservesData
+next_action: release
+owner: developer
+```
+
+## ISS-DBG-0920-007
+
+```yaml
+issue_id: ISS-DBG-0920-007
+task_id: debug-0920-1
+phase: verification
+category: implementation_regression
+priority: P1
+title: Cant-open clearing omits connecting-pipe selection
+status: verified
+impact: Selecting 無法開蓋 left the 接管／連結管 radio choice visible and retained in form state.
+expected: The connecting-pipe selection is cleared with the other detail fields and restored when the transition is cancelled or reversed.
+actual: The clear method, session field list, and restore renderer omitted IS_CONNECTING.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt
+  - app/src/main/java/com/example/taoyuangutter/gutter/CantOpenSessionViewModel.kt
+  - commit 7c43493
+  - GutterCantOpenUiTest.confirmDialogClearsAffectedFields
+  - GutterCantOpenUiTest.snapshotSurvivesConfigurationRecreation
+next_action: release
+owner: developer
+```

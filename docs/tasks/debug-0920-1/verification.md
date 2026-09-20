@@ -2,7 +2,7 @@
 
 ## Revision and working-tree boundary
 
-- Production implementation and regression-test revision under review: `5e4f85d`
+- Production implementation and regression-test revision under review: `7c43493`
 - Branch: `fix/debug-0920-1-表單問題`
 - The earlier `d3dffbd` commit contains the production fix; `5e4f85d` adds the focused silt, import, and edit-entry regression coverage.
 - The later documentation commits only record task state and verification evidence; they do not change production or test code.
@@ -17,6 +17,8 @@
 | AC-003 | PASS | `GutterInspectEditEntryUiTest` used a no-server-photo inspection fixture and confirmed edit entry completed without the `進入編輯確認` dialog; detail-load failure routing remains source-reviewed. |
 | AC-004 | PASS | `InspectionPresentationTest` passed for codes `0`, `1`, `2`, and legacy `3`; `GutterBasicInfoUiTest` also passed for the severe form selection. |
 | AC-005 | PASS | The new `GutterBasicInfoUiTest` passed before and after entering edit: backend `XY_NUM` is visible, populated, not enabled, and has no required marker. Mapper and completion-policy JVM tests passed. |
+| AC-006 | PASS | `GutterBasicInfoUiTest.tieInPointWarnsBeforeClearingAndCancelPreservesData` passed on XQ-AU52 / Android 12. It verifies the exact Alert, cancellation preservation, confirmation clearing, and connecting-pipe clearing. |
+| AC-007 | PASS | `GutterCantOpenUiTest` passed on XQ-AU52 / Android 12. It verifies connecting-pipe clearing after confirmation and restoration after configuration recreation/reversal. |
 
 ## Checks performed
 
@@ -26,6 +28,10 @@
 - Full JVM suite: PASS. `./gradlew testDebugUnitTest` completed successfully.
 - Debug build: PASS. `assembleDebug` completed successfully.
 - Android UI/device checks: PASS. Full `./gradlew connectedDebugAndroidTest` completed successfully on `Medium_Phone` Android 14, including the AC-scoped tests and nearby regression tests.
+- Follow-up targeted UI checks: PASS. `GutterBasicInfoUiTest` and `GutterCantOpenUiTest` completed successfully on XQ-AU52 / Android 12.
+- Follow-up full JVM suite: PASS. `./gradlew testDebugUnitTest` completed successfully.
+- Follow-up Debug build: PASS. `./gradlew assembleDebug` completed successfully.
+- Follow-up full Android UI suite: PASS. `./gradlew connectedDebugAndroidTest` completed successfully on XQ-AU52 / Android 12.
 
 ## Regression review
 
@@ -38,4 +44,4 @@
 
 `PASS`
 
-All five acceptance criteria have evidence. The repository's separate remote CI/release record has not been run in this local session.
+All seven acceptance criteria have evidence. The repository's separate remote CI/release record has not been run in this local session.

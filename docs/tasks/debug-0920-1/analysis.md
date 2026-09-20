@@ -5,7 +5,23 @@
 - Branch checked: `fix/debug-0920-1-表單問題`.
 - HEAD checked: `b40e79b`.
 - Working tree contains an existing untracked `.worktrees/` entry. It is outside this task's scope and was not modified.
-- Production changes are now staged in the working tree for the implementation-debug re-entry. Evidence remains static source inspection plus diff checks; runtime/device reproduction is not yet available.
+- The follow-up implementation is committed in `7c43493`; runtime/device evidence is available from XQ-AU52 / Android 12.
+
+## Follow-up Scope — AC-006 and AC-007
+
+The attached defect report adds two form-transition defects to this task. They are limited to the existing `GutterBasicInfoFragment` state machine and its session snapshot:
+
+### AC-006 — Tie-in point transition has no warning or clear
+
+`setupConnectPointAndPipe()` currently changes the checkbox state, applies mutual exclusion, and notifies the draft immediately. It does not call the existing confirmation flow used by `cbCantOpen`, does not clear the detail fields or measurement photos, and does not retain a snapshot for cancellation/restoration. This is why selecting `銜接點` can leave incompatible lower-section data in the form without warning.
+
+### AC-007 — Cant-open clear omits connecting pipe
+
+`clearCantOpenFieldsAndPhotos()` clears cover thickness, depth, top width, material, damage, hanging, silt, and measurement photo slots 2/3, but never clears `rgConnectPipe`. `CantOpenSessionViewModel.CANT_OPEN_FIELDS` also omits `IS_CONNECTING`, and `restoreCantOpenSessionState()` does not render that field from a restored snapshot. As a result, the UI retains the connecting-pipe choice and the clear/restore model is incomplete for this field.
+
+### Shared transition contract
+
+Both mutually exclusive detail-exemption modes must use the same snapshot/clear/restore boundary. The existing cant-open session holder is the minimal reuse point; adding `IS_CONNECTING` to its captured field set and rendering it on restore preserves existing cancellation and configuration-recreation behavior without introducing a second state store.
 
 ## Current Behavior
 

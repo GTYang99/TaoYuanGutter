@@ -6,6 +6,13 @@
 - Branch: `fix/debug-0920-1-表單問題`
 - Implementation scope: AC-002 through AC-005; AC-001 retained the existing shared policy fix from `07e3b5a`.
 
+## Follow-up implementation — AC-006 and AC-007
+
+- `cbConnectPoint` now uses the detail-exemption confirmation flow with the exact requested message. Cancellation preserves the current state; confirmation clears detail fields, measurement photos, and connecting-pipe selection.
+- `cbCantOpen` now clears the connecting-pipe selection as part of the same clear path.
+- The existing session snapshot now captures and restores `IS_CONNECTING`, including after configuration recreation and after reversing either exemption selection.
+- Implementation and regression-test commit: `7c43493`.
+
 ## Changes
 
 | Acceptance criterion | Implementation result |
@@ -26,7 +33,12 @@
 - Full Android UI suite (`./gradlew connectedDebugAndroidTest`) on `Medium_Phone` Android 14: PASS.
 - AC-002 import-fixture validation: PASS via `GutterImportExistingWaypointUiTest` on `Medium_Phone` Android 14.
 - AC-003 inspection/preload validation: PASS via `GutterInspectEditEntryUiTest` on `Medium_Phone` Android 14.
+- Targeted UI regression: PASS. `GutterBasicInfoUiTest` passed on XQ-AU52 / Android 12, including `tieInPointWarnsBeforeClearingAndCancelPreservesData`.
+- Targeted UI regression: PASS. `GutterCantOpenUiTest` passed on XQ-AU52 / Android 12, including connecting-pipe clearing and snapshot restoration.
+- Full JVM suite after follow-up: PASS.
+- Debug build after follow-up: PASS.
+- Full connected Android suite after follow-up: PASS on XQ-AU52 / Android 12.
 
 ## Limitations
 
-All requested bug fixes and local validation are complete. Remote CI and release records remain outside this implementation-validation session.
+All seven acceptance criteria and local validation are complete. Remote CI and release records remain outside this implementation-validation session.

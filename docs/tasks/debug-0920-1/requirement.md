@@ -8,7 +8,7 @@
 
 ## Background
 
-The form/import/inspection flow has inconsistent behavior around tie-in-point field exemptions, import feedback, edit entry, silt-level display, and backend-generated measurement identifiers.
+The form/import/inspection flow has inconsistent behavior around tie-in-point field exemptions and transitions, import feedback, edit entry, silt-level display, backend-generated measurement identifiers, and cant-open clearing.
 
 ## Goal
 
@@ -22,6 +22,8 @@ Make the affected form state, import flow, edit entry flow, and inspection displ
 - Silt level has only three choices: `無`, `輕度`, and `嚴重`.
 - Selecting `嚴重` and then viewing the gutter must display `嚴重`, not `中度`.
 - In the inspection-to-edit flow, the measurement coordinate number (`tvMeasureIdTitle`) is supplied by the backend and must not be treated as a value the user needs to enter.
+- Selecting `cbConnectPoint` must use the same clear-confirmation flow as the existing cant-open transition, with the message `切換成「銜接點」後將清除已填寫資訊與照片，是否確認切換?`. Confirming clears the listed detail fields, measurement photos, and connecting-pipe selection; cancelling keeps the original form data.
+- Selecting `cbCantOpen` must also clear the connecting-pipe selection together with the existing detail fields and measurement photos.
 
 ## Non-functional Requirements
 
@@ -37,6 +39,8 @@ Make the affected form state, import flow, edit entry flow, and inspection displ
 - AC-003: Opening edit from the gutter inspection flow proceeds without the `進入編輯確認` dialog; genuine detail-load failure handling remains available.
 - AC-004: The form exposes exactly `無`, `輕度`, and `嚴重`; a saved severe value is displayed as `嚴重` in inspection.
 - AC-005: In the inspection-to-edit flow, the measurement coordinate number is not user-required; the edit flow relies on the backend-provided value and does not block the user on manual entry.
+- AC-006: Selecting `cbConnectPoint` warns with the specified message before clearing the detail fields, measurement photos, and connecting-pipe selection; cancel preserves the original data.
+- AC-007: Confirming `cbCantOpen` clears the connecting-pipe selection in addition to the existing detail fields and measurement photos.
 
 ## Constraints
 
