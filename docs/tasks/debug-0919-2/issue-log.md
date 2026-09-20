@@ -4,7 +4,7 @@
 |---|---|---:|---|---|
 | ISS-debug-0919-2-001 | implementation_regression | P1 | open | Form-result merge removes completed photo metadata; after reversal the submit gate treats the photo as not uploaded and uploads it again. |
 | ISS-debug-0919-2-002 | implementation_regression | P1 | open | The same merge removes the newly returned replacement `img_id` and success state during inspect/update. |
-| ISS-debug-0919-2-003 | environment | P1 | open | Runtime/network trace and verification artifacts are unavailable; duplicate request count remains unverified. |
+| ISS-debug-0919-2-003 | environment | P1 | open | Live new-photo trace is available, but storeDitch returned 404 and reversal/replacement evidence remains incomplete. |
 
 ## Resolved investigation questions
 
@@ -69,6 +69,8 @@ impact: The investigation cannot report runtime duplicate-request counts as veri
 evidence:
   - docs/tasks/debug-0919-2/analysis.md
   - docs/tasks/debug-0919-2/root-cause.md
+  - docs/tasks/debug-0919-2/verification.md
+  - Live Sony XQ-AU52 trace: nodeImage HTTP 200, storeDitch HTTP 404, no duplicate nodeImage request
 next_action: infrastructure
 owner: developer
 ```
