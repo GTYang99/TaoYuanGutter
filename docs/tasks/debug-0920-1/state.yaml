@@ -24,6 +24,7 @@ implementation:
   status: completed
   scope: AC-006_to_AC-007
 
+validation:
   status: completed
   static_source_review: completed
   targeted_unit_tests: pass
