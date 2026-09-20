@@ -19,6 +19,28 @@ next_action: release
 owner: developer
 ```
 
+## ISS-DBG-0920-011
+
+```yaml
+issue_id: ISS-DBG-0920-011
+task_id: debug-0920-1
+phase: implementation_debug
+category: implementation_regression
+priority: P1
+title: Empty nodeDetails connection value is converted to 0 during edit preload and form handoff
+status: implemented_pending_verification
+impact: Existing 銜接點／無法開蓋 data with IS_CONNECTING="" can re-enter the edit form with 連接管「無」 selected, despite the API value being empty.
+expected: Preserve an empty IS_CONNECTING as absent through node-details hydration and form/result extras; only explicit 0 or 1 selects a radio button.
+actual: AddGutterBottomSheet writes 0 from isConnectingAsBoolean, and GutterFormContract uses 0 fallbacks for missing connection extras.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/gutter/AddGutterBottomSheet.kt:2156-2170
+  - app/src/main/java/com/example/taoyuangutter/api/GutterApiModels.kt:455-456
+  - app/src/main/java/com/example/taoyuangutter/gutter/GutterFormContract.kt:68,117,184,231
+  - reported /v1/node/nodeDetails response with IS_CONNECTING=""
+next_action: verification
+owner: developer
+```
+
 ## ISS-DBG-0920-002
 
 ```yaml

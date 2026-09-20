@@ -75,3 +75,17 @@
 - `:app:compileDebugAndroidTestKotlin`: PASS.
 - `:app:assembleDebug`: PASS.
 - Physical-device inspection-to-edit acceptance: NOT VERIFIED; user device testing remains required.
+
+## Follow-up implementation — preserve empty `IS_CONNECTING` in edit preload and form contract
+
+- `AddGutterBottomSheet.preloadEditWaypointDetails()` now removes `IS_CONNECTING` when the node-details response is empty or unrecognized, and preserves only explicit `0`/`1` or equivalent Boolean text.
+- `GutterFormContract` now uses an empty-string fallback for `IS_CONNECTING` in form and result extras, preventing an omitted value from becoming the radio value 「無」.
+- Added `GutterFormContractInstrumentedTest` covering empty-value preservation and explicit `0` preservation.
+
+## Follow-up validation — empty `IS_CONNECTING`
+
+- `git diff --check`: PASS.
+- `:app:testDebugUnitTest`: PASS.
+- `:app:compileDebugAndroidTestKotlin`: PASS, including the new contract test.
+- `:app:assembleDebug`: PASS.
+- Physical-device inspection-to-edit acceptance: NOT VERIFIED; user will perform manual testing.

@@ -187,3 +187,20 @@ Evidence:
 - `GutterBasicInfoUiTest` covers both exempt modes with a missing connection value.
 
 Confidence: 99% from direct source tracing, focused regression coverage, and successful compilation/build validation. Physical-device confirmation remains pending.
+
+### Follow-up: empty `IS_CONNECTING` is converted by the edit-sheet preload path
+
+The supplied `/v1/node/nodeDetails` response contains `IS_CONNECTING: ""`. This is an explicit empty value and must remain absent in the edit data model. The prior fix covered the `GutterInspectActivity` preload path, but the edit flow has a second node-details hydration path in `AddGutterBottomSheet.preloadEditWaypointDetails()`. That path uses `nd.isConnectingAsBoolean`; because the value is empty, the Boolean is false and the code writes `IS_CONNECTING = "0"` into the merged waypoint data.
+
+The form contract has the same semantic defect in both directions: `putFormDataExtras`, `readFormData`, `putResultData`, and `readResultData` use `?: "0"` for `IS_CONNECTING`, so an omitted extra is recreated as the radio value 「無」.
+
+Evidence:
+
+- `AddGutterBottomSheet.kt:2156-2170` overwrites an empty API value with `"0"` during edit preload.
+- `GutterApiModels.kt:455-456` defines empty `IS_CONNECTING` as Boolean false through `isConnectingAsBoolean`.
+- `GutterFormContract.kt:68,117,184,231` supplies `"0"` when the connection value is absent.
+- The reported response has `IS_TIEINPOINT="1"` and `IS_CONNECTING=""`, matching the exempt-mode case where the connection attribute must not be recreated.
+
+Minimum fix: preserve only explicit connection values (`1`/`0` and supported Boolean text), remove the connection key for an empty/unrecognized API value, and use an empty string rather than `"0"` as the form/result contract fallback. Normal explicit `0`/`1` behavior remains unchanged.
+
+Confidence: 99% from direct source tracing against the reported response and both remaining conversion paths. Physical-device confirmation remains pending.

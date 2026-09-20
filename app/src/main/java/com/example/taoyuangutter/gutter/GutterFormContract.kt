@@ -65,7 +65,7 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.EXTRA_DATA_IS_CANTOPEN, data["IS_CANTOPEN"] ?: data["isCantOpen"] ?: "")
         if (!data["is_virtual"].toBooleanLoose()) {
             intent.putExtra(GutterFormActivity.EXTRA_DATA_IS_TIEINPOINT, data["IS_TIEINPOINT"] ?: "0")
-            intent.putExtra(GutterFormActivity.EXTRA_DATA_IS_CONNECTING, data["IS_CONNECTING"] ?: "0")
+            intent.putExtra(GutterFormActivity.EXTRA_DATA_IS_CONNECTING, data["IS_CONNECTING"] ?: "")
         }
         intent.putExtra(
             GutterFormActivity.EXTRA_DATA_IS_PENDING_DEPLOY,
@@ -114,7 +114,7 @@ object GutterFormContract {
             "IS_SILT" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_SILT) ?: ""),
             "IS_CANTOPEN" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_CANTOPEN) ?: ""),
             "IS_TIEINPOINT" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_TIEINPOINT) ?: "0"),
-            "IS_CONNECTING" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_CONNECTING) ?: "0"),
+            "IS_CONNECTING" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_CONNECTING) ?: ""),
             "IS_PENDING_DEPLOY" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_PENDING_DEPLOY) ?: ""),
             "is_virtual" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_VIRTUAL) ?: ""),
             "_isImported" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_IMPORTED) ?: ""),
@@ -181,7 +181,7 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: "")
         if (!basicData["is_virtual"].toBooleanLoose()) {
             intent.putExtra(GutterFormActivity.RESULT_DATA_IS_TIEINPOINT, basicData["IS_TIEINPOINT"] ?: "0")
-            intent.putExtra(GutterFormActivity.RESULT_DATA_IS_CONNECTING, basicData["IS_CONNECTING"] ?: "0")
+            intent.putExtra(GutterFormActivity.RESULT_DATA_IS_CONNECTING, basicData["IS_CONNECTING"] ?: "")
         }
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_PENDING_DEPLOY, basicData["IS_PENDING_DEPLOY"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_VIRTUAL, basicData["is_virtual"] ?: "")
@@ -228,7 +228,7 @@ object GutterFormContract {
             "IS_SILT" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_SILT) ?: ""),
             "IS_CANTOPEN" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_CANTOPEN) ?: ""),
             "IS_TIEINPOINT" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_TIEINPOINT) ?: "0"),
-            "IS_CONNECTING" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_CONNECTING) ?: "0"),
+            "IS_CONNECTING" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_CONNECTING) ?: ""),
             "IS_PENDING_DEPLOY" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_PENDING_DEPLOY) ?: ""),
             "is_virtual" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_VIRTUAL) ?: ""),
             "_isImported" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_IMPORTED) ?: ""),
