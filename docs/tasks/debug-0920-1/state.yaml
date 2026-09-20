@@ -36,7 +36,7 @@ validation:
 
 git:
   branch: "fix/debug-0920-1-表單問題"
-  commit: "d9e18b2"
+  commit: "3833484"
   status: committed
 
 verification:
