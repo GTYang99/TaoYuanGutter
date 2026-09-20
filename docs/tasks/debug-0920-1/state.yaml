@@ -1,0 +1,52 @@
+task:
+  id: debug-0920-1
+  type: debug
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+debug:
+  status: completed
+  root_cause: identified_from_static_code_evidence
+  issues:
+    - ISS-DBG-0920-001
+    - ISS-DBG-0920-002
+    - ISS-DBG-0920-003
+    - ISS-DBG-0920-004
+    - ISS-DBG-0920-005
+
+implementation:
+  status: completed
+  scope: AC-002_to_AC-005
+
+validation:
+  status: limited
+  static_source_review: completed
+  targeted_unit_tests: not_verified_java_runtime_unavailable
+  runtime_device: not_verified
+
+git:
+  branch: "fix/debug-0920-1-表單問題"
+  commit: "9732577"
+  status: committed
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - Targeted JVM tests and debug build are unavailable because no Java Runtime is installed in the environment.
+  - Runtime/device reproduction and post-fix validation have not yet been performed.
+
+next_action: verification

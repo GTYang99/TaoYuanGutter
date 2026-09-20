@@ -1,0 +1,11 @@
+# Fix Plan
+
+This is the minimum implementation scope after root-cause analysis. It does not authorize unrelated refactoring.
+
+1. Preserve the existing `GutterCompletionPolicy` tie-in-point behavior from `07e3b5a`; add or adjust only focused regression coverage if a runtime/source test exposes a remaining bypass.
+2. In `GutterFormActivity.handleImportedNodeDetails()`, remove only the specified missing-photo completion Toast. Preserve import locking, local photo synchronization, upload-state/image-id bookkeeping, loading cleanup, and genuine exception handling.
+3. In `GutterInspectActivity`, bypass the `進入編輯確認` dialog for the no-photo and photo-issue warning paths while preserving the separate node-detail failure retry/block path and the existing preload data flow.
+4. Align inspection silt rendering with the approved three-option encoding: code `2` must render `嚴重`, and legacy code `3` must also render `嚴重`. Update stale comments/contracts only where needed to make the chosen mapping explicit.
+5. In the inspection-to-edit path, keep `tvMeasureIdTitle` visible but locked/read-only, remove its manual-entry/required-marker gate, and preserve any backend-provided `XY_NUM` needed to identify the existing node during update. Do not broadly remove backend identity fields.
+6. Reuse the existing tie-in-point and mapper regression tests, and add focused completion-policy coverage for the backend-generated measurement-id contract. Import warning, edit-entry routing, and inspection silt mapping remain UI/runtime checks because the current repository has no direct JVM seam for those private Android flows.
+7. Run `git diff --check`, targeted tests, the affected debug build, and record any unavailable runtime/device evidence as `NOT VERIFIED`.

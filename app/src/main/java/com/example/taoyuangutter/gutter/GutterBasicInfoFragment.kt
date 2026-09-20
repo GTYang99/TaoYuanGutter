@@ -77,6 +77,12 @@ class GutterBasicInfoFragment : Fragment() {
     private var isFormEditable: Boolean = true
     private var isImportLocked: Boolean = false
     private var isVirtualMode: Boolean = false // 新增：是否為虛擬點模式
+
+    /** 既有點位的座標編號由後端提供；檢視後編輯時仍維持唯讀。 */
+    private fun isBackendManagedMeasureId(): Boolean =
+        arguments?.getBoolean(ARG_VIEW_MODE) == true ||
+            arguments?.getBoolean(ARG_IS_EDIT_MODE) == true
+
     // Keep using request keys NODE_X/NODE_Y; just change UI presentation.
     private var coordXValue: String = ""
     private var coordYValue: String = ""
@@ -934,9 +940,7 @@ class GutterBasicInfoFragment : Fragment() {
 
         binding.tvGutterTypeRequired.visibility = View.VISIBLE
         binding.tvLocationRequired.visibility = View.VISIBLE
-        val requiresMeasureId = arguments?.getBoolean(ARG_IS_EDIT_MODE) == true ||
-            arguments?.getBoolean(ARG_VIEW_MODE) == true
-        binding.tvMeasureIdRequired.visibility = if (requiresMeasureId) View.VISIBLE else View.GONE
+        binding.tvMeasureIdRequired.visibility = View.GONE
         binding.tvOverviewPhotoRequired.visibility = if (overviewPhotoRequired) View.VISIBLE else View.GONE
         binding.tvCoverThicknessRequired.visibility = if (coverThicknessRequired) View.VISIBLE else View.GONE
         binding.tvWidthPhotoRequired.visibility = if (widthDepthPhotosRequired) View.VISIBLE else View.GONE
@@ -986,6 +990,9 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsSilt,
             binding.rgConnectPipe
         ).forEach { it.alpha = alpha }
+        if (isBackendManagedMeasureId()) {
+            binding.tilMeasureId.alpha = 0.5f
+        }
     }
 
     private fun setupLocationPickerButton() {
@@ -1024,7 +1031,6 @@ class GutterBasicInfoFragment : Fragment() {
         logPhotoImgIdTrace("setEditable.enabled=$enabled.actual=$actualEnabled")
         val textFields = listOf(
             binding.etGutterId,
-            binding.etMeasureId,
             binding.etCoverThickness,
             binding.etDepth,
             binding.etTopWidth,
@@ -1035,6 +1041,11 @@ class GutterBasicInfoFragment : Fragment() {
             et.isFocusable = actualEnabled
             et.isFocusableInTouchMode = actualEnabled
         }
+        val measureIdEditable = actualEnabled && !isBackendManagedMeasureId()
+        binding.etMeasureId.isEnabled = measureIdEditable
+        binding.etMeasureId.isFocusable = measureIdEditable
+        binding.etMeasureId.isFocusableInTouchMode = measureIdEditable
+        binding.etMeasureId.isCursorVisible = measureIdEditable
 
         listOf(
             binding.rgMatType,
@@ -1145,8 +1156,9 @@ class GutterBasicInfoFragment : Fragment() {
         val isCantOpen = parseLooseBoolean(d["IS_CANTOPEN"])
         val isConnectPoint = parseLooseBoolean(d["IS_TIEINPOINT"])
         val isUOpen = isUOpenGutter()
-        val requiresXyNum = arguments?.getBoolean(ARG_IS_EDIT_MODE) == true ||
-            arguments?.getBoolean(ARG_VIEW_MODE) == true
+        val requiresXyNum = !isBackendManagedMeasureId() &&
+            (arguments?.getBoolean(ARG_IS_EDIT_MODE) == true ||
+                arguments?.getBoolean(ARG_VIEW_MODE) == true)
 
         // 虛擬模式下，僅驗證位置與座標編號
         if (isVirtual) {

@@ -711,21 +711,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 )
                 showUploadLoading(false)
 
-                val missing = mutableListOf<String>()
-                if (p1.isNullOrEmpty()) {
-                    missing.add("第1張")
-                }
-                if (!isCantOpen) {
-                    if (p2.isNullOrEmpty()) missing.add("第2張")
-                    if (p3.isNullOrEmpty()) missing.add("第3張")
-                }
-                if (missing.isNotEmpty()) {
-                    Toast.makeText(
-                        this@GutterFormActivity,
-                        "匯入完成，但${missing.joinToString("、")}照片未取得，請至照片頁補拍",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
             } catch (e: CancellationException) {
                 showUploadLoading(false)
             } catch (e: Exception) {

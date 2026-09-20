@@ -485,7 +485,7 @@ class GutterInspectPhotosFragment : Fragment() {
     private fun mapSilt(code: String?): String = when (code) {
         "0" -> "無"
         "1" -> "輕度"
-        "2" -> "中度"
+        "2" -> "嚴重"
         "3" -> "嚴重"
         else -> code.orEmpty()
     }

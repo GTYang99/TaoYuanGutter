@@ -32,6 +32,16 @@ class GutterCompletionPolicyTest {
     }
 
     @Test
+    fun backendGeneratedMeasureIdIsNotRequiredWhenTheFlowDisablesManualEntry() {
+        val requiredKeys = GutterCompletionPolicy.requiredBasicKeys(
+            isVirtual = false,
+            requiresMeasureId = false
+        )
+
+        assertFalse(requiredKeys.contains("XY_NUM"))
+    }
+
+    @Test
     fun requiredValuesRejectPartialData() {
         val data = mapOf("NODE_TYP" to "1", "NODE_X" to "25.0")
 
