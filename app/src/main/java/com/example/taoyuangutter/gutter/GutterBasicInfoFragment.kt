@@ -255,7 +255,7 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_DATA_IS_SILT,     basicData["IS_SILT"]     ?: basicData["isSilt"] ?: "")
                 putString(ARG_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: basicData["isCantOpen"] ?: "")
                 putString(ARG_DATA_IS_CONNECT_POINT, basicData["IS_TIEINPOINT"] ?: "0")
-                putString(ARG_DATA_IS_CONNECT_PIPE, basicData["IS_CONNECTING"] ?: "0")
+                putString(ARG_DATA_IS_CONNECT_PIPE, basicData["IS_CONNECTING"] ?: "")
                 putString(ARG_DATA_NODE_NOTE,   basicData["NODE_NOTE"]   ?: basicData["remarks"] ?: "")
                 putString(ARG_PHOTO_1, basicData["photo1"] ?: "")
                 putString(ARG_PHOTO_2, basicData["photo2"] ?: "")
@@ -566,6 +566,15 @@ class GutterBasicInfoFragment : Fragment() {
         clearCheck()
     }
 
+    /** Preserve a missing connection value as an unselected radio group. */
+    private fun RadioGroup.setConnectionPipeSelection(raw: String?) {
+        when (raw?.trim()?.lowercase()) {
+            "1", "true", "yes", "y", "on" -> check(R.id.rbConnectPipe1)
+            "0", "false", "no", "n", "off" -> check(R.id.rbConnectPipe0)
+            else -> clearCheck()
+        }
+    }
+
     /** 取得目前勾選 RadioButton 的文字；無勾選回傳空字串。 */
     private fun RadioGroup.getCheckedText(): String {
         val id = checkedRadioButtonId
@@ -625,7 +634,7 @@ class GutterBasicInfoFragment : Fragment() {
         val isSilt     = args.getString(ARG_DATA_IS_SILT,     "")
         val isCantOpen = args.getString(ARG_DATA_IS_CANTOPEN, "")
         val isConnectPoint = args.getString(ARG_DATA_IS_CONNECT_POINT, "0")
-        val isConnectPipe = args.getString(ARG_DATA_IS_CONNECT_PIPE, "0")
+        val isConnectPipe = args.getString(ARG_DATA_IS_CONNECT_PIPE, "")
         val nodeNote   = args.getString(ARG_DATA_NODE_NOTE,   "")
         val photo1 = args.getString(ARG_PHOTO_1, "")
         val photo2 = args.getString(ARG_PHOTO_2, "")
@@ -673,7 +682,7 @@ class GutterBasicInfoFragment : Fragment() {
             val cantOpenBool = parseLooseBoolean(isCantOpen)
             binding.cbCantOpen.isChecked = cantOpenBool
             binding.cbConnectPoint.isChecked = parseLooseBoolean(isConnectPoint) && !cantOpenBool
-            binding.rgConnectPipe.check(if (parseLooseBoolean(isConnectPipe)) R.id.rbConnectPipe1 else R.id.rbConnectPipe0)
+            binding.rgConnectPipe.setConnectionPipeSelection(isConnectPipe)
             applyCantOpenUi(cantOpenBool)
             applyConnectionMutualExclusionUi()
 
@@ -1321,7 +1330,11 @@ class GutterBasicInfoFragment : Fragment() {
             // 以 "1"/"0" 形式存入 basicData（送出 API 時再轉為 JSON boolean）
             "IS_CANTOPEN" to (if (binding.cbCantOpen.isChecked) "1" else "0"),
             "IS_TIEINPOINT" to (if (binding.cbConnectPoint.isChecked && !binding.cbCantOpen.isChecked) "1" else "0"),
-            "IS_CONNECTING" to (if (binding.rgConnectPipe.checkedRadioButtonId == R.id.rbConnectPipe1) "1" else "0"),
+            "IS_CONNECTING" to when (binding.rgConnectPipe.checkedRadioButtonId) {
+                R.id.rbConnectPipe1 -> "1"
+                R.id.rbConnectPipe0 -> "0"
+                else -> ""
+            },
             "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: ""),
             "photo1" to (photoUriSlot1?.toString() ?: ""),
             "photo2" to (photoUriSlot2?.toString() ?: ""),
@@ -1452,7 +1465,7 @@ class GutterBasicInfoFragment : Fragment() {
             // 淤積狀態（API key 為 IS_SILT，值為字串）
             val siltText = isSiltCodeToText(nodeDetails.isSilt)
             rgIsSilt.setCheckedByText(siltText)
-            rgConnectPipe.check(if (nodeDetails.isConnectingAsBoolean) R.id.rbConnectPipe1 else R.id.rbConnectPipe0)
+            rgConnectPipe.setConnectionPipeSelection(nodeDetails.isConnecting)
 
             // 無法開蓋狀態（使用 isCantOpenAsBoolean 方法處理型別轉換）
             cbCantOpen.isChecked = nodeDetails.isCantOpenAsBoolean

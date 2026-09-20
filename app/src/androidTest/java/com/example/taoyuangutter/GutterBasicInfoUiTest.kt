@@ -72,6 +72,24 @@ class GutterBasicInfoUiTest {
     }
 
     @Test
+    fun existingTieInWithMissingConnectionLeavesPipeUnselected() {
+        launchForm(hashMapOf("NODE_TYP" to "1", "IS_TIEINPOINT" to "1")).use {
+            onView(withId(R.id.cbConnectPoint)).check(matches(isChecked()))
+            onView(withId(R.id.rbConnectPipe0)).check(matches(isNotChecked()))
+            onView(withId(R.id.rbConnectPipe1)).check(matches(isNotChecked()))
+        }
+    }
+
+    @Test
+    fun existingCantOpenWithMissingConnectionLeavesPipeUnselected() {
+        launchForm(hashMapOf("NODE_TYP" to "1", "IS_CANTOPEN" to "1")).use {
+            onView(withId(R.id.cbCantOpen)).check(matches(isChecked()))
+            onView(withId(R.id.rbConnectPipe0)).check(matches(isNotChecked()))
+            onView(withId(R.id.rbConnectPipe1)).check(matches(isNotChecked()))
+        }
+    }
+
+    @Test
     fun inspectionEditKeepsBackendMeasureIdVisibleButReadOnly() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val data = hashMapOf(

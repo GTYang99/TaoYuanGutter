@@ -1980,9 +1980,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             target.remove("IS_CONNECTING")
             target.remove("IS_CANTOPEN")
         } else {
-            target["IS_TIEINPOINT"] = if (parseLooseBoolean(target["IS_TIEINPOINT"])) "1" else "0"
-            target["IS_CONNECTING"] = if (parseLooseBoolean(target["IS_CONNECTING"])) "1" else "0"
-            if (parseLooseBoolean(target["IS_CANTOPEN"])) target["IS_TIEINPOINT"] = "0"
+            val isCantOpen = parseLooseBoolean(target["IS_CANTOPEN"])
+            val isTieInPoint = parseLooseBoolean(target["IS_TIEINPOINT"])
+            target["IS_TIEINPOINT"] = if (isTieInPoint && !isCantOpen) "1" else "0"
+            if (isCantOpen || isTieInPoint) {
+                // Exempt modes have no connecting-pipe attribute. Keep it absent
+                // so an omitted API value does not become a false selection.
+                target.remove("IS_CONNECTING")
+            } else {
+                target["IS_CONNECTING"] = if (parseLooseBoolean(target["IS_CONNECTING"])) "1" else "0"
+            }
         }
     }
 

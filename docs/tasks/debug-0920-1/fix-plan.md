@@ -20,3 +20,5 @@ The user clarified that an API "empty value" means the parameter is omitted from
 11. Omit photo association IDs for exempt photo slots 2 and 3 while preserving slot 1, matching the existing cant-open behavior and the documented exempt photo fields.
 12. In the inspection point renderer, apply the same detail exemption to `IS_TIEINPOINT` as to `IS_CANTOPEN`, hiding the exempt measurements, detail attributes, and photo slots 2/3.
 13. Add mapper JSON regression tests for tie-in and cant-open omission semantics, plus a focused inspection presentation predicate test. Update the stale mapper expectation that currently requires `IS_CONNECTING` for cant-open.
+
+14. Preserve a missing `IS_CONNECTING` value during inspection-to-edit preload and form prefill. Select `rbConnectPipe0` or `rbConnectPipe1` only for an explicit value; otherwise leave both unselected. Remove the field from normalized exempt-mode draft state so later draft synchronization cannot recreate a false selection. Add focused UI coverage for both 銜接點 and 無法開蓋.

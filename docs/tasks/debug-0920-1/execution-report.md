@@ -60,3 +60,18 @@
 - Limited connected checks after resetting the device: PASS for `GutterCantOpenUiTest#confirmDialogClearsAffectedFields`, `GutterCantOpenUiTest#cancelDialogKeepsOriginalState`, `GutterBasicInfoUiTest#tieInPointWarnsBeforeClearingAndCancelPreservesData`, and `GutterInspectTieInUiTest#tieInPointInspectionHidesExemptDetailsAndPhotos` on XQ-AU52 / Android 12.
 - Per the user's request, no further full connected suite was run; physical-device acceptance remains for the user's own test.
 - Remote CI and release records remain outside this implementation-validation session.
+
+## Follow-up implementation — inspection-to-edit empty connection value
+
+- Inspection edit preload now preserves an omitted `IS_CONNECTING` instead of synthesizing `0`.
+- Form prefill and import prefill select `連接管` only for an explicit value; an omitted value leaves both radio buttons unselected.
+- Exempt-mode draft normalization removes `IS_CONNECTING`, preventing later draft synchronization from recreating a false 「無」 selection.
+- Added focused UI coverage for existing 銜接點 and 無法開蓋 data with a missing connection value.
+
+## Follow-up validation — inspection-to-edit empty connection value
+
+- `git diff --check`: PASS.
+- `:app:testDebugUnitTest`: PASS.
+- `:app:compileDebugAndroidTestKotlin`: PASS.
+- `:app:assembleDebug`: PASS.
+- Physical-device inspection-to-edit acceptance: NOT VERIFIED; user device testing remains required.

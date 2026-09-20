@@ -172,3 +172,18 @@ The implementation now derives one `isDetailExempt` predicate from `isCantOpen |
 ### Follow-up evidence boundary
 
 The new mapper and inspection predicate tests pass, and the debug build plus AndroidTest compilation pass. The connected Android suite was attempted on XQ-AU52 / Android 12 but stalled in `RootViewPicker` with no resumed activity before producing a terminal result; connected UI evidence for this follow-up remains `NOT VERIFIED` until the device harness is stable.
+
+### Inspection-to-edit connection-pipe empty-value root cause
+
+The inspection-to-edit mapping converted a missing `IS_CONNECTING` response into `"0"` in `GutterInspectActivity`. `GutterBasicInfoFragment.prefillData()` also defaulted a missing form value to `"0"` and selected `rbConnectPipe0`. The form therefore displayed 「無」 even when the backend had omitted the attribute for an existing 銜接點／無法開蓋 node.
+
+The fix preserves only explicit connection values (`0`/`1` and equivalent boolean text), leaves an absent value absent, clears the radio group for an absent value, and removes `IS_CONNECTING` from the normalized exempt-mode draft state. Normal nodes retain the existing explicit 「無／有」 behavior, and the API mapper continues to omit the parameter for exempt nodes.
+
+Evidence:
+
+- `GutterInspectActivity.kt` edit-preload mapping no longer synthesizes `IS_CONNECTING=0`.
+- `GutterBasicInfoFragment.kt` only selects a radio button for an explicit value; missing values call `clearCheck()`.
+- `GutterFormActivity.kt` removes the field from normalized 銜接點／無法開蓋 state.
+- `GutterBasicInfoUiTest` covers both exempt modes with a missing connection value.
+
+Confidence: 99% from direct source tracing, focused regression coverage, and successful compilation/build validation. Physical-device confirmation remains pending.

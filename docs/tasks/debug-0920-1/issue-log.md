@@ -196,3 +196,25 @@ evidence:
 next_action: verification
 owner: developer
 ```
+
+## ISS-DBG-0920-010
+
+```yaml
+issue_id: ISS-DBG-0920-010
+task_id: debug-0920-1
+phase: implementation_debug
+category: implementation_regression
+priority: P1
+title: Inspection-to-edit converts missing connection attribute to 無
+status: implemented_pending_verification
+impact: Existing 銜接點／無法開蓋 data with omitted IS_CONNECTING opens the edit form with the 連接管 radio button 無 selected.
+expected: Missing IS_CONNECTING remains absent; both 連接管 radio buttons remain unselected and disabled for exempt modes; the storeDitch request omits the parameter.
+actual: Inspection preload and form prefill defaulted missing IS_CONNECTING to 0, while the UI mutual-exclusion code only disabled the group.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/gutter/GutterInspectActivity.kt
+  - app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt
+  - app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt
+  - app/src/androidTest/java/com/example/taoyuangutter/GutterBasicInfoUiTest.kt
+next_action: verification
+owner: developer
+```

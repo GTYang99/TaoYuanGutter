@@ -424,6 +424,14 @@ class GutterInspectActivity : AppCompatActivity() {
             val photo2 = resolvePhoto("2", "EDIT_${node.nodeId}_2_")
             val photo3 = resolvePhoto("3", "EDIT_${node.nodeId}_3_")
 
+            val normalizedConnecting = nodeDetails.isConnecting?.trim()?.lowercase()?.let { raw ->
+                when (raw) {
+                    "1", "true", "yes", "y", "on" -> "1"
+                    "0", "false", "no", "n", "off" -> "0"
+                    else -> null
+                }
+            }
+
             val basicData = hashMapOf(
                 "_nodeId" to node.nodeId.toString(),
                 "SPI_NUM" to ditch.spiNum,
@@ -441,7 +449,6 @@ class GutterInspectActivity : AppCompatActivity() {
                 "NODE_WID" to nodeDetails.nodeWidAsString,
                 "IS_CANTOPEN" to (if (nodeDetails.isCantOpenAsBoolean) "1" else "0"),
                 "IS_TIEINPOINT" to (if (nodeDetails.isTieInPointAsBoolean) "1" else "0"),
-                "IS_CONNECTING" to (if (nodeDetails.isConnectingAsBoolean && !isVirtualNode) "1" else "0"),
                 "IS_PENDING_DEPLOY" to (if (parseLooseBoolean(node.isPendingDeploy)) "1" else "0"),
                 "is_virtual" to (if (parseLooseBoolean(nodeDetails.isVirtual)) "1" else "0"),
                 "IS_BROKEN" to (nodeDetails.isBroken ?: ""),
@@ -463,7 +470,9 @@ class GutterInspectActivity : AppCompatActivity() {
                 "photo1UploadState" to (if (photo1.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE),
                 "photo2UploadState" to (if (photo2.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE),
                 "photo3UploadState" to (if (photo3.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE)
-            )
+            ).apply {
+                if (!isVirtualNode) normalizedConnecting?.let { put("IS_CONNECTING", it) }
+            }
             logPhotoImgIdTrace("preloadEditableWaypoints.mapped", basicData, target.label)
             PhotoCapturedAtResolver.writeBasicData(
                 basicData,
@@ -589,7 +598,6 @@ class GutterInspectActivity : AppCompatActivity() {
                 "SPI_NUM" to d.spiNum,
                 "is_virtual" to (d.isVirtual ?: "0"),
                 "IS_TIEINPOINT" to "0",
-                "IS_CONNECTING" to "0",
                 "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0"),
                 "photo1ImgId" to (node.url.firstOrNull { it.fileCategory == "1" }?.id?.toString() ?: ""),
                 "photo2ImgId" to (node.url.firstOrNull { it.fileCategory == "2" }?.id?.toString() ?: ""),

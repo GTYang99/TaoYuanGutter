@@ -21,10 +21,11 @@ debug:
     - ISS-DBG-0920-007
     - ISS-DBG-0920-008
     - ISS-DBG-0920-009
+    - ISS-DBG-0920-010
 
 implementation:
   status: completed
-  scope: API_detail_parameter_omission_and_tie_in_inspection_exemption
+  scope: API_detail_parameter_omission_tie_in_inspection_exemption_and_inspection_edit_connection_empty_state
 
 validation:
   status: completed
@@ -34,7 +35,7 @@ validation:
 
 git:
   branch: "fix/debug-0920-1-表單問題"
-  commit: "0fb2b7f"
+  commit: "3cb1116"
   status: committed
 
 verification:
