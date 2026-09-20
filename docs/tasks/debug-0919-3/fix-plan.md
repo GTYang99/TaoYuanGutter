@@ -29,4 +29,3 @@ measurement panel.
 - Changing map projection, marker placement, or no-ditch point hit testing.
 - Changing `MeasureModeUiController` unless a separate regression is proven.
 - Broad activity-wide window-insets refactoring.
-

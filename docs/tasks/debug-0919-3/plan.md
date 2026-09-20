@@ -50,7 +50,7 @@
 ## Rollback Plan
 - 若 targeted validation 顯示面板與鍵盤重疊，回退本次控制器 inset 變更，保留根因與失敗證據並重新制定可驗證的策略。
 
-## Current Behavior 
+## Current Behavior
 - 面板已經 constraint 到主畫面底部，控制器卻將 `max(systemBars.bottom, ime.bottom)` 另加到原始 bottom margin；鍵盤顯示時因此可能發生重複上移。
 
 ## Expected Behavior
