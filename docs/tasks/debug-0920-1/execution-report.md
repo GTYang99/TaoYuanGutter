@@ -57,4 +57,6 @@
 - Debug build: PASS, `:app:assembleDebug`.
 - AndroidTest compilation: PASS, `:app:compileDebugAndroidTestKotlin`.
 - Connected Android suite: NOT VERIFIED for this follow-up. `:app:connectedDebugAndroidTest` was started on XQ-AU52 / Android 12 but stalled with `RootViewPicker: No activity currently resumed`; it was stopped without an assertion result.
+- Limited connected checks after resetting the device: PASS for `GutterCantOpenUiTest#confirmDialogClearsAffectedFields`, `GutterCantOpenUiTest#cancelDialogKeepsOriginalState`, `GutterBasicInfoUiTest#tieInPointWarnsBeforeClearingAndCancelPreservesData`, and `GutterInspectTieInUiTest#tieInPointInspectionHidesExemptDetailsAndPhotos` on XQ-AU52 / Android 12.
+- Per the user's request, no further full connected suite was run; physical-device acceptance remains for the user's own test.
 - Remote CI and release records remain outside this implementation-validation session.

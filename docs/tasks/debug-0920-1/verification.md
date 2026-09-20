@@ -1,47 +1,37 @@
 # Verification Report
 
-## Revision and working-tree boundary
+## Revision and boundary
 
-- Production implementation and regression-test revision under review: `7c43493`
+- Revision: `fa6de4d`
 - Branch: `fix/debug-0920-1-表單問題`
-- The earlier `d3dffbd` commit contains the production fix; `5e4f85d` adds the focused silt, import, and edit-entry regression coverage.
-- The later documentation commits only record task state and verification evidence; they do not change production or test code.
-- Existing untracked `.worktrees/` was not modified or included.
+- Scope: API omission for tie-in/cant-open, tie-in inspection exemption, and focused regression checks for the existing form transitions.
+- Existing untracked `.worktrees/` was not modified.
 
-## Acceptance criteria
+## Results
 
-| Criterion | Result | Evidence and limitation |
+| Area | Result | Evidence |
 |---|---|---|
-| AC-001 | PASS | `GutterCompletionPolicyTest`, the new tie-in UI test, and `GutterCantOpenUiTest` passed. Source review confirms the same exemption reaches form validation, photo requirements, and submit validation. |
-| AC-002 | PASS | `GutterImportExistingWaypointUiTest` invoked the existing import handler with an empty photo set on `Medium_Phone`; the specified missing-photo Toast was absent. |
-| AC-003 | PASS | `GutterInspectEditEntryUiTest` used a no-server-photo inspection fixture and confirmed edit entry completed without the `進入編輯確認` dialog; detail-load failure routing remains source-reviewed. |
-| AC-004 | PASS | `InspectionPresentationTest` passed for codes `0`, `1`, `2`, and legacy `3`; `GutterBasicInfoUiTest` also passed for the severe form selection. |
-| AC-005 | PASS | The new `GutterBasicInfoUiTest` passed before and after entering edit: backend `XY_NUM` is visible, populated, not enabled, and has no required marker. Mapper and completion-policy JVM tests passed. |
-| AC-006 | PASS | `GutterBasicInfoUiTest.tieInPointWarnsBeforeClearingAndCancelPreservesData` passed on XQ-AU52 / Android 12. It verifies the exact Alert, cancellation preservation, confirmation clearing, and connecting-pipe clearing. |
-| AC-007 | PASS | `GutterCantOpenUiTest` passed on XQ-AU52 / Android 12. It verifies connecting-pipe clearing after confirmation and restoration after configuration recreation/reversal. |
+| API request omission | PASS | `StoreDitchNodeRequestMapperTest` verifies mode flags remain while exempt detail keys, `IS_CONNECTING`, and photo IDs for slots 2/3 are absent. |
+| Tie-in inspection display | PASS | `InspectionPresentationTest` and `GutterInspectTieInUiTest#tieInPointInspectionHidesExemptDetailsAndPhotos`. |
+| Cant-open clear behavior | PASS | `GutterCantOpenUiTest#confirmDialogClearsAffectedFields` and `#cancelDialogKeepsOriginalState`. |
+| Tie-in transition behavior | PASS | `GutterBasicInfoUiTest#tieInPointWarnsBeforeClearingAndCancelPreservesData`. |
+| JVM regression | PASS | `:app:testDebugUnitTest`, 32 tests completed successfully. |
+| Debug build | PASS | `:app:assembleDebug`. |
+| AndroidTest compilation | PASS | `:app:compileDebugAndroidTestKotlin`. |
+| Full connected regression | NOT VERIFIED | The full suite was intentionally not rerun after the user requested limited testing; an earlier attempt stalled in `RootViewPicker` with no resumed activity. |
+| User physical-device acceptance | NOT VERIFIED | User will perform the final real-device test. |
 
-## Checks performed
+## API acceptance interpretation
 
-- `git diff --check`: PASS.
-- Static forbidden-text regression search for the removed Toast, dialog title, and `2 -> 中度` mapping: PASS.
-- Targeted JVM tests: PASS. `GutterCompletionPolicyTest`, `StoreDitchNodeRequestMapperTest`, and `InspectionPresentationTest` passed.
-- Full JVM suite: PASS. `./gradlew testDebugUnitTest` completed successfully.
-- Debug build: PASS. `assembleDebug` completed successfully.
-- Android UI/device checks: PASS. Full `./gradlew connectedDebugAndroidTest` completed successfully on `Medium_Phone` Android 14, including the AC-scoped tests and nearby regression tests.
-- Follow-up targeted UI checks: PASS. `GutterBasicInfoUiTest` and `GutterCantOpenUiTest` completed successfully on XQ-AU52 / Android 12.
-- Follow-up full JVM suite: PASS. `./gradlew testDebugUnitTest` completed successfully.
-- Follow-up Debug build: PASS. `./gradlew assembleDebug` completed successfully.
-- Follow-up full Android UI suite: PASS. `./gradlew connectedDebugAndroidTest` completed successfully on XQ-AU52 / Android 12.
+For `IS_CANTOPEN=true` or `IS_TIEINPOINT=true`, the request retains the mode-identification flags and omits the exempt parameters entirely. It does not send `null`, an empty string, `0`, or `false` for those omitted fields. Normal non-exempt nodes retain the existing `IS_CONNECTING` Boolean behavior.
 
 ## Regression review
 
-- Import photo synchronization, loading cleanup, and exception Toast were left intact.
-- Genuine node-detail preload failure still blocks edit and offers retry.
-- Tie-in exemption logic was not duplicated or rewritten.
-- Backend-provided `XY_NUM` is still collected and preserved for update payloads.
+- Normal nodes still serialize `IS_CONNECTING=false` when selected as `無`.
+- Cant-open/tie-in precedence still prevents both mode flags from being true simultaneously.
+- Photo slot 1 remains associated; exempt slots 2/3 are omitted from `img_ids`.
+- Existing UI transition behavior was not broadened beyond the reported fields.
 
-## Result
+## Final verification state
 
-`PASS`
-
-All seven acceptance criteria have evidence. The repository's separate remote CI/release record has not been run in this local session.
+`NOT VERIFIED` for full release readiness. The implementation and focused automated checks pass, but the requested final physical-device validation and full connected regression remain outstanding.

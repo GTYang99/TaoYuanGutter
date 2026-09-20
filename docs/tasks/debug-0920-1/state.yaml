@@ -34,11 +34,11 @@ validation:
 
 git:
   branch: "fix/debug-0920-1-表單問題"
-  commit: "d0c7b9d"
+  commit: "fa6de4d"
   status: committed
 
 verification:
-  result: pending
+  result: not_verified
   category: null
   failed_acceptance_criteria: []
 
