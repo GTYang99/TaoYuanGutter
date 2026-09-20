@@ -30,7 +30,7 @@ validation:
     - ':app:compileDebugKotlin PASS'
 
 git:
-  branch: feat/銜接點連結管自帶節點名
+  branch: feat/銜接點連接管自帶節點名
   commit: 4a8d55a
   status: committed
 

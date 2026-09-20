@@ -36,7 +36,7 @@ class GutterInspectTieInUiTest {
             onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("溝蓋板厚度(公分)")))))
             onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("側溝測量深度(公分)")))))
             onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("側溝材質")))))
-            onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("連結管")))))
+            onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("連接管")))))
             onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("側溝內徑寬度尺寸")))))
             onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("側溝深度尺寸")))))
         }

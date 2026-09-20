@@ -17,11 +17,11 @@ All payload assertions below apply to each non-virtual waypoint in `storeDitch`.
 
 | Case | `IS_CANTOPEN` | `IS_TIEINPOINT` | `IS_CONNECTING` | Expected UI/model |
 |---|---:|---:|---:|---|
-| R-01 | `"0"` | `"0"` | `"0"` | Both new fields false; show 連結管「無」 for normal point |
-| R-02 | `"0"` | `"1"` | `"1"` | Tie-in selected; show 連結管「有」; dropdown has `(銜接點)` |
+| R-01 | `"0"` | `"0"` | `"0"` | Both new fields false; show 連接管「無」 for normal point |
+| R-02 | `"0"` | `"1"` | `"1"` | Tie-in selected; show 連接管「有」; dropdown has `(銜接點)` |
 | R-03 | `"1"` | `"1"` | `"0"` | Cant Open selected; normalize tie-in false; dropdown must not show `(銜接點)` |
-| R-04 | absent | absent | absent | All new values false; normal point shows 連結管「無」 |
-| R-05 | virtual | absent | absent | Hide all three controls and hide 連結管 in view |
+| R-04 | absent | absent | absent | All new values false; normal point shows 連接管「無」 |
+| R-05 | virtual | absent | absent | Hide all three controls and hide 連接管 in view |
 
 When `IS_PENDING_DEPLOY`／`node.isPendingDeploy` is true in R-02, expected name is `起點（E001）(銜接點)(待架站)`. `IS_HANGING` remains an independent「附掛或過路管線」fixture value and must not add a pending-deploy label.
 

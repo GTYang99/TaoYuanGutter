@@ -558,7 +558,7 @@ class GutterInspectActivity : AppCompatActivity() {
     private fun showEditPreloadRetryDialog(ditch: DitchDetails, token: String) {
         MaterialAlertDialogBuilder(this)
             .setTitle("無法進入編輯")
-            .setMessage("部分點位詳細資料載入失敗。為避免覆蓋伺服器上的銜接點或連結管狀態，請重新載入後再編輯。")
+            .setMessage("部分點位詳細資料載入失敗。為避免覆蓋伺服器上的銜接點或連接管狀態，請重新載入後再編輯。")
             .setNegativeButton("取消", null)
             .setPositiveButton("重試") { _, _ -> startPreload(ditch, token) }
             .show()

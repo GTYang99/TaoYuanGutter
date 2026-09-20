@@ -350,7 +350,7 @@ data class NodeDetails(
     @SerializedName("IS_CANTOPEN") val isCantOpen: Any?,
     /** 銜接點：nodeDetails response 為 String "0"/"1"，缺值視為 false。 */
     @SerializedName("IS_TIEINPOINT") val isTieInPoint: String? = null,
-    /** 連結管：nodeDetails response 為 String "0"/"1"，缺值視為 false。 */
+    /** 連接管：nodeDetails response 為 String "0"/"1"，缺值視為 false。 */
     @SerializedName("IS_CONNECTING") val isConnecting: String? = null,
     /** 溝體結構受損：0=否 1=是 */
     @SerializedName("IS_BROKEN")  val isBroken: String?,
@@ -548,7 +548,7 @@ data class StoreDitchNodeRequest(
     @SerializedName("IS_CANTOPEN") val isCantOpen: Boolean? = null,
     /** 銜接點：非虛擬點送 Boolean；虛擬點為 null 並省略 */
     @SerializedName("IS_TIEINPOINT") val isTieInPoint: Boolean? = null,
-    /** 連結管：一般非虛擬點送 Boolean；銜接點／無法開蓋及虛擬點省略 */
+    /** 連接管：一般非虛擬點送 Boolean；銜接點／無法開蓋及虛擬點省略 */
     @SerializedName("IS_CONNECTING") val isConnecting: Boolean? = null,
     /** 是否為虛擬點：true/false */
     @SerializedName("is_virtual") val isVirtual: Boolean = false,

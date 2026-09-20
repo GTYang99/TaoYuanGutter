@@ -13,8 +13,8 @@
 | Request keys 是 `IS_TIEINPOINT`、`IS_CONNECTING`，非虛擬點固定送 Boolean，包含 false | 使用者決議 | High | AC-002 |
 | `nodeDetails` 以 String `"0"`／`"1"` 回傳，缺值為 false | 使用者決議、附件範例 | High | AC-002 |
 | 互斥項選取時另一項設 false、灰化且不可選 | 使用者決議、Figma | High | AC-001 |
-| UI 文案一律為「連結管」 | 使用者決議 | High | AC-001 |
-| 虛擬點清除三值、不送三 key；取消虛擬點後維持 false；檢視不顯示連結管 | 使用者決議 | High | AC-002, AC-003 |
+| UI 文案一律為「連接管」 | 使用者決議 | High | AC-001 |
+| 虛擬點清除三值、不送三 key；取消虛擬點後維持 false；檢視不顯示連接管 | 使用者決議 | High | AC-002, AC-003 |
 | 草稿採 API 相同的保存、omission 與缺值規則 | 使用者決議 | High | AC-003 |
 | 同時為無法開蓋及銜接點時，以無法開蓋優先 | 使用者決議 | High | AC-002 |
 | 下拉名稱附 `(銜接點)`；待架站標記最後 | 使用者決議 | High | AC-003 |
@@ -30,7 +30,7 @@
 
 - 附件中的舊 `0/1` request 描述，由使用者明確決議覆蓋為 Boolean request。
 - Figma 未標註銜接點下拉文字，不構成需求缺口；文字需求的標記與順序具有優先權。
-- 原有文件的「連接管」文案一律改為「連結管」。
+- 原有文件的「連接管」文案一律改為「連接管」。
 
 ## Safe Planning Assumptions
 

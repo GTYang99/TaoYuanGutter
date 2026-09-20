@@ -1361,7 +1361,7 @@
 
         </RadioGroup>
 
-        <!-- 連結管：位於淤積程度下方，必選無／有，預設無。 -->
+        <!-- 連接管：位於淤積程度下方，必選無／有，預設無。 -->
         <LinearLayout
             android:id="@+id/layoutConnectPipe"
             android:layout_width="match_parent"

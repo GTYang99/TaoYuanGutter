@@ -10,7 +10,7 @@ Requirement、Plan 或產品決策。
 
 ```yaml
 task_id: debug-0918
-branch: feat/銜接點連結管自帶節點名
+branch: feat/銜接點連接管自帶節點名
 commit: a8c95208e46b7cb7142f7e28bf70c309bc9726c8
 build_variant: debug
 package: com.example.taoyuangutter

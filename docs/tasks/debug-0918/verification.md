@@ -3,7 +3,7 @@
 ## Verified Revision
 
 - Task: `debug-0918`
-- Branch: `feat/銜接點連結管自帶節點名`
+- Branch: `feat/銜接點連接管自帶節點名`
 - Production revision under test: `a8c95208e46b7cb7142f7e28bf70c309bc9726c8`
 - The fixed revision contains the production fix and its related tests. The later
   commits `0cb3581` and `93ffa7b` update task evidence and approved inputs only;

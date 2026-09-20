@@ -144,7 +144,7 @@ category: implementation_regression
 priority: P1
 title: Cant-open clearing omits connecting-pipe selection
 status: verified
-impact: Selecting 無法開蓋 left the 接管／連結管 radio choice visible and retained in form state.
+impact: Selecting 無法開蓋 left the 接管／連接管 radio choice visible and retained in form state.
 expected: The connecting-pipe selection is cleared with the other detail fields and restored when the transition is cancelled or reversed.
 actual: The clear method, session field list, and restore renderer omitted IS_CONNECTING.
 evidence:

@@ -5,7 +5,7 @@
 Extend `debug-0920-1` with the two explicitly requested form-transition fixes:
 
 - AC-006: warn and clear when switching on `銜接點`.
-- AC-007: clear `接管／連結管` when switching on `無法開蓋`.
+- AC-007: clear `接管／連接管` when switching on `無法開蓋`.
 
 ## Minimum implementation
 

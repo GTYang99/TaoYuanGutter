@@ -8,7 +8,7 @@
 - Added `nodeDetails` String `"0"`/`"1"` parsing helpers and Cant Open priority normalization.
 - Rewired form/import/draft/edit handoff to canonical keys; legacy active request paths no longer emit lowercase connect keys.
 - Implemented Cant Open / 銜接點 mutual exclusion with disabled/gray counterpart behavior.
-- Changed UI copy to `連結管`, placed it after `淤積程度`, defaulting to `無`.
+- Changed UI copy to `連接管`, placed it after `淤積程度`, defaulting to `無`.
 - Blocked inspect-to-edit when nodeDetails preload fails; photo-only issues may still continue with warning.
 - Added label/status display for `(銜接點)` and `(待架站)` with pending-deploy last.
 - Removed `(銜接點)` from the editable add-gutter waypoint list; inspection spinner labels remain independent.
@@ -36,7 +36,7 @@
 
 ## ISS-013 Negative Presence Wording Fix
 
-- Changed only the inspection display mapping for `附掛或過路管線` and `連結管`: present is `有`, absent is `無`.
+- Changed only the inspection display mapping for `附掛或過路管線` and `連接管`: present is `有`, absent is `無`.
 - Left `溝體結構受損` on its existing `是／否` wording.
 
 | Check | Result |

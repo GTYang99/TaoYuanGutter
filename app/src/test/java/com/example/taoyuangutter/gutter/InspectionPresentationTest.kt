@@ -28,7 +28,7 @@ class InspectionPresentationTest {
     @Test
     fun inspectionDetailFieldsFollowApprovedOrder() {
         assertEquals(
-            listOf("側溝材質", "溝體結構受損", "附掛或過路管線", "淤積程度", "連結管"),
+            listOf("側溝材質", "溝體結構受損", "附掛或過路管線", "淤積程度", "連接管"),
             inspectionDetailFieldOrder()
         )
     }

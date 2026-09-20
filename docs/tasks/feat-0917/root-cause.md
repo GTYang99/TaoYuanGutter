@@ -24,7 +24,7 @@ Only the multi-gutter list transition is changed. The normal map layer toggle re
 
 ## ISS-012 — Inspection detail order differs from the requested order
 
-`GutterInspectPhotosFragment.renderFields()` creates rows dynamically. The current append sequence is `側溝材質 → 淤積程度 → 連結管 → 溝體結構受損 → 附掛或過路管線 → 補充說明`, while the required sequence is `側溝材質 → 溝體結構受損 → 附掛或過路管線 → 淤積程度 → 連結管 → 補充說明`.
+`GutterInspectPhotosFragment.renderFields()` creates rows dynamically. The current append sequence is `側溝材質 → 淤積程度 → 連接管 → 溝體結構受損 → 附掛或過路管線 → 補充說明`, while the required sequence is `側溝材質 → 溝體結構受損 → 附掛或過路管線 → 淤積程度 → 連接管 → 補充說明`.
 
 ## Minimum Fix Scope
 

@@ -203,7 +203,7 @@ class GutterInspectPhotosFragment : Fragment() {
                 "溝體結構受損" to normalizeDisplayValue(mapBoolean01(details?.isBroken == "1")),
                 "附掛或過路管線" to normalizeDisplayValue(inspectionPresenceValue(details?.isHanging == "1")),
                 "淤積程度" to normalizeDisplayValue(mapSilt(details?.isSilt)),
-                "連結管" to normalizeDisplayValue(inspectionPresenceValue(details?.isConnectingAsBoolean))
+                "連接管" to normalizeDisplayValue(inspectionPresenceValue(details?.isConnectingAsBoolean))
             )
             inspectionDetailFieldOrder().forEach { label ->
                 binding.layoutFields.addView(createFieldRow(label, detailValues.getValue(label)))
@@ -509,7 +509,7 @@ internal fun inspectionDetailFieldOrder(): List<String> = listOf(
     "溝體結構受損",
     "附掛或過路管線",
     "淤積程度",
-    "連結管"
+    "連接管"
 )
 
 /** Detail measurements, attributes, and photo slots 2/3 do not apply to exempt modes. */
