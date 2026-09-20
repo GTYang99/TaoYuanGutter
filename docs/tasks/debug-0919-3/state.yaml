@@ -39,7 +39,7 @@ validation:
 
 git:
   branch: "fix/debug-0919-3-回報點位難點"
-  commit: af0935a
+  commit: 9ed2c7c
   status: committed
 
 verification:

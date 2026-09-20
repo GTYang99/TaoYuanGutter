@@ -2,7 +2,7 @@
 
 ## Branch
 - `fix/debug-0919-3-回報點位難點`
-- Commit under review: `d427490`
+- Production commit under review: `9ed2c7c`
 
 ## Implementation
 - Changed `NoDitchModeUiController` so the shared no-ditch panel uses only the system bar bottom inset.
