@@ -21,11 +21,12 @@
 - `git diff --check`: PASS.
 - Static source trace against all five acceptance criteria: PASS.
 - Focused JVM tests (`GutterCompletionPolicyTest`, `StoreDitchNodeRequestMapperTest`, `InspectionPresentationTest`): PASS.
+- Full JVM suite (`./gradlew testDebugUnitTest`): PASS.
 - `./gradlew assembleDebug`: PASS.
-- Android UI tests (`GutterBasicInfoUiTest`, `GutterFormExitUiTest`, `GutterCantOpenUiTest`, `Debug0919ImportedWaypointUiTest`) on `Medium_Phone` Android 14: PASS.
+- Full Android UI suite (`./gradlew connectedDebugAndroidTest`) on `Medium_Phone` Android 14: PASS.
 - AC-002 import-fixture validation: PASS via `GutterImportExistingWaypointUiTest` on `Medium_Phone` Android 14.
 - AC-003 inspection/preload validation: PASS via `GutterInspectEditEntryUiTest` on `Medium_Phone` Android 14.
 
 ## Limitations
 
-All requested bug fixes and their available acceptance-criterion validation are complete. CI/release records remain outside this implementation-validation phase.
+All requested bug fixes and local validation are complete. Remote CI and release records remain outside this implementation-validation session.

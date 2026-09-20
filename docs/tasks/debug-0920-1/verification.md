@@ -23,8 +23,9 @@
 - `git diff --check`: PASS.
 - Static forbidden-text regression search for the removed Toast, dialog title, and `2 -> 中度` mapping: PASS.
 - Targeted JVM tests: PASS. `GutterCompletionPolicyTest`, `StoreDitchNodeRequestMapperTest`, and `InspectionPresentationTest` passed.
+- Full JVM suite: PASS. `./gradlew testDebugUnitTest` completed successfully.
 - Debug build: PASS. `assembleDebug` completed successfully.
-- Android UI/device checks: PASS for `GutterBasicInfoUiTest`, `GutterFormExitUiTest`, `GutterCantOpenUiTest`, and `Debug0919ImportedWaypointUiTest` on `Medium_Phone` Android 14.
+- Android UI/device checks: PASS. Full `./gradlew connectedDebugAndroidTest` completed successfully on `Medium_Phone` Android 14, including the AC-scoped tests and nearby regression tests.
 
 ## Regression review
 
@@ -37,4 +38,4 @@
 
 `PASS`
 
-All five acceptance criteria have evidence. Release still requires the repository's separate CI/release gates.
+All five acceptance criteria have evidence. The repository's separate remote CI/release record has not been run in this local session.
