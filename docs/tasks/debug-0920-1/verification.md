@@ -2,9 +2,9 @@
 
 ## Revision and boundary
 
-- Revision: `fa6de4d`
+- Revision: `3833484`
 - Branch: `fix/debug-0920-1-表單問題`
-- Scope: API omission for tie-in/cant-open, tie-in inspection exemption, and focused regression checks for the existing form transitions.
+- Scope: API omission for tie-in/cant-open, tie-in inspection exemption, form transitions, and preservation of empty `IS_CONNECTING` during inspection-to-edit handoff.
 - Existing untracked `.worktrees/` was not modified.
 
 ## Results
@@ -20,6 +20,20 @@
 | AndroidTest compilation | PASS | `:app:compileDebugAndroidTestKotlin`. |
 | Full connected regression | NOT VERIFIED | The full suite was intentionally not rerun after the user requested limited testing; an earlier attempt stalled in `RootViewPicker` with no resumed activity. |
 | User physical-device acceptance | NOT VERIFIED | User will perform the final real-device test. |
+
+## Final follow-up verification — empty `IS_CONNECTING`
+
+| Area | Result | Evidence |
+|---|---|---|
+| Edit preload empty-value handling | PASS | User confirmed the physical-device flow has no issue after commit `3833484`. |
+| Connection-pipe radio state | PASS | Empty `IS_CONNECTING` does not select either radio button in the tested edit flow. |
+| Exempt-mode request omission | PASS | Existing mapper tests plus user physical-device confirmation; `IS_CONNECTING` is omitted from the request. |
+
+## Final verification state
+
+Implementation scope verification: `PASS`.
+
+CI and release records were not run in this workspace and remain pending separately.
 
 ## API acceptance interpretation
 

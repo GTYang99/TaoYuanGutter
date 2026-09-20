@@ -89,3 +89,11 @@
 - `:app:compileDebugAndroidTestKotlin`: PASS, including the new contract test.
 - `:app:assembleDebug`: PASS.
 - Physical-device inspection-to-edit acceptance: NOT VERIFIED; user will perform manual testing.
+
+## Final verification — user physical-device confirmation
+
+- User confirmed the installed debug build was tested on a physical device with no issue.
+- Inspection-to-edit data with `IS_CONNECTING=""` no longer selects either `連接管` radio button.
+- The corresponding request omits `IS_CONNECTING` for the exempt mode.
+- Physical-device acceptance: PASS by user confirmation.
+- CI and release gates remain outside this local task session.

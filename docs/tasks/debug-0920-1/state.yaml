@@ -3,7 +3,7 @@ task:
   type: debug
 
 phase: verification
-status: verification_in_progress
+status: verification_passed
 
 knowledge_resolution:
   status: not_required
@@ -32,7 +32,7 @@ validation:
   status: completed
   static_source_review: completed
   targeted_unit_tests: pass
-  runtime_device: not_verified
+  runtime_device: pass
 
 git:
   branch: "fix/debug-0920-1-表單問題"
@@ -40,8 +40,8 @@ git:
   status: committed
 
 verification:
-  result: not_verified
-  category: null
+  result: pass
+  category: functional
   failed_acceptance_criteria: []
 
 ci:
@@ -54,4 +54,4 @@ release:
 blocking:
   - CI/release gates have not been run in this local validation session.
 
-next_action: verification
+next_action: release
