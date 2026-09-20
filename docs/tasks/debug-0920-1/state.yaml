@@ -2,8 +2,8 @@ task:
   id: debug-0920-1
   type: debug
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -34,9 +34,15 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-003
+    - AC-004
+    - AC-005
 
 ci:
   build: not_verified
@@ -49,4 +55,4 @@ blocking:
   - Targeted JVM tests and debug build are unavailable because no Java Runtime is installed in the environment.
   - Runtime/device reproduction and post-fix validation have not yet been performed.
 
-next_action: verification
+next_action: infrastructure
