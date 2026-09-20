@@ -9,13 +9,13 @@ phase: debug
 category: implementation_regression
 priority: P1
 title: Tie-in point exemption was historically omitted from shared form rules
-status: existing_fix_pending_verification
+status: verified
 impact: Tie-in points could be treated as ordinary points and require exempt fields/photos.
 evidence:
   - app/src/main/java/com/example/taoyuangutter/gutter/GutterCompletionPolicy.kt
   - app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt
   - commit 07e3b5a
-next_action: verification
+next_action: release
 owner: developer
 ```
 
@@ -28,7 +28,7 @@ phase: debug
 category: implementation_regression
 priority: P2
 title: Existing-waypoint import shows an unwanted missing-photo Toast
-status: fixed_pending_validation
+status: verified
 impact: Import completes with an unexpected instruction to retake photos.
 repro_steps:
   - Open the existing-waypoint import flow.
@@ -37,7 +37,7 @@ expected: The specified missing-photo completion message is not shown.
 actual: GutterFormActivity emits the message when a local slot is empty.
 evidence:
   - app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt:714-727
-next_action: verification
+next_action: release
 owner: developer
 ```
 
@@ -50,7 +50,7 @@ phase: debug
 category: implementation_regression
 priority: P1
 title: Inspection edit entry shows a confirmation dialog
-status: fixed_pending_validation
+status: verified
 impact: Users cannot enter edit directly and receive an unrequested confirmation step.
 repro_steps:
   - Open gutter inspection.
@@ -60,7 +60,7 @@ actual: GutterInspectActivity routes the condition to showEditEntryConfirmation.
 evidence:
   - app/src/main/java/com/example/taoyuangutter/gutter/GutterInspectActivity.kt:301-310
   - app/src/main/java/com/example/taoyuangutter/gutter/GutterInspectActivity.kt:323-330
-next_action: verification
+next_action: release
 owner: developer
 ```
 
@@ -73,7 +73,7 @@ phase: debug
 category: implementation_regression
 priority: P2
 title: Severe silt is rendered as medium in inspection
-status: fixed_pending_validation
+status: verified
 impact: Inspection shows a product option that should not exist and misrepresents saved data.
 repro_steps:
   - Select 淤積程度=嚴重 in the form.
@@ -83,7 +83,7 @@ actual: Form encodes severe as 2; inspection maps 2 to 中度.
 evidence:
   - app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt:2129-2133
   - app/src/main/java/com/example/taoyuangutter/gutter/GutterInspectPhotosFragment.kt:485-490
-next_action: verification
+next_action: release
 owner: developer
 ```
 
@@ -96,7 +96,7 @@ phase: debug
 category: implementation_regression
 priority: P1
 title: Inspection edit treats backend-generated measurement id as user-required
-status: fixed_pending_validation
+status: verified
 impact: Edit flow can show a required marker or block on measurement coordinate number that the user should not enter.
 repro_steps:
   - Open a gutter through inspection.
@@ -109,6 +109,6 @@ evidence:
   - app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt:1148-1163
   - app/src/main/java/com/example/taoyuangutter/gutter/AddGutterBottomSheet.kt:734
   - app/src/main/java/com/example/taoyuangutter/gutter/WaypointAdapter.kt:30-67
-next_action: verification
+next_action: release
 owner: developer
 ```

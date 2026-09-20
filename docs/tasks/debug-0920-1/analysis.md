@@ -103,8 +103,9 @@ The prior approved `docs/tasks/feat-0917/requirement.md:27-28,42` resolves the U
 
 - Static source and requirement trace: `PASS`.
 - Document whitespace check: `PASS`.
-- Targeted JVM tests (`GutterCompletionPolicyTest`, `StoreDitchNodeRequestMapperTest`): `NOT VERIFIED`; Gradle could not start because no Java Runtime is installed in the environment.
-- Device/UI runtime reproduction: `NOT VERIFIED`.
+- Targeted JVM tests (`GutterCompletionPolicyTest`, `StoreDitchNodeRequestMapperTest`, `InspectionPresentationTest`): `PASS`.
+- Debug build: `PASS` via `assembleDebug`.
+- Device/UI runtime validation on `Medium_Phone` Android 14: `PASS` for the scoped AC tests and nearby regression tests.
 
 ## Implementation Result
 

@@ -16,7 +16,7 @@ Before commit `07e3b5a`, the exemption predicate was effectively `isCantOpen` in
 
 ### Current status on this branch
 
-The current HEAD already includes the minimum structural correction through `GutterCompletionPolicy.isDetailExempt()` and its consumers. This is classified as an existing fix carried into the new task, not a new implementation authorization. AC-001 remains `NOT VERIFIED` until focused UI/form evidence is produced.
+The current HEAD already includes the minimum structural correction through `GutterCompletionPolicy.isDetailExempt()` and its consumers. This is classified as an existing fix carried into the new task, not a new implementation authorization. AC-001 is covered by the existing policy test plus the focused UI/form evidence added for this task.
 
 ### Evidence
 
@@ -126,8 +126,8 @@ Static root-cause confidence is at least 95% overall:
 - AC-004: 99% — the form encoding is established by the current ancestor decision, while the inspection mapper contains the contradictory branch.
 - AC-005: 98% — approved prior requirements define the locked/read-only behavior, and current code directly enables, requires, and carries the same field across the edit flow.
 
-The remaining uncertainty is runtime confirmation, not the static location or mechanism of the root causes.
+Runtime confirmation is now available for all five ACs through targeted JVM/UI tests; the root-cause confidence is supported by both source evidence and observed behavior.
 
 ## Root Cause Status
 
-Root causes for AC-002 through AC-005 are confirmed by static code evidence plus approved prior decisions, and the minimum fixes are applied in the working tree. AC-001's historical root cause is confirmed, its structural fix is already present in HEAD, and `GutterCompletionPolicyTest` covers the core exemption; focused UI/runtime verification is still pending.
+Root causes for AC-002 through AC-005 are confirmed by static code evidence plus approved prior decisions, and the minimum fixes are committed. AC-001's historical root cause is confirmed, its structural fix is already present in HEAD, and both JVM and UI tests cover the core exemption. All five ACs have now passed the scoped verification checks.

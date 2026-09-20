@@ -23,9 +23,9 @@
 - Focused JVM tests (`GutterCompletionPolicyTest`, `StoreDitchNodeRequestMapperTest`, `InspectionPresentationTest`): PASS.
 - `./gradlew assembleDebug`: PASS.
 - Android UI tests (`GutterBasicInfoUiTest`, `GutterFormExitUiTest`, `GutterCantOpenUiTest`, `Debug0919ImportedWaypointUiTest`) on `Medium_Phone` Android 14: PASS.
-- AC-002 import-fixture validation: `NOT VERIFIED`; no existing-waypoint import fixture was available.
-- AC-003 inspection/preload validation: `NOT VERIFIED`; no authenticated inspection fixture was available.
+- AC-002 import-fixture validation: PASS via `GutterImportExistingWaypointUiTest` on `Medium_Phone` Android 14.
+- AC-003 inspection/preload validation: PASS via `GutterInspectEditEntryUiTest` on `Medium_Phone` Android 14.
 
 ## Limitations
 
-The code and available regression checks are validated. Release remains blocked only by the missing AC-002 import fixture and AC-003 authenticated inspection fixture.
+All requested bug fixes and their available acceptance-criterion validation are complete. CI/release records remain outside this implementation-validation phase.
