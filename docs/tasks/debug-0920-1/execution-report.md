@@ -41,4 +41,20 @@
 
 ## Limitations
 
-All seven acceptance criteria and local validation are complete. Remote CI and release records remain outside this implementation-validation session.
+## Follow-up implementation — API omission and inspection exemption
+
+- `StoreDitchNodeRequestMapper` now treats both `IS_CANTOPEN` and `IS_TIEINPOINT` as detail-exempt.
+- Exempt nodes retain the mode flags but omit `IS_CONNECTING`, all listed detail parameters, and photo association IDs for slots 2/3 from the JSON request.
+- `GutterInspectPhotosFragment` now hides tie-in measurements, detail rows, and photo slots 2/3 in the same way as cant-open.
+- Inspection-to-edit preload skips fallback loading of exempt photo slots 2/3.
+- `StoreDitchNodeRequestMapperTest` and `InspectionPresentationTest` now cover the clarified omission behavior.
+
+## Follow-up validation
+
+- `git diff --check`: PASS.
+- Targeted JVM tests: PASS, 32 tests completed via `:app:testDebugUnitTest --tests ...`.
+- Full JVM suite: PASS, `:app:testDebugUnitTest`.
+- Debug build: PASS, `:app:assembleDebug`.
+- AndroidTest compilation: PASS, `:app:compileDebugAndroidTestKotlin`.
+- Connected Android suite: NOT VERIFIED for this follow-up. `:app:connectedDebugAndroidTest` was started on XQ-AU52 / Android 12 but stalled with `RootViewPicker: No activity currently resumed`; it was stopped without an assertion result.
+- Remote CI and release records remain outside this implementation-validation session.

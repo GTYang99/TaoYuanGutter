@@ -524,7 +524,7 @@ data class NodeImageUploadResponse(
 /**
  * 單一點位上傳格式（storeDitch 專用）。
  * 更新時帶入 [nodeId]；新增時省略（null）。
- * [nodeNote] 為唯一非必填欄位。
+ * 一般節點的明細欄位依表單狀態填入；銜接點與無法開蓋節點不傳送不適用的明細參數。
  */
 data class StoreDitchNodeRequest(
     /** 僅更新時帶入；新增時省略 */
@@ -544,11 +544,11 @@ data class StoreDitchNodeRequest(
     @SerializedName("XY_NUM")     val xyNum: String? = null,
     /** 待架站：0=false、1=true */
     @SerializedName("is_pendingDeploy") val isPendingDeploy: Int = 0,
-    /** 無法開蓋：非虛擬點固定送 Boolean；虛擬點為 null 並省略 */
+    /** 無法開蓋：非虛擬點送 Boolean；虛擬點為 null 並省略 */
     @SerializedName("IS_CANTOPEN") val isCantOpen: Boolean? = null,
-    /** 銜接點：非虛擬點固定送 Boolean；虛擬點為 null 並省略 */
+    /** 銜接點：非虛擬點送 Boolean；虛擬點為 null 並省略 */
     @SerializedName("IS_TIEINPOINT") val isTieInPoint: Boolean? = null,
-    /** 連結管：非虛擬點固定送 Boolean；虛擬點為 null 並省略 */
+    /** 連結管：一般非虛擬點送 Boolean；銜接點／無法開蓋及虛擬點省略 */
     @SerializedName("IS_CONNECTING") val isConnecting: Boolean? = null,
     /** 是否為虛擬點：true/false */
     @SerializedName("is_virtual") val isVirtual: Boolean = false,

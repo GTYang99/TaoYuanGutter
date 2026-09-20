@@ -49,33 +49,82 @@ class StoreDitchNodeRequestMapperTest {
     }
 
     @Test
-    fun newNodeOmitsXyNumAndSendsUppercaseConnectionFlagsAsBooleans() {
+    fun normalNewNodeOmitsXyNumAndSendsUppercaseConnectionFlagsAsBooleans() {
         val waypoint = waypoint(
-            "IS_TIEINPOINT" to "1",
+            "IS_TIEINPOINT" to "0",
             "IS_CONNECTING" to "0"
         )
         val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, null, 1))
 
         assertFalse(json.contains("\"XY_NUM\""))
         assertTrue(json.contains("\"IS_CANTOPEN\":false"))
-        assertTrue(json.contains("\"IS_TIEINPOINT\":true"))
+        assertTrue(json.contains("\"IS_TIEINPOINT\":false"))
         assertTrue(json.contains("\"IS_CONNECTING\":false"))
         assertFalse(json.contains("is_connect_point"))
         assertFalse(json.contains("is_connect_pipe"))
     }
 
     @Test
-    fun cantOpenWinsOverTieInPointInRequestPayload() {
+    fun tieInPointOmitsExemptDetailAndConnectingParameters() {
+        val waypoint = waypoint(
+            "IS_TIEINPOINT" to "1",
+            "IS_CONNECTING" to "1",
+            "MAT_TYP" to "2",
+            "NODE_DEP" to "89",
+            "NODE_WID" to "78",
+            "COVER_DEP" to "5",
+            "IS_BROKEN" to "1",
+            "IS_HANGING" to "1",
+            "IS_SILT" to "2",
+            "photo1ImgId" to "101",
+            "photo2ImgId" to "102",
+            "photo3ImgId" to "103"
+        )
+        val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, null, 1))
+
+        assertTrue(json.contains("\"IS_CANTOPEN\":false"))
+        assertTrue(json.contains("\"IS_TIEINPOINT\":true"))
+        assertFalse(json.contains("\"IS_CONNECTING\""))
+        assertFalse(json.contains("\"MAT_TYP\""))
+        assertFalse(json.contains("\"NODE_DEP\""))
+        assertFalse(json.contains("\"NODE_WID\""))
+        assertFalse(json.contains("\"COVER_DEP\""))
+        assertFalse(json.contains("\"IS_BROKEN\""))
+        assertFalse(json.contains("\"IS_HANGING\""))
+        assertFalse(json.contains("\"IS_SILT\""))
+        assertTrue(json.contains("\"img_ids\":[101]"))
+    }
+
+    @Test
+    fun cantOpenOmitsExemptDetailAndConnectingParameters() {
         val waypoint = waypoint(
             "IS_CANTOPEN" to "1",
             "IS_TIEINPOINT" to "1",
-            "IS_CONNECTING" to "1"
+            "IS_CONNECTING" to "1",
+            "MAT_TYP" to "2",
+            "NODE_DEP" to "89",
+            "NODE_WID" to "78",
+            "COVER_DEP" to "5",
+            "IS_BROKEN" to "1",
+            "IS_HANGING" to "1",
+            "IS_SILT" to "2",
+            "photo1ImgId" to "101",
+            "photo2ImgId" to "102",
+            "photo3ImgId" to "103"
         )
         val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, null, 1))
 
         assertTrue(json.contains("\"IS_CANTOPEN\":true"))
         assertTrue(json.contains("\"IS_TIEINPOINT\":false"))
-        assertTrue(json.contains("\"IS_CONNECTING\":true"))
+        assertFalse(json.contains("\"IS_CONNECTING\""))
+        assertFalse(json.contains("\"MAT_TYP\""))
+        assertFalse(json.contains("\"NODE_DEP\""))
+        assertFalse(json.contains("\"NODE_WID\""))
+        assertFalse(json.contains("\"COVER_DEP\""))
+        assertFalse(json.contains("\"IS_BROKEN\""))
+        assertFalse(json.contains("\"IS_HANGING\""))
+        assertFalse(json.contains("\"IS_SILT\""))
+        assertTrue(json.contains("\"img_ids\":[101]"))
     }
 
     @Test

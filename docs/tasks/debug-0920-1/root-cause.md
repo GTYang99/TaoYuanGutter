@@ -156,3 +156,19 @@ Runtime confirmation is now available for all five ACs through targeted JVM/UI t
 ## Root Cause Status
 
 Root causes for AC-002 through AC-007 are confirmed by static code evidence plus approved prior decisions, and the minimum fixes are implemented in `7c43493`. AC-001's historical root cause is confirmed, its structural fix is already present in HEAD, and all seven ACs have passed the scoped verification checks.
+
+## Follow-up API and inspection root causes
+
+### API parameter omission
+
+The request mapper's exemption predicate was incomplete. It normalized `IS_TIEINPOINT` for the mode flag, but all detail parameters and `IS_CONNECTING` were guarded only by `isCantOpen`. Empty form values therefore reached numeric fallbacks (`1` for material and `0` for numeric/detail flags), while the connecting-pipe field remained a Boolean. This violated the clarified contract that an exempt value must be absent from the JSON request.
+
+The implementation now derives one `isDetailExempt` predicate from `isCantOpen || isTieInPoint`, assigns nullable request fields for all exempt parameters, omits `IS_CONNECTING` for exempt nodes, and excludes photo association IDs for slots 2/3. Normal non-exempt nodes retain their existing Boolean and numeric request behavior.
+
+### Inspection detail suppression
+
+`GutterInspectPhotosFragment.renderFields()` previously suppressed detail rows only for cant-open nodes. A tie-in response with `IS_TIEINPOINT=1` consequently rendered the same measurements, detail rows, and photo slots that the product excludes for cant-open. The renderer now uses a focused predicate that treats both modes as detail-exempt. `GutterInspectActivity` also skips fallback loading of photo slots 2/3 during inspection-to-edit preload for either exempt mode.
+
+### Follow-up evidence boundary
+
+The new mapper and inspection predicate tests pass, and the debug build plus AndroidTest compilation pass. The connected Android suite was attempted on XQ-AU52 / Android 12 but stalled in `RootViewPicker` with no resumed activity before producing a terminal result; connected UI evidence for this follow-up remains `NOT VERIFIED` until the device harness is stable.

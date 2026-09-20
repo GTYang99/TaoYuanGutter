@@ -11,3 +11,12 @@ This is the minimum implementation scope after root-cause analysis. It does not 
 7. Run `git diff --check`, targeted tests, the affected debug build, and record the exact runtime/device evidence and any remaining release-gate limitations.
 8. Reuse the existing detail-exemption snapshot for `cbConnectPoint`: show the exact requested confirmation message, clear the shared detail fields/photos/connecting-pipe selection after confirmation, and restore the snapshot on cancellation/uncheck.
 9. Extend the cant-open clear/snapshot/restore contract to include `IS_CONNECTING`; add focused UI regression tests for tie-in confirmation/cancellation and connecting-pipe clearing.
+
+## Follow-up API and inspection fix scope
+
+The user clarified that an API "empty value" means the parameter is omitted from the JSON request entirely. This scope is limited to the reported exempt-mode fields:
+
+10. In `StoreDitchNodeRequestMapper`, treat `IS_CANTOPEN || IS_TIEINPOINT` as detail-exempt. Keep the mode flags (`IS_CANTOPEN`, `IS_TIEINPOINT`) and normal identity/location fields, but omit `IS_CONNECTING`, `MAT_TYP`, `NODE_DEP`, `NODE_WID`, `COVER_DEP`, `IS_BROKEN`, `IS_HANGING`, and `IS_SILT` for exempt nodes. Do not use numeric fallbacks for omitted fields.
+11. Omit photo association IDs for exempt photo slots 2 and 3 while preserving slot 1, matching the existing cant-open behavior and the documented exempt photo fields.
+12. In the inspection point renderer, apply the same detail exemption to `IS_TIEINPOINT` as to `IS_CANTOPEN`, hiding the exempt measurements, detail attributes, and photo slots 2/3.
+13. Add mapper JSON regression tests for tie-in and cant-open omission semantics, plus a focused inspection presentation predicate test. Update the stale mapper expectation that currently requires `IS_CONNECTING` for cant-open.

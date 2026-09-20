@@ -156,3 +156,43 @@ evidence:
 next_action: release
 owner: developer
 ```
+
+## ISS-DBG-0920-008
+
+```yaml
+issue_id: ISS-DBG-0920-008
+task_id: debug-0920-1
+phase: debug
+category: implementation_regression
+priority: P1
+title: Exempt-mode API payload still sends detail defaults and connecting-pipe flag
+status: confirmed
+impact: Tie-in points receive MAT_TYP/NODE_DEP/NODE_WID/COVER_DEP/IS_BROKEN/IS_HANGING/IS_SILT defaults, and cant-open/tie-in nodes still send IS_CONNECTING instead of omitting the parameter.
+expected: For IS_CANTOPEN or IS_TIEINPOINT, omit all exempt detail parameters and IS_CONNECTING from storeDitch JSON; retain mode flags.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapper.kt:14-60
+  - app/src/main/java/com/example/taoyuangutter/gutter/GutterBasicInfoFragment.kt:1302-1324
+  - app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt:1977-1986
+  - app/src/test/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapperTest.kt:51-79
+next_action: implementation
+owner: developer
+```
+
+## ISS-DBG-0920-009
+
+```yaml
+issue_id: ISS-DBG-0920-009
+task_id: debug-0920-1
+phase: debug
+category: implementation_regression
+priority: P1
+title: Inspection renderer does not apply tie-in detail exemption
+status: confirmed
+impact: A nodeDetails response with IS_TIEINPOINT=1 still displays measurements, attributes, and exempt photos in inspection.
+expected: Tie-in inspection display matches cant-open detail suppression.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/gutter/GutterInspectPhotosFragment.kt:161-212
+  - /Users/a10362/Desktop/markdown file/ty_debug_0920-1.md
+next_action: implementation
+owner: developer
+```

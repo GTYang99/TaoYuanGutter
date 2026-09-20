@@ -380,6 +380,7 @@ class GutterInspectActivity : AppCompatActivity() {
             val preloadedPhotos = preloadedPhotosByNodeId[node.nodeId]
             val isVirtualNode = parseLooseBoolean(nodeDetails.isVirtual)
             val isCantOpenNode = nodeDetails.isCantOpenAsBoolean
+            val isDetailExemptNode = isCantOpenNode || nodeDetails.isTieInPointAsBoolean
 
             suspend fun resolvePhoto(category: String, prefix: String): String {
                 val cachedPhoto = preloadedPhotos.photoForCategory(category)
@@ -390,8 +391,8 @@ class GutterInspectActivity : AppCompatActivity() {
                     Log.d(TAG, "edit preload photo skipped for virtual nodeId=${node.nodeId} category=$category")
                     return ""
                 }
-                if (isCantOpenNode && category in listOf("2", "3")) {
-                    Log.d(TAG, "edit preload photo skipped for cant-open nodeId=${node.nodeId} category=$category")
+                if (isDetailExemptNode && category in listOf("2", "3")) {
+                    Log.d(TAG, "edit preload photo skipped for exempt nodeId=${node.nodeId} category=$category")
                     return ""
                 }
                 val url = node.url.firstOrNull { it.fileCategory == category }?.url

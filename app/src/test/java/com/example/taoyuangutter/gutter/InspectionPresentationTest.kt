@@ -1,5 +1,7 @@
 package com.example.taoyuangutter.gutter
 
+import com.example.taoyuangutter.api.NodeDetails
+import com.google.gson.Gson
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Test
@@ -45,4 +47,18 @@ class InspectionPresentationTest {
         assertEquals("嚴重", inspectionSiltValue("2"))
         assertEquals("嚴重", inspectionSiltValue("3"))
     }
+
+    @Test
+    fun tieInInspectionHidesTheSameDetailFieldsAsCantOpen() {
+        val tieIn = nodeDetails("{\"IS_TIEINPOINT\":\"1\"}")
+        val cantOpen = nodeDetails("{\"IS_CANTOPEN\":\"1\"}")
+        val normal = nodeDetails("{\"IS_CANTOPEN\":\"0\",\"IS_TIEINPOINT\":\"0\"}")
+
+        assertFalse(shouldShowInspectionDetailFields(tieIn, isVirtual = false))
+        assertFalse(shouldShowInspectionDetailFields(cantOpen, isVirtual = false))
+        assertEquals(true, shouldShowInspectionDetailFields(normal, isVirtual = false))
+        assertFalse(shouldShowInspectionDetailFields(normal, isVirtual = true))
+    }
+
+    private fun nodeDetails(json: String): NodeDetails = Gson().fromJson(json, NodeDetails::class.java)
 }

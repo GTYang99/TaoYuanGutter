@@ -14,6 +14,7 @@ object StoreDitchNodeRequestMapper {
         val isCantOpen = waypoint.basicData["IS_CANTOPEN"].toBooleanLoose()
         val isVirtual = waypoint.isVirtual
         val isTieInPoint = waypoint.basicData["IS_TIEINPOINT"].toBooleanLoose() && !isCantOpen
+        val isDetailExempt = isCantOpen || isTieInPoint
         val isConnecting = waypoint.basicData["IS_CONNECTING"].toBooleanLoose()
         val nodeAtt = when (waypoint.type) {
             WaypointType.START -> 1
@@ -24,7 +25,7 @@ object StoreDitchNodeRequestMapper {
         // Keep the current image association on both create and update;
         // omitting it during update leaves the old server-side image linked.
         val imgIds = (1..3).mapNotNull { slot ->
-            if (isVirtual || isCantOpen && slot in 2..3) {
+            if (isVirtual || isDetailExempt && slot in 2..3) {
                 null
             } else {
                 PhotoUploadSlotState.readImgId(waypoint.basicData, slot)
@@ -46,15 +47,15 @@ object StoreDitchNodeRequestMapper {
             isPendingDeploy = if (waypoint.basicData["IS_PENDING_DEPLOY"].toBooleanLoose()) 1 else 0,
             isCantOpen = if (isVirtual) null else isCantOpen,
             isTieInPoint = if (isVirtual) null else isTieInPoint,
-            isConnecting = if (isVirtual) null else isConnecting,
+            isConnecting = if (isVirtual || isDetailExempt) null else isConnecting,
             isVirtual = isVirtual,
-            matTyp = if (isCantOpen || isVirtual) null else (waypoint.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
-            nodeDep = if (isCantOpen || isVirtual) null else (waypoint.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),
-            nodeWid = if (isCantOpen || isVirtual) null else (waypoint.basicData["NODE_WID"]?.toIntOrNull() ?: 0),
-            coverDep = if (isCantOpen || isVirtual) null else waypoint.basicData["COVER_DEP"]?.toIntOrNull(),
-            isBroken = if (isCantOpen || isVirtual) null else (waypoint.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0),
-            isHanging = if (isCantOpen || isVirtual) null else (waypoint.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
-            isSilt = if (isCantOpen || isVirtual) null else (waypoint.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
+            matTyp = if (isDetailExempt || isVirtual) null else (waypoint.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
+            nodeDep = if (isDetailExempt || isVirtual) null else (waypoint.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),
+            nodeWid = if (isDetailExempt || isVirtual) null else (waypoint.basicData["NODE_WID"]?.toIntOrNull() ?: 0),
+            coverDep = if (isDetailExempt || isVirtual) null else waypoint.basicData["COVER_DEP"]?.toIntOrNull(),
+            isBroken = if (isDetailExempt || isVirtual) null else (waypoint.basicData["IS_BROKEN"]?.toIntOrNull() ?: 0),
+            isHanging = if (isDetailExempt || isVirtual) null else (waypoint.basicData["IS_HANGING"]?.toIntOrNull() ?: 0),
+            isSilt = if (isDetailExempt || isVirtual) null else (waypoint.basicData["IS_SILT"]?.toIntOrNull() ?: 0),
             nodeNote = if (isVirtual) null else waypoint.basicData["NODE_NOTE"]?.takeIf { it.isNotEmpty() },
             capturedAt = capturedAt,
             imgIds = imgIds

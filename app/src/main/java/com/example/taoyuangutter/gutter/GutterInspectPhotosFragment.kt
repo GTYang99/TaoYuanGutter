@@ -160,7 +160,6 @@ class GutterInspectPhotosFragment : Fragment() {
 
     private fun renderFields(point: PointViewData, isVirtual: Boolean) {
         val details = point.details
-        val isCantOpen = details?.isCantOpenAsBoolean == true
         binding.layoutFields.removeAllViews()
         binding.layoutFields.addView(createFieldRow("待架站", normalizeDisplayValue(mapBooleanCode(details?.isPendingDeploy))))
         if (!isVirtual) {
@@ -179,7 +178,7 @@ class GutterInspectPhotosFragment : Fragment() {
                 )
             )
         }
-        if (!isVirtual && !isCantOpen) {
+        if (shouldShowInspectionDetailFields(details, isVirtual)) {
             binding.layoutFields.addView(createFieldRow("溝蓋板厚度(公分)", normalizeDisplayValue(details?.coverDepAsString)))
             binding.layoutFields.addView(
                 createPhotoSection(
@@ -512,6 +511,10 @@ internal fun inspectionDetailFieldOrder(): List<String> = listOf(
     "淤積程度",
     "連結管"
 )
+
+/** Detail measurements, attributes, and photo slots 2/3 do not apply to exempt modes. */
+internal fun shouldShowInspectionDetailFields(details: NodeDetails?, isVirtual: Boolean): Boolean =
+    !isVirtual && details?.isCantOpenAsBoolean != true && details?.isTieInPointAsBoolean != true
 
 /** Uses the approved presence wording for inspection attributes that represent an attached item. */
 internal fun inspectionPresenceValue(value: Boolean?): String = when (value) {

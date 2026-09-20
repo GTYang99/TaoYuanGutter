@@ -2,8 +2,8 @@ task:
   id: debug-0920-1
   type: debug
 
-phase: verification
-status: verification_passed
+phase: implementation
+status: implementation_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -19,10 +19,12 @@ debug:
     - ISS-DBG-0920-005
     - ISS-DBG-0920-006
     - ISS-DBG-0920-007
+    - ISS-DBG-0920-008
+    - ISS-DBG-0920-009
 
 implementation:
-  status: completed
-  scope: AC-006_to_AC-007
+  status: in_progress
+  scope: API_detail_parameter_omission_and_tie_in_inspection_exemption
 
 validation:
   status: completed
@@ -36,7 +38,7 @@ git:
   status: committed
 
 verification:
-  result: pass
+  result: pending
   category: null
   failed_acceptance_criteria: []
 
@@ -50,4 +52,4 @@ release:
 blocking:
   - CI/release gates have not been run in this local validation session.
 
-next_action: release
+next_action: implementation

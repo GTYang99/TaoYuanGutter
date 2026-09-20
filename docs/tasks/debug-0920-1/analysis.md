@@ -130,3 +130,11 @@ The prior approved `docs/tasks/feat-0917/requirement.md:27-28,42` resolves the U
 - AC-004: inspection code `2` now renders `嚴重`; legacy code `3` remains `嚴重`.
 - AC-005: existing/view-mode `XY_NUM` remains displayed and preserved, but the field is read-only and is no longer a manual completion requirement in the edit flow.
 - AC-001: no new production change was required because the shared tie-in exemption from `07e3b5a` is already present; the existing focused policy test remains the evidence source.
+
+## API and inspection follow-up
+
+The attached report's unfinished work item clarified that an exempt API value means the JSON parameter is omitted completely. `StoreDitchNodeRequestMapper` previously used only `isCantOpen` for API detail suppression. As a result, a tie-in point could still receive numeric defaults (`MAT_TYP=1`, measurement/detail fields `0`) and both exempt modes could still send `IS_CONNECTING=false` or a stale `true` value. The form layer also normalizes an unselected connecting-pipe radio group to `"0"`, so the mapper must apply the omission rule at the request boundary rather than relying on form state to represent "not applicable".
+
+The inspection renderer had the same predicate gap: `GutterInspectPhotosFragment` rendered measurements, detail rows, and photo slots 2/3 whenever the node was not virtual and not cant-open. It did not check `IS_TIEINPOINT`, so the attached `nodeDetails` example would display exempt values such as depth `89`, width `78`, and the three detail attributes. The fix now shares the exemption condition for the renderer and for inspection-to-edit photo preload.
+
+The minimum fix keeps `IS_CANTOPEN` and `IS_TIEINPOINT` as mode-identification flags, keeps normal-point `IS_CONNECTING=false` behavior, and omits the exempt detail parameters plus photo association slots 2/3 for both exempt modes. Gson's default serialization omits the resulting nullable properties, matching the clarified API contract.
