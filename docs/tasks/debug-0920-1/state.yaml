@@ -30,7 +30,7 @@ validation:
 
 git:
   branch: "fix/debug-0920-1-表單問題"
-  commit: "9732577"
+  commit: "d3dffbd"
   status: committed
 
 verification:
