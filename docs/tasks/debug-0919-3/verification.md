@@ -19,8 +19,8 @@
 
 | AC | Result | Evidence |
 |---|---|---|
-| AC-001 | NOT VERIFIED | The code and build are verified, but no foldable runtime configuration was available to observe the panel while the IME is shown. |
-| AC-002 | NOT VERIFIED | The calculation is based on the saved base margin on each inset update, but keyboard show/hide position evidence is unavailable without a foldable or approved compact-height runtime. |
+| AC-001 | NOT VERIFIED | A non-foldable Android 12 smoke run showed the panel and controls remaining inside the IME-visible area, but no foldable runtime configuration was available. |
+| AC-002 | NOT VERIFIED | The calculation is based on the saved base margin on each inset update, but keyboard-dismissed restoration was not captured and no foldable or approved compact-height runtime was available. |
 | AC-003 | PASS | The committed production diff changes only the inset calculation and adds a pure policy helper; focused unit tests and `MainShellActivityTest` (12/12) passed on Sony XQ-AU52 / Android 12. |
 
 ## Executed Checks
@@ -34,6 +34,7 @@
 | `./gradlew :app:connectedDebugAndroidTest` | FAIL, classified | 37/38 passed; one unrelated imported-waypoint test failed once with `NoActivityResumedException`. |
 | Focused `MainShellActivityTest` | PASS | 12/12 passed on Sony XQ-AU52 / Android 12. |
 | Retry `Debug0919ImportedWaypointUiTest` | PASS | 1/1 passed; no recurrence after one permitted retry. |
+| Manual IME smoke on installed Debug APK | NOT VERIFIED (partial evidence) | Sony XQ-AU52 / Android 12 showed panel and controls within the visible area after focusing the note field; not a foldable device and restore measurement was not captured. |
 | Foldable device test | NOT VERIFIED | No foldable device or approved equivalent window configuration was available. |
 
 ## Classification
