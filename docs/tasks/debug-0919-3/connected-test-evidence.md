@@ -32,3 +32,8 @@
 - After focusing `etNoDitchNote` and entering `test`: the IME reduced the app-visible root to height 1572 and `noDitchPanel` bounds were `[0,676][1080,1572]`; note field bounds were `[53,1016][1027,1408]`, and reset/submit controls were `[53,1445][1027,1530]`.
 - Observed result: the panel bottom aligned to the visible IME boundary and controls remained visible; no submit action was performed.
 - Limitation: this is ordinary Android 12 runtime evidence only. It does not verify fold posture or the keyboard-dismissed restored position, so AC-001/AC-002 remain `NOT VERIFIED`.
+
+## Compact-height Attempt
+- A reversible display override to 1080x1400 and then 1080x1800 was attempted on the same device.
+- The login screen's offline-entry control was clipped in those heights, so no compact-height no-ditch case was executed and no result was claimed.
+- The device was restored with `wm size reset` and `wm density reset`; final display was 1080x2520 at density 420.
