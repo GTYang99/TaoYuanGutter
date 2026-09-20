@@ -2,8 +2,8 @@ task:
   id: debug-0919-3
   type: debug
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_complete
 
 knowledge_resolution:
   status: not_required
@@ -43,19 +43,21 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: NOT_VERIFIED
+  category: environment
   failed_acceptance_criteria:
     - AC-001
+    - AC-002
 
 ci:
-  build: not_started
-  test: not_started
+  build: NOT_VERIFIED
+  test: NOT_VERIFIED
 
 release:
   status: pending
 
 blocking:
   - Foldable device runtime bounds and IME inset measurements are unavailable; runtime positioning remains NOT VERIFIED.
+  - No Java runtime is available; Gradle build and automated tests remain NOT VERIFIED.
 
-next_action: verification
+next_action: infrastructure
