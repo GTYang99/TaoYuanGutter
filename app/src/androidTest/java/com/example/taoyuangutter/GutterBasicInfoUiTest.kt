@@ -9,6 +9,7 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isChecked
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isEnabled
+import androidx.test.espresso.matcher.ViewMatchers.isNotEnabled
 import androidx.test.espresso.matcher.ViewMatchers.isNotChecked
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
@@ -67,6 +68,44 @@ class GutterBasicInfoUiTest {
         launchForm(hashMapOf("IS_BROKEN" to "1", "IS_SILT" to "2")).use {
             onView(withId(R.id.rbIsBroken1)).check(matches(isChecked()))
             onView(withId(R.id.rbIsSilt2)).check(matches(isChecked()))
+        }
+    }
+
+    @Test
+    fun inspectionEditKeepsBackendMeasureIdVisibleButReadOnly() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val data = hashMapOf(
+            "NODE_TYP" to "1",
+            "NODE_X" to "121.000000",
+            "NODE_Y" to "24.000000",
+            "XY_NUM" to "A-0920"
+        )
+
+        ActivityScenario.launch<GutterFormActivity>(
+            GutterFormActivity.newViewIntent(context, "起點", 24.0, 121.0, 0, data)
+        ).use {
+            onView(withId(R.id.tvMeasureIdTitle)).check(matches(isDisplayed()))
+            onView(withId(R.id.etMeasureId)).check(matches(withText("A-0920")))
+            onView(withId(R.id.etMeasureId)).check(matches(isNotEnabled()))
+            onView(withId(R.id.tvMeasureIdRequired)).check(matches(Matchers.not(isDisplayed())))
+
+            onView(withId(R.id.btnEdit)).perform(ViewActions.click())
+            onView(withId(R.id.etMeasureId)).check(matches(isNotEnabled()))
+            onView(withId(R.id.tvMeasureIdRequired)).check(matches(Matchers.not(isDisplayed())))
+        }
+    }
+
+    @Test
+    fun tieInPointExemptsDetailFieldsAndSecondaryPhotos() {
+        launchForm(hashMapOf("NODE_TYP" to "1", "IS_TIEINPOINT" to "0")).use {
+            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
+            onView(withId(R.id.etDepth)).check(matches(isNotEnabled()))
+            onView(withId(R.id.etTopWidth)).check(matches(isNotEnabled()))
+            onView(withId(R.id.btnTakePhotoSlot2)).check(matches(isNotEnabled()))
+            onView(withId(R.id.btnTakePhotoSlot3)).check(matches(isNotEnabled()))
+            onView(withId(R.id.tvDepthRequired)).check(matches(Matchers.not(isDisplayed())))
+            onView(withId(R.id.tvTopWidthRequired)).check(matches(Matchers.not(isDisplayed())))
+            onView(withId(R.id.tvSiltRequired)).check(matches(Matchers.not(isDisplayed())))
         }
     }
 

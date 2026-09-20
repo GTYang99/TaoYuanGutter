@@ -37,4 +37,12 @@ class InspectionPresentationTest {
         assertEquals("無", inspectionPresenceValue(false))
         assertEquals("", inspectionPresenceValue(null))
     }
+
+    @Test
+    fun siltCodesExposeOnlyTheApprovedThreeLabels() {
+        assertEquals("無", inspectionSiltValue("0"))
+        assertEquals("輕度", inspectionSiltValue("1"))
+        assertEquals("嚴重", inspectionSiltValue("2"))
+        assertEquals("嚴重", inspectionSiltValue("3"))
+    }
 }

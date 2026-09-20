@@ -47,7 +47,7 @@ data class WaypointRequest(
     @SerializedName("IS_BROKEN")   val isBroken: String = "",
     /** 附掛或過路管線：0=無、1=有 */
     @SerializedName("IS_HANGING")  val isHanging: String = "",
-    /** 淤積程度：0=無、1=輕度、2=中度、3=嚴重 */
+    /** 淤積程度：0=無、1=輕度、2=嚴重；舊資料 3 亦視為嚴重 */
     @SerializedName("IS_SILT")     val isSilt: String   = "",
     /** 補充說明（非必填） */
     @SerializedName("NODE_NOTE")   val nodeNote: String = "",
@@ -356,7 +356,7 @@ data class NodeDetails(
     @SerializedName("IS_BROKEN")  val isBroken: String?,
     /** 附掛或過路管線：0=無 1=有 */
     @SerializedName("IS_HANGING") val isHanging: String?,
-    /** 淤積程度：0=無 1=輕度 2=中度 3=嚴重 */
+    /** 淤積程度：0=無 1=輕度 2=嚴重；舊資料 3 亦視為嚴重 */
     @SerializedName("IS_SILT")    val isSilt: String?,
     @SerializedName("NOTE")       val note: String?,
     /** WGS84 緯度 */
@@ -563,7 +563,7 @@ data class StoreDitchNodeRequest(
     @SerializedName("COVER_DEP")  val coverDep: Any?,
     @SerializedName("IS_BROKEN")  val isBroken: Int?,
     @SerializedName("IS_HANGING") val isHanging: Int?,
-    /** 淤積程度：0=無、1=輕度、2=中度、3=嚴重 */
+    /** 淤積程度：0=無、1=輕度、2=嚴重；舊資料 3 亦視為嚴重 */
     @SerializedName("IS_SILT")    val isSilt: Int?,
     /** 補充說明（非必填） */
     @SerializedName("NODE_NOTE")  val nodeNote: String? = null,

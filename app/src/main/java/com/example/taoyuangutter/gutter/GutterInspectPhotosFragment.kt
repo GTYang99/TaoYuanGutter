@@ -482,13 +482,7 @@ class GutterInspectPhotosFragment : Fragment() {
         else -> ""
     }
 
-    private fun mapSilt(code: String?): String = when (code) {
-        "0" -> "無"
-        "1" -> "輕度"
-        "2" -> "嚴重"
-        "3" -> "嚴重"
-        else -> code.orEmpty()
-    }
+    private fun mapSilt(code: String?): String = inspectionSiltValue(code)
 
     private fun normalizeDisplayValue(value: String?): String {
         val normalized = value?.trim().orEmpty()
@@ -524,4 +518,12 @@ internal fun inspectionPresenceValue(value: Boolean?): String = when (value) {
     true -> "有"
     false -> "無"
     null -> ""
+}
+
+/** Maps the current severe code and the legacy severe code to the same label. */
+internal fun inspectionSiltValue(code: String?): String = when (code) {
+    "0" -> "無"
+    "1" -> "輕度"
+    "2", "3" -> "嚴重"
+    else -> code.orEmpty()
 }
