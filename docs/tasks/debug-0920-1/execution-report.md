@@ -20,11 +20,12 @@
 
 - `git diff --check`: PASS.
 - Static source trace against all five acceptance criteria: PASS.
-- Focused policy test coverage for backend-generated `XY_NUM`: added, but execution is `NOT VERIFIED`.
-- `./gradlew testDebugUnitTest --tests ...`: `NOT VERIFIED`; the environment has no Java Runtime, so Gradle cannot start.
-- Debug build: `NOT VERIFIED` for the same Java Runtime limitation.
-- Device/UI validation for import Toast, edit-entry dialog, silt display, and read-only XY_NUM: `NOT VERIFIED`; no runtime device evidence is available.
+- Focused JVM tests (`GutterCompletionPolicyTest`, `StoreDitchNodeRequestMapperTest`, `InspectionPresentationTest`): PASS.
+- `./gradlew assembleDebug`: PASS.
+- Android UI tests (`GutterBasicInfoUiTest`, `GutterFormExitUiTest`, `GutterCantOpenUiTest`, `Debug0919ImportedWaypointUiTest`) on `Medium_Phone` Android 14: PASS.
+- AC-002 import-fixture validation: `NOT VERIFIED`; no existing-waypoint import fixture was available.
+- AC-003 inspection/preload validation: `NOT VERIFIED`; no authenticated inspection fixture was available.
 
 ## Limitations
 
-The changes are not release-ready until the targeted JVM tests, debug build, and required Android UI/device checks run successfully on an environment with a Java Runtime and a test device/emulator.
+The code and available regression checks are validated. Release remains blocked only by the missing AC-002 import fixture and AC-003 authenticated inspection fixture.

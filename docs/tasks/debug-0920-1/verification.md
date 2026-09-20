@@ -2,28 +2,29 @@
 
 ## Revision and working-tree boundary
 
-- Production implementation revision under review: `d3dffbd`
+- Production implementation and regression-test revision under review: `739cfa9`
 - Branch: `fix/debug-0920-1-表單問題`
-- The later `228f5e0` commit only records task state; it does not change production or test code.
+- The earlier `d3dffbd` commit contains the production fix; `739cfa9` adds the focused silt and UI regression coverage.
+- The later documentation commits only record task state and verification evidence; they do not change production or test code.
 - Existing untracked `.worktrees/` was not modified or included.
 
 ## Acceptance criteria
 
 | Criterion | Result | Evidence and limitation |
 |---|---|---|
-| AC-001 | NOT VERIFIED | The committed branch already contains the shared tie-in exemption and `GutterCompletionPolicyTest` covers the core rule. JVM/UI execution was unavailable, so the complete form and submit path was not independently run. |
-| AC-002 | NOT VERIFIED | Diff review confirms only the post-import missing-photo Toast was removed and photo state/error handling remains. Import UI execution was unavailable. |
-| AC-003 | NOT VERIFIED | Diff review confirms no-photo/photo-issue warnings now continue to preload and detail-load failure still routes to retry. Inspection/edit UI execution was unavailable. |
-| AC-004 | NOT VERIFIED | Diff review confirms code `2` and legacy code `3` both render `嚴重`; device inspection display was unavailable. |
-| AC-005 | NOT VERIFIED | Diff review confirms existing `XY_NUM` is preserved, read-only in the form, and excluded from the edit completion gate. JVM/UI execution was unavailable. |
+| AC-001 | PASS | `GutterCompletionPolicyTest`, the new tie-in UI test, and `GutterCantOpenUiTest` passed. Source review confirms the same exemption reaches form validation, photo requirements, and submit validation. |
+| AC-002 | NOT VERIFIED | Diff review confirms only the post-import missing-photo Toast was removed and photo state/error handling remains. A live existing-waypoint import fixture was not available on the emulator. |
+| AC-003 | NOT VERIFIED | Diff review confirms no-photo/photo-issue warnings now continue to preload and detail-load failure still routes to retry. A live authenticated inspection/preload fixture was not available on the emulator. |
+| AC-004 | PASS | `InspectionPresentationTest` passed for codes `0`, `1`, `2`, and legacy `3`; `GutterBasicInfoUiTest` also passed for the severe form selection. |
+| AC-005 | PASS | The new `GutterBasicInfoUiTest` passed before and after entering edit: backend `XY_NUM` is visible, populated, not enabled, and has no required marker. Mapper and completion-policy JVM tests passed. |
 
 ## Checks performed
 
 - `git diff --check`: PASS.
 - Static forbidden-text regression search for the removed Toast, dialog title, and `2 -> 中度` mapping: PASS.
-- Targeted JVM tests: NOT VERIFIED. Gradle stopped before test execution because the environment has no Java Runtime.
-- Debug build: NOT VERIFIED. Gradle stopped before compilation for the same reason.
-- Android UI/device checks: NOT VERIFIED. No usable device/emulator evidence was available.
+- Targeted JVM tests: PASS. `GutterCompletionPolicyTest`, `StoreDitchNodeRequestMapperTest`, and `InspectionPresentationTest` passed.
+- Debug build: PASS. `assembleDebug` completed successfully.
+- Android UI/device checks: PASS for `GutterBasicInfoUiTest`, `GutterFormExitUiTest`, `GutterCantOpenUiTest`, and `Debug0919ImportedWaypointUiTest` on `Medium_Phone` Android 14.
 
 ## Regression review
 
@@ -38,4 +39,4 @@
 
 Category: `environment`.
 
-Required follow-up: run the targeted JVM tests, debug build, and AC-scoped Android UI/device checks on an environment with a Java Runtime and an available test device/emulator.
+Required follow-up: execute AC-002 with an existing-waypoint import fixture and AC-003 with an authenticated inspection/preload fixture, or retain those two criteria as `NOT VERIFIED`.

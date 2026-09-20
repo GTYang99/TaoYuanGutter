@@ -30,7 +30,7 @@ validation:
 
 git:
   branch: "fix/debug-0920-1-表單問題"
-  commit: "d3dffbd"
+  commit: "739cfa9"
   status: committed
 
 verification:
@@ -38,11 +38,8 @@ verification:
   category: environment
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
-    - AC-001
     - AC-002
     - AC-003
-    - AC-004
-    - AC-005
 
 ci:
   build: not_verified
@@ -52,7 +49,7 @@ release:
   status: pending
 
 blocking:
-  - Targeted JVM tests and debug build are unavailable because no Java Runtime is installed in the environment.
-  - Runtime/device reproduction and post-fix validation have not yet been performed.
+  - AC-002 needs an existing-waypoint import fixture for end-to-end Toast validation.
+  - AC-003 needs an authenticated inspection/preload fixture for end-to-end edit-entry validation.
 
 next_action: infrastructure
