@@ -11,13 +11,14 @@ internal object GutterFormExitRules {
         hangingSelected: Boolean,
         siltSelected: Boolean,
         hasPhoto2: Boolean,
-        hasPhoto3: Boolean
+        hasPhoto3: Boolean,
+        connectPipeSelected: Boolean = false
     ): Boolean = listOf(
         coverThickness,
         depth,
         topWidth
     ).any { it.isNotBlank() } || materialSelected || brokenSelected || hangingSelected ||
-        siltSelected || hasPhoto2 || hasPhoto3
+        siltSelected || hasPhoto2 || hasPhoto3 || connectPipeSelected
 
     fun shouldShowIncompleteExitWarning(
         basicFieldsInvalid: Boolean,

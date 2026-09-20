@@ -720,19 +720,16 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     private fun setupConnectPointAndPipe() {
-        binding.cbConnectPoint.setOnCheckedChangeListener { _, checked ->
-            if (checked && binding.cbCantOpen.isChecked) {
-                binding.cbCantOpen.setOnCheckedChangeListener(null)
-                binding.cbCantOpen.isChecked = false
-                binding.cbCantOpen.setOnCheckedChangeListener(this::onCantOpenToggleChanged)
-                applyCantOpenUi(false)
-            }
-            applyCantOpenUi(binding.cbCantOpen.isChecked)
-            applyConnectionMutualExclusionUi()
-            notifyDraftChanged()
-        }
+        binding.cbConnectPoint.setOnCheckedChangeListener(this::onConnectPointToggleChanged)
         applyCantOpenUi(binding.cbCantOpen.isChecked)
         applyConnectionMutualExclusionUi()
+    }
+
+    private fun rebindDetailExemptionListener(button: CompoundButton) {
+        when (button.id) {
+            R.id.cbCantOpen -> button.setOnCheckedChangeListener(this::onCantOpenToggleChanged)
+            R.id.cbConnectPoint -> button.setOnCheckedChangeListener(this::onConnectPointToggleChanged)
+        }
     }
 
     private fun applyConnectionMutualExclusionUi() {
@@ -758,31 +755,51 @@ class GutterBasicInfoFragment : Fragment() {
             if (binding.cbConnectPoint.isChecked) {
                 binding.cbConnectPoint.setOnCheckedChangeListener(null)
                 binding.cbConnectPoint.isChecked = false
-                binding.cbConnectPoint.setOnCheckedChangeListener { _, value ->
-                    if (value && binding.cbCantOpen.isChecked) {
-                        binding.cbCantOpen.setOnCheckedChangeListener(null)
-                        binding.cbCantOpen.isChecked = false
-                        binding.cbCantOpen.setOnCheckedChangeListener(this::onCantOpenToggleChanged)
-                    }
-                    applyConnectionMutualExclusionUi()
-                    notifyDraftChanged()
-                }
+                rebindDetailExemptionListener(binding.cbConnectPoint)
             }
             applyConnectionMutualExclusionUi()
             if (!button.isPressed) return
             button.isChecked = false
             if (!hasCantOpenContentToClear()) {
-                confirmCantOpenSelection(button)
+                confirmDetailExemptionSelection(button)
                 return
             }
             MaterialAlertDialogBuilder(requireContext())
                 .setMessage("切換成「無法開蓋」後將清除已填寫資訊與照片，是否確認切換?")
                 .setNegativeButton("取消", null)
-                .setPositiveButton("確認") { _, _ -> confirmCantOpenSelection(button) }
+                .setPositiveButton("確認") { _, _ -> confirmDetailExemptionSelection(button) }
                 .show()
             return
         }
-        onCantOpenCheckedChanged(button, false)
+        onDetailExemptionUnchecked()
+    }
+
+    private fun onConnectPointToggleChanged(button: CompoundButton, checked: Boolean) {
+        if (checked) {
+            if (binding.cbCantOpen.isChecked) {
+                binding.cbCantOpen.setOnCheckedChangeListener(null)
+                binding.cbCantOpen.isChecked = false
+                rebindDetailExemptionListener(binding.cbCantOpen)
+            }
+            applyCantOpenUi(false)
+            applyConnectionMutualExclusionUi()
+            if (!button.isPressed) return
+            button.setOnCheckedChangeListener(null)
+            button.isChecked = false
+            rebindDetailExemptionListener(button)
+            applyCantOpenUi(binding.cbCantOpen.isChecked)
+            if (!hasCantOpenContentToClear()) {
+                confirmDetailExemptionSelection(button)
+                return
+            }
+            MaterialAlertDialogBuilder(requireContext())
+                .setMessage("切換成「銜接點」後將清除已填寫資訊與照片，是否確認切換?")
+                .setNegativeButton("取消", null)
+                .setPositiveButton("確認") { _, _ -> confirmDetailExemptionSelection(button) }
+                .show()
+            return
+        }
+        onDetailExemptionUnchecked()
     }
 
     private fun hasCantOpenContentToClear(): Boolean = GutterFormExitRules.shouldConfirmCantOpenClear(
@@ -802,31 +819,31 @@ class GutterBasicInfoFragment : Fragment() {
         siltSelected = binding.rgIsSilt.checkedRadioButtonId != View.NO_ID &&
             binding.rgIsSilt.checkedRadioButtonId != R.id.rbIsSilt0,
         hasPhoto2 = photoUriSlot2 != null || photoImgId2 != null,
-        hasPhoto3 = photoUriSlot3 != null || photoImgId3 != null
+        hasPhoto3 = photoUriSlot3 != null || photoImgId3 != null,
+        // 「無」是既有預設值，不代表有資料會被清除；只有「有」需要提示。
+        connectPipeSelected = binding.rgConnectPipe.checkedRadioButtonId == R.id.rbConnectPipe1
     )
 
-    private fun confirmCantOpenSelection(button: CompoundButton) {
+    private fun confirmDetailExemptionSelection(button: CompoundButton) {
         val host = activity as? GutterFormActivity ?: return
         host.captureCantOpenSnapshot()
         button.setOnCheckedChangeListener(null)
         button.isChecked = true
-        button.setOnCheckedChangeListener(this::onCantOpenToggleChanged)
+        rebindDetailExemptionListener(button)
         clearCantOpenFieldsAndPhotos()
         host.markCantOpenSnapshotCleared()
-        applyCantOpenUi(true)
+        applyCantOpenUi(binding.cbCantOpen.isChecked)
         notifyDraftChanged()
     }
 
-    private fun onCantOpenCheckedChanged(button: CompoundButton, checked: Boolean) {
-        if (!checked) {
-            val host = activity as? GutterFormActivity
-            val restored = host?.restoreCantOpenSnapshot()
-            if (restored != null) {
-                host?.replaceCurrentFormDataFromCantOpen(restored)
-                renderStoredPhotoSlots()
-            }
+    private fun onDetailExemptionUnchecked() {
+        val host = activity as? GutterFormActivity
+        val restored = host?.restoreCantOpenSnapshot()
+        if (restored != null) {
+            host.replaceCurrentFormDataFromCantOpen(restored)
+            renderStoredPhotoSlots()
         }
-        applyCantOpenUi(checked)
+        applyCantOpenUi(binding.cbCantOpen.isChecked)
         notifyDraftChanged()
     }
 
@@ -839,6 +856,7 @@ class GutterBasicInfoFragment : Fragment() {
                 binding.rgIsBroken.clearCheck()
                 binding.rgIsHanging.clearCheck()
                 binding.rgIsSilt.clearCheck()
+                binding.rgConnectPipe.clearCheck()
                 binding.tilCoverThickness.error = null
                 binding.tilDepth.error = null
                 binding.tilTopWidth.error = null
@@ -1539,6 +1557,11 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsBroken.setCheckedByText(isBrokenCodeToText(data["IS_BROKEN"].orEmpty()))
             binding.rgIsHanging.setCheckedByText(isHangingCodeToText(data["IS_HANGING"].orEmpty()))
             binding.rgIsSilt.setCheckedByText(isSiltCodeToText(data["IS_SILT"].orEmpty()))
+            when (data["IS_CONNECTING"].orEmpty()) {
+                "1" -> binding.rgConnectPipe.check(R.id.rbConnectPipe1)
+                "0" -> binding.rgConnectPipe.check(R.id.rbConnectPipe0)
+                else -> binding.rgConnectPipe.clearCheck()
+            }
             syncPersistedPhotoState(
                 data["photo1"], data["photo2"], data["photo3"],
                 data["photo1CapturedAt"], data["photo2CapturedAt"], data["photo3CapturedAt"],

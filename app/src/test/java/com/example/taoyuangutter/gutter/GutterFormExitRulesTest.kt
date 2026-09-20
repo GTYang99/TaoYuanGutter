@@ -28,6 +28,12 @@ class GutterFormExitRulesTest {
         assertTrue(GutterFormExitRules.shouldConfirmCantOpenClear("", "", "", false, false, false, true, false, false))
         assertTrue(GutterFormExitRules.shouldConfirmCantOpenClear("", "", "", false, false, false, false, true, false))
         assertTrue(GutterFormExitRules.shouldConfirmCantOpenClear("", "", "", false, false, false, false, false, true))
+        assertTrue(
+            GutterFormExitRules.shouldConfirmCantOpenClear(
+                "", "", "", false, false, false, false, false, false,
+                connectPipeSelected = true
+            )
+        )
     }
 
     @Test

@@ -110,6 +110,37 @@ class GutterBasicInfoUiTest {
     }
 
     @Test
+    fun tieInPointWarnsBeforeClearingAndCancelPreservesData() {
+        launchForm(
+            hashMapOf(
+                "NODE_TYP" to "1",
+                "NODE_DEP" to "10",
+                "NODE_WID" to "30",
+                "COVER_DEP" to "3",
+                "MAT_TYP" to "1",
+                "IS_BROKEN" to "1",
+                "IS_HANGING" to "1",
+                "IS_SILT" to "2",
+                "IS_CONNECTING" to "1",
+                "IS_TIEINPOINT" to "0"
+            )
+        ).use {
+            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
+            onView(withText("切換成「銜接點」後將清除已填寫資訊與照片，是否確認切換?")).check(matches(isDisplayed()))
+            onView(withText("取消")).perform(ViewActions.click())
+            onView(withId(R.id.cbConnectPoint)).check(matches(isNotChecked()))
+            onView(withId(R.id.etDepth)).check(matches(withText("10")))
+            onView(withId(R.id.rbConnectPipe1)).check(matches(isChecked()))
+            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
+            onView(withText("確認")).perform(ViewActions.click())
+            onView(withId(R.id.cbConnectPoint)).check(matches(isChecked()))
+            onView(withId(R.id.etDepth)).check(matches(withText("")))
+            onView(withId(R.id.rbConnectPipe0)).check(matches(Matchers.not(isChecked())))
+            onView(withId(R.id.rbConnectPipe1)).check(matches(Matchers.not(isChecked())))
+        }
+    }
+
+    @Test
     fun connectionControlsHaveRequiredDefaultsAndCantOpenIsMutuallyExclusive() {
         launchForm(hashMapOf()).use {
             onView(withId(R.id.cbConnectPoint)).check(matches(isNotChecked()))
