@@ -1,0 +1,61 @@
+task:
+  id: debug-0919-3
+  type: debug
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+debug:
+  status: completed
+  root_cause: identified_from_static_code_evidence_shared_main_layout
+  issues:
+    - ISS-debug-0919-3-001
+    - ISS-debug-0919-3-002
+
+implementation:
+  status: completed
+  mode: debug_fix
+  build:
+    status: not_executed
+    reason: missing_java_runtime
+  unit_test:
+    status: not_executed
+    reason: missing_java_runtime
+
+validation:
+  status: completed
+  limitations:
+    - Gradle build and unit tests are NOT VERIFIED because no Java runtime is available.
+    - Foldable runtime positioning is NOT VERIFIED because no foldable device is available.
+
+git:
+  branch: "fix/debug-0919-3-回報點位難點"
+  commit: af0935a
+  status: committed
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria:
+    - AC-001
+
+ci:
+  build: not_started
+  test: not_started
+
+release:
+  status: pending
+
+blocking:
+  - Foldable device runtime bounds and IME inset measurements are unavailable; runtime positioning remains NOT VERIFIED.
+
+next_action: verification
