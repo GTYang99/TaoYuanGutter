@@ -25,16 +25,13 @@ implementation:
   status: completed
   mode: debug_fix
   build:
-    status: not_executed
-    reason: missing_java_runtime
+    status: pass
   unit_test:
-    status: not_executed
-    reason: missing_java_runtime
+    status: pass
 
 validation:
   status: completed
   limitations:
-    - Gradle build and unit tests are NOT VERIFIED because no Java runtime is available.
     - Foldable runtime positioning is NOT VERIFIED because no foldable device is available.
 
 git:
@@ -58,6 +55,5 @@ release:
 
 blocking:
   - Foldable device runtime bounds and IME inset measurements are unavailable; runtime positioning remains NOT VERIFIED.
-  - No Java runtime is available; Gradle build and automated tests remain NOT VERIFIED.
 
 next_action: infrastructure

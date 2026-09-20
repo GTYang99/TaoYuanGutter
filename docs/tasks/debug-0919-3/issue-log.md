@@ -4,7 +4,8 @@
 |---|---|---:|---|---|
 | ISS-debug-0919-3-001 | implementation_regression | P2 | open | Focusing the no-ditch note field applies the IME height as an additional bottom offset, moving the shared panel too far upward on the reported foldable path. |
 | ISS-debug-0919-3-002 | environment | P2 | open | Foldable runtime inset values, screen bounds, and before/after screenshots are not available for independent confirmation. |
-| ISS-debug-0919-3-003 | environment | P2 | open | Local Gradle validation cannot start because no Java runtime is installed or discoverable in the workspace environment. |
+| ISS-debug-0919-3-003 | environment | P2 | resolved | JDK 21 was found in the local Gradle-managed JDK cache; build and focused tests completed. |
+| ISS-debug-0919-3-004 | environment | P2 | resolved | Full connected suite had one unrelated `NoActivityResumedException` on first run; the permitted single retry passed. |
 
 ## ISS-debug-0919-3-001
 
@@ -62,11 +63,34 @@ phase: implementation
 category: environment
 priority: P2
 title: Gradle validation environment has no Java runtime
-status: open
-impact: Build and automated tests cannot be executed locally in this environment; implementation evidence is limited to static checks until a JDK is available.
+status: resolved
+impact: Initial validation attempt was blocked by Java discovery, but a JDK 21 in the Gradle-managed cache enabled build and tests.
 evidence:
   - command: ./gradlew :app:testDebugUnitTest --tests com.example.taoyuangutter.main.NoDitchPanelInsetPolicyTest
-    result: Unable to locate a Java Runtime
-next_action: infrastructure
+    result: PASS with JDK 21
+next_action: verification
+owner: developer
+```
+
+## ISS-debug-0919-3-004
+
+```yaml
+issue_id: ISS-debug-0919-3-004
+task_id: debug-0919-3
+phase: verification
+category: environment
+priority: P2
+title: One unrelated connected test lost its resumed activity on first suite run
+status: resolved
+impact: The first full connected suite was reported as failed, but the failure was outside the changed no-ditch code and did not reproduce on the permitted retry.
+repro_steps:
+  - Run ./gradlew :app:connectedDebugAndroidTest
+expected: All existing instrumentation tests complete.
+actual: First run had 37/38 passing; Debug0919ImportedWaypointUiTest raised NoActivityResumedException.
+evidence:
+  - docs/tasks/debug-0919-3/connected-test-evidence.md
+  - command: ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.Debug0919ImportedWaypointUiTest
+    result: PASS on one permitted retry
+next_action: verification
 owner: developer
 ```
