@@ -34,7 +34,7 @@ validation:
 
 git:
   branch: "fix/debug-0920-1-表單問題"
-  commit: "fa6de4d"
+  commit: "0fb2b7f"
   status: committed
 
 verification:
