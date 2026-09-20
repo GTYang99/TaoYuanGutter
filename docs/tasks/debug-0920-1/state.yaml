@@ -2,8 +2,8 @@ task:
   id: debug-0920-1
   type: debug
 
-phase: implementation
-status: implementation_in_progress
+phase: verification
+status: verification_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -23,18 +23,18 @@ debug:
     - ISS-DBG-0920-009
 
 implementation:
-  status: in_progress
+  status: completed
   scope: API_detail_parameter_omission_and_tie_in_inspection_exemption
 
 validation:
   status: completed
   static_source_review: completed
   targeted_unit_tests: pass
-  runtime_device: pass
+  runtime_device: not_verified
 
 git:
   branch: "fix/debug-0920-1-表單問題"
-  commit: "7c43493"
+  commit: "d0c7b9d"
   status: committed
 
 verification:
@@ -52,4 +52,4 @@ release:
 blocking:
   - CI/release gates have not been run in this local validation session.
 
-next_action: implementation
+next_action: verification
