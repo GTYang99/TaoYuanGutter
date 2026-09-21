@@ -3,7 +3,7 @@ task:
   type: debug
 
 phase: verification
-status: verification_complete
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -25,26 +25,29 @@ implementation:
   status: completed
   mode: debug_fix
   build:
-    status: pass
+    status: passed
+    command: ./gradlew :app:testDebugUnitTest :app:assembleDebug
   unit_test:
-    status: pass
+    status: passed
+    command: ./gradlew :app:testDebugUnitTest :app:assembleDebug
 
 validation:
   status: completed
   limitations:
-    - Foldable runtime positioning is NOT VERIFIED because no foldable device is available.
+    - The planned NoDitchModeUiController instrumentation test is absent at the fixed revision.
+    - AC-003 PASS evidence was collected from a user-requested derived BASE_URL build with an uncommitted endpoint-only source override; it is not fixed-revision evidence.
+    - CI result is unavailable.
 
 git:
-  branch: "fix/debug-0919-3-回報點位難點"
-  commit: 9ed2c7c
-  status: committed
+  branch: "detached-worktree: debug-0919-3-verification"
+  commit: 9ed2c7cf46288702829d528e95835897b0a88534
+  status: working_tree_modified_for_derived_base_url_test
 
 verification:
-  result: NOT_VERIFIED
+  result: not_verified
   category: environment
-  failed_acceptance_criteria:
-    - AC-001
-    - AC-002
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
 
 ci:
   build: NOT_VERIFIED
@@ -54,6 +57,8 @@ release:
   status: pending
 
 blocking:
-  - Foldable device runtime bounds and IME inset measurements are unavailable; runtime positioning remains NOT VERIFIED.
+  - AC-003 runtime PASS was obtained on the derived BASE_URL test build, not the untouched fixed revision.
+  - The planned NoDitchModeUiController instrumentation test is absent at the fixed revision.
+  - CI result is unavailable.
 
 next_action: infrastructure
