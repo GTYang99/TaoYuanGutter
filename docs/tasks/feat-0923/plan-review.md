@@ -2,7 +2,7 @@
 
 Task: feat-0923  
 Reviewer: Plan Critic Agent  
-Review Iteration: 3  
+Review Iteration: 6  
 Review Date: 2026-09-23
 
 ---
@@ -17,19 +17,36 @@ Review Date: 2026-09-23
 
 ## Summary
 
-The revised plan resolves the previous blocking findings. It now defines `GutterRepository.storeDitch` method entry as the shared submission boundary for add and edit flows, persists the marker before the Retrofit request, specifies missing draft-id/row behavior, and adds named ordering, migration, and pending-list UI tests. The plan is implementation-ready.
+本輪確認上一輪 3 個 Major findings 已完成規劃修正，plan 已達 implementation-ready：
 
-No production code was modified during this review. Existing unrelated working-tree changes remain outside this task scope.
+- submitted restore／recreation 只傳 `draftId`、Boolean 與小型狀態，完整草稿由 Room reread 後在 process memory 建立，不再把完整照片／basicData snapshot 放入 Bundle。
+- Android-dependent Host、Intent、Activity recreation 與 UI 測試已移至 `app/src/androidTest`；JVM 只保留純 policy／snapshot／mapper projection 測試，且沒有新增未核准的 Android JVM dependency。
+- re-upload evidence 已拆成 `StoreDitchRequest` projection 與 node-image photo projection，沒有把 URI、captured-at 或 upload-state 加入既有 API payload。
+
+需求、AC、實際恢復鏈路、no-write contract、retry source of truth、測試 source set 與 rollback 均已對齊。沒有需要外部澄清的 blocker，批准進入 implementation。
+
+本次審查未修改 production code；既有工作區變更仍保留。
+
+---
+
+# Previous Findings Re-check
+
+| Previous finding | Result | Evidence |
+|---|---|---|
+| 5-1 Snapshot transport and transaction safety | RESOLVED | `analysis.md` and `plan.md` specify id/Boolean-only transport, Room reread after recreation, and process-memory snapshot. |
+| 5-2 Test runtime and source set | RESOLVED | Android-dependent tests are under `app/src/androidTest`; JVM tests are explicitly runtime-independent. |
+| 5-3 StoreDitch versus photo-upload evidence | RESOLVED | `plan.md` Step 8 and the retry test split deterministic StoreDitch fields from node-image photo inputs without changing API models. |
 
 ---
 
 # Review Scope and Evidence
 
-- Required inputs reviewed: `AGENTS.md`, `requirement.md`, `analysis.md`, `plan.md`, `state.yaml`, `ai/plan-critic-rules.md`.
-- Supporting rules/templates reviewed: `ai/planning-rules.md`, `ai/templates/plan-template.md`, `ai/templates/plan-critic-rules-templates.md`, `ai/architecture.md`, `ai/testing-rules.md`, `ai/verification-rules.md`.
-- Repository evidence reviewed: current `GutterRepository.storeDitch`, both `AddGutterBottomSheet` submission paths, both `LocationPickerHost` implementations, pending draft persistence/coordinator/database/adapter/layout, existing tests, and current dependency configuration.
-- The revised planning evidence was also reviewed in `root-cause.md`.
-- Working-tree context: branch `feat/草稿tag`; preserve the existing `gradle/libs.versions.toml` change, `.worktrees/` untracked content, and the unrelated existing `AddGutterBottomSheet.kt` message change.
+- Required inputs reviewed: `AGENTS.md`、`requirement.md`、`analysis.md`、`plan.md`、`state.yaml`、`ai/plan-critic-rules.md`。
+- Supporting rules reviewed: `ai/planning-rules.md`、`ai/architecture.md`、`ai/testing-rules.md`、`ai/verification-rules.md`。
+- Repository evidence reviewed: `GutterSessionFlowCoordinator`／`ResumeMapSheet`、`AddGutterBottomSheet`、both `LocationPickerHost` implementations, `GutterFormNavigator`, `GutterFormActivity`, `GutterSessionRepository`, `StoreDitchNodeRequestMapper`, `GutterRepository.uploadNodeImage`, and current Gradle test dependencies.
+- Baseline boundary verified: `GutterRepository.storeDitch` uses synchronous `onRequestEntered: () -> Unit` before the Retrofit request; the plan now matches this contract.
+- Existing test runtime verified: JVM tests use JUnit; Android-dependent assertions are planned for the existing AndroidX JUnit/Espresso instrumentation runtime without adding Robolectric or another Android JVM runtime.
+- Working-tree context: branch `feat/草稿tag`; preserve existing changes in `GutterApiService.kt`、`AddGutterBottomSheet.kt`、`gradle/libs.versions.toml` and `.worktrees/`。
 
 ---
 
@@ -37,133 +54,48 @@ No production code was modified during this review. Existing unrelated working-t
 
 | Item | Result | Notes |
 |------|--------|------|
-| Requirement understood | PASS | The revised plan explicitly defines method entry as the observable submission boundary and records the local/remote atomicity limitation. |
-| Acceptance Criteria complete | PASS | AC-001 and AC-002 now have a precise boundary and both add/edit paths; AC-003 to AC-005 have named validation. |
-| Repository analysis complete | PASS | The analysis now includes `GutterRepository.kt`, missing-row behavior, existing callbacks, and the current test limitations. |
-| Architecture impact reasonable | PASS | Persistence remains in `pending`, the boundary remains in the repository, and UI hosts only provide the marker callback. |
-| Affected modules identified | PASS | The revised file list covers persistence, API boundary, both hosts, UI resources, JVM tests, and instrumentation tests. |
-| Dependencies identified | PASS | Room versioning, coordinator/repository, callbacks, and existing badge styling are identified. |
-| Risks evaluated | PASS | Crash ordering, migration, overwrite, legacy drafts, and layout risks are addressed. |
-| Test Plan complete | PASS | Ordering, missing-field serialization, migration fixture, adapter binding, regression, build, and instrumentation targets are named. |
-| Regression Plan complete | PASS | Restore, delete, success cleanup, offline/curve drafts, error/timeout, and legacy compatibility are covered. |
-| Open Questions documented | PASS | Legacy history remains explicitly false by compatibility default and is separated from the resolved boundary decision. |
-| Implementation steps actionable | PASS | Steps specify the method signature, callback order, missing-row policy, UI behavior, and validation commands. |
-| Task size appropriate | PASS | The scope remains coherent and does not introduce unrelated product work. |
-| Rollback strategy (if applicable) | PASS | Rollback is limited to the task changes and preserves unrelated workspace changes. |
+| Requirements fully understood | PASS | Marker timing, tags, legacy defaults, existing `SPI_NUM` behavior, submitted read-only mode and retry are covered. |
+| Acceptance Criteria complete | PASS | AC-001～AC-007 remain traceable to implementation and validation. |
+| Repository analysis complete | PASS | Actual restore chain, lifecycle write paths, Room source and API/photo projection boundaries are documented. |
+| Affected modules correct | PASS | Persistence, API boundary, both Hosts, form UI, resources and both test source sets are named. |
+| Dependencies identified | PASS | Room, draft coordinator/repository, Host callbacks, existing overlays, Android instrumentation and photo upload seams are identified. |
+| Risks evaluated | PASS | Migration, marker ordering, Bundle size, no-write bypass, API projection and photo metadata risks are recorded. |
+| Test Plan complete | PASS | Unit, instrumentation, UI, request projection, photo projection, retry, build and compile checks are specified. |
+| Regression Plan complete | PASS | Legacy migration, unsubmitted editing, existing-gutter behavior, return/recreation, cleanup and retry are covered. |
+| Open Questions documented | PASS | Product behavior and technical decisions are resolved; instrumentation limitations remain explicitly `NOT VERIFIED` when unavailable. |
+| Implementation steps actionable | PASS | State transport, no-write guards, immutable source, API projections and result handling are concrete. |
+| Scope appropriate | PASS | Scope remains within the approved pending-draft feature and does not alter API contract. |
+| Rollback strategy exists | PASS | Rollback is limited to submitted-mode changes and preserves unrelated workspace edits. |
 
 ---
 
 # Findings
 
-## Finding 1
+No open Critical, Major, or Minor findings.
 
-Severity:
-- [x] Critical
-- [ ] Major
-- [ ] Minor
-- [ ] Suggestion
+## Resolved Finding 1
 
-Category: Submission Boundary / Acceptance Criteria Alignment
+Severity: Major  
+Category: State Persistence / Android Transaction Safety  
+Status: Resolved
 
-Description:
+The plan now transports only `draftId`／submitted flag／small state through Fragment arguments, Intent extras and saved state. Full data is reread from Room and deep-copied only in process memory; missing or undecodable rows do not fall back to stale JSON.
 
-The previous plan marked the draft from Host callbacks before entering `repository.storeDitch(...)`, leaving a crash window that could violate AC-002.
+## Resolved Finding 2
 
-Recommendation:
+Severity: Major  
+Category: Test Plan / Test Runtime Feasibility  
+Status: Resolved
 
-Use one shared repository method-entry boundary, define the marker callback as the first fallible operation, and specify behavior when the draft id or Room row is unavailable.
+The plan now keeps pure policy and mapper projection tests in `app/src/test` and moves Host, Intent, Activity recreation, Room, UI and result-handling assertions to `app/src/androidTest`, matching the configured dependencies.
 
-Planning Response:
+## Resolved Finding 3
 
-`analysis.md` and `plan.md` now define `GutterRepository.storeDitch(request, token, onRequestEntered)` as the shared boundary. Both add/edit call sites pass the callback; fixed ids use ensure-and-mark, missing rows are created from the session snapshot, local marker failure stops the request, and direct inspect-edit without a pending draft id is an explicit no-op policy. The residual local-write/remote-request atomicity limitation is documented.
+Severity: Major  
+Category: API Contract / Payload Evidence  
+Status: Resolved
 
-Status:
-- [ ] Open
-- [x] Resolved
-
----
-
-## Finding 2
-
-Severity:
-- [ ] Critical
-- [x] Major
-- [ ] Minor
-- [ ] Suggestion
-
-Category: Test Plan / Migration Evidence
-
-Description:
-
-The previous plan named migration and UI coverage without a reproducible fixture or exact assertions.
-
-Recommendation:
-
-Name the test files and define deterministic migration, ordering, adapter, and regression assertions.
-
-Planning Response:
-
-The revised plan names `GutterRepositoryStoreDitchBoundaryTest`, `GutterDraftSubmissionStateTest`, `GutterDraftDatabaseMigrationTest`, and `PendingDraftAdapterUiTest`. It specifies the fake API ordering assertions, manually created version-3 schema, version-4 migration expectations, tag text/visibility/background/stroke/padding, and click/long-click regression checks.
-
-Status:
-- [ ] Open
-- [x] Resolved
-
----
-
-## Finding 3
-
-Severity:
-- [ ] Critical
-- [ ] Major
-- [ ] Minor
-- [x] Suggestion
-
-Category: Plan Traceability
-
-Description:
-
-The previous plan did not distinguish the two Host implementations from the shared API boundary in its test seam.
-
-Recommendation:
-
-Name the exact owners and test locations.
-
-Planning Response:
-
-The revised affected-file list and traceability table identify `GutterRepository.kt`, `AddGutterBottomSheet.kt`, `MainActivity.kt`, `MapWorkspaceFragment.kt`, and each named test file. Add/edit boundary behavior is separately described while sharing the repository seam.
-
-Status:
-- [ ] Open
-- [x] Resolved
-
----
-
-## Finding 4
-
-Severity:
-- [ ] Critical
-- [ ] Major
-- [ ] Minor
-- [x] Suggestion
-
-Category: Working Tree Safety
-
-Description:
-
-The current worktree contains an unrelated one-line change in `AddGutterBottomSheet.kt`, which is also an affected file in this plan.
-
-Recommendation:
-
-Implementation must preserve that existing line and keep it out of the task change set, alongside the already documented `gradle/libs.versions.toml` and `.worktrees/` content.
-
-Planning Response:
-
-Accepted as an implementation constraint. The current diff was inspected and is independent of the planned submission-boundary regions.
-
-Status:
-- [x] Open
-- [ ] Resolved
+The plan now validates StoreDitch-supported fields through `StoreDitchNodeRequestMapper` and validates URI／captured-at／file category／ownership／upload state through a separate node-image photo projection. It explicitly preserves the existing `capturedAt = null` StoreDitch mapping and does not expand the API model.
 
 ---
 
@@ -175,8 +107,9 @@ None.
 
 # Improvement Suggestions
 
-- During implementation, use a focused patch around the two `storeDitch` call sites so the unrelated `AddGutterBottomSheet.kt` message change is not overwritten.
-- If the instrumentation environment is unavailable, record the affected checks as `NOT VERIFIED`; do not convert them to PASS from compilation alone.
+- During implementation, keep the existing unrelated `AddGutterBottomSheet.kt` message change isolated while editing the same file.
+- If instrumentation or a physical device is unavailable, record affected acceptance criteria as `NOT VERIFIED`; do not infer UI pass from JVM tests or Android test compilation.
+- Keep the final implementation and verification reports aligned with the two separate payload projections.
 
 ---
 
@@ -184,7 +117,7 @@ None.
 
 ## APPROVED
 
-Implementation may begin.
+Implementation may begin according to the revised plan.
 
 ---
 
@@ -200,9 +133,9 @@ Implementation may begin.
 # Definition of Done
 
 - [x] All checklist items reviewed
+- [x] Previous findings re-checked
 - [x] Findings documented
-- [x] Blocking Issues identified
-- [x] Improvement Suggestions separated
+- [x] Blocking Issues classified separately from improvement suggestions
 - [x] Decision recorded
 - [x] `state.yaml` updated
 

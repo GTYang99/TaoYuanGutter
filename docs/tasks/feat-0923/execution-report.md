@@ -5,7 +5,7 @@
 - Task: `feat-0923`
 - Branch: `feat/草稿tag`
 - Baseline commit: `692991c`
-- New implementation commit: pending
+- New implementation commit: `9524e03`
 - Package: `com.example.taoyuangutter`
 
 ## Implementation Completed
@@ -51,4 +51,4 @@
 - APK variant: `debug`
 - APK path: `/Users/a10362/AndroidStudioProjects/TaoYuanGutter/app/build/outputs/apk/debug/app-debug.apk`
 - Application package: `com.example.taoyuangutter`
-- Physical-device verification remains required for AC-001 through AC-004.
+- Physical-device verification remains required for the new AC-006/AC-007 UI and end-to-end retry behavior, in addition to prior acceptance criteria.

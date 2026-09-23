@@ -37,3 +37,9 @@ The plan could mark a draft as `hasSubmittedStoreDitch=true` from a UI Host call
 ## Residual Limitation
 
 No persistence-plus-network operation can make a local database write and a remote HTTP request physically atomic. The corrected contract defines the observable boundary as entry into `GutterRepository.storeDitch`; the marker is persisted synchronously at that method boundary before the Retrofit request is issued, and all remaining outcomes (success, error, timeout, cancellation after entry) retain the submitted state.
+
+## Scope Update for Re-Planning
+
+The requirement was subsequently clarified: a general draft with `hasSubmittedStoreDitch=true` may be resumed for inspection, but its saved content must be read-only. The user may only return, delete it from the pending-list long-press flow, or submit the entire original draft again through the existing upload flow. `SPI_NUM` inspect/edit items remain outside this policy, and legacy drafts default to unsubmitted/editable.
+
+This adds a second boundary beyond the submission marker: the submitted read-only state must propagate from the pending-draft resume path through `GutterSessionFlowCoordinator`／`GutterFormNavigator` into both `AddGutterBottomSheet` and `GutterFormActivity`. The lock must cover all editable controls and the existing overlay visual, while leaving only the outer return and full re-upload actions available. The re-plan adds explicit propagation, UI-lock, overlay, retry, success-cleanup, and interruption evidence before implementation resumes.
