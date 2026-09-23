@@ -2,7 +2,9 @@ package com.example.taoyuangutter.pending
 
 import com.example.taoyuangutter.R
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.taoyuangutter.databinding.ItemPendingDraftBinding
 import java.text.SimpleDateFormat
@@ -57,6 +59,34 @@ class PendingDraftAdapter(
                 hasLatLng || hasAnyBasic
             }
             tvPendingDraftNodes.text = "已存節點數量：$nonEmptyCount 個"
+
+            when (PendingDraftTagPolicy.kindFor(draft)) {
+                PendingDraftTagKind.SUBMITTED -> {
+                    tvPendingDraftSubmissionTag.visibility = View.VISIBLE
+                    tvPendingDraftSubmissionTag.text = holder.itemView.context
+                        .getString(R.string.pending_draft_tag_submitted)
+                    tvPendingDraftSubmissionTag.setBackgroundColor(
+                        ContextCompat.getColor(holder.itemView.context, R.color.colorPrimary)
+                    )
+                    tvPendingDraftSubmissionTag.setTextColor(
+                        ContextCompat.getColor(holder.itemView.context, R.color.white)
+                    )
+                }
+                PendingDraftTagKind.UNSUBMITTED -> {
+                    tvPendingDraftSubmissionTag.visibility = View.VISIBLE
+                    tvPendingDraftSubmissionTag.text = holder.itemView.context
+                        .getString(R.string.pending_draft_tag_unsubmitted)
+                    tvPendingDraftSubmissionTag.setBackgroundResource(
+                        R.drawable.bg_pending_draft_unsubmitted_tag
+                    )
+                    tvPendingDraftSubmissionTag.setTextColor(
+                        ContextCompat.getColor(holder.itemView.context, R.color.colorPrimary)
+                    )
+                }
+                null -> {
+                    tvPendingDraftSubmissionTag.visibility = View.GONE
+                }
+            }
 
             root.setOnClickListener { onItemClick(draft) }
             root.setOnLongClickListener {

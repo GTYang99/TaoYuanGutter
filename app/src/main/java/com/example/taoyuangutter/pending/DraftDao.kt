@@ -16,6 +16,9 @@ interface DraftDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     fun upsert(draft: DraftEntity)
 
+    @Query("UPDATE gutter_session_drafts SET has_submitted_store_ditch = 1 WHERE id = :id")
+    fun markStoreDitchSubmitted(id: Long): Int
+
     @Query("DELETE FROM gutter_session_drafts WHERE id = :id")
     fun deleteById(id: Long)
 

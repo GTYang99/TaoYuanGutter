@@ -52,10 +52,18 @@ class GutterSessionRepository(context: Context) {
         } else {
             draft.copy(
                 createdAt = existing.createdAt,
-                workflowOwnership = existing.workflowOwnership
+                workflowOwnership = existing.workflowOwnership,
+                hasSubmittedStoreDitch = draft.hasSubmittedStoreDitch || existing.hasSubmittedStoreDitch
             )
         }
         draftDao.upsert(normalized.toEntity())
+    }
+
+    /** Marks the draft after the shared storeDitch boundary has been entered. */
+    fun markStoreDitchSubmitted(id: Long) {
+        check(draftDao.markStoreDitchSubmitted(id) > 0) {
+            "Pending draft $id was not found while marking storeDitch submission"
+        }
     }
 
     /** Allocates a persistent, collision-resistant draft id for a new workflow item. */
@@ -122,6 +130,7 @@ class GutterSessionRepository(context: Context) {
             spiTyp = entity.spiTyp,
             kind = entity.kind,
             isOffline = entity.isOffline,
+            hasSubmittedStoreDitch = entity.hasSubmittedStoreDitch,
             isSinglePoint = entity.isSinglePoint,
             waypoints = normalizedWaypoints
         )
@@ -136,6 +145,7 @@ class GutterSessionRepository(context: Context) {
             spiTyp = spiTyp,
             kind = kind,
             isOffline = isOffline,
+            hasSubmittedStoreDitch = hasSubmittedStoreDitch,
             isSinglePoint = isSinglePoint,
             waypointsJson = gson.toJson(waypoints)
         )

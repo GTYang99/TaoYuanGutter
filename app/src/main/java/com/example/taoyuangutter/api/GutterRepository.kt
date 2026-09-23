@@ -949,15 +949,18 @@ class GutterRepository(
      */
     suspend fun storeDitch(
         request: StoreDitchRequest,
-        token: String
+        token: String,
+        onRequestEntered: () -> Unit = {}
     ): ApiResult<StoreDitchResponse> {
         return try {
-            // 使用 INFO 等級，避免部分裝置 / 篩選條件看不到 DEBUG log
-            android.util.Log.i("StoreDitch", "request(json)=${Gson().toJson(request)}")
-            val response = api.storeDitch(
-                request       = request,
-                authorization = "Bearer $token"
-            )
+            val response = executeStoreDitchSubmissionBoundary(onRequestEntered) {
+                // 使用 INFO 等級，避免部分裝置 / 篩選條件看不到 DEBUG log
+                android.util.Log.i("StoreDitch", "request(json)=${Gson().toJson(request)}")
+                api.storeDitch(
+                    request       = request,
+                    authorization = "Bearer $token"
+                )
+            }
             val rawReq = response.raw().request
             android.util.Log.i("StoreDitch", "http ${rawReq.method} ${rawReq.url}")
             val body = response.body()
@@ -987,6 +990,8 @@ class GutterRepository(
             }
         } catch (e: CancellationException) {
             throw e
+        } catch (e: StoreDitchSubmissionBoundaryException) {
+            ApiResult.Error(message = "本機草稿提交狀態儲存失敗")
         } catch (e: Exception) {
             android.util.Log.e("StoreDitch", "exception: ${e.message}", e)
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")

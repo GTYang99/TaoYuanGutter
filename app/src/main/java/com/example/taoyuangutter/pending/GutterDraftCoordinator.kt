@@ -68,6 +68,35 @@ class GutterDraftCoordinator(
         )
     }
 
+    /**
+     * Ensures the current draft snapshot exists, then persists the submission marker.
+     * A missing snapshot or failed local write throws before the network request starts.
+     */
+    fun ensureAndMarkStoreDitchSubmitted(
+        draftId: Long,
+        waypoints: List<Waypoint>,
+        spiTyp: String? = null,
+        isOffline: Boolean,
+        isCurve: Boolean = false,
+        workflowOwnership: String = WORKFLOW_LEGACY_SINGLE
+    ) {
+        require(draftId > 0L) { "A valid pending draft id is required" }
+        require(waypoints.isNotEmpty()) { "A waypoint snapshot is required" }
+
+        ensureDraftExists(
+            draftId = draftId,
+            waypoints = waypoints,
+            spiTyp = spiTyp,
+            isOffline = isOffline,
+            isCurve = isCurve,
+            workflowOwnership = workflowOwnership
+        )
+        repository.markStoreDitchSubmitted(draftId)
+        check(repository.getById(draftId)?.hasSubmittedStoreDitch == true) {
+            "Pending draft $draftId submission marker was not persisted"
+        }
+    }
+
     fun autoSaveSessionDraft(
         waypoints: List<Waypoint>,
         currentSessionDraftId: Long?,

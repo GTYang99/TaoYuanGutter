@@ -1,0 +1,52 @@
+task:
+  id: feat-0923
+  type: feature
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+  build:
+    status: passed
+    command: "./gradlew :app:assembleDebug"
+  unit_test:
+    status: passed
+    command: "./gradlew :app:testDebugUnitTest"
+  android_test_compile:
+    status: passed
+    command: "./gradlew :app:compileDebugAndroidTestKotlin"
+
+validation:
+  status: completed
+  connected_test: not_verified
+  reason: "ADB daemon could not start; no physical or emulator device was available"
+
+git:
+  branch: feat/草稿tag
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification

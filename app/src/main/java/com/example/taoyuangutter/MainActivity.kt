@@ -970,6 +970,18 @@ class MainActivity : AppCompatActivity(),
         mainBlockingUiController.setInspectLoading(true, getString(R.string.msg_gutter_submitting))
     }
 
+    override fun onStoreDitchRequestEntered(waypoints: List<Waypoint>) {
+        currentSessionDraftId?.let { draftId ->
+            draftCoordinator.ensureAndMarkStoreDitchSubmitted(
+                draftId = draftId,
+                waypoints = waypoints,
+                spiTyp = resolveCurrentSessionSpiTyp(waypoints),
+                isOffline = currentSessionIsOffline,
+                isCurve = activeSheet?.isCurveMode() == true
+            )
+        }
+    }
+
     override fun onPendingPhotoUploadStarted(totalCount: Int) {
         if (totalCount <= 0) return
         activeSheet?.hideSelf()

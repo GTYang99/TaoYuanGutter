@@ -8,17 +8,39 @@
     android:paddingHorizontal="20dp"
     android:paddingVertical="10dp">
 
-    <!-- 標題：側溝草稿序號 -->
-    <TextView
-        android:id="@+id/tvPendingDraftTitle"
+    <!-- 標題與提交狀態 tag -->
+    <LinearLayout
+        android:id="@+id/layoutPendingDraftTitle"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textColor="@color/text_grey"
-        android:textSize="14sp"
-        android:textStyle="bold"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@id/ivPendingArrow"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tvPendingDraftTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@color/text_grey"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tvPendingDraftSubmissionTag"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:paddingHorizontal="6dp"
+            android:paddingVertical="2dp"
+            android:textColor="@color/white"
+            android:textSize="11sp"
+            android:visibility="gone" />
+    </LinearLayout>
 
     <!-- 副標題1：建立時間 -->
     <TextView

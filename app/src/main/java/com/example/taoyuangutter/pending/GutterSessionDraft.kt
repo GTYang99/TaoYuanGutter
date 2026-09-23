@@ -30,6 +30,8 @@ data class GutterSessionDraft(
     val kind: String = KIND_GUTTER,
     /** true = 離線草稿（不打 API，只在本機編輯與保存） */
     val isOffline: Boolean = false,
+    /** true = 已進入 GutterRepository.storeDitch 提交邊界。 */
+    val hasSubmittedStoreDitch: Boolean = false,
     /**
      * 舊版單點草稿的兼容旗標。現行流程已統一為整條草稿，儲存時固定為 false。
      * 舊版資料反序列化時保留此欄位，避免破壞既有草稿。

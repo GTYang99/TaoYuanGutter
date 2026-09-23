@@ -66,6 +66,7 @@ import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.PendingDraftSheetNavigator
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.example.taoyuangutter.pending.WORKFLOW_MULTI_GUTTER
+import com.example.taoyuangutter.pending.WORKFLOW_LEGACY_SINGLE
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -779,6 +780,23 @@ class MapWorkspaceFragment : Fragment(),
     override fun onGutterSubmitted(waypoints: List<Waypoint>) {
         activeSheet?.hideSelf()
         mainBlockingUiController.setInspectLoading(true, getString(R.string.msg_gutter_submitting))
+    }
+
+    override fun onStoreDitchRequestEntered(waypoints: List<Waypoint>) {
+        currentSessionDraftId?.let { draftId ->
+            draftCoordinator.ensureAndMarkStoreDitchSubmitted(
+                draftId = draftId,
+                waypoints = waypoints,
+                spiTyp = resolveCurrentSessionSpiTyp(waypoints),
+                isOffline = currentSessionIsOffline,
+                isCurve = activeSheet?.isCurveMode() == true,
+                workflowOwnership = if (isMultiGutterSession) {
+                    WORKFLOW_MULTI_GUTTER
+                } else {
+                    WORKFLOW_LEGACY_SINGLE
+                }
+            )
+        }
     }
 
     override fun onPendingPhotoUploadStarted(totalCount: Int) {

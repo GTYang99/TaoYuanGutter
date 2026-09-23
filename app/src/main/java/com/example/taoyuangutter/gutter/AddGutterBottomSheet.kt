@@ -78,6 +78,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
          * API 結果由 [onGutterSaved] / [onGutterSaveFailed] 回報。
          */
         fun onGutterSubmitted(waypoints: List<Waypoint>)
+        /** Called at the shared GutterRepository.storeDitch method-entry boundary. */
+        fun onStoreDitchRequestEntered(waypoints: List<Waypoint>)
         /** 送出前補傳照片時，顯示主畫面的 blocking 進度。 */
         fun onPendingPhotoUploadStarted(totalCount: Int)
         /** 送出前補傳照片的單張結果回報。 */
@@ -1128,7 +1130,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 // 建立請求並呼叫 storeDitch（帶 SPI_NUM）
                 val request = buildStoreDitchRequest(waypoints.toList(), editSpiNum)
                 android.util.Log.i("StoreDitch", "edit request(obj)=$request")
-                when (val result = repository.storeDitch(request, token)) {
+                when (val result = repository.storeDitch(
+                    request = request,
+                    token = token,
+                    onRequestEntered = {
+                        locationPickerHost()?.onStoreDitchRequestEntered(waypoints.toList())
+                            ?: error("storeDitch submission host is unavailable")
+                    }
+                )) {
                     is ApiResult.Success -> {
                         val nodes = result.data.data?.nodes ?: emptyList()
                         locationPickerHost()
@@ -1242,7 +1251,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             try {
                 val request = buildStoreDitchRequest(validWaypoints, null)
                 android.util.Log.i("StoreDitch", "add request(obj)=$request")
-                when (val result = repository.storeDitch(request, token)) {
+                when (val result = repository.storeDitch(
+                    request = request,
+                    token = token,
+                    onRequestEntered = {
+                        locationPickerHost()?.onStoreDitchRequestEntered(validWaypoints)
+                            ?: error("storeDitch submission host is unavailable")
+                    }
+                )) {
                     is ApiResult.Success -> {
                         val resolvedSpiNum = result.data.data?.spiNum
                         val responseData = result.data.data
