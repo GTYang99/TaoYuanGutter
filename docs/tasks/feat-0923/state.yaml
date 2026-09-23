@@ -2,8 +2,8 @@ task:
   id: feat-0923
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -37,16 +37,24 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-003
+    - AC-004
+    - AC-005
 
 ci:
-  build: pending
-  test: pending
+  build: not_verified
+  test: not_verified
 
 release:
   status: pending
 
-blocking: []
-next_action: verification
+blocking:
+  - ADB daemon could not start; Android runtime and physical-device evidence are unavailable
+  - CI result is unavailable for the committed revision
+next_action: infrastructure
