@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_not_verified
+status: verification_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -28,8 +28,9 @@ implementation:
 
 validation:
   status: completed
-  connected_test: not_verified
-  reason: "ADB daemon could not start; no physical or emulator device was available"
+  connected_test: passed
+  command: "./gradlew :app:connectedDebugAndroidTest"
+  result: "51 tests, 0 failures, 0 errors, 0 skipped on emulator-5554"
 
 git:
   branch: feat/草稿tag
@@ -43,9 +44,7 @@ verification:
   not_verified_acceptance_criteria:
     - AC-001
     - AC-002
-    - AC-003
     - AC-004
-    - AC-005
 
 ci:
   build: not_verified
@@ -55,6 +54,6 @@ release:
   status: pending
 
 blocking:
-  - ADB daemon could not start; Android runtime and physical-device evidence are unavailable
   - CI result is unavailable for the committed revision
-next_action: infrastructure
+  - Targeted runtime evidence is still required for AC-001, AC-002, and AC-004 interruption/cleanup scenarios
+next_action: verification

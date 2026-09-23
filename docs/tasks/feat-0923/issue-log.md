@@ -7,11 +7,11 @@
 - Category: `environment`
 - Priority: P1
 - Title: Android runtime verification unavailable
-- Status: open
-- Impact: AC-001 through AC-005 cannot be promoted to PASS because instrumentation and physical-device evidence are unavailable.
-- Evidence: `adb devices` failed to start the daemon with `could not install *smartsocket* listener: Operation not permitted`.
-- Root cause: host-level ADB permission/socket failure; no device serial, model, or Android version is available.
-- Next action: infrastructure — restore ADB/device access and rerun the committed revision.
+- Status: resolved
+- Impact: Initial device-dependent verification was blocked; the blocked check has now been rerun.
+- Evidence: Restricted execution reproduced `could not install *smartsocket* listener: Operation not permitted`; host-permitted execution discovered `emulator-5554` (`Medium_Phone(AVD)`, Android 14), and `:app:connectedDebugAndroidTest` passed 51 tests with 0 failures, 0 errors, and 0 skipped.
+- Root cause: restricted host socket permission, not an application failure.
+- Next action: verification — assess the connected-test evidence and remaining acceptance-criteria coverage.
 
 ## ISS-feat-0923-002
 
