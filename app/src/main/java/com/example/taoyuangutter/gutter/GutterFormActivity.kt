@@ -137,26 +137,31 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     override fun onBasicInfoDraftChanged(data: Map<String, String>) {
+        if (submittedDraftReadOnly) return
         mergeCurrentFormData(data)
         queueSessionDraftSync()
     }
 
     override fun onPhotosDraftChanged(photo1: String?, photo2: String?, photo3: String?) {
+        if (submittedDraftReadOnly) return
         updateCurrentFormPhotos(photo1, photo2, photo3)
         queuePhotoDraftSync()
     }
 
     override fun onPhotoCapturedAtDraftChanged(slot: Int, capturedAt: String?) {
+        if (submittedDraftReadOnly) return
         updateCurrentPhotoCapturedAt(slot, capturedAt)
         queuePhotoDraftSync()
     }
 
     override fun onPendingPhotoDraftChanged(slot: Int, pendingOutputPath: String?) {
+        if (submittedDraftReadOnly) return
         updateCurrentPendingPhoto(slot, pendingOutputPath)
         queuePhotoDraftSync()
     }
 
     override fun onPhotoSlotReplaced(slot: Int) {
+        if (submittedDraftReadOnly) return
         if (slot !in 1..3) return
         PhotoUploadSlotState.clear(currentFormData, slot)
         // View-mode launches do not carry a session draft.  Clear the same
@@ -179,6 +184,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     override fun onPhotoSlotReadyForUpload(slot: Int, photoPath: String?) {
+        if (submittedDraftReadOnly) return
         if (slot !in 1..3) return
         // Deletion must always clear the authoritative state, including old server metadata.
         if (photoPath.isNullOrBlank()) {
@@ -264,6 +270,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val EXTRA_VIEW_MODE        = "view_mode"
         const val EXTRA_WAYPOINT_INDEX   = "waypoint_index"
         const val EXTRA_IS_EDIT_MODE     = "is_edit_mode" // 新增：是否為編輯模式
+	        const val EXTRA_SUBMITTED_DRAFT_READ_ONLY = "submitted_draft_read_only"
 	        const val EXTRA_SESSION_DRAFT_ID = "session_draft_id"
 	        const val EXTRA_SESSION_WAYPOINTS_JSON = "session_waypoints_json"
 	        /** 表單內即時存草稿時，用來保留草稿的 isOffline 屬性（避免被覆蓋回 false）。 */
@@ -325,6 +332,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         // 自訂 Result Code：使用者放棄填寫，要求刪除點位座標與資料
         const val RESULT_DELETE = Activity.RESULT_FIRST_USER
+        const val RESULT_SUBMITTED_READ_ONLY_RETURN = Activity.RESULT_FIRST_USER + 1
 
         // 回傳 Key（Result Intent）
         const val RESULT_LATITUDE        = "result_lat"
@@ -381,8 +389,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		            index: Int = 0,
 		            basicData: HashMap<String, String>? = null,
 		            isEditMode: Boolean = false,
-		            sessionDraftId: Long = 0L,
-		            sessionWaypointsJson: String? = null,
+	            sessionDraftId: Long = 0L,
+	            submittedDraftReadOnly: Boolean = false,
+	            sessionWaypointsJson: String? = null,
 		            wmtsLayer: String? = null,
 		            sessionIsOffline: Boolean = false,
                     referenceLats: DoubleArray = doubleArrayOf(),
@@ -399,7 +408,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            putExtra(EXTRA_WAYPOINT_INDEX, index)   // 與 currentIndex 一致，確保 buildAndFinishWithResult 回傳正確索引
 		            putExtra(EXTRA_VIEW_MODE, false)
 		            putExtra(EXTRA_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
-		            putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
+	            putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
+	            putExtra(EXTRA_SUBMITTED_DRAFT_READ_ONLY, submittedDraftReadOnly)
 		            putExtra(EXTRA_OFFLINE_MODE, sessionIsOffline)
 		            putExtra(EXTRA_SESSION_IS_OFFLINE, sessionIsOffline)
 		            if (!sessionWaypointsJson.isNullOrEmpty()) {
@@ -491,6 +501,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var importedWaypointLocked = false
     /** 地圖流程中的 session 草稿 ID；0 表示尚未建立。 */
     private var sessionDraftId = 0L
+    /** Submitted pending drafts are read-only; Room remains the source of truth. */
+    private var submittedDraftReadOnly = false
+    private var submittedDraftMissing = false
     /** 整條側溝目前的 waypoint 快照，供表單編輯中即時覆寫草稿。 */
     private val sessionWaypoints = mutableListOf<WaypointSnapshot>()
     /** 表單唯一正式資料來源：畫面顯示、草稿保存、送出上傳都以這份資料為準。 */
@@ -733,7 +746,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun showImportExistingWaypointSheet() {
-        if (isOfflineMode) return
+        if (isOfflineMode || submittedDraftReadOnly) return
         if (importSheet?.isAdded == true) return
 
 	        // 讓上半部地圖可見（半屏 sheet 覆蓋下半部）
@@ -1234,6 +1247,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             currentLng = savedInstanceState.getDouble("saved_current_lng")
             hasShownEditPolyline = savedInstanceState.getBoolean("saved_has_shown_edit_polyline")
             sessionDraftId = savedInstanceState.getLong("saved_session_draft_id")
+            submittedDraftReadOnly = savedInstanceState.getBoolean(
+                "saved_submitted_draft_read_only",
+                intent.getBooleanExtra(EXTRA_SUBMITTED_DRAFT_READ_ONLY, false)
+            )
             restoredCurrentFormData = savedInstanceState.getString("saved_current_form_data_json")?.let { json ->
                 try {
                     val type = object : TypeToken<HashMap<String, String>>() {}.type
@@ -1250,6 +1267,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             isViewMode    = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
             isEditMode    = intent.getBooleanExtra(EXTRA_IS_EDIT_MODE, false) // 取得編輯模式旗標
             sessionDraftId = intent.getLongExtra(EXTRA_SESSION_DRAFT_ID, 0L)
+            submittedDraftReadOnly = intent.getBooleanExtra(EXTRA_SUBMITTED_DRAFT_READ_ONLY, false)
 
             val lat   = latitudes.getOrElse(currentIndex)  { 0.0 }
             val lng   = longitudes.getOrElse(currentIndex) { 0.0 }
@@ -1265,7 +1283,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         showRegionOverlay = intent.getBooleanExtra(EXTRA_SHOW_REGION, true)
 
         nodeId        = intent.getStringExtra(EXTRA_DATA_NODE_ID)?.toIntOrNull()
-        restoreSessionWaypoints(savedInstanceState)
+        if (submittedDraftReadOnly) restoreSubmittedSessionFromRoom()
+        else restoreSessionWaypoints(savedInstanceState)
 
         // 灰色參考線（弧線展開點列）：由 MainActivity 傳入，供表單期間對照
         val refLats = intent.getDoubleArrayExtra(EXTRA_REF_LATITUDES) ?: doubleArrayOf()
@@ -1298,9 +1317,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         hasShownEditPolyline = false
 
         // 修正：如果是由系統重建，優先使用恢復後的 sessionWaypoints 作為目前點位的資料基底
-        val existingData: HashMap<String, String> = if (savedInstanceState != null && currentIndex in sessionWaypoints.indices) {
+        val existingData: HashMap<String, String> = if (
+            (submittedDraftReadOnly || savedInstanceState != null) &&
+            currentIndex in sessionWaypoints.indices
+        ) {
             HashMap(sessionWaypoints[currentIndex].basicData).apply {
-                restoredCurrentFormData?.let { putAll(it) }
+                if (!submittedDraftReadOnly) {
+                    restoredCurrentFormData?.let { putAll(it) }
+                }
             }
         } else if (isOfflineMode && sessionDraftId > 0L) {
             val draft = GutterSessionRepository(this).getById(sessionDraftId)
@@ -1375,6 +1399,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         }
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
         binding.viewPager.post { applyImportedWaypointLock() }
+        applySubmittedDraftReadOnlyUi()
     }
 
     override fun onPostResume() {
@@ -1444,7 +1469,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     override fun onPause() {
         // 編輯中只要不是已經準備結束，就先把最新狀態直接寫回草稿，
         // 讓背景切走、系統回收、短暫閃退時都能盡量保住內容。
-        if (!isFinishing && !isViewMode) {
+        if (!isFinishing && !isViewMode && !submittedDraftReadOnly) {
             syncSessionDraftNowBlocking()
         }
         super.onPause()
@@ -1778,6 +1803,12 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            binding.btnBack.setOnClickListener { handleNavigateBack() }
 	        }
 
+        if (submittedDraftReadOnly) {
+            binding.btnEdit.visibility = View.GONE
+            binding.btnDone.visibility = View.GONE
+            binding.fabSubmit.visibility = View.GONE
+            return
+        }
         if (isViewMode) {
             binding.btnEdit.visibility   = View.VISIBLE
             binding.btnDone.visibility   = View.GONE
@@ -1791,6 +1822,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun enterEditMode() {
+        if (submittedDraftReadOnly) return
         logPhotoImgIdTrace("enterEditMode.before", currentFormData)
         isViewMode = false
         isEditMode = true // 進入編輯模式
@@ -1839,13 +1871,31 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private fun applyVirtualToggleEnabled() {
         if (!::binding.isInitialized) return
-        binding.cbIsVirtual.isEnabled = !isViewMode && !importedWaypointLocked
+        binding.cbIsVirtual.isEnabled = !isViewMode && !submittedDraftReadOnly && !importedWaypointLocked
     }
 
     private fun applyImportedWaypointLock() {
         if (!::pagerAdapter.isInitialized) return
         binding.viewPager.post {
             pagerAdapter.getBasicInfoFragment()?.setImportLocked(importedWaypointLocked)
+        }
+    }
+
+    private fun applySubmittedDraftReadOnlyUi() {
+        if (!submittedDraftReadOnly || !::binding.isInitialized) return
+        binding.submittedReadOnlyOverlay.visibility = View.VISIBLE
+        binding.cbIsVirtual.isEnabled = false
+        binding.importWaypointBar.visibility = View.GONE
+        binding.viewPager.isUserInputEnabled = false
+        binding.btnEdit.visibility = View.GONE
+        binding.btnDone.visibility = View.GONE
+        binding.fabSubmit.visibility = View.GONE
+        if (::pagerAdapter.isInitialized) {
+            pagerAdapter.getBasicInfoFragment()?.setEditable(false)
+        }
+        if (submittedDraftMissing) {
+            binding.btnBack.isEnabled = true
+            Toast.makeText(this, getString(R.string.msg_draft_not_found), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -2128,6 +2178,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun saveAndFinish() {
+        if (submittedDraftReadOnly) {
+            finishSubmittedDraftReadOnly()
+            return
+        }
         dispatchResultAfterPendingPhotoUploads {
             val data = currentFormSnapshot()
             logPhotoImgIdTrace("saveAndFinish.snapshot", data)
@@ -2179,7 +2233,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun launchLocationPicker() {
-        if (isViewMode) return
+        if (isViewMode || submittedDraftReadOnly) return
         val initialLat = currentFormData["NODE_Y"]?.toDoubleOrNull() ?: currentLat
         val initialLng = currentFormData["NODE_X"]?.toDoubleOrNull() ?: currentLng
         val wmtsLayer = intent.getStringExtra(EXTRA_WMTS_LAYER)
@@ -2203,7 +2257,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun setupImportWaypointButton() {
-        if (isOfflineMode) {
+        if (isOfflineMode || submittedDraftReadOnly) {
             // 離線模式不打 API，隱藏匯入功能
             binding.importWaypointBar.visibility = View.GONE
             return
@@ -2257,6 +2311,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun handleNavigateBack() {
+        if (submittedDraftReadOnly) {
+            finishSubmittedDraftReadOnly()
+            return
+        }
         if (launchedInViewMode && isEditMode && !isViewMode) {
             // 檢視→編輯→返回：先把目前編輯結果寫回草稿，再回到預覽
             syncSessionDraftNowBlocking()
@@ -2293,6 +2351,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
      * keeps the result and the live waypoint on the same completed state.
      */
     private fun dispatchResultAfterPendingPhotoUploads(dispatch: () -> Unit) {
+        if (submittedDraftReadOnly) return
         if (resultDispatchInProgress) return
         resultDispatchInProgress = true
         lifecycleScope.launch {
@@ -2360,7 +2419,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         return true
     }
 
+    private fun finishSubmittedDraftReadOnly() {
+        setResult(RESULT_SUBMITTED_READ_ONLY_RETURN)
+        finish()
+    }
+
     private fun buildAndFinishWithResult() {
+        if (submittedDraftReadOnly) {
+            finishSubmittedDraftReadOnly()
+            return
+        }
         dispatchResultAfterPendingPhotoUploads {
             val basicData = currentFormSnapshot()
             logPhotoImgIdTrace("buildAndFinishWithResult.snapshot", basicData)
@@ -2422,8 +2490,27 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         }
     }
 
+    /** Rebuilds submitted form state from Room after every Activity recreation. */
+    private fun restoreSubmittedSessionFromRoom() {
+        val draft = sessionDraftId.takeIf { it > 0L }
+            ?.let { GutterSessionRepository(this).getById(it) }
+        if (draft == null) {
+            submittedDraftMissing = true
+            sessionWaypoints.clear()
+            return
+        }
+        sessionWaypoints.clear()
+        sessionWaypoints.addAll(
+            draft.waypoints.map { snapshot ->
+                snapshot.copy(basicData = HashMap(snapshot.basicData))
+            }
+        )
+        if (currentIndex !in sessionWaypoints.indices) currentIndex = 0
+        if (waypointIndex !in sessionWaypoints.indices) waypointIndex = currentIndex
+    }
+
     private fun queueSessionDraftSync() {
-        if (isViewMode) return
+        if (isViewMode || submittedDraftReadOnly) return
         if (currentIndex !in sessionWaypoints.indices) return
         syncSessionDraftNowBlocking()
     }
@@ -2438,14 +2525,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     /** 立即將目前表單狀態同步寫入草稿。 */
     private fun syncSessionDraftNowBlocking() {
-        if (isViewMode) return
+        if (isViewMode || submittedDraftReadOnly) return
         runBlocking {
             syncSessionDraftNow()
         }
     }
 
     private suspend fun syncSessionDraftNow() {
-        if (isViewMode) return
+        if (isViewMode || submittedDraftReadOnly) return
         if (currentIndex !in sessionWaypoints.indices) return
 
         ensureCurrentFormCoordinates()
@@ -2640,8 +2727,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putString("saved_waypoints_json", Gson().toJson(sessionWaypoints))
-        outState.putString("saved_current_form_data_json", Gson().toJson(currentFormData))
         outState.putBoolean("saved_is_view_mode", isViewMode)
         outState.putBoolean("saved_is_edit_mode", isEditMode)
         outState.putBoolean("saved_imported_waypoint_locked", importedWaypointLocked)
@@ -2650,6 +2735,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         outState.putDouble("saved_current_lng", currentLng)
         outState.putBoolean("saved_has_shown_edit_polyline", hasShownEditPolyline)
         outState.putLong("saved_session_draft_id", sessionDraftId)
+        outState.putBoolean("saved_submitted_draft_read_only", submittedDraftReadOnly)
+        if (submittedDraftReadOnly) return
+        outState.putString("saved_waypoints_json", Gson().toJson(sessionWaypoints))
+        outState.putString("saved_current_form_data_json", Gson().toJson(currentFormData))
         if (originalSessionWaypoint != null) {
             outState.putString("saved_original_waypoint_json", Gson().toJson(originalSessionWaypoint))
         }

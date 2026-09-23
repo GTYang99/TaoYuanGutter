@@ -72,7 +72,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         /** 請求 MainActivity 顯示地圖選點 overlay（新增模式，點位尚無座標） */
         fun startLocationPick(sheet: AddGutterBottomSheet, waypointIndex: Int)
         /** 點位已有座標，直接開啟 GutterFormActivity 繼續編輯（新增模式或編輯模式） */
-        fun openWaypointForEdit(sheet: AddGutterBottomSheet, waypointIndex: Int)
+        fun openWaypointForEdit(
+            sheet: AddGutterBottomSheet,
+            waypointIndex: Int,
+            submittedDraftReadOnly: Boolean = false
+        )
         /**
          * 新增模式：storeDitch 呼叫前立即執行（清除地圖暫存資料）。
          * API 結果由 [onGutterSaved] / [onGutterSaveFailed] 回報。
@@ -144,6 +148,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private var isOfflineMode = false
     /** 待上傳草稿的 id；非零時表示此 sheet 從草稿恢復 */
     private var draftId: Long = 0L
+    /** 一般已提交草稿恢復後的唯讀模式；既有 SPI_NUM 編輯不使用此模式。 */
+    private var submittedDraftReadOnly: Boolean = false
+    private var submittedDraftMissing: Boolean = false
     /** 編輯模式時帶入的 SPI_NUM，用於顯示標題；空字串代表新增模式 */
     private var editSpiNum: String = ""
     /** 是否為弧線側溝（整條層級）。 */
@@ -260,6 +267,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         isInspectMode = arguments?.getBoolean(ARG_INSPECT_MODE,  false) ?: false
         isOfflineMode = arguments?.getBoolean(ARG_OFFLINE_MODE, false) ?: false
         draftId       = arguments?.getLong(ARG_DRAFT_ID, 0L) ?: 0L
+        submittedDraftReadOnly = arguments?.getBoolean(ARG_SUBMITTED_DRAFT_READ_ONLY, false) ?: false
         editSpiNum    = arguments?.getString(ARG_SPI_NUM, "") ?: ""
         val isCurveArg = arguments?.getBoolean(ARG_IS_CURVE, false) ?: false
         // 初始弧線狀態：以 ditchDetails 回填（ARG_IS_CURVE）為準；新增/編輯皆一致
@@ -278,6 +286,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             selectedSpiTyp = normalizeSpiTyp(savedInstanceState.getString(KEY_SELECTED_SPI_TYP))
             originalSpiTyp = normalizeSpiTyp(savedInstanceState.getString(KEY_ORIGINAL_SPI_TYP))
             needsSpiTypDraftSync = savedInstanceState.getBoolean("saved_needs_spi_typ_draft_sync", false)
+            submittedDraftReadOnly = savedInstanceState.getBoolean(
+                KEY_SUBMITTED_DRAFT_READ_ONLY,
+                submittedDraftReadOnly
+            )
             val origJson = savedInstanceState.getString("saved_original_waypoints_json")
             if (!origJson.isNullOrEmpty()) {
                 originalWaypointsSnapshot = try {
@@ -285,7 +297,8 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     Gson().fromJson(origJson, type)
                 } catch (e: Exception) { emptyList() }
             }
-            restoreWaypointsState(savedInstanceState)
+            if (submittedDraftReadOnly) restoreSubmittedDraftFromRoom()
+            else restoreWaypointsState(savedInstanceState)
             return
         }
 
@@ -302,6 +315,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             restoreWaypointsFromDraftJson(draftJson)
             return
         }
+        if (submittedDraftReadOnly) restoreSubmittedDraftFromRoom()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -312,10 +326,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         outState.putString(KEY_SELECTED_SPI_TYP, selectedSpiTyp)
         outState.putString(KEY_ORIGINAL_SPI_TYP, originalSpiTyp)
         outState.putBoolean("saved_needs_spi_typ_draft_sync", needsSpiTypDraftSync)
-        if (originalWaypointsSnapshot.isNotEmpty()) {
+        outState.putBoolean(KEY_SUBMITTED_DRAFT_READ_ONLY, submittedDraftReadOnly)
+        if (!submittedDraftReadOnly && originalWaypointsSnapshot.isNotEmpty()) {
             outState.putString("saved_original_waypoints_json", Gson().toJson(originalWaypointsSnapshot))
         }
-        if (isInspectMode) return
+        if (isInspectMode || submittedDraftReadOnly) return
         // 儲存所有 waypoints（包含已填寫的 latLng 與 basicData），
         // 避免 Activity 在 GutterFormActivity 期間被系統回收後資料遺失。
         outState.putInt(KEY_WP_COUNT, waypoints.size)
@@ -406,7 +421,25 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun restoreWaypointsFromDraftJson(json: String) {
         try {
             val draft = Gson().fromJson(json, GutterSessionDraft::class.java) ?: return
-            if (draft.waypoints.isEmpty()) return
+            restoreWaypointsFromDraft(draft)
+        } catch (e: Exception) {
+            // 解析失敗：保留預設 [起點, 終點]
+        }
+    }
+
+    /** Submitted restore is Room-authoritative and never falls back to a Bundle snapshot. */
+    private fun restoreSubmittedDraftFromRoom() {
+        val draft = draftId.takeIf { it > 0L }
+            ?.let { GutterSessionRepository(requireContext()).getById(it) }
+        if (draft == null) {
+            submittedDraftMissing = true
+            return
+        }
+        restoreWaypointsFromDraft(draft)
+    }
+
+    private fun restoreWaypointsFromDraft(draft: GutterSessionDraft) {
+        if (draft.waypoints.isEmpty()) return
 
             // 恢復弧線狀態：從草稿 kind 判斷
             isCurve = draft.kind == KIND_CURVE
@@ -439,9 +472,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     .orEmpty()
             }
             renderSpiTypDisplay()
-        } catch (e: Exception) {
-            // 解析失敗：保留預設 [起點, 終點]
-        }
     }
 
     override fun getTheme(): Int = R.style.TransparentBottomSheetDialog
@@ -466,6 +496,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         setupBottomSheetBehavior()
         setupRecyclerView()
         setupButtons()
+        applySubmittedReadOnlyUi()
         setupTitle()
         setupGutterTypeSelector()
         normalizeRestoredPhotoUrisIfNeeded()
@@ -878,7 +909,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (isInspectMode) {
             host.openWaypointForInspect(this, position)
         } else {
-            host.openWaypointForEdit(this, position)
+            host.openWaypointForEdit(this, position, submittedDraftReadOnly)
         }
     }
 
@@ -1050,6 +1081,67 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 if (!com.example.taoyuangutter.api.GutterApiClient.ENABLE_GROUP_SIMULATION) return@setOnLongClickListener false
                 showStoreDitchSimulationMenu()
                 true
+            }
+        }
+
+        if (submittedDraftReadOnly) {
+            binding.btnSubmitGutter.setOnClickListener { performSubmittedReupload() }
+            binding.btnSubmitGutter.setOnLongClickListener(null)
+        }
+    }
+
+    /** Locks draft content while leaving close and full re-upload available. */
+    private fun applySubmittedReadOnlyUi() {
+        if (!submittedDraftReadOnly || _binding == null) return
+        binding.submittedReadOnlyOverlay.visibility = View.VISIBLE
+        binding.btnAddNode.isEnabled = false
+        binding.btnReverse.isEnabled = false
+        binding.rgGutterKind.isEnabled = false
+        binding.rbKindNormal.isEnabled = false
+        binding.rbKindCurve.isEnabled = false
+        binding.layoutGutterTypeSelector.isEnabled = false
+        binding.tvGutterTypeSelector.isEnabled = false
+        binding.rvWaypoints.isEnabled = false
+        binding.btnDeleteGutter.visibility = View.GONE
+        binding.btnSubmitGutter.visibility = View.VISIBLE
+        binding.btnSubmitGutter.isEnabled = !submittedDraftMissing
+        binding.btnSubmitGutter.text = getString(R.string.btn_reupload_gutter)
+    }
+
+    private fun performSubmittedReupload() {
+        if (!submittedDraftReadOnly || submittedDraftMissing || draftId <= 0L) return
+        val token = LoginActivity.getSavedToken(requireContext()) ?: run {
+            Toast.makeText(requireContext(), getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
+            return
+        }
+        val draft = GutterSessionRepository(requireContext()).getById(draftId) ?: run {
+            submittedDraftMissing = true
+            applySubmittedReadOnlyUi()
+            Toast.makeText(requireContext(), getString(R.string.msg_draft_not_found), Toast.LENGTH_SHORT).show()
+            return
+        }
+        restoreWaypointsFromDraft(draft)
+        adapter.notifyDataSetChanged()
+        binding.btnSubmitGutter.isEnabled = false
+        binding.btnSubmitGutter.text = getString(R.string.msg_gutter_submitting)
+        lifecycleScope.launch {
+            try {
+                if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) {
+                    applySubmittedReadOnlyUi()
+                    return@launch
+                }
+                if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
+                    applySubmittedReadOnlyUi()
+                    return@launch
+                }
+                locationPickerHost()?.onGutterSubmitted(waypoints.toList())
+                submitNewGutterRequest(requireActivity(), waypoints.toList(), token)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                android.util.Log.e("StoreDitch", "submitted re-upload exception: ${e.message}", e)
+                applySubmittedReadOnlyUi()
+                Toast.makeText(requireContext(), e.localizedMessage ?: "重新上傳失敗", Toast.LENGTH_LONG).show()
             }
         }
     }
@@ -2293,7 +2385,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         binding.rvWaypoints.isEnabled = !show
         binding.layoutGutterTypeSelector.isEnabled = !show
         binding.tvGutterTypeSelector.isEnabled = !show
-        binding.btnSubmitGutter.text = if (show) buttonLabel else getString(R.string.btn_add_gutter)
+        binding.btnSubmitGutter.text = if (show) buttonLabel else if (submittedDraftReadOnly) {
+            getString(R.string.btn_reupload_gutter)
+        } else {
+            getString(R.string.btn_add_gutter)
+        }
+        if (!show && submittedDraftReadOnly) applySubmittedReadOnlyUi()
     }
 
     /** 清除指定點位的座標與基本資料（使用者放棄填寫時呼叫） */
@@ -2394,7 +2491,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         private const val ARG_OFFLINE_MODE = "offline_mode"
         private const val ARG_DRAFT_ID     = "draft_id"
         private const val ARG_DRAFT_JSON   = "draft_json"
+        private const val ARG_SUBMITTED_DRAFT_READ_ONLY = "submitted_draft_read_only"
         private const val KEY_WP_COUNT     = "wp_count"
+        private const val KEY_SUBMITTED_DRAFT_READ_ONLY = "saved_submitted_draft_read_only"
 
         private const val ARG_EDIT_WAYPOINTS_JSON = "edit_waypoints_json"
         private const val ARG_SPI_NUM             = "spi_num"
@@ -2464,12 +2563,16 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
          */
         fun newInstanceFromDraft(
             draft: GutterSessionDraft,
-            forceOffline: Boolean = false
+            forceOffline: Boolean = false,
+            submittedDraftReadOnly: Boolean = false
         ): AddGutterBottomSheet =
             AddGutterBottomSheet().apply {
                 arguments = Bundle().apply {
                     putLong(ARG_DRAFT_ID,   draft.id)
-                    putString(ARG_DRAFT_JSON, Gson().toJson(draft))
+                    putBoolean(ARG_SUBMITTED_DRAFT_READ_ONLY, submittedDraftReadOnly)
+                    if (!submittedDraftReadOnly) {
+                        putString(ARG_DRAFT_JSON, Gson().toJson(draft))
+                    }
                     draft.spiTyp?.trim()?.takeIf { it in setOf("1", "2", "3", "4") }?.let { putString(ARG_SPI_TYP, it) }
                     // 只有「目前處於離線主模式」才強制離線 UI；
                     // draft.isOffline 代表草稿來源，回到線上時仍應允許上傳。

@@ -173,6 +173,7 @@
     <!-- 新增/修改按鈕文字 -->
     <string name="btn_update_gutter">更新側溝</string>
     <string name="btn_delete_gutter">刪除側溝</string>
+    <string name="btn_reupload_gutter">重新上傳</string>
     <string name="btn_reverse_gutter">調轉</string>
 
     <!-- Toast 和提示消息 -->
@@ -218,6 +219,7 @@
     <string name="msg_fill_required">請填寫「%1$s」</string>
     <string name="msg_take_photo_required">請拍攝「%1$s」照片</string>
     <string name="msg_draft_saved">草稿已儲存至本機</string>
+    <string name="msg_draft_not_found">找不到草稿內容，無法重新上傳</string>
     <string name="msg_start_point_required">請先設定起點座標</string>
     <string name="msg_end_point_required">請先設定終點座標</string>
     <string name="msg_upload_failed_saved_draft">上傳失敗，已儲存為待上傳草稿</string>

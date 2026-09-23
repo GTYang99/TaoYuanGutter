@@ -288,6 +288,17 @@
 
     </LinearLayout>
 
+    <FrameLayout
+        android:id="@+id/submittedReadOnlyOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="57dp"
+        android:layout_marginBottom="82dp"
+        android:background="#33000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/loadingOverlay"
         android:layout_width="match_parent"

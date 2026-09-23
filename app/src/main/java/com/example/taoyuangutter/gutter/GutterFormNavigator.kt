@@ -52,6 +52,7 @@ class GutterFormNavigator(
         waypoint: Waypoint,
         isEditMode: Boolean,
         currentSessionDraftId: Long,
+        submittedDraftReadOnly: Boolean = false,
         wmtsLayer: String,
         sessionIsOffline: Boolean,
         hostLastLocation: Location?,
@@ -64,27 +65,32 @@ class GutterFormNavigator(
         val labels = ArrayList(currentWaypoints.map { it.label })
         val lats = currentWaypoints.map { it.latLng?.latitude ?: 0.0 }.toDoubleArray()
         val lngs = currentWaypoints.map { it.latLng?.longitude ?: 0.0 }.toDoubleArray()
-        val sessionWaypointsJson = Gson().toJson(
-            currentWaypoints.map { currentWaypoint ->
-                WaypointSnapshot(
-                    type = currentWaypoint.type.name,
-                    label = currentWaypoint.label,
-                    latitude = currentWaypoint.latLng?.latitude,
-                    longitude = currentWaypoint.latLng?.longitude,
-                    basicData = HashMap(currentWaypoint.basicData),
-                    uid = currentWaypoint.uid
-                )
-            }
-        )
+        val sessionWaypointsJson = if (submittedDraftReadOnly) {
+            null
+        } else {
+            Gson().toJson(
+                currentWaypoints.map { currentWaypoint ->
+                    WaypointSnapshot(
+                        type = currentWaypoint.type.name,
+                        label = currentWaypoint.label,
+                        latitude = currentWaypoint.latLng?.latitude,
+                        longitude = currentWaypoint.latLng?.longitude,
+                        basicData = HashMap(currentWaypoint.basicData),
+                        uid = currentWaypoint.uid
+                    )
+                }
+            )
+        }
         val intent = GutterFormActivity.newIntent(
             context = context,
             labels = labels,
             lats = lats,
             lngs = lngs,
             index = currentIndex,
-            basicData = waypoint.basicData,
+            basicData = if (submittedDraftReadOnly) hashMapOf() else waypoint.basicData,
             isEditMode = isEditMode,
             sessionDraftId = currentSessionDraftId,
+            submittedDraftReadOnly = submittedDraftReadOnly,
             sessionWaypointsJson = sessionWaypointsJson,
             wmtsLayer = wmtsLayer,
             sessionIsOffline = sessionIsOffline,

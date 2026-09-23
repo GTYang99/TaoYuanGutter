@@ -4,7 +4,8 @@
 
 - Task: `feat-0923`
 - Branch: `feat/草稿tag`
-- Implementation commit: `692991c`
+- Baseline commit: `692991c`
+- New implementation commit: pending
 - Package: `com.example.taoyuangutter`
 
 ## Implementation Completed
@@ -17,15 +18,25 @@
 - Added submitted/unsubmitted pending-list tags and existing-`SPI_NUM` hiding policy.
 - Added JVM boundary/state/serialization tests and Android migration/UI tests.
 
+## New Work Item: Submitted Draft Read-Only Resume and Re-upload
+
+- Submitted ordinary drafts now resume from the Room snapshot by draft ID and enter a read-only form flow.
+- The editable map form and waypoint editor are covered by a read-only overlay; back navigation remains available.
+- Re-upload rereads the complete snapshot from Room, including all waypoints, coordinates, fields, photos, attachments, type, virtual/import state, and metadata.
+- Successful re-upload reuses the existing success cleanup path; failed, timed-out, or interrupted uploads leave the submitted draft retryable.
+- Submitted form launches no longer carry the full waypoint snapshot or full basic-data payload through Intent or saved instance state.
+- Added `SubmittedDraftResumePolicyTest` for ordinary, editable, and existing-`SPI_NUM` routing.
+
 ## Validation
 
 | Check | Result | Evidence |
 |---|---|---|
 | Kotlin compile | PASS | `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:compileDebugKotlin` |
-| JVM tests | PASS | `./gradlew :app:testDebugUnitTest`; 121 tests completed successfully |
+| JVM tests | PASS | `./gradlew :app:testDebugUnitTest`; 124 tests completed successfully |
 | Debug APK | PASS | `./gradlew :app:assembleDebug`; [app-debug.apk](/Users/a10362/AndroidStudioProjects/TaoYuanGutter/app/build/outputs/apk/debug/app-debug.apk) |
 | Android test compilation | PASS | `./gradlew :app:compileDebugAndroidTestKotlin` |
-| Diff whitespace check | PASS | `git diff --check` |
+| Source diff whitespace check | PASS | `git diff --check -- app/src/main app/src/test` |
+| Full diff whitespace check | NOT VERIFIED | Existing task-document trailing whitespace remains in `docs/tasks/feat-0923/plan-review.md`; no source/test whitespace errors |
 | Connected/device tests | NOT VERIFIED | `adb devices` could not start the ADB daemon (`Operation not permitted`); no device serial/model/Android version was available |
 
 ## Worktree Safety

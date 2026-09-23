@@ -756,7 +756,11 @@ class MapWorkspaceFragment : Fragment(),
         mapCameraController.setPersistentBottomInset(0)
     }
 
-    override fun openWaypointForEdit(sheet: AddGutterBottomSheet, waypointIndex: Int) {
+    override fun openWaypointForEdit(
+        sheet: AddGutterBottomSheet,
+        waypointIndex: Int,
+        submittedDraftReadOnly: Boolean
+    ) {
         currentWaypoints = sheet.getWaypoints()
         val wp = currentWaypoints.getOrNull(waypointIndex) ?: return
         val initialLatLng = wp.latLng ?: googleMap?.cameraPosition?.target ?: LatLng(0.0, 0.0)
@@ -765,7 +769,13 @@ class MapWorkspaceFragment : Fragment(),
         sheet.hideSelf()
         binding.btnAddGutter.visibility = View.GONE
         isAddFormHandoffActive = true
-        openAddForm(waypointIndex, wp, initialLatLng, isEditMode = sheet.isEditMode())
+        openAddForm(
+            waypointIndex,
+            wp,
+            initialLatLng,
+            isEditMode = sheet.isEditMode(),
+            submittedDraftReadOnly = submittedDraftReadOnly
+        )
     }
 
     override fun openWaypointForInspect(sheet: AddGutterBottomSheet, waypointIndex: Int) {
@@ -1213,7 +1223,13 @@ class MapWorkspaceFragment : Fragment(),
         gutterFormLauncher.launch(intent)
     }
 
-    private fun openAddForm(currentIndex: Int, wp: Waypoint, latLng: LatLng, isEditMode: Boolean = false) {
+    private fun openAddForm(
+        currentIndex: Int,
+        wp: Waypoint,
+        latLng: LatLng,
+        isEditMode: Boolean = false,
+        submittedDraftReadOnly: Boolean = false
+    ) {
         mapCameraController.moveCameraToLatLngOffset(latLng, 0.75, mapCameraController.zoomForGutterSize(wp.basicData))
         val state = mapOverlayController.currentState()
         val sessionDraftId = ensureCurrentSessionDraftId()
@@ -1223,6 +1239,7 @@ class MapWorkspaceFragment : Fragment(),
             waypoint = wp,
             isEditMode = isEditMode,
             currentSessionDraftId = sessionDraftId,
+            submittedDraftReadOnly = submittedDraftReadOnly,
             wmtsLayer = currentWmtsLayer(),
             sessionIsOffline = currentSessionIsOffline,
             hostLastLocation = lastKnownLocation,
@@ -1309,6 +1326,11 @@ class MapWorkspaceFragment : Fragment(),
 
     private fun handleAddSheetActivityResult(result: androidx.activity.result.ActivityResult) {
         when {
+            result.resultCode == GutterFormActivity.RESULT_SUBMITTED_READ_ONLY_RETURN -> {
+                resetHighlightedMarker()
+                pendingWaypointFormIndex = -1
+                activeSheet?.showSelf()
+            }
             result.resultCode == Activity.RESULT_OK && pendingWaypointFormIndex >= 0 -> {
                 val data = result.data
                 val returnedDraftId = data?.getLongExtra(GutterFormActivity.EXTRA_SESSION_DRAFT_ID, 0L) ?: 0L

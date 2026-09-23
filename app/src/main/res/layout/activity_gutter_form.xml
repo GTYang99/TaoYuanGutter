@@ -269,6 +269,17 @@
 
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
+    <FrameLayout
+        android:id="@+id/submittedReadOnlyOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="56dp"
+        android:layout_marginBottom="88dp"
+        android:background="#33000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone" />
+
     <!-- 相機 Overlay 容器（顯示時覆蓋整個表單 Activity） -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/cameraOverlayContainer"
