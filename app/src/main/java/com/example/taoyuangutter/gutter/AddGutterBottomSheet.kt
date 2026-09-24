@@ -399,7 +399,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     ?: WaypointType.NODE
                 val latLng = if (snap.latitude != null && snap.longitude != null)
                     LatLng(snap.latitude, snap.longitude) else null
-                waypoints.add(Waypoint(wpType, snap.label, latLng, snap.basicData, snapshotUid(snap)))
+                waypoints.add(
+                    Waypoint(
+                        wpType,
+                        snap.label,
+                        latLng,
+                        HashMap(snap.basicData),
+                        snapshotUid(snap)
+                    )
+                )
             }
             pendingPhotoUriNormalization = true
             selectedSpiTyp = normalizeSpiTyp(arguments?.getString(ARG_SPI_TYP))
@@ -456,7 +464,15 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     data = snap.basicData,
                     label = snap.label.ifBlank { snap.type }
                 )
-                waypoints.add(Waypoint(type, snap.label, latLng, snap.basicData, snapshotUid(snap)))
+                waypoints.add(
+                    Waypoint(
+                        type,
+                        snap.label,
+                        latLng,
+                        HashMap(snap.basicData),
+                        snapshotUid(snap)
+                    )
+                )
                 logPhotoImgIdTrace("restoreDraftJson.output", snap.basicData, snap.label)
             }
             pendingPhotoUriNormalization = true
@@ -1060,7 +1076,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         updateSubmitButtonState()
                         return@launch
                     }
-                    if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
+                    if (ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token) == null) {
                         showSelf()
                         updateSubmitButtonState()
                         return@launch
@@ -1120,30 +1136,46 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
             Toast.makeText(requireContext(), getString(R.string.msg_draft_not_found), Toast.LENGTH_SHORT).show()
             return
         }
-        restoreWaypointsFromDraft(draft)
-        adapter.notifyDataSetChanged()
+        val retrySnapshot = SubmittedRetrySnapshot.fromDraft(draft)
+        val retryWaypoints = retrySnapshot.toTransportWaypoints()
         binding.btnSubmitGutter.isEnabled = false
         binding.btnSubmitGutter.text = getString(R.string.msg_gutter_submitting)
         lifecycleScope.launch {
             try {
-                if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) {
-                    applySubmittedReadOnlyUi()
+                if (!validateWaypointPhotosAndFieldsOrAlert(retryWaypoints)) {
+                    restoreSubmittedRetryUi()
                     return@launch
                 }
-                if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
-                    applySubmittedReadOnlyUi()
+                val uploadedRetryWaypoints = ensureWaypointPhotosUploadedBeforeSubmit(
+                        candidateWaypoints = retryWaypoints,
+                        token = token,
+                        updateFormState = false
+                    ) ?: run {
+                    restoreSubmittedRetryUi()
                     return@launch
                 }
-                locationPickerHost()?.onGutterSubmitted(waypoints.toList())
-                submitNewGutterRequest(requireActivity(), waypoints.toList(), token)
+                locationPickerHost()?.onGutterSubmitted(uploadedRetryWaypoints)
+                submitNewGutterRequest(
+                    activity = requireActivity(),
+                    validWaypoints = uploadedRetryWaypoints,
+                    token = token,
+                    submittedRetrySnapshot = retrySnapshot
+                )
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("StoreDitch", "submitted re-upload exception: ${e.message}", e)
-                applySubmittedReadOnlyUi()
+                restoreSubmittedRetryUi()
                 Toast.makeText(requireContext(), e.localizedMessage ?: "重新上傳失敗", Toast.LENGTH_LONG).show()
             }
         }
+    }
+
+    private fun restoreSubmittedRetryUi() {
+        if (!submittedDraftReadOnly || _binding == null) return
+        showSelf()
+        setSubmitLoading(false)
+        applySubmittedReadOnlyUi()
     }
 
     /**
@@ -1160,6 +1192,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     /** 若此 sheet 是從待上傳草稿恢復，回傳其 id；否則回傳 0。 */
     fun getRestoredDraftId(): Long = draftId
+
+    /** Used by the session binder to keep submitted retry state out of auto-save. */
+    fun isSubmittedDraftReadOnlyMode(): Boolean = submittedDraftReadOnly
 
     /** 取得目前側溝類型代碼（1~4）；未選擇時回傳 null。 */
     fun getSelectedSpiTypCode(): String? = resolveCurrentSpiTypCode()
@@ -1202,7 +1237,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     updateSubmitButtonState()
                     return@launch
                 }
-                if (!ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token)) {
+                if (ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token) == null) {
                     showSelf()
                     updateSubmitButtonState()
                     return@launch
@@ -1337,18 +1372,26 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private fun submitNewGutterRequest(
         activity: FragmentActivity,
         validWaypoints: List<Waypoint>,
-        token: String
+        token: String,
+        submittedRetrySnapshot: SubmittedRetrySnapshot? = null
     ) {
         activity.lifecycleScope.launch {
             try {
-                val request = buildStoreDitchRequest(validWaypoints, null)
+                val request = buildStoreDitchRequest(
+                    waypoints = validWaypoints,
+                    spiNum = null,
+                    spiTypOverride = submittedRetrySnapshot?.spiTyp,
+                    isCurveOverride = submittedRetrySnapshot?.isCurve
+                )
                 android.util.Log.i("StoreDitch", "add request(obj)=$request")
                 when (val result = repository.storeDitch(
                     request = request,
                     token = token,
                     onRequestEntered = {
-                        locationPickerHost()?.onStoreDitchRequestEntered(validWaypoints)
-                            ?: error("storeDitch submission host is unavailable")
+                        if (submittedRetrySnapshot == null) {
+                            locationPickerHost()?.onStoreDitchRequestEntered(validWaypoints)
+                                ?: error("storeDitch submission host is unavailable")
+                        }
                     }
                 )) {
                     is ApiResult.Success -> {
@@ -1365,7 +1408,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         )
                         setSubmitLoading(false)
                         locationPickerHost()?.onGutterSubmitFailed()
-                        if (result.code == 401) {
+                        if (result.code == 401 && submittedRetrySnapshot == null) {
                             onWaypointsChanged?.invoke(validWaypoints.toList())
                             if (authExpiredHandler.handleIfAuthExpired(result)) return@launch
                         }
@@ -1373,12 +1416,16 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             showStoreDitchPhotoClaimDialog(
                                 activity = activity,
                                 onClose = {
-                                    locationPickerHost()?.onStoreDitchNetworkClosed(
-                                        validWaypoints.firstOrNull { it.type == WaypointType.START }
-                                            ?.basicData?.get("SPI_NUM")
-                                            ?.takeIf { it.isNotBlank() },
-                                        validWaypoints
-                                    )
+                                    if (submittedRetrySnapshot == null) {
+                                        locationPickerHost()?.onStoreDitchNetworkClosed(
+                                            validWaypoints.firstOrNull { it.type == WaypointType.START }
+                                                ?.basicData?.get("SPI_NUM")
+                                                ?.takeIf { it.isNotBlank() },
+                                            validWaypoints
+                                        )
+                                    } else {
+                                        restoreSubmittedRetryUi()
+                                    }
                                 }
                             )
                             return@launch
@@ -1406,13 +1453,21 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             showStoreDitchFailureDialog(
                                 activity = activity,
                                 message = errorUi.buildDialogMessage(),
-                                onRetry = {
-                                    locationPickerHost()?.onGutterRetry()
-                                    submitNewGutterRequest(activity, validWaypoints, token)
+                                onRetry = if (submittedRetrySnapshot == null) {
+                                    {
+                                        locationPickerHost()?.onGutterRetry()
+                                        submitNewGutterRequest(activity, validWaypoints, token)
+                                    }
+                                } else {
+                                    { performSubmittedReupload() }
                                 },
                                 onSaveDraft = {
-                                    if (locationPickerHost()?.onGutterUploadFailureConfirmed(validWaypoints) != true) {
-                                        dismissAllowingStateLoss()
+                                    if (submittedRetrySnapshot == null) {
+                                        if (locationPickerHost()?.onGutterUploadFailureConfirmed(validWaypoints) != true) {
+                                            dismissAllowingStateLoss()
+                                        }
+                                    } else {
+                                        restoreSubmittedRetryUi()
                                     }
                                 }
                             )
@@ -1435,12 +1490,16 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         activity = activity,
                         errorUi = errorUi,
                         onClose = {
-                            locationPickerHost()?.onStoreDitchNetworkClosed(
-                                validWaypoints.firstOrNull { it.type == WaypointType.START }
-                                    ?.basicData?.get("SPI_NUM")
-                                    ?.takeIf { it.isNotBlank() },
-                                validWaypoints
-                            )
+                            if (submittedRetrySnapshot == null) {
+                                locationPickerHost()?.onStoreDitchNetworkClosed(
+                                    validWaypoints.firstOrNull { it.type == WaypointType.START }
+                                        ?.basicData?.get("SPI_NUM")
+                                        ?.takeIf { it.isNotBlank() },
+                                    validWaypoints
+                                )
+                            } else {
+                                restoreSubmittedRetryUi()
+                            }
                         }
                     )
                 } else {
@@ -1448,10 +1507,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     showStoreDitchFailureDialog(
                         activity = activity,
                         message = errorUi.buildDialogMessage(),
-                        onRetry = { submitNewGutterRequest(activity, validWaypoints, token) },
+                        onRetry = if (submittedRetrySnapshot == null) {
+                            { submitNewGutterRequest(activity, validWaypoints, token) }
+                        } else {
+                            { performSubmittedReupload() }
+                        },
                         onSaveDraft = {
-                            if (locationPickerHost()?.onGutterUploadFailureConfirmed(validWaypoints) != true) {
-                                dismissAllowingStateLoss()
+                            if (submittedRetrySnapshot == null) {
+                                if (locationPickerHost()?.onGutterUploadFailureConfirmed(validWaypoints) != true) {
+                                    dismissAllowingStateLoss()
+                                }
+                            } else {
+                                restoreSubmittedRetryUi()
                             }
                         }
                     )
@@ -2033,9 +2100,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
 
     private suspend fun ensureWaypointPhotosUploadedBeforeSubmit(
         candidateWaypoints: List<Waypoint>,
-        token: String
-    ): Boolean {
-        val ctx = context ?: return false
+        token: String,
+        updateFormState: Boolean = true
+    ): List<Waypoint>? {
+        val ctx = context ?: return null
         val host = locationPickerHost()
         val mutableWaypoints = candidateWaypoints.map { waypoint ->
             waypoint.copy(basicData = HashMap(waypoint.basicData))
@@ -2120,11 +2188,11 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 imgId = null,
                                 error = completed.error
                             )
-                            return false
+                            return null
                         }
                         // Do not fall through to a second upload if the
                         // existing worker timed out or produced no result.
-                        return false
+                        return null
                     }
 
                     val result = repository.uploadNodeImage(
@@ -2148,9 +2216,9 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         }
                         is ApiResult.Error -> {
                             if (result.code == 401) {
-                                onWaypointsChanged?.invoke(waypoints.toList())
+                                if (updateFormState) onWaypointsChanged?.invoke(waypoints.toList())
                                 if (authExpiredHandler.handleIfAuthExpired(result)) {
-                                    return false
+                                    return null
                                 }
                             }
                             host?.onPendingPhotoUploadProgress(false)
@@ -2161,29 +2229,39 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 imgId = null,
                                 error = result.message
                             )
-                            waypoints[index] = waypoint
-                            adapter.notifyItemChanged(index)
-                            onWaypointsChanged?.invoke(waypoints.toList())
+                            if (updateFormState) {
+                                waypoints[index] = waypoint
+                                adapter.notifyItemChanged(index)
+                                onWaypointsChanged?.invoke(waypoints.toList())
+                            }
                             MaterialAlertDialogBuilder(requireContext())
                                 .setTitle("照片上傳失敗")
                                 .setMessage("${waypoint.label} 第${slot}張照片上傳失敗：${result.message}")
                                 .setPositiveButton("確定") { _, _ ->
-                                    host?.onGutterUploadFailureConfirmed(waypoints.toList())
+                                    if (updateFormState) {
+                                        host?.onGutterUploadFailureConfirmed(waypoints.toList())
+                                    } else {
+                                        restoreSubmittedRetryUi()
+                                    }
                                 }
                                 .show()
-                            return false
+                            return null
                         }
                     }
                 }
-                waypoints[index] = waypoint
+                if (updateFormState) {
+                    waypoints[index] = waypoint
+                }
             }
 
-            mutableWaypoints.forEachIndexed { index, waypoint ->
-                waypoints[index] = waypoint
+            if (updateFormState) {
+                mutableWaypoints.forEachIndexed { index, waypoint ->
+                    waypoints[index] = waypoint
+                }
+                adapter.notifyDataSetChanged()
+                onWaypointsChanged?.invoke(waypoints.toList())
             }
-            adapter.notifyDataSetChanged()
-            onWaypointsChanged?.invoke(waypoints.toList())
-            return true
+            return mutableWaypoints
         } finally {
             if (pendingCount > 0) {
                 host?.onPendingPhotoUploadFinished()
@@ -2411,17 +2489,21 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
      */
     private fun buildStoreDitchRequest(
         waypoints: List<Waypoint>,
-        spiNum: String? = null
+        spiNum: String? = null,
+        spiTypOverride: String? = null,
+        isCurveOverride: Boolean? = null
     ): StoreDitchRequest {
         var nodeSequence = 1
-        val spiTypCode = requireNotNull(resolveCurrentSpiTypCode(waypoints)) {
+        val spiTypCode = requireNotNull(
+            normalizeSpiTyp(spiTypOverride) ?: resolveCurrentSpiTypCode(waypoints)
+        ) {
             "SPI_TYP is required"
         }
 
         return StoreDitchRequest(
             spiNum = spiNum,
             spiTyp = spiTypCode.toInt(),
-            isCurve = if (isCurve) 1 else 0,
+            isCurve = if (isCurveOverride ?: isCurve) 1 else 0,
             nodes = waypoints.map { wp ->
                 // 新增模式（spiNum=null）不得帶 node_id，否則後端會視為「更新既有點位」而失敗
                 val requestNodeId = if (spiNum.isNullOrBlank()) null else wp.basicData["_nodeId"]?.toIntOrNull()
