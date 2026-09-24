@@ -85,6 +85,35 @@ class PendingDraftAdapterUiTest {
         assertEquals(View.GONE, holder.binding.tvPendingDraftSubmissionTag.visibility)
     }
 
+    @Test
+    fun draftItemPlacesSubtitlesBelowTitleRow() {
+        val adapter = PendingDraftAdapter(
+            items = mutableListOf(draft(hasSubmittedStoreDitch = true)),
+            onItemClick = {},
+            onItemLongClick = {}
+        )
+        val parent = FrameLayout(context)
+        val holder = adapter.onCreateViewHolder(parent, 0)
+        adapter.onBindViewHolder(holder, 0)
+        parent.addView(holder.itemView)
+
+        val width = dp(360)
+        parent.measure(
+            View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        )
+        parent.layout(0, 0, width, parent.measuredHeight)
+
+        assertTrue(
+            "建立時間副標題不可與標題列重疊",
+            holder.binding.tvPendingDraftTime.top >= holder.binding.layoutPendingDraftTitle.bottom
+        )
+        assertTrue(
+            "節點數量副標題不可與建立時間重疊",
+            holder.binding.tvPendingDraftNodes.top >= holder.binding.tvPendingDraftTime.bottom
+        )
+    }
+
     private fun draft(
         hasSubmittedStoreDitch: Boolean,
         id: Long = 923L,

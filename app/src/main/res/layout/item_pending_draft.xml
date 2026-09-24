@@ -52,7 +52,7 @@
         android:textSize="11sp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toStartOf="@id/ivPendingArrow"
-        app:layout_constraintTop_toBottomOf="@id/tvPendingDraftTitle" />
+        app:layout_constraintTop_toBottomOf="@id/layoutPendingDraftTitle" />
 
     <!-- 副標題2：已存節點數量 -->
     <TextView
