@@ -48,4 +48,5 @@
 - Impact: AC-006 and AC-007 cannot be accepted or rejected; Release remains blocked.
 - Evidence: `verification.md` tests `692991c`, while the submitted read-only/re-upload implementation is in `9524e03`; the recorded 51 connected tests do not cover the new flow.
 - Root cause: verification was not rerun against the new implementation revision, so the current feedback is an evidence gap rather than a reproduced product failure.
-- Next action: infrastructure/verification — run targeted checks against fixed commit `9524e03`; only route back to implementation debug if a concrete behavior failure is reproduced.
+- New evidence: fixed commit `9524e03` was tested in an isolated checkout; JVM tests passed and the Android 14 connected suite passed 51/51 with 0 failures, 0 errors, and 0 skipped. The report still has no targeted AC-006/AC-007 cases.
+- Next action: infrastructure/verification — run targeted checks against fixed commit `9524e03`; only route back to implementation debug if a concrete behavior failure is reproduced. Existing baseline pass does not close this issue.

@@ -69,3 +69,18 @@ Verification was recorded against the prior baseline revision and was not rerun 
 2. Run verification against fixed commit `9524e03` (or a new commit only after any test-only changes are committed).
 3. Add or run targeted evidence for AC-006 and AC-007: read-only controls/overlay, Activity recreation and return, Room-authoritative snapshot re-read, success cleanup, and failure/timeout/interruption retry preservation.
 4. If those tests show a behavior contradiction, create a new implementation-regression issue with the concrete trace and re-enter debug; otherwise update verification with PASS/NOT VERIFIED per criterion.
+
+## Debug Evidence Update: Fixed-Revision Baseline
+
+- An isolated checkout was created at `9524e03752f286bd19949cb5a10a7cbf504d8f40` (`9524e03`); no production or test changes were added to that checkout.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest` passed on the fixed revision.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest` passed on the fixed revision using the Android 14 `Medium_Phone(AVD)` emulator: 51 tests, 0 failures, 0 errors, 0 skipped.
+- The generated fixed-revision report still contains only the existing baseline suites. It has no `SubmittedDraftReadOnlyUiTest`, `SubmittedDraftRetryFlowTest`, or equivalent AC-006/AC-007 runtime case.
+- Static control-flow review confirms the intended guards and Room reread paths exist in `AddGutterBottomSheet`, `GutterFormActivity`, `GutterFormNavigator`, and both Host implementations, but static review cannot prove touch blocking, lifecycle race behavior, request completeness, or success/failure cleanup.
+
+### Confidence
+
+- Root-cause classification (`verification_revision_and_evidence_gap`): **99%**. The old report revision, implementation commit, clean fixed-revision checkout, and test inventory are independently consistent.
+- Fixed-revision build and existing-regression baseline: **98%** for the covered 51 cases.
+- AC-006/AC-007 product behavior: **not above 95%**; it remains `NOT VERIFIED` because the required targeted runtime evidence is absent.
+- Release readiness: **not ready** until targeted AC-006/AC-007 verification and CI evidence are recorded.
