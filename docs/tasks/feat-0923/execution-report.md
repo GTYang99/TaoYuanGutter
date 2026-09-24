@@ -72,3 +72,11 @@
 | CI | NOT VERIFIED | No CI result available |
 
 Independent Verification remains required for AC-007 end-to-end retry/no-write behavior and all uncovered acceptance criteria.
+
+## Follow-up UI Bug Fix: Pending Draft Subtitle Layout
+
+- Fix commit: `e595311`.
+- Changed the pending-row subtitle anchor from nested `tvPendingDraftTitle` to the direct-child `layoutPendingDraftTitle` container.
+- Added a measured-layout regression test covering title row → time subtitle → node-count subtitle ordering.
+- Targeted Android test: `PendingDraftAdapterUiTest`, 3/3 PASS on Android 14 `Medium_Phone(AVD)`.
+- Independent Verification should target `e595311`, since it is now the latest implementation revision.

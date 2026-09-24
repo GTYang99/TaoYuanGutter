@@ -80,3 +80,17 @@
 - Resolution: fixed in `ee55f08` by adding `SubmittedRetrySnapshot`, using transport-only retry projections, suppressing submitted mutable waypoint callbacks, and preserving retry request metadata without writing the submitted draft.
 - Developer evidence: JVM 126/126 PASS; targeted submitted read-only instrumentation PASS; `MainShellActivityTest` class retry 12/12 PASS. Runtime AC-007 no-write/failure/timeout/interruption cases remain for independent Verification.
 - Next action: verification — rerun AC-007 against committed revision `ee55f08` and record CI evidence separately.
+
+## ISS-feat-0923-007
+
+- Task: `feat-0923`
+- Phase: implementation
+- Category: `implementation_regression`
+- Priority: P1
+- Title: Pending draft item subtitle overlaps title
+- Status: resolved
+- Impact: Draft list rows can render the creation-time subtitle over the title text.
+- Evidence: `item_pending_draft.xml` wrapped `tvPendingDraftTitle` in `layoutPendingDraftTitle` but kept `tvPendingDraftTime` constrained to the nested title view. `bottom_sheet_pending_drafts.xml` only hosts the RecyclerView; `PendingDraftAdapter` inflates the affected item layout.
+- Root cause: the parent `ConstraintLayout` subtitle chain used a nested child instead of the direct title-row container as its vertical anchor.
+- Resolution: fixed in `e595311`; the subtitle now anchors below `layoutPendingDraftTitle`, and the measured-layout regression test passes 3/3.
+- Next action: verification — rerun the pending-draft UI checks against `e595311`.

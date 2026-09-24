@@ -177,3 +177,18 @@ Verification was recorded against the prior baseline revision and was not rerun 
 - `GutterSheetSessionBinder` suppresses submitted-draft mutable waypoint callbacks, preventing the auto-save path during retry.
 - Minimum developer validation: JVM unit tests 126/126 PASS; `SubmittedDraftReadOnlyUiTest` PASS; `MainShellActivityTest` retry PASS 12/12.
 - The first full connected-suite run had one unrelated `RootViewWithoutFocusException` in `MainShellActivityTest`; the class-only retry passed. Full CI and independent AC-007 runtime retry evidence remain pending.
+
+## Debug Finding: Pending Draft Title/Subtitle Overlap
+
+### Root Cause
+
+- `bottom_sheet_pending_drafts.xml` only hosts the `RecyclerView`; each row is inflated from `item_pending_draft.xml` by `PendingDraftAdapter`.
+- The title was wrapped in the direct-child `LinearLayout` `layoutPendingDraftTitle`, but `tvPendingDraftTime` still constrained its top to the nested `tvPendingDraftTitle`.
+- A nested child is not a reliable `ConstraintLayout` anchor for the parent-level subtitle, so the vertical chain was not anchored to the complete title row and the subtitle could render over the title.
+
+### Fix Validation
+
+- Fix commit: `e595311` (`fix(feat-0923): prevent pending draft subtitle overlap`).
+- `tvPendingDraftTime` now anchors below `layoutPendingDraftTitle`.
+- Added a layout regression assertion for the measured vertical ordering of title row, time subtitle, and node-count subtitle.
+- Targeted `PendingDraftAdapterUiTest`: 3/3 PASS on Android 14 `Medium_Phone(AVD)`.

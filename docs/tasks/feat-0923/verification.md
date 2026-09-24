@@ -98,4 +98,5 @@ FAIL
 - Developer validation recorded 126/126 JVM tests, targeted submitted read-only instrumentation PASS, and `MainShellActivityTest` retry 12/12 PASS.
 - The prior AC-007 FAIL remains historical evidence for revision `452915a`; it must not be reused as the result for `ee55f08`.
 - Independent Verification is pending and must target `ee55f08`, including the submitted retry payload/no-write/failure/timeout/interruption cases.
+- A subsequent layout fix was committed as `e595311`; all new Verification must target `e595311`.
 - CI remains `NOT VERIFIED`; Release is still blocked.

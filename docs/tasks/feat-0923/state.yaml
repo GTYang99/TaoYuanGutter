@@ -16,14 +16,14 @@ plan_review:
 
 implementation:
   status: completed
-  commit: ee55f08
+  commit: e595311
 
 validation:
   status: completed
 
 git:
   branch: feat/草稿tag
-  commit: ee55f08
+  commit: e595311
   status: committed
 
 ci:
@@ -51,5 +51,5 @@ release:
 blocking:
   - CI build/test result is unavailable for the fixed implementation revision
   - Targeted runtime evidence for the listed acceptance criteria is not present in the committed test suite
-  - Independent Verification must rerun against the new submitted-retry fix revision
+  - Independent Verification must rerun against the latest layout and submitted-retry fix revision
 next_action: verification
