@@ -50,3 +50,17 @@
 - Root cause: verification was not rerun against the new implementation revision, so the current feedback is an evidence gap rather than a reproduced product failure.
 - New evidence: fixed commit `9524e03` was tested in an isolated checkout; JVM tests passed and the Android 14 connected suite passed 51/51 with 0 failures, 0 errors, and 0 skipped. The report still has no targeted AC-006/AC-007 cases.
 - Next action: infrastructure/verification — run targeted checks against fixed commit `9524e03`; only route back to implementation debug if a concrete behavior failure is reproduced. Existing baseline pass does not close this issue.
+
+## ISS-feat-0923-005
+
+- Task: `feat-0923`
+- Phase: debug
+- Category: `implementation_regression`
+- Priority: P1
+- Title: Submitted draft basic-info controls remain editable after pager creation
+- Status: resolved
+- Impact: AC-006 is not met; the submitted draft can expose editable controls beneath the read-only overlay.
+- Evidence: On fixed revision `9524e03`, `SubmittedDraftReadOnlyUiTest.submittedDraftDisablesFormControlsAfterPagerCreation` failed on Android 14 `Medium_Phone(AVD)` because `etRemarks` remained enabled (`1` test, `1` failure, `0` errors, `0` skipped).
+- Root cause: `applySubmittedDraftReadOnlyUi()` runs before `ViewPager2` creates the basic-info fragment, so `getBasicInfoFragment()` returns null; the later-created fragment defaults to editable.
+- Route: implementation_debug — propagate the read-only state into fragment creation, add targeted regression coverage, then rerun developer validation.
+- Resolution: fixed in `452915a`; targeted test and the full 52-test connected suite pass. Independent Verification remains pending.

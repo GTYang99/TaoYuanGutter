@@ -2,8 +2,8 @@ task:
   id: feat-0923
   type: feature
 
-phase: debug
-status: debug_complete
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -16,14 +16,14 @@ plan_review:
 
 implementation:
   status: completed
-  commit: 9524e03
+  commit: 452915a
 
 validation:
   status: completed
 
 git:
   branch: feat/草稿tag
-  commit: 9524e03
+  commit: 452915a
   status: committed
 
 ci:
@@ -32,7 +32,7 @@ ci:
 
 debug:
   status: completed
-  root_cause: verification_revision_and_evidence_gap
+  root_cause: submitted_form_fragment_created_after_read_only_lock
 
 verification:
   result: pending
@@ -43,4 +43,4 @@ release:
   status: pending
 
 blocking: []
-next_action: infrastructure
+next_action: verification

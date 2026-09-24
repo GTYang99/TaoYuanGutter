@@ -84,3 +84,49 @@ Verification was recorded against the prior baseline revision and was not rerun 
 - Fixed-revision build and existing-regression baseline: **98%** for the covered 51 cases.
 - AC-006/AC-007 product behavior: **not above 95%**; it remains `NOT VERIFIED` because the required targeted runtime evidence is absent.
 - Release readiness: **not ready** until targeted AC-006/AC-007 verification and CI evidence are recorded.
+
+## Debug Finding: Submitted Read-Only Lock Misses Pager-Created Fragment
+
+### Classification
+
+- Verification category: `implementation_regression`.
+- Related issue: `ISS-feat-0923-005`.
+- Failed acceptance criterion: AC-006.
+- The earlier revision/evidence mismatch remains valid as historical context, but a fixed-revision runtime repro now establishes a concrete implementation defect.
+
+### Reproduction Evidence
+
+- Fixed revision: `9524e03`.
+- Device: Android 14 `Medium_Phone(AVD)` (`emulator-5554`).
+- Targeted test: `SubmittedDraftReadOnlyUiTest.submittedDraftDisablesFormControlsAfterPagerCreation`.
+- Result: `1` test, `1` failure, `0` errors, `0` skipped.
+- Failure: `GutterFormActivity`'s `etRemarks` remained `enabled=true`, while AC-006 requires the submitted draft's editable controls to be locked.
+
+### Causal Chain
+
+1. `GutterFormActivity.onCreate` calls `setupViewPager(...)` and then `applySubmittedDraftReadOnlyUi()`.
+2. `applySubmittedDraftReadOnlyUi()` attempts `pagerAdapter.getBasicInfoFragment()?.setEditable(false)`.
+3. At that point `ViewPager2` may not have created the basic-info child fragment, so the lookup returns `null` and no control lock is applied.
+4. `GutterBasicInfoFragment` is later created with its normal editable default, leaving controls enabled beneath the overlay.
+
+### Minimum Fix Scope
+
+- Propagate the submitted read-only flag through `GutterFormPagerAdapter` into `GutterBasicInfoFragment` creation.
+- Make the fragment initialize itself non-editable whenever that flag is present, independent of pager timing or recreation.
+- Retain the Activity-level lock as a defensive re-application after pager synchronization.
+- Add the targeted instrumentation test to the task's committed test scope and cover the key controls required by AC-006.
+- Do not change Room authority, submission-marker semantics, retry preservation, or unrelated working-tree changes.
+
+### Confidence
+
+- Root-cause identification: **98%**; the failure is reproduced on the fixed implementation revision and matches the observed lifecycle ordering.
+- Proposed lifecycle fix: **98% after targeted runtime validation**; the new test passes after the read-only flag is propagated into fragment creation and the Activity post-lock is retained.
+- AC-007: **not yet verified**; this defect does not by itself establish the re-upload flow result.
+
+### Fix Validation
+
+- Fix commit: `452915a` (`fix(feat-0923): enforce submitted draft read-only state`).
+- Targeted instrumentation test: PASS on Android 14 `Medium_Phone(AVD)`.
+- Full connected suite: PASS, 52 tests, 0 failures, 0 errors, 0 skipped.
+- JVM unit tests: PASS, 124 tests.
+- Independent verification and CI remain separate gates; this evidence closes the implementation-debug loop but does not mark Release ready.

@@ -4,8 +4,8 @@
 
 - Task: `feat-0923`
 - Branch: `feat/草稿tag`
-- Baseline commit: `692991c`
-- New implementation commit: `9524e03`
+- Baseline commit: `9524e03`
+- New implementation commit: `452915a`
 - Package: `com.example.taoyuangutter`
 
 ## Implementation Completed
@@ -32,12 +32,13 @@
 | Check | Result | Evidence |
 |---|---|---|
 | Kotlin compile | PASS | `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:compileDebugKotlin` |
-| JVM tests | PASS | `./gradlew :app:testDebugUnitTest`; 124 tests completed successfully |
+| JVM tests | PASS | `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest`; 124 tests, 0 failures |
 | Debug APK | PASS | `./gradlew :app:assembleDebug`; [app-debug.apk](/Users/a10362/AndroidStudioProjects/TaoYuanGutter/app/build/outputs/apk/debug/app-debug.apk) |
 | Android test compilation | PASS | `./gradlew :app:compileDebugAndroidTestKotlin` |
 | Source diff whitespace check | PASS | `git diff --check -- app/src/main app/src/test` |
 | Full diff whitespace check | NOT VERIFIED | Existing task-document trailing whitespace remains in `docs/tasks/feat-0923/plan-review.md`; no source/test whitespace errors |
-| Connected/device tests | NOT VERIFIED | `adb devices` could not start the ADB daemon (`Operation not permitted`); no device serial/model/Android version was available |
+| Targeted submitted read-only instrumentation | PASS | `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.gutter.SubmittedDraftReadOnlyUiTest`; 1 test, 0 failures on `emulator-5554` / Android 14 |
+| Full connected/device tests | PASS | `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest`; 52 tests, 0 failures, 0 errors, 0 skipped on `Medium_Phone(AVD)` / Android 14 |
 
 ## Worktree Safety
 
@@ -51,4 +52,4 @@
 - APK variant: `debug`
 - APK path: `/Users/a10362/AndroidStudioProjects/TaoYuanGutter/app/build/outputs/apk/debug/app-debug.apk`
 - Application package: `com.example.taoyuangutter`
-- Physical-device verification remains required for the new AC-006/AC-007 UI and end-to-end retry behavior, in addition to prior acceptance criteria.
+- Independent Verification remains required for AC-007 end-to-end retry behavior and CI evidence; developer validation does not substitute for that gate.
