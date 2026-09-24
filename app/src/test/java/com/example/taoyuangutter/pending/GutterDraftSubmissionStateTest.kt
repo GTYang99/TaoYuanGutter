@@ -1,7 +1,6 @@
 package com.example.taoyuangutter.pending
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Test
 
 class GutterDraftSubmissionStateTest {
@@ -20,7 +19,7 @@ class GutterDraftSubmissionStateTest {
     }
 
     @Test
-    fun existingGutterDraftWithSpiNumHidesSubmissionTag() {
+    fun existingGutterDraftWithSpiNumUsesExistingGutterTag() {
         val draft = draft(
             hasSubmittedStoreDitch = true,
             waypoints = listOf(
@@ -31,7 +30,7 @@ class GutterDraftSubmissionStateTest {
             )
         )
 
-        assertNull(PendingDraftTagPolicy.kindFor(draft))
+        assertEquals(PendingDraftTagKind.EXISTING_GUTTER, PendingDraftTagPolicy.kindFor(draft))
     }
 
     private fun draft(

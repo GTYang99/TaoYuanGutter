@@ -1,7 +1,10 @@
 package com.example.taoyuangutter.gutter
 
 import com.example.taoyuangutter.pending.GutterSessionDraft
+import com.example.taoyuangutter.pending.PendingDraftTagKind
+import com.example.taoyuangutter.pending.PendingDraftTagPolicy
 import com.example.taoyuangutter.pending.WaypointSnapshot
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -40,5 +43,6 @@ class SubmittedDraftResumePolicyTest {
         )
 
         assertFalse(SubmittedDraftResumePolicy.isReadOnly(draft))
+        assertEquals(PendingDraftTagKind.EXISTING_GUTTER, PendingDraftTagPolicy.kindFor(draft))
     }
 }

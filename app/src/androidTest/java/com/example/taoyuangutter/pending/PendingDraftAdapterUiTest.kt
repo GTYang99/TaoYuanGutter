@@ -62,7 +62,7 @@ class PendingDraftAdapterUiTest {
     }
 
     @Test
-    fun existingGutterDraftHidesSubmissionTag() {
+    fun existingGutterDraftUsesExistingGutterTag() {
         val adapter = PendingDraftAdapter(
             items = mutableListOf(
                 draft(
@@ -82,7 +82,11 @@ class PendingDraftAdapterUiTest {
 
         adapter.onBindViewHolder(holder, 0)
 
-        assertEquals(View.GONE, holder.binding.tvPendingDraftSubmissionTag.visibility)
+        val tag = holder.binding.tvPendingDraftSubmissionTag
+        assertEquals("既有側溝編輯中", tag.text.toString())
+        assertEquals(View.VISIBLE, tag.visibility)
+        assertEquals(Color.rgb(0x62, 0x36, 0xFF), tag.currentTextColor)
+        assertNotNull(tag.background as? GradientDrawable)
     }
 
     @Test

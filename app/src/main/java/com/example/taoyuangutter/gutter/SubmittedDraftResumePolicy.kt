@@ -1,6 +1,7 @@
 package com.example.taoyuangutter.gutter
 
 import com.example.taoyuangutter.pending.GutterSessionDraft
+import com.example.taoyuangutter.pending.PendingDraftTagPolicy
 
 /**
  * Policy shared by the pending list and the restore flow.
@@ -9,11 +10,6 @@ import com.example.taoyuangutter.pending.GutterSessionDraft
  */
 object SubmittedDraftResumePolicy {
     fun isReadOnly(draft: GutterSessionDraft): Boolean {
-        if (!draft.hasSubmittedStoreDitch) return false
-        return draft.waypoints
-            .firstOrNull { it.type == WaypointType.START.name }
-            ?.basicData
-            ?.get("SPI_NUM")
-            .isNullOrBlank()
+        return draft.hasSubmittedStoreDitch && !PendingDraftTagPolicy.hasValidSpiNum(draft)
     }
 }

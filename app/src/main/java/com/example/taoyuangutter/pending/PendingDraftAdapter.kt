@@ -43,9 +43,7 @@ class PendingDraftAdapter(
             } else if (draft.isOffline) {
                 tvPendingDraftTitle.text = holder.itemView.context.getString(R.string.msg_offline_draft_title)
             } else {
-                val startWp = draft.waypoints.firstOrNull { it.type == "START" }
-                val gutterId = startWp?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() }
-                tvPendingDraftTitle.text = gutterId ?: "側溝草稿"
+                tvPendingDraftTitle.text = PendingDraftTagPolicy.spiNumFor(draft) ?: "側溝草稿"
             }
 
             // 副標題1：建立時間（精確到分）
@@ -61,6 +59,17 @@ class PendingDraftAdapter(
             tvPendingDraftNodes.text = "已存節點數量：$nonEmptyCount 個"
 
             when (PendingDraftTagPolicy.kindFor(draft)) {
+                PendingDraftTagKind.EXISTING_GUTTER -> {
+                    tvPendingDraftSubmissionTag.visibility = View.VISIBLE
+                    tvPendingDraftSubmissionTag.text = holder.itemView.context
+                        .getString(R.string.pending_draft_tag_existing_gutter)
+                    tvPendingDraftSubmissionTag.setBackgroundResource(
+                        R.drawable.bg_pending_draft_unsubmitted_tag
+                    )
+                    tvPendingDraftSubmissionTag.setTextColor(
+                        ContextCompat.getColor(holder.itemView.context, R.color.colorPrimary)
+                    )
+                }
                 PendingDraftTagKind.SUBMITTED -> {
                     tvPendingDraftSubmissionTag.visibility = View.VISIBLE
                     tvPendingDraftSubmissionTag.text = holder.itemView.context
@@ -82,9 +91,6 @@ class PendingDraftAdapter(
                     tvPendingDraftSubmissionTag.setTextColor(
                         ContextCompat.getColor(holder.itemView.context, R.color.colorPrimary)
                     )
-                }
-                null -> {
-                    tvPendingDraftSubmissionTag.visibility = View.GONE
                 }
             }
 
