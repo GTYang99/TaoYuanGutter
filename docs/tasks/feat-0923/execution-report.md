@@ -53,3 +53,22 @@
 - APK path: `/Users/a10362/AndroidStudioProjects/TaoYuanGutter/app/build/outputs/apk/debug/app-debug.apk`
 - Application package: `com.example.taoyuangutter`
 - Independent Verification remains required for AC-007 end-to-end retry behavior and CI evidence; developer validation does not substitute for that gate.
+
+## Follow-up Debug Re-Implementation: Submitted Retry Isolation
+
+- Fix commit: `ee55f08`.
+- Added an immutable Room-sourced submitted retry snapshot and separate transport projections.
+- Submitted retry photo upload no longer propagates mutable waypoint updates into the form auto-save callback; successful upload metadata remains in the request projection.
+- Added focused unit coverage for snapshot deep-copy behavior and submitted callback suppression.
+
+### Minimum Validation
+
+| Check | Result | Evidence |
+|---|---|---|
+| JVM unit tests | PASS | `:app:testDebugUnitTest`; 126 tests, 0 failures |
+| Submitted read-only instrumentation | PASS | `SubmittedDraftReadOnlyUiTest` targeted run |
+| Existing shell regression retry | PASS | `MainShellActivityTest`; 12/12 after one first-run focus timing failure |
+| Full connected suite | LIMITED | First run had 1 unrelated `RootViewWithoutFocusException`; no further broad rerun under the 10-minute minimum-test scope |
+| CI | NOT VERIFIED | No CI result available |
+
+Independent Verification remains required for AC-007 end-to-end retry/no-write behavior and all uncovered acceptance criteria.

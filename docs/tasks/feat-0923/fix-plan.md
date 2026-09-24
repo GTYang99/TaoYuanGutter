@@ -44,3 +44,46 @@ The minimum authorized implementation and validation scope is:
 - Targeted AC-006 regression test: PASS.
 - Developer validation: PASS for JVM and connected Android suites.
 - Remaining: independent Verification evidence for AC-007 and CI result.
+
+## Follow-up Debug Fix Plan: Submitted Re-upload No-Write Contract
+
+### Task
+
+- Task: `feat-0923`
+- Related issue: `ISS-feat-0923-006`
+- Failed acceptance criterion: AC-007
+- Classification: implementation regression reproduced by source audit on `452915a`
+
+### Root Cause
+
+The submitted retry path rereads the Room row but restores it into mutable `AddGutterBottomSheet.waypoints`. Photo upload preparation then invokes the shared `onWaypointsChanged` callback, and `GutterSheetSessionBinder` routes that callback to draft auto-save. The retry path therefore does not preserve the required immutable Room snapshot/no-write boundary.
+
+### Minimum Authorized Scope
+
+- Add a dedicated immutable submitted-retry snapshot/projection path sourced from the Room row.
+- Keep request mapping and photo upload normalization transport-only; do not write the normalized result through the editable form callback.
+- Guard or bypass submitted retry callbacks so `onWaypointsChanged` and session auto-save are not invoked by submitted retry progress or failure.
+- Preserve success deletion and keep the draft row unchanged on upload failure, timeout, cancellation, or interruption.
+- Add focused tests covering payload completeness, no Room write on retry failure, and retry from the unchanged submitted draft.
+
+### Required Validation Before Re-verification
+
+- Run targeted JVM/instrumentation tests for the submitted retry and no-write contract.
+- Run the full relevant JVM and connected Android regression suites.
+- Commit the implementation and tests, then rerun independent Verification against that exact commit.
+- Obtain CI build/test evidence; local green tests do not close the CI gate.
+
+### Stop Conditions
+
+- Do not alter approved submission-marker or `SPI_NUM` behavior.
+- Do not use the current uncommitted working-tree changes as the verification revision.
+- Do not route back to Release until AC-007 passes and all remaining AC/CI evidence is resolved.
+
+## Follow-up Implementation Result
+
+- Fix commit: `ee55f08`.
+- Implemented the Room snapshot/transport projection boundary and suppressed submitted retry auto-save callbacks.
+- JVM unit tests: 126/126 PASS.
+- Targeted submitted read-only instrumentation: PASS.
+- `MainShellActivityTest` class retry: 12/12 PASS after one first-run focus timing failure in the full suite.
+- Independent Verification must rerun against `ee55f08`; AC-007 is not marked PASS by developer validation alone.

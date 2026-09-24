@@ -2,8 +2,8 @@ task:
   id: feat-0923
   type: feature
 
-phase: verification
-status: verification_in_progress
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -16,15 +16,15 @@ plan_review:
 
 implementation:
   status: completed
-  commit: 452915a
+  commit: ee55f08
 
 validation:
   status: completed
 
 git:
   branch: feat/草稿tag
-  commit: 452915a
-  status: committed_revision_ready_for_verification
+  commit: ee55f08
+  status: committed
 
 ci:
   build: not_verified
@@ -32,15 +32,24 @@ ci:
 
 debug:
   status: completed
-  root_cause: submitted_form_fragment_created_after_read_only_lock
+  root_cause: submitted_reupload_mutable_state_auto_save
 
 verification:
   result: pending
   category: null
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-004
+    - AC-005
+    - AC-006
 
 release:
   status: pending
 
-blocking: []
+blocking:
+  - CI build/test result is unavailable for the fixed implementation revision
+  - Targeted runtime evidence for the listed acceptance criteria is not present in the committed test suite
+  - Independent Verification must rerun against the new submitted-retry fix revision
 next_action: verification

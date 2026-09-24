@@ -130,3 +130,50 @@ Verification was recorded against the prior baseline revision and was not rerun 
 - Full connected suite: PASS, 52 tests, 0 failures, 0 errors, 0 skipped.
 - JVM unit tests: PASS, 124 tests.
 - Independent verification and CI remain separate gates; this evidence closes the implementation-debug loop but does not mark Release ready.
+
+## Debug Finding: Submitted Re-upload Uses Mutable Auto-Save State
+
+### Classification
+
+- Verification category: `implementation_regression`.
+- Related issue: `ISS-feat-0923-006`.
+- Failed acceptance criterion: AC-007.
+- This is a separate regression from the resolved pager-created-fragment lock issue above.
+
+### Reproduction Evidence
+
+- Fixed revision: `452915a` (`452915ad22d135b87ef1705bc11808dbeccaee28`).
+- `AddGutterBottomSheet.performSubmittedReupload()` rereads the Room row, restores it into the mutable `waypoints` list, and passes that list into the retry flow (`AddGutterBottomSheet.kt:1111-1138`).
+- `ensureWaypointPhotosUploadedBeforeSubmit()` mutates the retry list and invokes `onWaypointsChanged` on photo success, photo error, and after the final projection (`AddGutterBottomSheet.kt:2034-2186`).
+- `GutterSheetSessionBinder` unconditionally maps `onWaypointsChanged` to `onAutoSaveRequested` (`GutterSheetSessionBinder.kt:27-38`), which reaches the session draft auto-save path in the map workspace host.
+- The approved contract requires an immutable Room-authoritative submitted snapshot and no draft writes during submitted retry (`analysis.md:43-55`, `plan.md:46-48`).
+
+### Causal Chain
+
+1. Submitted retry rereads Room but restores the data into the same mutable form state used by editable drafts.
+2. Photo upload preparation mutates that state and uses the normal `onWaypointsChanged` callback for progress/error propagation.
+3. The shared session binder treats every such callback as an auto-save request, including submitted retry callbacks.
+4. A photo failure, timeout, cancellation, or partial retry can therefore write mutable retry state back to the submitted draft, violating Room snapshot authority and retry preservation.
+
+### Minimum Fix Scope
+
+- Introduce a submitted-retry snapshot/projection boundary that keeps the Room snapshot immutable and separate from editable `waypoints` state.
+- Build request and photo-upload projections from that snapshot without invoking the submitted form's mutable `onWaypointsChanged` or auto-save callback.
+- Preserve the existing success cleanup behavior and ensure failure, timeout, cancellation, and interruption do not delete or overwrite the submitted draft.
+- Add targeted tests for full Room-sourced payload completeness, no-write behavior, and retry preservation across failure/timeout/interruption before returning to Verification.
+- Do not change submission-marker semantics, existing `SPI_NUM` behavior, or unrelated working-tree changes.
+
+### Debug Exit Criteria
+
+- Root cause is mapped to `AC-007` and `ISS-feat-0923-006`.
+- The minimum fix scope above is implemented on a new committed revision.
+- Developer validation and independent Verification rerun against that new revision, including the targeted retry/no-write cases.
+
+## Fix Validation: Submitted Re-upload No-Write Boundary
+
+- Fix commit: `ee55f08` (`fix(feat-0923): isolate submitted re-upload retry state`).
+- `SubmittedRetrySnapshot` now deep-copies the Room draft into an immutable retry source and creates transport-only waypoint projections.
+- Submitted retry photo preparation no longer writes through the mutable form state or `onWaypointsChanged`; the request still receives the updated transport projection when a photo upload succeeds.
+- `GutterSheetSessionBinder` suppresses submitted-draft mutable waypoint callbacks, preventing the auto-save path during retry.
+- Minimum developer validation: JVM unit tests 126/126 PASS; `SubmittedDraftReadOnlyUiTest` PASS; `MainShellActivityTest` retry PASS 12/12.
+- The first full connected-suite run had one unrelated `RootViewWithoutFocusException` in `MainShellActivityTest`; the class-only retry passed. Full CI and independent AC-007 runtime retry evidence remain pending.

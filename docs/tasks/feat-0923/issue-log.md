@@ -9,7 +9,7 @@
 - Title: Android runtime verification unavailable
 - Status: resolved
 - Impact: Initial device-dependent verification was blocked; the blocked check has now been rerun.
-- Evidence: Restricted execution reproduced `could not install *smartsocket* listener: Operation not permitted`; host-permitted execution discovered `emulator-5554` (`Medium_Phone(AVD)`, Android 14), and `:app:connectedDebugAndroidTest` passed 51 tests with 0 failures, 0 errors, and 0 skipped.
+- Evidence: Restricted execution reproduced `could not install *smartsocket* listener: Operation not permitted`; host-permitted execution discovered `emulator-5554` (`Medium_Phone(AVD)`, Android 14), and the fixed revision's `:app:connectedDebugAndroidTest` passed 52 tests with 0 failures, 0 errors, and 0 skipped.
 - Root cause: restricted host socket permission, not an application failure.
 - Next action: verification — assess the connected-test evidence and remaining acceptance-criteria coverage.
 
@@ -34,7 +34,7 @@
 - Title: CI result unavailable
 - Status: open
 - Impact: CI gate cannot be marked PASS and Release cannot advance.
-- Evidence: no CI workflow result or CI artifact is present for `692991ca361b7fec07e117fde01a3659e337a4b5`.
+- Evidence: no CI workflow result or CI artifact is present for fixed implementation revision `452915ad22d135b87ef1705bc11808dbeccaee28`.
 - Next action: infrastructure — provide or run CI for the fixed revision.
 
 ## ISS-feat-0923-004
@@ -49,7 +49,8 @@
 - Evidence: `verification.md` tests `692991c`, while the submitted read-only/re-upload implementation is in `9524e03`; the recorded 51 connected tests do not cover the new flow.
 - Root cause: verification was not rerun against the new implementation revision, so the current feedback is an evidence gap rather than a reproduced product failure.
 - New evidence: fixed commit `9524e03` was tested in an isolated checkout; JVM tests passed and the Android 14 connected suite passed 51/51 with 0 failures, 0 errors, and 0 skipped. The report still has no targeted AC-006/AC-007 cases.
-- Next action: infrastructure/verification — run targeted checks against fixed commit `9524e03`; only route back to implementation debug if a concrete behavior failure is reproduced. Existing baseline pass does not close this issue.
+- Independent verification update: fixed commit `452915a` was tested in a clean isolated checkout; 124 JVM tests and 52 Android instrumentation tests passed with 0 failures, 0 errors, and 0 skipped. The committed suite still has no targeted AC-001/AC-002/AC-004/AC-005/AC-006-complete/AC-007 flow evidence, and no CI result is available.
+- Next action: infrastructure/verification — provide targeted runtime evidence and CI for fixed commit `452915a`; only route back to implementation debug if a concrete behavior failure is reproduced. Existing baseline pass does not close this issue.
 
 ## ISS-feat-0923-005
 
@@ -64,3 +65,18 @@
 - Root cause: `applySubmittedDraftReadOnlyUi()` runs before `ViewPager2` creates the basic-info fragment, so `getBasicInfoFragment()` returns null; the later-created fragment defaults to editable.
 - Route: implementation_debug — propagate the read-only state into fragment creation, add targeted regression coverage, then rerun developer validation.
 - Resolution: fixed in `452915a`; targeted test and the full 52-test connected suite pass. Independent Verification remains pending.
+
+## ISS-feat-0923-006
+
+- Task: `feat-0923`
+- Phase: debug
+- Category: `implementation_regression`
+- Priority: P1
+- Title: Submitted re-upload can write mutable form state back through the auto-save callback
+- Status: resolved
+- Impact: AC-007 is not met; a failed or interrupted submitted re-upload may mutate the persisted draft source instead of preserving the Room-authoritative snapshot for retry.
+- Evidence: On fixed revision `452915a`, `AddGutterBottomSheet.performSubmittedReupload()` restores the Room row into mutable `waypoints` and passes it into the retry flow (`AddGutterBottomSheet.kt:1111-1138`). `ensureWaypointPhotosUploadedBeforeSubmit()` invokes `onWaypointsChanged` during photo success/error and after projection (`AddGutterBottomSheet.kt:2151-2185`). `GutterSheetSessionBinder` unconditionally routes that callback to `onAutoSaveRequested` (`GutterSheetSessionBinder.kt:27-38`). This contradicts the approved no-write and immutable-snapshot contract in `analysis.md:43-55` and `plan.md:46-48`.
+- Root cause: submitted retry does not use a separate immutable Room snapshot/projection boundary and does not suppress the existing mutable `onWaypointsChanged` auto-save path.
+- Resolution: fixed in `ee55f08` by adding `SubmittedRetrySnapshot`, using transport-only retry projections, suppressing submitted mutable waypoint callbacks, and preserving retry request metadata without writing the submitted draft.
+- Developer evidence: JVM 126/126 PASS; targeted submitted read-only instrumentation PASS; `MainShellActivityTest` class retry 12/12 PASS. Runtime AC-007 no-write/failure/timeout/interruption cases remain for independent Verification.
+- Next action: verification — rerun AC-007 against committed revision `ee55f08` and record CI evidence separately.
