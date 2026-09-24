@@ -43,3 +43,29 @@ No persistence-plus-network operation can make a local database write and a remo
 The requirement was subsequently clarified: a general draft with `hasSubmittedStoreDitch=true` may be resumed for inspection, but its saved content must be read-only. The user may only return, delete it from the pending-list long-press flow, or submit the entire original draft again through the existing upload flow. `SPI_NUM` inspect/edit items remain outside this policy, and legacy drafts default to unsubmitted/editable.
 
 This adds a second boundary beyond the submission marker: the submitted read-only state must propagate from the pending-draft resume path through `GutterSessionFlowCoordinator`／`GutterFormNavigator` into both `AddGutterBottomSheet` and `GutterFormActivity`. The lock must cover all editable controls and the existing overlay visual, while leaving only the outer return and full re-upload actions available. The re-plan adds explicit propagation, UI-lock, overlay, retry, success-cleanup, and interruption evidence before implementation resumes.
+
+## Debug Finding: Verification Revision and Evidence Gap
+
+### Classification
+
+- Verification finding: evidence/revision mismatch, not an implementation regression.
+- Related issue: `ISS-feat-0923-004`.
+- Affected acceptance criteria: AC-006 and AC-007 are `NOT VERIFIED`; no implementation `FAIL` is established.
+
+### Evidence
+
+- `docs/tasks/feat-0923/verification.md` records `692991ca361b7fec07e117fde01a3659e337a4b5` as the revision under test.
+- `692991c` is the baseline before the submitted-draft read-only and re-upload implementation in `9524e03`.
+- The connected test evidence listed in that report covers the submitted/unsubmitted tag UI and Room migration, but contains no execution evidence for the new read-only overlay, Activity result return, Room reread, or re-upload retry behavior.
+- The current implementation and task state identify `9524e03` as the implementation revision, so the existing verification result cannot be used to pass or fail AC-006/AC-007.
+
+### Root Cause
+
+Verification was recorded against the prior baseline revision and was not rerun after the new implementation commit. Because the targeted instrumentation cases described in the approved plan were not present in the verification evidence, the feedback is an evidence gap rather than proof of a product defect.
+
+### Minimum Resolution
+
+1. Keep production code unchanged until the implementation revision is independently tested.
+2. Run verification against fixed commit `9524e03` (or a new commit only after any test-only changes are committed).
+3. Add or run targeted evidence for AC-006 and AC-007: read-only controls/overlay, Activity recreation and return, Room-authoritative snapshot re-read, success cleanup, and failure/timeout/interruption retry preservation.
+4. If those tests show a behavior contradiction, create a new implementation-regression issue with the concrete trace and re-enter debug; otherwise update verification with PASS/NOT VERIFIED per criterion.

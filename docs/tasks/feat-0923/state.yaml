@@ -2,8 +2,8 @@ task:
   id: feat-0923
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: not_required
@@ -30,6 +30,10 @@ ci:
   build: not_verified
   test: not_verified
 
+debug:
+  status: completed
+  root_cause: verification_revision_and_evidence_gap
+
 verification:
   result: pending
   category: null
@@ -39,4 +43,4 @@ release:
   status: pending
 
 blocking: []
-next_action: verification
+next_action: infrastructure
