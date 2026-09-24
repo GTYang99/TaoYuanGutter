@@ -2,8 +2,8 @@ task:
   id: feat-0923
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -24,7 +24,7 @@ validation:
 git:
   branch: feat/草稿tag
   commit: 452915a
-  status: committed
+  status: committed_revision_ready_for_verification
 
 ci:
   build: not_verified
