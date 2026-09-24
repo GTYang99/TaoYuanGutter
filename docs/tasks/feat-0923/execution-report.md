@@ -80,3 +80,24 @@ Independent Verification remains required for AC-007 end-to-end retry/no-write b
 - Added a measured-layout regression test covering title row → time subtitle → node-count subtitle ordering.
 - Targeted Android test: `PendingDraftAdapterUiTest`, 3/3 PASS on Android 14 `Medium_Phone(AVD)`.
 - Independent Verification should target `e595311`, since it is now the latest implementation revision.
+
+## New Feature: Existing-Gutter Draft Tag Policy
+
+- Implementation commit: `f8f40fe`.
+- Added `EXISTING_GUTTER` as the unique higher-precedence tag for drafts whose START waypoint has `SPI_NUM.trim().isNotEmpty()`.
+- Reused `PendingDraftTagPolicy.hasValidSpiNum` for submitted read-only routing, list title, and delete confirmation identity.
+- Existing-gutter drafts remain editable and use the existing resubmit flow; general submitted drafts retain read-only behavior.
+- Added JVM boundary and cross-policy coverage for valid, empty, whitespace-only, missing-START, and non-START-only `SPI_NUM` cases.
+- Added Android assertions for the new tag text/style and single-tag rendering.
+
+### Developer Validation
+
+| Check | Result | Evidence |
+|---|---|---|
+| JVM unit tests | PASS | `:app:testDebugUnitTest`; 130 tests, 0 failures, 0 errors |
+| Pending draft Android UI tests | PASS | `PendingDraftAdapterUiTest`; 3/3 on Android 14 `Medium_Phone(AVD)` |
+| Android build/test compilation | PASS | Targeted `:app:connectedDebugAndroidTest` completed successfully and packaged the debug app/tests |
+| Source diff whitespace check | PASS | `git diff --check -- app/src/main app/src/test app/src/androidTest` |
+| CI | NOT VERIFIED | No CI result available |
+
+Independent Verification remains required for AC-003, AC-004, AC-008 runtime flows and the existing task acceptance criteria.

@@ -44,6 +44,12 @@ The requirement was subsequently clarified: a general draft with `hasSubmittedSt
 
 This adds a second boundary beyond the submission marker: the submitted read-only state must propagate from the pending-draft resume path through `GutterSessionFlowCoordinator`／`GutterFormNavigator` into both `AddGutterBottomSheet` and `GutterFormActivity`. The lock must cover all editable controls and the existing overlay visual, while leaving only the outer return and full re-upload actions available. The re-plan adds explicit propagation, UI-lock, overlay, retry, success-cleanup, and interruption evidence before implementation resumes.
 
+## Scope Update for Existing-gutter Draft Tag
+
+The requirement was subsequently clarified again: a draft with a valid `SPI_NUM` must display the single tag「既有側溝編輯中」, using the existing unsubmitted tag visual (transparent background, primary border and primary text). This tag takes precedence over `hasSubmittedStoreDitch`; it must never be combined with「曾提交過上傳」or「未提交上傳」.
+
+This is a list-state and test-scope change only for existing-gutter drafts. Their existing inspect/edit／storeDitch-with-`SPI_NUM` behavior remains editable and retryable. A draft that has not entered the API, fails, times out or is interrupted keeps the tag and editable content; successful update keeps the existing draft cleanup flow, and long-press deletion keeps the existing confirmation/local cleanup flow. General submitted drafts remain subject to the separate read-only/full re-upload policy.
+
 ## Debug Finding: Verification Revision and Evidence Gap
 
 ### Classification
@@ -161,7 +167,7 @@ Verification was recorded against the prior baseline revision and was not rerun 
 - Build request and photo-upload projections from that snapshot without invoking the submitted form's mutable `onWaypointsChanged` or auto-save callback.
 - Preserve the existing success cleanup behavior and ensure failure, timeout, cancellation, and interruption do not delete or overwrite the submitted draft.
 - Add targeted tests for full Room-sourced payload completeness, no-write behavior, and retry preservation across failure/timeout/interruption before returning to Verification.
-- Do not change submission-marker semantics, existing `SPI_NUM` behavior, or unrelated working-tree changes.
+- Do not change submission-marker semantics, existing `SPI_NUM` edit／retry behavior, or unrelated working-tree changes; only the pending-list tag classification for valid `SPI_NUM` drafts changes.
 
 ### Debug Exit Criteria
 
@@ -192,3 +198,54 @@ Verification was recorded against the prior baseline revision and was not rerun 
 - `tvPendingDraftTime` now anchors below `layoutPendingDraftTitle`.
 - Added a layout regression assertion for the measured vertical ordering of title row, time subtitle, and node-count subtitle.
 - Targeted `PendingDraftAdapterUiTest`: 3/3 PASS on Android 14 `Medium_Phone(AVD)`.
+
+## Implementation Validation: Existing-Gutter Tag Policy
+
+- Implementation commit: `f8f40fe`.
+- The approved policy correction is implemented: valid START `SPI_NUM` takes precedence over `hasSubmittedStoreDitch` and produces exactly one `EXISTING_GUTTER` tag.
+- `SubmittedDraftResumePolicy`, pending-list title, and delete confirmation all consume the shared normalized predicate.
+- JVM suite: 130/130 PASS; targeted `PendingDraftAdapterUiTest`: 3/3 PASS on Android 14 `Medium_Phone(AVD)`.
+- Runtime existing-gutter restore/edit/resubmit/failure/interruption evidence and CI remain pending independent Verification.
+
+## Planning Root Cause: Existing-gutter Identity Policy Is Split
+
+### Classification
+
+- Issue type: `planning_gap`
+- Related review: Plan Critic Review Iteration 7, Findings 1–2
+- Affected acceptance criteria: AC-003、AC-004、AC-008
+- This is a planning defect, not an implementation regression; production code must remain unchanged until the revised plan is reviewed and approved.
+
+### Problem
+
+The new requirement says a valid `SPI_NUM` draft must display the single「既有側溝編輯中」tag and remain editable. The plan described this behavior at a high level but did not identify the two existing policy owners that must agree on the same identity rule: `PendingDraftTagPolicy` decides the list tag, while `SubmittedDraftResumePolicy` decides whether the restored form enters submitted read-only mode. The current tag policy has only `SUBMITTED`／`UNSUBMITTED` and returns `null` for a valid START `SPI_NUM`; the resume policy parses `SPI_NUM` independently. Therefore changing only the adapter cannot produce the new tag, and changing the two policies independently can make the list and restored form disagree.
+
+### Evidence
+
+- `app/src/main/java/com/example/taoyuangutter/pending/PendingDraftTagPolicy.kt` defines only `PendingDraftTagKind.SUBMITTED` and `UNSUBMITTED`.
+- The same policy reads `SPI_NUM` from the START waypoint, trims it, and returns `null` when the value is non-empty; no existing-gutter tag kind exists.
+- `SubmittedDraftResumePolicy.kt` separately determines whether a draft is submitted/read-only instead of consuming a shared identity predicate.
+- `PendingDraftsBottomSheet.kt` and `PendingDraftAdapter.kt` use untrimmed `isNotEmpty()` checks for title／delete identity, so whitespace can produce a different result from the tag policy.
+- The current plan affected `PendingDraftAdapter.kt` but omitted `PendingDraftTagPolicy.kt` and `SubmittedDraftResumePolicy.kt`; its tests did not fix whitespace, missing START, or non-START `SPI_NUM` behavior.
+
+### Causal Chain
+
+1. The product change was expressed as an adapter/tag requirement instead of a shared draft-identity policy change.
+2. The existing tag policy intentionally returned no tag for `SPI_NUM`, while the restore policy independently parsed the same field to exclude read-only mode.
+3. Because no common `hasValidSpiNum` predicate or `EXISTING_GUTTER` kind was specified, implementation could show the wrong tag, show no tag, or show an existing-gutter tag while still opening the form in read-only mode.
+4. Inconsistent normalization (`trim().isNotEmpty()` versus raw `isNotEmpty()`) could further make the list tag, title, delete confirmation and restore behavior disagree for whitespace or malformed waypoint layouts.
+
+### Minimum Planning Correction
+
+- Add `PendingDraftTagPolicy.kt` and `SubmittedDraftResumePolicy.kt` to the affected files and define one shared, pure `hasValidSpiNum`／existing-gutter identity predicate.
+- Define the predicate as the START waypoint's `SPI_NUM`, normalized with `trim()`, and non-empty after normalization; a missing START waypoint or a `SPI_NUM` on a non-START waypoint is not valid. No additional format validation is introduced unless the product requirement later specifies one.
+- Add `PendingDraftTagKind.EXISTING_GUTTER` and require `kindFor` precedence: valid `SPI_NUM` → existing-gutter kind; otherwise `hasSubmittedStoreDitch` → submitted/unsubmitted kind. The adapter renders exactly one tag.
+- Require `SubmittedDraftResumePolicy` to consume the same predicate: valid `SPI_NUM` returns `submittedDraftReadOnly=false`; only a draft without valid `SPI_NUM` and with `hasSubmittedStoreDitch=true` returns true.
+- Reuse the same predicate for pending-draft title／delete identity where the existing-gutter identity is shown or confirmed, eliminating whitespace divergence.
+- Add JVM policy tests for valid START `SPI_NUM`, empty string, whitespace-only value, missing START, non-START-only value, and `hasSubmittedStoreDitch=true` with valid `SPI_NUM`; add instrumentation assertions for the rendered single tag and editable recovery flow.
+
+### Exit Criteria
+
+- `plan.md` lists both policy files, the shared predicate, precedence, recovery behavior and boundary tests.
+- `analysis.md` records the policy ownership and normalization contract.
+- The next Plan Critic review confirms AC-003／AC-004／AC-008 are implementable without modifying production code during planning.

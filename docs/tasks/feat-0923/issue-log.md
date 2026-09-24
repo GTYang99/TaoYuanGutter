@@ -94,3 +94,17 @@
 - Root cause: the parent `ConstraintLayout` subtitle chain used a nested child instead of the direct title-row container as its vertical anchor.
 - Resolution: fixed in `e595311`; the subtitle now anchors below `layoutPendingDraftTitle`, and the measured-layout regression test passes 3/3.
 - Next action: verification — rerun the pending-draft UI checks against `e595311`.
+
+## ISS-feat-0923-008
+
+- Task: `feat-0923`
+- Phase: plan_review
+- Category: `planning_gap`
+- Priority: P1
+- Title: Existing-gutter tag and restore identity policies are split
+- Status: resolved
+- Impact: AC-003、AC-004、AC-008 were not safely implementable from the prior plan; the list could omit the required tag or the restored form could disagree with the list about read-only/editable mode.
+- Evidence: Plan Critic Review Iteration 7 Finding 1–2; Iteration 8 planning revision in `analysis.md`／`plan.md`.
+- Root cause: the scope change was described at the adapter level without naming the policy owners or defining one normalized valid-`SPI_NUM` predicate shared by tag selection, restore mode, title and delete identity.
+- Resolution: `PendingDraftTagPolicy` is now the planned single owner of `hasValidSpiNum` and `EXISTING_GUTTER` precedence; restore, title and delete paths reuse it; JVM boundary and cross-policy tests are mapped to AC-003／AC-004／AC-008. The revised plan passed the fresh Iteration 8 review.
+- Next action: verification — implementation is complete in `f8f40fe`; keep runtime evidence separate from the planning resolution.

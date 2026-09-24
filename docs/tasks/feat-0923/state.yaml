@@ -16,14 +16,14 @@ plan_review:
 
 implementation:
   status: completed
-  commit: e595311
+  commit: f8f40fe
 
 validation:
   status: completed
 
 git:
   branch: feat/草稿tag
-  commit: e595311
+  commit: f8f40fe
   status: committed
 
 ci:
@@ -41,15 +41,16 @@ verification:
   not_verified_acceptance_criteria:
     - AC-001
     - AC-002
+    - AC-003
     - AC-004
     - AC-005
     - AC-006
+    - AC-008
 
 release:
   status: pending
 
 blocking:
   - CI build/test result is unavailable for the fixed implementation revision
-  - Targeted runtime evidence for the listed acceptance criteria is not present in the committed test suite
-  - Independent Verification must rerun against the latest layout and submitted-retry fix revision
+  - Independent Verification must rerun against the existing-gutter tag implementation revision
 next_action: verification

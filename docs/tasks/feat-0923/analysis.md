@@ -3,19 +3,27 @@
 ## Current Behavior
 
 - baseline 已在 `GutterSessionDraft`／`DraftEntity` 保存 `hasSubmittedStoreDitch`，並完成 Room 3→4 migration 與 auto-save preservation。
-- baseline 的 `PendingDraftAdapter` 已顯示 submitted／unsubmitted tag，並以 `SPI_NUM` 隱藏既有側溝 tag。
+- baseline 的 `PendingDraftAdapter` 已顯示 submitted／unsubmitted tag，並以 `SPI_NUM` 隱藏既有側溝 tag；本次產品變更要將此分支改為顯示唯一「既有側溝編輯中」tag。
 - baseline 已將新增與帶 `SPI_NUM` 編輯流程接到 `GutterRepository.storeDitch` method-entry boundary；本次 re-plan 的缺口不再是 marker 時機，而是 submitted draft 恢復後仍可進入一般編輯表單。
 - 待上傳列表點擊後由 `GutterSessionFlowCoordinator` 恢復 `AddGutterBottomSheet`；目前恢復流程沒有把 `hasSubmittedStoreDitch` 轉成表單唯讀狀態。
 - `GutterFormActivity` 目前可透過 `setEditable(false)` 顯示檢視狀態，但該狀態會隱藏可送出的操作；沒有「內容唯讀但保留重新上傳」的模式。`AddGutterBottomSheet` 也沒有針對已提交恢復草稿鎖定新增節點、節點操作、類型與提交按鈕文案。
 
+## Existing-gutter Identity Policy Contract
+
+- `PendingDraftTagPolicy.kt` is the single owner of the pure existing-gutter identity predicate. `hasValidSpiNum(draft)` reads only the first waypoint whose type is exactly `START`, reads its `basicData["SPI_NUM"]`, applies `trim()`, and returns true only when the normalized value is non-empty. No format validation is added. A missing START waypoint, a blank or whitespace-only value, and a `SPI_NUM` present only on a non-START waypoint are all invalid.
+- `PendingDraftTagKind` gains `EXISTING_GUTTER`. `kindFor(draft)` has fixed precedence: `hasValidSpiNum(draft)` → `EXISTING_GUTTER`; otherwise `hasSubmittedStoreDitch` → `SUBMITTED` or `UNSUBMITTED`. The adapter renders exactly one tag.
+- `SubmittedDraftResumePolicy` must call the same `PendingDraftTagPolicy.hasValidSpiNum` helper rather than parsing `SPI_NUM` independently. The same draft must therefore produce `EXISTING_GUTTER` and `submittedDraftReadOnly=false`, or produce a general tag and apply the existing submitted policy. `PendingDraftAdapter` and `PendingDraftsBottomSheet` title／delete identity checks reuse the helper so whitespace normalization cannot diverge.
+- This shared policy is implementation scope, not a product OQ: it preserves valid existing-gutter edit／retry behavior while preventing a valid `SPI_NUM` draft from entering general submitted read-only mode.
+
 ## Expected Behavior
 
 - 草稿資料在兩個 `storeDitch` 呼叫邊界前先持久化 `hasSubmittedStoreDitch=true`，使失敗、逾時、無回應與重啟後仍能辨識「曾提交過上傳」。
-- 未進入 API 呼叫的草稿保留 `false`，列表顯示「未提交上傳」；可辨識為既有檢視／編輯側溝的草稿則隱藏 tag。
+- 未進入 API 呼叫且無 `SPI_NUM` 的一般草稿保留 `false`，列表顯示「未提交上傳」；有效 `SPI_NUM` 的草稿不看 submitted flag，優先只顯示「既有側溝編輯中」。
 - tag 視覺沿用 `item_waypoint.xml` 的 `tvVirtualBadge` 尺寸／排版語意，新增未填滿的邊框樣式。
-- 一般已提交草稿點擊恢復後，所有表單內容與編輯入口均鎖定，只保留返回與「重新上傳」；未提交草稿維持原本可編輯流程。
+- 一般已提交且無 `SPI_NUM` 的草稿點擊恢復後，所有表單內容與編輯入口均鎖定，只保留返回與「重新上傳」；未提交一般草稿與有效 `SPI_NUM` 既有側溝草稿維持原本可編輯／重新送出流程。
 - 唯讀狀態使用既有 disabled／loading overlay 視覺，遮住可編輯表單區域並攔截其觸控，不遮住返回與重新上傳按鈕。
 - 重新上傳使用草稿中保存的完整內容與既有 `storeDitch` payload；失敗／逾時／中斷保留草稿與 submitted marker，成功沿用刪除及本機清理。
+- 有效 `SPI_NUM` 的既有側溝草稿顯示透明底／主色邊框／主色文字的「既有側溝編輯中」tag；未進入 API、失敗／逾時／中斷均保留內容與 tag，仍可修改後重新送出；成功沿用既有草稿清除流程。
 
 ## Root Cause
 
@@ -28,7 +36,7 @@
 - 將 `GutterRepository.storeDitch(...)` method entry 定義為新增／編輯共用的唯一提交邊界，在 Retrofit 呼叫前同步執行 `onRequestEntered` marker callback；callback 完成後才允許發出 request。
 - 有固定 draft id 的新增／恢復草稿先以目前 session snapshot ensure Room row，再標記；若 draft id、snapshot 或本機寫入缺失，回傳 local error 並停止遠端 request。直接檢視編輯若沒有 pending draft id，callback 明確 no-op，維持既有 API 流程且不建立可被列表標記的草稿。
 - 以 repository ordering test、手動建立 v3 schema 的 Android migration test、以及 `PendingDraftAdapter` instrumentation assertions 補足證據缺口。
-- 將 `hasSubmittedStoreDitch` 沿恢復鏈路傳遞到 `AddGutterBottomSheet` 與 `GutterFormActivity`，建立獨立的 submitted-draft read-only mode，不與既有 inspect `isViewMode` 混用。
+- 將 `hasSubmittedStoreDitch` 沿恢復鏈路傳遞到 `AddGutterBottomSheet` 與 `GutterFormActivity`，建立獨立的 submitted-draft read-only mode，不與既有 inspect `isViewMode` 混用；恢復判定先排除有效 `SPI_NUM`，避免既有側溝進入唯讀。
 - 在 `AddGutterBottomSheet` 與 `GutterFormActivity` 分別鎖定各自擁有的表單控制；共用 `GutterBasicInfoFragment`／`GutterPhotosFragment` 的既有 `setEditable(false)` 能力，另保留重新上傳 action。
 - 以現有 overlay 顏色／阻擋觸控規範實作局部遮罩，並以恢復、返回、長按刪除、重新上傳成功／失敗測試確認不覆寫草稿內容。
 
@@ -56,15 +64,19 @@
 
 ## Affected Modules
 
-- `pending`：草稿 data class、Room entity/repository、coordinator、database migration、列表 adapter。
+- `pending`：草稿 data class、Room entity/repository、coordinator、database migration、列表 adapter；adapter 以有效 `SPI_NUM` 優先顯示唯一既有側溝編輯 tag。
+- `pending/PendingDraftTagPolicy.kt`：新增 `EXISTING_GUTTER` kind、`hasValidSpiNum` 共用 predicate 與唯一 tag precedence。
+- `gutter/SubmittedDraftResumePolicy.kt`：改用 `PendingDraftTagPolicy.hasValidSpiNum`，確保 valid `SPI_NUM` 與 tag policy 同步回傳非唯讀。
+- `pending/PendingDraftsBottomSheet.kt`、`pending/PendingDraftAdapter.kt`：重用共用 predicate 於標題／刪除身份與 tag rendering。
 - `api/GutterRepository.kt`：定義共用 `storeDitch` method-entry boundary 並在 Retrofit 呼叫前通知 marker。
 - `gutter`：新增／編輯把目前 draft marker callback 傳入共用 repository boundary；既有 Host loading callbacks 維持原責任。
 - `gutter`：`GutterSessionFlowCoordinator`／`GutterFormNavigator` 傳遞 submitted read-only flag；`AddGutterBottomSheet`、`GutterFormActivity`、`GutterBasicInfoFragment`、`GutterPhotosFragment` 實作唯讀狀態、遮罩與重新上傳入口。
 - `MainActivity`、`MapWorkspaceFragment`：兩個 `LocationPickerHost` 實作傳遞 flag 並在 dedicated read-only return 僅恢復 sheet，不合併 Activity result。
 - `MainActivity`、`MapWorkspaceFragment`：接收提交邊界通知並更新目前草稿。
-- `res/layout`、`res/drawable`、`res/values`：列表 tag view、未提交 tag drawable、唯讀遮罩／重新上傳文案資源。
+- `res/layout`、`res/drawable`、`res/values`：列表 tag view、未提交／既有側溝編輯共用 drawable、唯讀遮罩／重新上傳文案資源。
 - `app/src/test`：序列化、submission ordering、狀態判定與列表 tag 規則測試。
 - `app/src/test`：不依賴 Android runtime 的 submitted policy／snapshot projection／mapper 與 photo candidate pure tests。
+- `app/src/test`：新增 `PendingDraftTagPolicyTest` 邊界 fixture 與 `SubmittedDraftResumePolicyTest` cross-policy assertions。
 - `app/src/androidTest`：Room migration fixture、pending adapter/layout assertions、兩個 Host 的 Intent／Activity recreation／result handling、submitted UI 與草稿列表流程回歸；所有 Android-dependent assertions 均不放在 `app/src/test`。
 
 ## Dependencies
@@ -83,7 +95,7 @@
 - 若提交狀態只在 API 回傳失敗後才寫入，無法滿足「呼叫後逾時／閃退」的核心需求；必須在兩個實際 API 呼叫前落盤。
 - Room migration、Gson Bundle 傳遞及 repository upsert 任一邊界漏欄位，都可能讓狀態重啟後遺失或舊草稿無法讀取。
 - Room write 與 HTTP request 不可能跨本機／遠端形成物理 atomic transaction；本任務以進入 `GutterRepository.storeDitch` method 作為可觀測 submission boundary。
-- 將既有側溝草稿誤判為一般草稿會顯示不應出現的 tag；需在 adapter 端明確以 `SPI_NUM`／既有編輯身份隱藏。
+- 將既有側溝草稿誤判為一般草稿會顯示錯誤 tag；需在 adapter 端明確以有效 `SPI_NUM` 優先顯示唯一「既有側溝編輯中」。
 - tag 若直接塞入現有 ConstraintLayout 而未調整標題與箭頭約束，長文案可能擠壓或截斷既有內容。
 - submitted read-only 若誤用既有 inspect `isViewMode`，可能隱藏重新上傳入口；需以獨立旗標鎖定內容而不移除整份上傳 action。
 - 遮罩若覆蓋整個表單容器，會誤攔截返回／重新上傳；需把遮罩邊界限定在可編輯內容區。
@@ -92,11 +104,15 @@
 - 若把完整 submitted snapshot 放進 Fragment arguments、Intent 或 saved state，可能超過 Android transaction／Binder 限制；只傳 `draftId`／Boolean，重建後重新讀 Room。
 - 若把 Host／Intent／recreation 測試放進沒有 Android runtime 的 JVM source set，測試會無法執行或產生虛假的驗證證據；Android-dependent cases 必須在 instrumentation。
 - 若把 photo URI／captured-at／upload-state 當成 `StoreDitchRequest` 欄位驗證，會與既有 API 契約衝突；需分成 storeDitch projection 與 node-image photo projection。
+- 若有效 `SPI_NUM` 草稿仍沿用一般 submitted marker 判斷，可能誤套用唯讀模式或顯示兩個 tag；需將 `SPI_NUM` 作為 adapter 與恢復模式的第一優先判定。
+- 若 `PendingDraftTagPolicy` 與 `SubmittedDraftResumePolicy` 各自維護 `SPI_NUM` 判定，列表 tag 與恢復模式可能分歧；必須由 tag policy 提供同一個純 predicate，並以 cross-policy assertion 固定結果一致。
+- 若 title／delete 使用未 trim 的 raw value，whitespace `SPI_NUM` 可能被視為既有側溝身份；需讓這些入口重用同一個 normalized predicate。
 
 ## Unknowns
 
-- 舊版草稿沒有 API 呼叫歷史，無法從本機資料可靠推導提交狀態；本計畫先以 migration default false 處理，並以既有 `SPI_NUM` 識別規則優先隱藏 tag。
-- `SPI_NUM` 既有側溝維持既有 inspect／edit 行為，不套用一般已提交草稿的 read-only policy；一般草稿的 submitted flag 才觸發唯讀模式。
+- 舊版草稿沒有 API 呼叫歷史，無法從本機資料可靠推導提交狀態；本計畫先以 migration default false 處理，並以有效 `SPI_NUM` 識別規則優先顯示「既有側溝編輯中」。
+- `SPI_NUM` 既有側溝顯示唯一「既有側溝編輯中」tag，維持既有 inspect／edit／重新送出行為，不套用一般已提交草稿的 read-only policy；只有無 `SPI_NUM` 的一般草稿 submitted flag 才觸發唯讀模式。
+- 有效性已固定為 START waypoint 的 `SPI_NUM.trim().isNotEmpty()`；缺少 START、純 whitespace、空字串與非 START-only `SPI_NUM` 均視為無效，不另加格式驗證。
 - 目前沒有現成的 submitted-draft read-only UI instrumentation；需新增 Activity／Fragment harness，Host／Intent／recreation 測試放在 `app/src/androidTest`。若 instrumentation harness 或裝置不足，將相關案例標為 `NOT VERIFIED`，不可由 compile 或 tag unit test 代替。
 - 目前 `GutterRepository.storeDitch` 的 boundary callback 是同步 `() -> Unit`；本次不改為 suspend，marker 仍在 Retrofit request 前同步完成。
 - `StoreDitchRequest` 的 `capturedAt` 欄位由既有 mapper 固定為 `null`，而 URI／upload-state/error 僅屬於 persisted/photo-upload projection；本計畫不改 API model。

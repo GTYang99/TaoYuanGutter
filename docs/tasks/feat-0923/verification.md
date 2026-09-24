@@ -100,3 +100,10 @@ FAIL
 - Independent Verification is pending and must target `ee55f08`, including the submitted retry payload/no-write/failure/timeout/interruption cases.
 - A subsequent layout fix was committed as `e595311`; all new Verification must target `e595311`.
 - CI remains `NOT VERIFIED`; Release is still blocked.
+
+## New Feature Implementation Handoff
+
+- The approved Iteration 8 plan for the existing-gutter tag policy is implemented in committed revision `f8f40fe`.
+- Developer validation: 130/130 JVM tests PASS; `PendingDraftAdapterUiTest` 3/3 PASS on Android 14 `Medium_Phone(AVD)`.
+- Independent Verification must target `f8f40fe` and verify AC-003, AC-004, and AC-008, including restore/edit/resubmit/failure/interruption behavior for valid `SPI_NUM` drafts.
+- The earlier verification records for `452915a`/`ee55f08`/`e595311` remain historical and must not be reused as the result for `f8f40fe`.
