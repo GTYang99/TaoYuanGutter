@@ -11,7 +11,8 @@ class GutterFormPagerAdapter(
     private val viewMode: Boolean = false,
     private val basicData: HashMap<String, String> = hashMapOf(),
     private val isOfflineMode: Boolean = false,
-    private val isEditMode: Boolean = false // 新增：是否為編輯模式
+    private val isEditMode: Boolean = false, // 新增：是否為編輯模式
+    private val submittedDraftReadOnly: Boolean = false
 ) : FragmentStateAdapter(fragmentActivity) {
 
     // 保留 Fragment 引用，供外部切換編輯模式時直接呼叫
@@ -24,7 +25,14 @@ class GutterFormPagerAdapter(
             0 -> {
                 val isVirtual = basicData["is_virtual"] ?: basicData["IS_VIRTUAL"] ?: "0"
                 GutterBasicInfoFragment.newInstance(
-                    latitude, longitude, viewMode, basicData, isOfflineMode, isEditMode, isVirtual
+                    latitude,
+                    longitude,
+                    viewMode,
+                    basicData,
+                    isOfflineMode,
+                    isEditMode,
+                    isVirtual,
+                    submittedDraftReadOnly
                 )
             }
             else -> throw IllegalArgumentException("Unknown page $position")

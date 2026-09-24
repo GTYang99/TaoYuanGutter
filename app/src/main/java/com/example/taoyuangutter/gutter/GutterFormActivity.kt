@@ -1396,6 +1396,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 photo3 = currentFormData["photo3"]?.takeIf { it.isNotBlank() }
             )
             refreshCurrentFormDataFromFragments()
+            if (submittedDraftReadOnly) applySubmittedDraftReadOnlyUi()
         }
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
         binding.viewPager.post { applyImportedWaypointLock() }
@@ -2212,7 +2213,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun setupViewPager(lat: Double, lng: Double, basicData: HashMap<String, String>) {
-        pagerAdapter = GutterFormPagerAdapter(this, lat, lng, isViewMode, basicData, isOfflineMode, isEditMode)
+        pagerAdapter = GutterFormPagerAdapter(
+            this,
+            lat,
+            lng,
+            isViewMode,
+            basicData,
+            isOfflineMode,
+            isEditMode,
+            submittedDraftReadOnly
+        )
         binding.viewPager.adapter = pagerAdapter
         binding.viewPager.isUserInputEnabled = false
         binding.viewPager.offscreenPageLimit = 1

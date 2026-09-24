@@ -146,6 +146,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_VIEW_MODE     = "view_mode"
         private const val ARG_OFFLINE_MODE  = "offline_mode"
         private const val ARG_IS_EDIT_MODE  = "is_edit_mode" // 新增：是否為編輯模式
+        private const val ARG_SUBMITTED_DRAFT_READ_ONLY = "submitted_draft_read_only"
 
         // basicData 個別 key
         private const val ARG_DATA_SPI_NUM     = "d_spi_num"
@@ -230,7 +231,8 @@ class GutterBasicInfoFragment : Fragment() {
             basicData: HashMap<String, String> = hashMapOf(),
             isOfflineMode: Boolean = false,
             isEditMode: Boolean = false, // 新增：是否為編輯模式
-            isVirtual: String = "0" // 新增：是否為虛擬點
+            isVirtual: String = "0", // 新增：是否為虛擬點
+            submittedDraftReadOnly: Boolean = false
         ) = GutterBasicInfoFragment().apply {
             arguments = Bundle().apply {
                 putDouble(ARG_LAT, latitude)
@@ -238,6 +240,7 @@ class GutterBasicInfoFragment : Fragment() {
                 putBoolean(ARG_VIEW_MODE, viewMode)
                 putBoolean(ARG_OFFLINE_MODE, isOfflineMode)
                 putBoolean(ARG_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
+                putBoolean(ARG_SUBMITTED_DRAFT_READ_ONLY, submittedDraftReadOnly)
                 putString(ARG_DATA_IS_VIRTUAL, isVirtual) // 傳入虛擬點旗標
                 putString(ARG_DATA_IS_IMPORTED, basicData["_isImported"] ?: "") // 傳入匯入旗標
                 putString(ARG_DATA_SPI_NUM,     basicData["SPI_NUM"]     ?: basicData["gutterId"] ?: "")
@@ -375,6 +378,8 @@ class GutterBasicInfoFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         val isViewMode   = arguments?.getBoolean(ARG_VIEW_MODE)   ?: false
         val isEditMode   = arguments?.getBoolean(ARG_IS_EDIT_MODE) ?: false
+        val submittedDraftReadOnly =
+            arguments?.getBoolean(ARG_SUBMITTED_DRAFT_READ_ONLY) ?: false
         setupGutterTypeSelector()
 
         // 修正：僅在初次建立（無 savedInstanceState）時預填資料
@@ -426,18 +431,18 @@ class GutterBasicInfoFragment : Fragment() {
             pendingOutputPath = null
         }
         renderStoredPhotoSlots()
-        setEditable(!isViewMode)
+        setEditable(!isViewMode && !submittedDraftReadOnly)
         setupCantOpen()
         setupConnectPointAndPipe()
         
         // 確保在 View 建立後，立即根據目前的「側溝形式」、「無法開蓋」與「虛擬點」狀態更新 UI
         applyGutterTypeUi()
         applyCantOpenUi(binding.cbCantOpen.isChecked)
-        if (!isViewMode) reorderEditableSections()
+        if (!isViewMode && !submittedDraftReadOnly) reorderEditableSections()
         setVirtualMode(isVirtualMode)
         updateRequiredIndicators()
         
-        setupPendingDeployButton(isViewMode)
+        setupPendingDeployButton(isViewMode || submittedDraftReadOnly)
         setupRangeWatchers()
         setupDraftWatchers()
         setupRemarkPresetChips()
