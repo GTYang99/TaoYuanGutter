@@ -37,7 +37,7 @@ validation:
 
 git:
   branch: codex/debug-0929-wmts-api-demo-reservation
-  commit: 950900d
+  commit: c4721ee
   status: committed
 
 verification:

@@ -2,7 +2,7 @@
 
 ## Verification Scope
 
-- Fixed source revision: `950900d` on `codex/debug-0929-wmts-api-demo-reservation`.
+- Fixed source revision: `c4721ee` on `codex/debug-0929-wmts-api-demo-reservation`.
 - Scope: endpoint source review, focused/full JVM tests, debug/release builds, and security-boundary review.
 - Physical device and live Taipei service checks: `NOT VERIFIED`.
 
