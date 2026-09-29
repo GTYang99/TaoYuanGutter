@@ -1578,7 +1578,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         if (activity.isFinishing || activity.isDestroyed) return
         MaterialAlertDialogBuilder(activity)
             .setTitle("資料上傳狀態待確認")
-            .setMessage("伺服器回報照片認領狀態不一致，請點擊側溝確認資料是否成功上傳；若資料完整，可忽略此訊息並接續作業。")
+            .setMessage("伺服器回報照片認領狀態不一致，請點擊側溝確認資料是否成功上傳；若資料完整，可忽略此訊息並刪除草稿中相同資料後接續作業。")
             .setPositiveButton("關閉") { _, _ -> onClose() }
             .setCancelable(false)
             .show()
