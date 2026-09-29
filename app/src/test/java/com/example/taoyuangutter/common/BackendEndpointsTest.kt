@@ -1,6 +1,7 @@
 package com.example.taoyuangutter.common
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -33,5 +34,8 @@ class BackendEndpointsTest {
         assertNotEquals(BackendEndpoints.ACTIVE_WMS_URL, BackendEndpoints.LEGACY_DEMO_WMS_URL)
         assertNotEquals(BackendEndpoints.ACTIVE_WMTS_URL, BackendEndpoints.LEGACY_DEMO_WMTS_URL)
         assertTrue(BackendHttpClient.TEMPORARY_ALLOW_TAIPEI_HOSTNAME_MISMATCH)
+        assertTrue(BackendHttpClient.isTemporaryTaipeiHost("taipei.srgeo.com.tw"))
+        assertTrue(BackendHttpClient.isTemporaryTaipeiHost("TAIPEI.SRGEO.COM.TW."))
+        assertFalse(BackendHttpClient.isTemporaryTaipeiHost("www.srgeo.com.tw"))
     }
 }

@@ -5,6 +5,7 @@ import com.example.taoyuangutter.BuildConfig
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import java.util.concurrent.TimeUnit
+import java.util.Locale
 import javax.net.ssl.HostnameVerifier
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLSession
@@ -23,10 +24,15 @@ object BackendHttpClient {
 
     private val defaultHostnameVerifier = HttpsURLConnection.getDefaultHostnameVerifier()
 
+    /** Normalizes the host supplied by the TLS stack before the exact-host check. */
+    internal fun isTemporaryTaipeiHost(hostname: String): Boolean =
+        TEMPORARY_ALLOW_TAIPEI_HOSTNAME_MISMATCH &&
+            hostname.trim().trimEnd('.').lowercase(Locale.US) ==
+            BackendEndpoints.ACTIVE_HOST.lowercase(Locale.US)
+
     val hostnameVerifier = HostnameVerifier { hostname, session ->
-        if (TEMPORARY_ALLOW_TAIPEI_HOSTNAME_MISMATCH &&
-            hostname.equals(BackendEndpoints.ACTIVE_HOST, ignoreCase = true)
-        ) {
+        if (isTemporaryTaipeiHost(hostname)) {
+            Log.w("BackendHttpClient", "Temporary hostname bypass applied to $hostname")
             true
         } else {
             defaultHostnameVerifier.verify(hostname, session)
