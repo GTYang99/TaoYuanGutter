@@ -23,6 +23,9 @@ evidence:
   - app/src/main/java/com/example/taoyuangutter/gutter/AddGutterBottomSheet.kt:2205-2215
   - app/src/main/java/com/example/taoyuangutter/common/PhotoUploadSlotState.kt:23-25
   - app/src/main/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapper.kt:27-33
+  - app/src/test/java/com/example/taoyuangutter/api/NodeImgDeserializationTest.kt:successfulNodeImageResponseCanDeserializeWithoutImageId
+  - app/src/test/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapperTest.kt:cantOpenSuccessWithoutImageIdProducesNoPhotoId
+  - app/src/test/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapperTest.kt:normalSuccessWithoutOneImageIdSilentlyDropsThatSlot
 next_action: debug
 owner: developer
 ```

@@ -128,6 +128,39 @@ class StoreDitchNodeRequestMapperTest {
     }
 
     @Test
+    fun cantOpenSuccessWithoutImageIdProducesNoPhotoId() {
+        val waypoint = waypoint(
+            "IS_CANTOPEN" to "1",
+            "photo1" to "content://photo-1",
+            "photo1UploadState" to "success"
+        )
+
+        val request = StoreDitchNodeRequestMapper.map(waypoint, null, 1)
+
+        assertTrue(request.imgIds.isNullOrEmpty())
+    }
+
+    @Test
+    fun normalSuccessWithoutOneImageIdSilentlyDropsThatSlot() {
+        val waypoint = waypoint(
+            "IS_CANTOPEN" to "0",
+            "IS_TIEINPOINT" to "0",
+            "photo1" to "content://photo-1",
+            "photo1UploadState" to "success",
+            "photo1ImgId" to "101",
+            "photo2" to "content://photo-2",
+            "photo2UploadState" to "success",
+            "photo3" to "content://photo-3",
+            "photo3UploadState" to "success",
+            "photo3ImgId" to "103"
+        )
+
+        val request = StoreDitchNodeRequestMapper.map(waypoint, null, 1)
+
+        assertEquals(listOf(101, 103), request.imgIds)
+    }
+
+    @Test
     fun virtualNodeOmitsCantOpenAndConnectionFlags() {
         val waypoint = waypoint(
             "IS_CANTOPEN" to "1",

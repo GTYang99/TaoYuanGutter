@@ -2,6 +2,8 @@ package com.example.taoyuangutter.api
 
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class NodeImgDeserializationTest {
@@ -44,5 +46,16 @@ class NodeImgDeserializationTest {
 
         assertEquals("https://example.test/1.jpg", details.photoImage("1")?.url)
         assertEquals(12339, details.photoImage("1")?.id)
+    }
+
+    @Test
+    fun successfulNodeImageResponseCanDeserializeWithoutImageId() {
+        val response = gson.fromJson(
+            """{"success":true,"message":"上傳成功","data":{"url":"https://example.test/1.jpg"}}""",
+            NodeImageUploadResponse::class.java
+        )
+
+        assertTrue(response.success)
+        assertNull(response.data?.imgId)
     }
 }

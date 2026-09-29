@@ -23,6 +23,7 @@ validation:
   status: completed
   static_source_review: completed
   targeted_unit_tests: pass
+  evidence_tests: pass
   runtime_device: not_verified
 
 git:

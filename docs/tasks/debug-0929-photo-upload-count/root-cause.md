@@ -74,14 +74,42 @@
 
 ## Historical and live evidence
 
+- Git history provides an API-contract signal beyond the current nullable model: the original
+  `nodeImage` response model in `cef42aa0` documented and deserialized success `data` as URL-only;
+  `img_id` was added later in `c5440e68` as a nullable field. No later source change makes `img_id`
+  part of the repository's success predicate. This means the client has historical evidence that
+  URL-only success was an accepted response shape, even though the current live sample below did
+  return an ID.
 - `docs/tasks/dbg-0910/evidence/node_details_A0910pt52.json` 證明既有 `nodeDetails` 匯入 response
   可以只有 URL 和 `fileCategory`，沒有 `id`／`img_id`。這是 URL-only 既有照片規則的證據，不等於
   新拍照片的上傳 API 一定會缺 ID。
 - `docs/tasks/debug-0919-2/verification.md` 記錄一次 live 新照片流程：`nodeImage` HTTP 200 回傳
   `img_id=51863`，後續 `storeDitch` 帶 `img_ids=[51863]`。這支持正常成功路徑，但只有單一樣本，
   不能證明所有成功 response 都保證 ID。
-- `StoreDitchNodeRequestMapperTest` 已覆蓋特殊模式保留 `[101]` 與省略 slot 2、3，也覆蓋正常 request
-  的部分 ID；沒有覆蓋「`UploadState=success` 但 `photo{slot}ImgId` 缺失」的少傳案例。
+- 原有 `StoreDitchNodeRequestMapperTest` 已覆蓋特殊模式保留 `[101]` 與省略 slot 2、3，也覆蓋正常
+  request 的部分 ID；本輪另外補上「`UploadState=success` 但 `photo{slot}ImgId` 缺失」的少傳案例。
+
+本輪補上的 evidence-only tests 已直接重現這條 deterministic path：
+
+- `NodeImgDeserializationTest.successfulNodeImageResponseCanDeserializeWithoutImageId`：
+  `success=true`、只有 `data.url` 的 response 可被目前 model 接受，`imgId == null`。
+- `StoreDitchNodeRequestMapperTest.cantOpenSuccessWithoutImageIdProducesNoPhotoId`：特殊模式只有
+  success state、沒有 ID 時，request 沒有 photo ID。
+- `StoreDitchNodeRequestMapperTest.normalSuccessWithoutOneImageIdSilentlyDropsThatSlot`：正常模式
+  三個 success 槽位中少一個 ID 時，request 只留下另外兩個 ID。
+
+三個測試均在固定 worktree 通過，分別屬於 model deserialization、request mapping 與 required-slot
+policy 的 JVM evidence。它們把「程式是否可能少傳」的可信度提高到 **99%**；但仍不等於證明 backend
+在使用者回報那次真的送出缺 ID response。
+
+### Confidence calibration
+
+| Claim | Confidence | Why |
+|---|---:|---|
+| 本地照片不足會被目前送出前驗證擋下 | 99% | shared policy、form validation、bottom-sheet validation 與測試一致 |
+| `success=true` 且缺 `img_id` 時，程式可形成少於要求數量的 `img_ids` | 99% | historical model contract、nullable parser、success predicate、兩個 mapper regression tests |
+| backend 至少曾回傳有效 `img_id` | 95% | 已有一次 authenticated live HTTP 200 與 `img_id=51863` 的紀錄 |
+| 使用者回報的那一筆實際走過上述缺 ID 路徑 | <95% | 缺少該筆操作的 response、request 與 server-record correlation |
 
 ## Classification and route
 
