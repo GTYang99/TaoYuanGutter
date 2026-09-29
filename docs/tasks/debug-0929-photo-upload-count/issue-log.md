@@ -77,3 +77,26 @@ evidence:
 next_action: debug
 owner: developer
 ```
+
+## ISS-004
+
+```yaml
+issue_id: ISS-004
+task_id: debug-0929-photo-upload-count
+phase: verification
+category: environment
+priority: P1
+title: Physical device, authenticated backend correlation, and CI evidence are unavailable
+status: open
+impact: Independent verification cannot confirm the runtime retry/UI behavior or the reported case's server-side photo count; Release is blocked.
+repro_steps:
+  - Attempt adb device discovery for the fixed revision.
+  - Locate and run the repository CI workflow.
+  - Capture a controlled nodeImage -> storeDitch -> server-record trace.
+expected: A device/backend trace and CI result are available for the fixed commit.
+actual: adb returned no device, no CI workflow/result is available, and no controlled backend trace was run.
+evidence:
+  - docs/tasks/debug-0929-photo-upload-count/verification.md
+next_action: infrastructure
+owner: verifier
+```

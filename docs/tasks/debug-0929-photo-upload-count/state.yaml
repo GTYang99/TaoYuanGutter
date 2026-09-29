@@ -2,8 +2,8 @@ task:
   id: debug-0929-photo-upload-count
   type: debug
 
-phase: implementation
-status: verification_in_progress
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -15,6 +15,7 @@ debug:
     - ISS-001
     - ISS-002
     - ISS-003
+    - ISS-004
 
 implementation:
   status: completed
@@ -36,9 +37,12 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-004
+    - FIX-005
 
 ci:
   build: not_verified
@@ -50,5 +54,6 @@ release:
 blocking:
   - Need one correlated nodeImage response, storeDitch request, and server record for the reported case.
   - Need backend confirmation whether success=true guarantees a numeric data.img_id for new/replaced photos.
+  - No Android device or repository CI result is available for independent runtime verification.
 
-next_action: verification
+next_action: infrastructure
