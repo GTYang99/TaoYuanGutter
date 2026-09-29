@@ -2,8 +2,8 @@ task:
   id: debug-0929-wmts-api-path
   type: debug
 
-phase: verification
-status: verification_not_verified
+phase: infrastructure
+status: blocked
 
 knowledge_resolution:
   status: resolved
@@ -63,12 +63,23 @@ ci:
   build: not_verified
   test: not_verified
 
+infrastructure:
+  status: blocked
+  evidence:
+    taipei_https_probe: certificate_hostname_mismatch
+    github_status_checks: empty
+    github_workflow_runs: empty
+    repository_ci_definition: unavailable
+    physical_device: unavailable
+    authorized_test_session: unavailable
+  resume_phase: verification
+
 release:
   status: pending
 
 blocking:
   - Taipei server certificate does not yet include taipei.srgeo.com.tw; release now uses the explicitly approved temporary exact-host workaround and infrastructure must still fix the certificate.
-  - Physical-device API/login, photo, WMS/WMTS and NLSC runtime verification is still pending; no authenticated test account or physical device was available.
-  - No repository CI workflow or result is available.
+  - Physical-device API/login, photo, WMS/WMTS and NLSC runtime verification is still pending; only an Android 14 emulator was available, and no authorized test session was available.
+  - GitHub returned no combined status checks or workflow runs for the fixed commit, and no CI definition is present in the repository.
 
 next_action: infrastructure
