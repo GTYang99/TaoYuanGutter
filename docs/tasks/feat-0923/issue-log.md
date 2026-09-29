@@ -35,7 +35,8 @@
 - Status: open
 - Impact: CI gate cannot be marked PASS and Release cannot advance.
 - Evidence: no CI workflow result or CI artifact is present for fixed implementation revision `452915ad22d135b87ef1705bc11808dbeccaee28`.
-- Next action: infrastructure — provide or run CI for the fixed revision.
+- Infrastructure update: fixed implementation revision `f8f40fe3f3229dda155c24b35b6ae2872ffe9ebe` also contains no tracked CI workflow; read-only `git ls-remote --heads gitlab-http` reaches the configured remote and returns branch refs, but no pipeline status or provider API result is available in this task.
+- Next action: infrastructure/verification — provide a CI pipeline result for `f8f40fe` through the repository's CI provider.
 
 ## ISS-feat-0923-004
 
@@ -79,7 +80,8 @@
 - Root cause: submitted retry does not use a separate immutable Room snapshot/projection boundary and does not suppress the existing mutable `onWaypointsChanged` auto-save path.
 - Resolution: fixed in `ee55f08` by adding `SubmittedRetrySnapshot`, using transport-only retry projections, suppressing submitted mutable waypoint callbacks, and preserving retry request metadata without writing the submitted draft.
 - Developer evidence: JVM 126/126 PASS; targeted submitted read-only instrumentation PASS; `MainShellActivityTest` class retry 12/12 PASS. Runtime AC-007 no-write/failure/timeout/interruption cases remain for independent Verification.
-- Next action: verification — rerun AC-007 against committed revision `ee55f08` and record CI evidence separately.
+- Current verification update: revision `f8f40fe` includes the fix ancestry; 130 JVM tests and 53 connected Android tests pass. No new implementation failure was reproduced, but AC-007 remains `NOT VERIFIED` because the required end-to-end retry/no-write/failure/timeout/interruption cases are absent.
+- Next action: verification — retain the historical fix evidence and continue the remaining acceptance-criteria evidence review.
 
 ## ISS-feat-0923-007
 
@@ -93,7 +95,8 @@
 - Evidence: `item_pending_draft.xml` wrapped `tvPendingDraftTitle` in `layoutPendingDraftTitle` but kept `tvPendingDraftTime` constrained to the nested title view. `bottom_sheet_pending_drafts.xml` only hosts the RecyclerView; `PendingDraftAdapter` inflates the affected item layout.
 - Root cause: the parent `ConstraintLayout` subtitle chain used a nested child instead of the direct title-row container as its vertical anchor.
 - Resolution: fixed in `e595311`; the subtitle now anchors below `layoutPendingDraftTitle`, and the measured-layout regression test passes 3/3.
-- Next action: verification — rerun the pending-draft UI checks against `e595311`.
+- Current verification: the focused pending-draft suite passes 3/3 and the full connected suite passes on `f8f40fe`, which contains this fix.
+- Next action: verification — retain AC-003 as PASS and continue the remaining acceptance-criteria evidence review.
 
 ## ISS-feat-0923-008
 

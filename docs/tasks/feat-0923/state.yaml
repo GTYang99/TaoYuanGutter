@@ -2,8 +2,8 @@ task:
   id: feat-0923
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -35,22 +35,22 @@ debug:
   root_cause: submitted_reupload_mutable_state_auto_save
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-001
     - AC-002
-    - AC-003
     - AC-004
     - AC-005
     - AC-006
+    - AC-007
     - AC-008
 
 release:
   status: pending
 
 blocking:
-  - CI build/test result is unavailable for the fixed implementation revision
-  - Independent Verification must rerun against the existing-gutter tag implementation revision
+  - No tracked CI workflow or accessible pipeline result exists for the fixed implementation revision
+  - Targeted runtime evidence for the remaining acceptance criteria is not present in the committed test suite
 next_action: verification

@@ -1,32 +1,24 @@
 # Verification
 
-## Inputs
-
-- Requirement: `docs/tasks/feat-0923/requirement.md`
-- Analysis and plan: `docs/tasks/feat-0923/analysis.md`, `plan.md`
-- Plan review: `docs/tasks/feat-0923/plan-review.md`
-- State: `docs/tasks/feat-0923/state.yaml`
-- Git diff and committed revision: `452915ad22d135b87ef1705bc11808dbeccaee28`
-- Verification and testing rules: `ai/verification-rules.md`, `ai/testing-rules.md`
-
-## Revision Under Test
+## Verification Round
 
 - Task: `feat-0923`
-- Implementation revision: `452915ad22d135b87ef1705bc11808dbeccaee28` (`452915a`)
-- Verification workspace: isolated clean worktree at `/Users/a10362/.codex/worktrees/feat-0923-verification-0002/TaoYuanGutter`
+- Implementation revision under test: `f8f40fe3f3229dda155c24b35b6ae2872ffe9ebe` (`f8f40fe`)
+- Scope includes the submitted-retry fix `ee55f08` and pending-draft layout fix `e595311` in the revision ancestry.
+- Verification workspace: `/Users/a10362/.codex/worktrees/feat-0923-verification-0003/TaoYuanGutter`
 - Package: `com.example.taoyuangutter`
 - Build variant: `debug`
-- Verification-only setup: untracked `local.properties` containing only `MAPS_API_KEY=verification-placeholder`
-- Worktree state before and after checks: clean; `HEAD` remained the fixed revision
+- Verification-only setup: ignored `local.properties` with `MAPS_API_KEY=verification-placeholder`; no main-worktree credential was copied.
+- Worktree remained clean after checks; `HEAD` remained `f8f40fe`.
 
 ### Physical Device Context
 
 ```yaml
-revision: 452915ad22d135b87ef1705bc11808dbeccaee28
+revision: f8f40fe3f3229dda155c24b35b6ae2872ffe9ebe
 device:
-  serial: emulator-5554
-  model: Medium_Phone(AVD)
-  android_version: Android 14
+  serial: adb-QV710EDR3A-hF5XZF._adb-tls-connect._tcp
+  model: XQ_AU52
+  android_version: Android 12
 app:
   package: com.example.taoyuangutter
   build_variant: debug
@@ -36,74 +28,52 @@ app:
 
 | Check | Result | Evidence |
 |---|---|---|
-| Fixed revision and isolated worktree | PASS | `git rev-parse HEAD` matched `452915ad...`; no tracked or relevant untracked source/test changes before or after testing. |
-| `./gradlew :app:testDebugUnitTest` | PASS | 38 suites, 124 tests, 0 failures, 0 errors. |
-| `./gradlew :app:assembleDebug` | PASS | Debug APK assembled successfully from the fixed revision. |
+| Fixed revision and isolated worktree | PASS | `git rev-parse HEAD` matched `f8f40fe3...`; no tracked worktree changes before or after testing. |
+| `./gradlew :app:testDebugUnitTest` | PASS | 40 suites, 130 tests, 0 failures, 0 errors, 0 skipped. |
+| `./gradlew :app:assembleDebug` | PASS | Debug APK assembled successfully from `f8f40fe`. |
 | `./gradlew :app:compileDebugAndroidTestKotlin` | PASS | Android instrumentation sources compiled successfully. |
-| `git diff --check 452915a^ 452915a` | PASS | No whitespace errors in the implementation commit. |
-| `adb devices -l` | PASS | `emulator-5554` discovered as Android 14 `Medium_Phone(AVD)`. |
-| `./gradlew :app:connectedDebugAndroidTest` | PASS | 52 tests, 0 failures, 0 errors, 0 skipped; report timestamp `2026-09-24T01:44:22Z`. |
-| CI build/test result | NOT VERIFIED | No repository CI workflow or CI result artifact is available. |
+| `git diff --check f8f40fe^ f8f40fe` | PASS | No whitespace errors in the implementation commit. |
+| `adb devices -l` | PASS | Physical device `XQ_AU52`, Android 12, discovered and used. |
+| Focused `PendingDraftAdapterUiTest` | PASS | 3 tests, 0 failures, 0 errors, 0 skipped; includes all three tags and title/subtitle geometry. |
+| `./gradlew :app:connectedDebugAndroidTest` | PASS | 53 tests, 0 failures, 0 errors, 0 skipped; report timestamp `2026-09-24T03:59:30`. |
+| CI build/test result | NOT VERIFIED | No repository CI workflow or CI result artifact is available for `f8f40fe`. |
 
 ## Acceptance Criteria
 
-| AC | Steps / scope | Result | Actual result and evidence | Retry count |
+| AC | Verification scope | Result | Evidence and limitation | Retry count |
 |---|---|---|---|---:|
-| AC-001 | Verify marker ordering and persistence after API outcomes/restart | NOT VERIFIED | `GutterRepositoryStoreDitchBoundaryTest` and source review prove the callback boundary precedes the request, but no committed runtime case covers API failure/timeout or app restart after entering `storeDitch`. | 0 |
-| AC-002 | Verify pre-request interruption remains unsubmitted across restart/restore | NOT VERIFIED | Legacy JSON default and tag-policy unit tests pass, but no runtime case simulates interruption before repository entry and subsequent draft restore. | 0 |
-| AC-003 | Verify submitted/unsubmitted tag text, position, size, and styles | PASS | `PendingDraftAdapterUiTest.submittedAndUnsubmittedTagsUseRequiredStylesAndCallbacks` passed; it asserts both texts, visibility, colors, outline drawable, padding, click, and long-click callbacks. | 0 |
-| AC-004 | Verify existing `SPI_NUM` behavior and list restore/delete/success cleanup regression | NOT VERIFIED | `PendingDraftAdapterUiTest.existingGutterDraftHidesSubmissionTag` passed, but the full restore, long-press delete, and successful cleanup flow was not covered by a targeted committed runtime case. | 0 |
-| AC-005 | Verify legacy migration, list loading, and restore | NOT VERIFIED | `GutterDraftDatabaseMigrationTest.migration3To4AddsFalseSubmissionDefaultAndPreservesLegacyRow` and legacy Gson default tests passed; list loading and restore of the migrated row were not independently exercised. | 0 |
-| AC-006 | Verify every submitted-draft edit surface is locked while return and re-upload remain available | NOT VERIFIED | `SubmittedDraftReadOnlyUiTest.submittedDraftDisablesFormControlsAfterPagerCreation` passed for overlay, back, hidden inner submit, virtual toggle, remarks, location, and photo controls. It does not cover all required node, attachment, type, import, overlay-boundary, or outer re-upload interactions. | 0 |
-| AC-007 | Verify full Room-sourced re-upload payload and success/failure/timeout/interruption retry behavior | FAIL | Static review of the fixed revision contradicts the approved source-of-truth/no-write contract: `performSubmittedReupload()` restores the Room row into mutable `AddGutterBottomSheet.waypoints` and passes it into the upload/request flow; `ensureWaypointPhotosUploadedBeforeSubmit()` invokes `onWaypointsChanged` on photo success/error, while `GutterSheetSessionBinder` routes that callback to auto-save. This can mutate the submitted draft during retry instead of preserving the Room snapshot. No runtime retry test exists. | 0 |
+| AC-001 | Submission marker ordering and persistence after API failure, timeout, and restart | NOT VERIFIED | `GutterRepositoryStoreDitchBoundaryTest` and the 130-test JVM suite pass, but no committed runtime case covers failure/timeout/restart after entering `storeDitch`. | 0 |
+| AC-002 | Pre-request interruption remains unsubmitted across restart and restore | NOT VERIFIED | Legacy serialization and policy tests pass, but no runtime interruption-before-boundary case is committed. | 0 |
+| AC-003 | Three tag texts, position, dimensions, styles, and single-tag behavior, including subtitle layout | PASS | Focused `PendingDraftAdapterUiTest` passes 3/3: submitted, unsubmitted, and existing-gutter tags; measured assertions confirm time subtitle is below `layoutPendingDraftTitle` and node subtitle is below time. Source confirms the shared padding/text sizing and transparent primary-color outline for unsubmitted/existing tags. | 0 |
+| AC-004 | Existing `SPI_NUM` precedence plus restore/edit, long-press delete, and successful cleanup regression | NOT VERIFIED | Policy and adapter tests confirm `SPI_NUM` takes precedence and shows `既有側溝編輯中`; the committed suite has no complete existing-gutter draft restore/edit/resubmit/delete/cleanup flow. | 0 |
+| AC-005 | Legacy migration, list loading, and restore | NOT VERIFIED | `GutterDraftDatabaseMigrationTest` passes and legacy defaults are covered; list loading and restored content from the migrated row are not independently exercised. | 0 |
+| AC-006 | Submitted ordinary draft read-only surfaces with return and re-upload available | NOT VERIFIED | `SubmittedDraftReadOnlyUiTest` passes in the 53-test suite for the covered controls, but it does not cover every required node, attachment, type, import, overlay-boundary, and outer re-upload interaction. | 0 |
+| AC-007 | Room-sourced complete re-upload payload and success/failure/timeout/interruption retry behavior | NOT VERIFIED | `SubmittedRetrySnapshotTest` and the 130-test JVM suite pass, and the prior mutable-callback defect is fixed in the tested ancestry; no committed end-to-end runtime case proves payload completeness, no-write failure/timeout/interruption, success cleanup, and retry preservation. | 0 |
+| AC-008 | Existing-gutter draft retains content/`SPI_NUM`/tag and remains editable and resubmittable after failure, timeout, or interruption | NOT VERIFIED | `PendingDraftTagPolicyTest` and `SubmittedDraftResumePolicyTest` pass for precedence and editable-policy decisions; no committed runtime case covers existing-gutter restore, edit, resubmit failure/timeout/interruption, and later retry. | 0 |
 
 ## Regression Review
 
-- The implementation commit changes only `GutterBasicInfoFragment`, `GutterFormActivity`, `GutterFormPagerAdapter`, and adds `SubmittedDraftReadOnlyUiTest`; no API model or third-party dependency change is present in the tested revision.
-- Existing form, inspection, import, exit, mapper, Room migration, pending-list tag, and submitted read-only tests passed in the 52-test connected suite.
-- The previous pager-created-fragment regression is covered by `SubmittedDraftReadOnlyUiTest` and passed on the fixed revision.
-- The submitted re-upload source/no-write contract is not met by source review: `AddGutterBottomSheet.kt:1111-1138`, `2034-2186`, and `GutterSheetSessionBinder.kt:27-38` use mutable form state and an auto-save callback during the submitted retry path, contrary to `analysis.md:45-55` and `plan.md:46-48`.
-- Re-upload payload completeness, no-write lifecycle behavior, retry preservation, and success cleanup remain unverified.
+- The pending-draft layout regression is covered by `e595311` and passes the measured-layout test: the subtitle now anchors below the direct `layoutPendingDraftTitle` container rather than the nested title child.
+- The existing-gutter policy is centralized in `PendingDraftTagPolicy`; tag rendering, delete-title identity, and submitted read-only policy use the same normalized START `SPI_NUM` rule.
+- The submitted retry isolation fix is present in the tested revision ancestry and its immutable snapshot unit tests pass.
+- Existing form, inspection, import, migration, pending-list, and submitted read-only tests all pass in the 53-test connected suite.
 
-## Issues
+## Issues and Limitations
 
-- `ISS-feat-0923-003`: CI result unavailable; remains open and blocks Release.
-- `ISS-feat-0923-004`: targeted submitted-draft flow evidence is incomplete; the independent fixed-revision run confirms the baseline suite passes but does not close the missing AC-001/002/004/005/006/007 scenarios.
-- `ISS-feat-0923-005`: submitted basic-info control lock regression is resolved by `452915a`; the targeted test and full connected suite passed.
-- `ISS-feat-0923-006`: submitted re-upload invokes the mutable waypoint/update callback path; this is an implementation regression affecting AC-007 and requires Debug before re-implementation.
-
-## Validation Limitations
-
-- No CI build/test result is available.
-- The committed test suite has no targeted runtime coverage for API failure/timeout/interruption persistence, Host/Activity recreation and Room reread, full no-write behavior, or re-upload success/failure/timeout/interruption cleanup.
-- The available emulator completed the connected suite, but passing the existing suite does not prove the uncovered acceptance criteria.
-- Source review found a concrete implementation deviation in the submitted re-upload no-write/source-of-truth contract; runtime retry evidence is still unavailable.
+- CI build/test evidence is unavailable and blocks Release.
+- AC-001, AC-002, AC-004, AC-005, AC-006, AC-007, and AC-008 lack complete committed runtime evidence at their required scope.
+- Local green tests do not substitute for the missing targeted runtime flows or CI.
+- The prior `452915a` AC-007 failure is historical; the current round found no equivalent source regression on `f8f40fe`, but the replacement runtime evidence is still incomplete.
 
 ## Failure Classification
 
-- `implementation` for AC-007 (`ISS-feat-0923-006`); the submitted retry path can invoke the existing auto-save callback from mutable form state.
-- `environment` remains applicable to the separate unavailable CI gate.
+- No new implementation failure reproduced in this round.
+- `environment` / evidence gap for CI and missing targeted runtime cases.
 
 ## Next Action
 
-- `debug`: investigate and fix the submitted re-upload immutable-snapshot/no-write violation, then rerun developer validation and Verification on a new committed revision.
+- `infrastructure`: provide CI evidence and add/run the targeted runtime scenarios for the remaining NOT VERIFIED acceptance criteria, then rerun Verification against a fixed committed revision if implementation changes.
 
 ## Final Result
 
-FAIL
-
-## Post-Debug Developer Handoff
-
-- The AC-007 implementation regression was fixed in new committed revision `ee55f08`.
-- Developer validation recorded 126/126 JVM tests, targeted submitted read-only instrumentation PASS, and `MainShellActivityTest` retry 12/12 PASS.
-- The prior AC-007 FAIL remains historical evidence for revision `452915a`; it must not be reused as the result for `ee55f08`.
-- Independent Verification is pending and must target `ee55f08`, including the submitted retry payload/no-write/failure/timeout/interruption cases.
-- A subsequent layout fix was committed as `e595311`; all new Verification must target `e595311`.
-- CI remains `NOT VERIFIED`; Release is still blocked.
-
-## New Feature Implementation Handoff
-
-- The approved Iteration 8 plan for the existing-gutter tag policy is implemented in committed revision `f8f40fe`.
-- Developer validation: 130/130 JVM tests PASS; `PendingDraftAdapterUiTest` 3/3 PASS on Android 14 `Medium_Phone(AVD)`.
-- Independent Verification must target `f8f40fe` and verify AC-003, AC-004, and AC-008, including restore/edit/resubmit/failure/interruption behavior for valid `SPI_NUM` drafts.
-- The earlier verification records for `452915a`/`ee55f08`/`e595311` remain historical and must not be reused as the result for `f8f40fe`.
+NOT VERIFIED
