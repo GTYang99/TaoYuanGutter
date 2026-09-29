@@ -84,3 +84,10 @@ certificate is corrected.
 - The emulator being connected does not establish AC-004/006/007/008 behavior. Their outcomes remain `NOT VERIFIED`; source review and prior focused/full JVM/build evidence remain as recorded above.
 
 Verification remains `NOT VERIFIED` (`environment`) and transitions directly to Infrastructure as requested.
+
+#### Emulator launch smoke check
+
+- Built and installed the fixed-source debug variant with `MAPS_API_KEY=verification-placeholder`: `:app:installDebug --console=plain` completed `BUILD SUCCESSFUL` and installed to `emulator-5554`.
+- Launched package `com.example.taoyuangutter`; Android reported `.login.LoginActivity` as resumed, and the process remained alive. The UI hierarchy identified the app package on screen. No crash was observed.
+- No credentials were entered. The app stayed at login, so authenticated API, photo, GeoServer WMS/WMTS, NLSC map, and on-device TLS cases were not reached. The placeholder Maps key also cannot provide valid Google Maps tiles.
+- This is a PASS for debug APK install/start smoke only; it does not change AC-004/006/007/008, which remain `NOT VERIFIED`.

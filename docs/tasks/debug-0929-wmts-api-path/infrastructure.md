@@ -15,22 +15,24 @@
 | GitHub CI status for the fixed commit | BLOCKED | GitHub combined status returned an empty `statuses` list; associated workflow runs returned an empty `workflow_runs` list. |
 | Repository CI definition | BLOCKED | No workflow or CI configuration file is present in the checked repository revision. |
 | Emulator availability | AVAILABLE | ADB connected to `emulator-5554` (`sdk_gphone64_arm64`, Android 14/API 34), which the user approved as the runtime basis. |
-| Emulator runtime test readiness | BLOCKED | The emulator has no installed app package; there is no map/API-focused instrumentation test. A valid Maps API key and authorized test account/session were unavailable, so login/photo/map-service flows were not run. No credentials were requested or recorded. |
+| Emulator install/start | PASS | Built and installed the task debug APK using a verification placeholder Maps key; package launched without a crash and resumed at `LoginActivity`. |
+| Authenticated emulator runtime | BLOCKED | No authorized test account/session or valid Maps API key is available. The session remained at login; photo/map-service and tile checks were not run. No credentials were requested or recorded. |
 
 ## Environment Classification
 
 The certificate hostname mismatch is confirmed as a current server configuration issue, matching the
 known limitation. The source's temporary exact-host workaround does not repair the server certificate
-and must not be treated as evidence that normal TLS verification succeeds. Emulator runtime and CI
-results are also unavailable; local unit tests and debug/release builds passed in Verification.
+and must not be treated as evidence that normal TLS verification succeeds. Authenticated emulator
+runtime and CI results are unavailable; debug APK install/start passed, and local unit tests plus
+debug/release builds passed in Verification.
 
 ## Remediation Needed
 
 1. Update the Taipei server certificate so its SAN includes `taipei.srgeo.com.tw`; then repeat a
    normal certificate-validating HTTPS probe.
-2. Install the task build on the available emulator and provide a valid Maps API key plus an
-   authorized test account/session for the scoped login/API, photo, WMS/WMTS, NLSC, and debug/release
-   TLS checks. Do not send account credentials in task artifacts or chat.
+2. Provide a valid Maps API key and an authorized test account/session for the scoped login/API,
+   photo, WMS/WMTS, NLSC, and debug/release TLS checks on the available emulator. Do not send account
+   credentials in task artifacts or chat.
 3. Provide a CI run/status URL for the fixed commit, or make the applicable CI workflow available and
    run it.
 
