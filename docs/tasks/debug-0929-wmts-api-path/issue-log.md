@@ -38,3 +38,18 @@
 
 - User confirmed `taipei.srgeo.com.tw` as the active GeoServer host, all GeoServer WMS/WFS migration, inactive-only DEMO constants, and temporary exact-host hostname workaround in release as well as debug.
 - The endpoint decisions are resolved, but the certificate itself remains an external infrastructure issue; release verification stays blocked until the server certificate includes `taipei.srgeo.com.tw`.
+
+## ISS-DBG-0929-003
+
+- task_id: debug-0929-wmts-api-path
+- phase: implementation
+- category: implementation_regression
+- priority: P1
+- title: Remote photo loaders did not use the Taipei certificate workaround
+- status: resolved
+- impact: Login/API and GeoServer requests used the shared OkHttp client, but Glide remote-photo requests used its default loader and could still fail on the `taipei.srgeo.com.tw` hostname mismatch.
+- evidence:
+  - `GutterPhotosFragment`, `GutterBasicInfoFragment`, `GutterInspectPhotosFragment` and `ImageDetailDialogFragment` call `Glide.load` with remote URLs.
+  - `BackendHttpClient` was only wired to Retrofit, raw image downloads and custom GeoServer tile providers.
+- resolution: Registered `BackendGlideModule` in the manifest; its remote URI loader fetches through `BackendHttpClient`, while local URI schemes retain Glide defaults.
+- validation: Full JVM tests, debug build and release build passed; physical-device photo runtime is `NOT VERIFIED`.

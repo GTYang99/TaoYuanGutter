@@ -20,11 +20,12 @@ debug:
   issues:
     - ISS-DBG-0929-001
     - ISS-DBG-0929-002
+    - ISS-DBG-0929-003
 
 implementation:
   status: completed
   mode: debug_fix
-  source_scope: endpoint_migration_and_debug_hostname_workaround
+  source_scope: endpoint_migration_release_hostname_workaround_and_remote_photo_loader
 
 validation:
   status: completed_with_limitations
@@ -36,7 +37,7 @@ validation:
 
 git:
   branch: codex/debug-0929-wmts-api-demo-reservation
-  commit: 65a81f6
+  commit: 950900d
   status: committed
 
 verification:
@@ -53,5 +54,6 @@ release:
 
 blocking:
   - Taipei server certificate does not yet include taipei.srgeo.com.tw; release now uses the explicitly approved temporary exact-host workaround and infrastructure must still fix the certificate.
+  - Physical-device login, photo, WMS and WMTS runtime verification is still pending.
 
 next_action: verification

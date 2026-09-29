@@ -42,7 +42,8 @@
 
 - 只改 WMTS builder 會造成 WMTS 與 WMS/API 分屬不同環境；全域替換又可能超出使用者只要求 WMTS 的範圍。
 - 只修改 `DEMO_URL` 不會改變 API runtime，容易形成「文件看似已切換、實際請求仍走內部 IP」的假完成狀態。
-- Taipei host 未列入額外 trust domain 時，可能出現 TLS／憑證行為差異；debug-only hostname bypass 也只能作為憑證修復前的臨時措施。
+- Taipei host 未列入額外 trust domain 時，可能出現 TLS／憑證行為差異；release 也只能把 exact-host hostname bypass 作為憑證修復前的臨時措施。
+- 照片顯示路徑另有 Glide 預設 loader；若不替換其遠端 URI loader，照片會繼續使用不含 Taipei workaround 的網路堆疊。
 - 加入自動 DEMO fallback 會把資料環境混用，可能導致登入、圖資與寫入 API 不一致；在 OQ-004 未確認前禁止加入。
 
 ## Unknowns
