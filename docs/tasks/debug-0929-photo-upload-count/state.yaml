@@ -27,9 +27,9 @@ validation:
   runtime_device: not_verified
 
 git:
-  branch: "(detached HEAD at fbb1983; no production changes)"
-  commit: fbb198370a2dbf7bad38876f2d1e21be5bca75f1
-  status: clean_before_task_artifacts
+  branch: codex/debug-0929-photo-upload-count
+  commit: 650c039
+  status: committed
 
 verification:
   result: not_verified
