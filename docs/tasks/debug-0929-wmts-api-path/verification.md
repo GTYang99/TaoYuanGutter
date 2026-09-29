@@ -2,7 +2,7 @@
 
 ## Verification Scope
 
-- Fixed source revision: the committed task branch revision recorded in `state.yaml`.
+- Fixed source revision: `9b1fb8c` on `codex/debug-0929-wmts-api-demo-reservation`.
 - Scope: endpoint source review, focused/full JVM tests, debug/release builds, and security-boundary review.
 - Physical device and live Taipei service checks: `NOT VERIFIED`.
 

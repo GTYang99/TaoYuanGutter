@@ -2,6 +2,7 @@
 
 ## Implementation
 
+- Commit: `9b1fb8c` on `codex/debug-0929-wmts-api-demo-reservation`.
 - Added centralized Taipei active and DEMO inactive endpoint constants.
 - Switched Retrofit API, WFS/GetFeatureInfo, all hardcoded GeoServer WMS and all three GeoServer WMTS layers to Taipei.
 - Kept `https://wmts.nlsc.gov.tw/...` NLSC basemap URLs unchanged.

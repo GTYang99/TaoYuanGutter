@@ -36,8 +36,8 @@ validation:
 
 git:
   branch: codex/debug-0929-wmts-api-demo-reservation
-  commit: ""
-  status: pending_commit
+  commit: 9b1fb8c
+  status: committed
 
 verification:
   result: not_verified
