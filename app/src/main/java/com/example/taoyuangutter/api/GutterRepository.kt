@@ -40,6 +40,23 @@ internal fun buildNodeImageMultipartBody(
     param("captured_at", capturedAt)
 }
 
+internal const val NODE_IMAGE_MISSING_ID_MESSAGE = "照片上傳成功但未取得有效圖片編號，請重試"
+
+/**
+ * A successful node-image response must carry the server ID that the later
+ * storeDitch request uses to associate the photo with its slot.
+ */
+internal fun validateNodeImageUploadSuccess(
+    body: NodeImageUploadResponse
+): ApiResult<NodeImageUploadResponse> {
+    val imageId = body.data?.imgId
+    return if (body.success && imageId != null && imageId > 0) {
+        ApiResult.Success(body)
+    } else {
+        ApiResult.Error(NODE_IMAGE_MISSING_ID_MESSAGE)
+    }
+}
+
 /**
  * GutterRepository
  *
@@ -652,7 +669,7 @@ class GutterRepository(
                 
                 val body = response.body()
                 if (response.isSuccessful && body?.success == true) {
-                    ApiResult.Success(body)
+                    validateNodeImageUploadSuccess(body)
                 } else {
                     val errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
                     val apiMsg = parseApiErrorMessage(errorBody)
