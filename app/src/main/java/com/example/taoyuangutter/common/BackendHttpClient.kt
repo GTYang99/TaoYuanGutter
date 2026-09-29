@@ -12,15 +12,21 @@ import javax.net.ssl.SSLSession
 /**
  * Shared HTTPS client for API, remote images and GeoServer tiles.
  *
- * The temporary hostname exception is deliberately narrow: debug builds only
- * and the exact Taipei host. Certificate-chain validation is still performed.
- * It must be removed after the Taipei certificate includes the Taipei host.
+ * The temporary hostname exception is deliberately narrow: the exact Taipei
+ * host only. Certificate-chain validation is still performed. This release
+ * override must be removed after the Taipei certificate includes the Taipei
+ * host.
  */
 object BackendHttpClient {
+    /** Temporary release workaround; remove when the server certificate is fixed. */
+    const val TEMPORARY_ALLOW_TAIPEI_HOSTNAME_MISMATCH = true
+
     private val defaultHostnameVerifier = HttpsURLConnection.getDefaultHostnameVerifier()
 
     val hostnameVerifier = HostnameVerifier { hostname, session ->
-        if (BuildConfig.DEBUG && hostname.equals(BackendEndpoints.ACTIVE_HOST, ignoreCase = true)) {
+        if (TEMPORARY_ALLOW_TAIPEI_HOSTNAME_MISMATCH &&
+            hostname.equals(BackendEndpoints.ACTIVE_HOST, ignoreCase = true)
+        ) {
             true
         } else {
             defaultHostnameVerifier.verify(hostname, session)

@@ -5,7 +5,7 @@
         <domain includeSubdomains="false">192.168.10.84</domain>
     </domain-config>
 
-    <!-- 正式與 legacy GeoServer host 共用既有 CA chain；hostname mismatch 僅由 debug OkHttp verifier 暫時處理 -->
+    <!-- 正式與 legacy GeoServer host 共用既有 CA chain；Taipei hostname mismatch 由精確 host 的暫時 verifier 處理 -->
     <domain-config>
         <domain includeSubdomains="true">demo.srgeo.com.tw</domain>
         <domain includeSubdomains="true">taipei.srgeo.com.tw</domain>

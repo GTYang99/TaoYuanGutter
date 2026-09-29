@@ -52,6 +52,6 @@ release:
   status: pending
 
 blocking:
-  - Taipei server certificate does not yet include taipei.srgeo.com.tw; debug workaround is temporary and release verification remains blocked until infrastructure fixes the certificate.
+  - Taipei server certificate does not yet include taipei.srgeo.com.tw; release now uses the explicitly approved temporary exact-host workaround and infrastructure must still fix the certificate.
 
 next_action: verification

@@ -17,7 +17,7 @@ OQ-001～OQ-004 已由使用者確認；本計畫進入 implementation 前的 Pl
 - API、GeoServer WMS/WFS/GetFeatureInfo、GeoServer WMTS active host：`https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/`。
 - DEMO endpoint 僅保留 inactive 常數。
 - `https://wmts.nlsc.gov.tw/...` 台北市都發局底圖不變。
-- 憑證未修復前，hostname mismatch workaround 僅限 debug build 與 `taipei.srgeo.com.tw`。
+- 憑證未修復前，所有 build 都可對精確 `taipei.srgeo.com.tw` 使用 hostname mismatch workaround；修復後移除。
 
 ## Stop Conditions
 

@@ -36,5 +36,5 @@
 
 ## Resolution
 
-- User confirmed `taipei.srgeo.com.tw` as the active GeoServer host, all GeoServer WMS/WFS migration, inactive-only DEMO constants, and debug-only hostname workaround.
+- User confirmed `taipei.srgeo.com.tw` as the active GeoServer host, all GeoServer WMS/WFS migration, inactive-only DEMO constants, and temporary exact-host hostname workaround in release as well as debug.
 - The endpoint decisions are resolved, but the certificate itself remains an external infrastructure issue; release verification stays blocked until the server certificate includes `taipei.srgeo.com.tw`.

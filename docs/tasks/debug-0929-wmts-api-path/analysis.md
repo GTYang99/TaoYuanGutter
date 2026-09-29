@@ -18,7 +18,7 @@
 - API、GeoServer WMS/WFS/GetFeatureInfo 與 WMTS endpoint 都以 Taipei 為 active，並由集中 endpoint 常數提供。
 - 三個 WMTS layer 應維持既有 `SERVICE=WMTS`、`VERSION=1.0.0`、`WebMercatorQuad`、layer format、空白 `STYLE=` 與 z/y/x 對應。
 - 原本 DEMO endpoint 以清楚命名的非啟用值保留，不應在網路失敗時自動切換環境。
-- 暫時憑證繞過只針對 debug build 與 `taipei.srgeo.com.tw`，不繞過 CA chain 驗證，也不進入 release build。
+- 暫時憑證繞過只針對精確 `taipei.srgeo.com.tw` host，所有 build 都可使用；不繞過 CA chain 驗證，正式憑證修復後移除。
 - 未列入核准範圍的 WMS/WFS 行為、圖層開關、z-index 與失敗降級不應因 endpoint 整理而改變。
 
 ## Affected Modules
@@ -61,4 +61,4 @@
 - 正式站所有 API／GeoServer endpoint 改用 `taipei.srgeo.com.tw`。
 - 所有 GeoServer WMS/WFS 一起切換；台北市都發局 NLSC WMTS 底圖不變。
 - DEMO 只保留 inactive 常數。
-- 憑證修復前只允許 debug-only 的 Taipei hostname mismatch workaround。
+- 憑證修復前，release 也暫時允許精確 Taipei host 的 hostname mismatch；正式憑證修復後移除。

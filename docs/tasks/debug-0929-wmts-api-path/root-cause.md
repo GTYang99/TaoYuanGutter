@@ -32,10 +32,10 @@
 
 - Introduce explicit active Taipei and legacy DEMO endpoint values with one active selection; retain legacy values without runtime fallback.
 - Update every GeoServer API/WMS/WFS/WMTS consumer approved by the user, while leaving NLSC WMTS basemap URLs unchanged.
-- Use a shared OkHttp client for Retrofit, image downloads and GeoServer tile providers so the temporary debug-only hostname workaround has one controlled boundary.
+- Use a shared OkHttp client for Retrofit, image downloads and GeoServer tile providers so the temporary exact-host hostname workaround has one controlled boundary across builds.
 - Add focused tests for active endpoint selection, legacy non-use, all three WMTS layers, WMS URLs and debug/release verifier behavior where testable.
 
 ## Evidence Boundary
 
 - Production code changes are now authorized by the resolved user decisions and will be made only after plan review.
-- Runtime Taipei connectivity and release certificate behavior remain `NOT VERIFIED` until the server certificate is corrected.
+- Runtime Taipei connectivity remains `NOT VERIFIED`; release now has the explicitly approved temporary exact-host workaround, which must be removed when the server certificate is corrected.

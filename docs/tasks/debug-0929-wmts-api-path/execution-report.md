@@ -7,7 +7,7 @@
 - Switched Retrofit API, WFS/GetFeatureInfo, all hardcoded GeoServer WMS and all three GeoServer WMTS layers to Taipei.
 - Kept `https://wmts.nlsc.gov.tw/...` NLSC basemap URLs unchanged.
 - Reused one OkHttp client for API, remote image downloads and GeoServer tiles.
-- Added a debug-only hostname verifier exception for the exact `taipei.srgeo.com.tw` host. CA-chain validation remains enabled; release builds use the normal verifier.
+- Added a temporary hostname verifier exception for the exact `taipei.srgeo.com.tw` host in both debug and release. CA-chain validation remains enabled; the explicit flag must be removed after certificate repair.
 - Converted GeoServer tile providers to use the shared HTTP tile client so the debug workaround covers WMS/WMTS tile requests as well as API/WFS.
 
 ## Validation
@@ -24,6 +24,7 @@
 ## Limitations
 
 - Physical-device/API/WMS/WMTS runtime verification is `NOT VERIFIED`.
-- The server certificate still does not include `taipei.srgeo.com.tw`; debug workaround is temporary and release deployment must wait for infrastructure certificate repair.
+- The server certificate still does not include `taipei.srgeo.com.tw`; the release workaround is temporary and must be removed after infrastructure certificate repair.
 - CI result is `NOT VERIFIED`; no CI workflow/result is available in this repository.
 - The temporary `local.properties` contained only a verification placeholder and was removed after builds.
+- Follow-up release-scope change is pending its own commit; the source commit above remains the endpoint migration baseline.
