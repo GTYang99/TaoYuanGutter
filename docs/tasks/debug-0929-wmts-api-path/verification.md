@@ -3,21 +3,21 @@
 ## Verification Scope
 
 - Fixed source revision: `c4721ee` on `codex/debug-0929-wmts-api-demo-reservation`.
-- Scope: endpoint source review, focused/full JVM tests, debug/release builds, and security-boundary review.
-- Physical device and live Taipei service checks: `NOT VERIFIED`.
+- Scope: endpoint/source review, focused/full JVM tests, debug/release builds, and Android 14 emulator runtime checks on the fixed source revision.
+- Runtime test basis: user-approved Android emulator; no authorized account or valid Maps key was supplied.
 
 ## Acceptance Criteria
 
 | AC | Result | Evidence / limitation |
 |---|---|---|
-| AC-001 | PASS | `BackendEndpointsTest` and `Wmts3857TileProviderTest` confirm Taipei WMTS endpoint and existing WMTS parameters. |
+| AC-001 | PASS | Request-builder tests and emulator requests confirm the active Taipei host and all three WMTS layers; each z0 tile returned HTTP 200 `image/png`. |
 | AC-002 | PASS | `BackendEndpoints` contains named legacy DEMO values; runtime source scan found no DEMO selection or fallback. |
 | AC-003 | PASS | Main map, point picker and form map retain the shared `Wmts3857TileProvider`. |
-| AC-004 | PASS (static) | Retrofit and hardcoded GeoServer WMS consumers resolve to Taipei; live request evidence is not available. |
+| AC-004 | NOT VERIFIED | API root and WMS capabilities returned 200, but authenticated API, WFS, and GetFeatureInfo flows were not exercised. |
 | AC-005 | PASS (static) | WMS/WMTS/API endpoint constants use `taipei.srgeo.com.tw`; NLSC URLs remain unchanged. |
-| AC-006 | PASS (source/build/probe) | Hostname exception is gated by an explicit temporary flag and exact Taipei host; debug/release builds passed. A no-credential Taipei probe reached the API and returned `401` when verification was bypassed. |
-| AC-007 | PASS (static) | NLSC WMTS URL templates were not changed. |
-| AC-008 | PASS (unit/static) | Full JVM tests and source review passed; physical overlay rendering is not verified. |
+| AC-006 | PASS | Exact-host gate, platform validation for other hosts, and CA-chain behavior pass source/unit review; both builds pass, and the emulator debug client completed TLS to Taipei. |
+| AC-007 | NOT VERIFIED | NLSC URLs are unchanged in source; emulator map usability was not tested. |
+| AC-008 | NOT VERIFIED | Three WMTS tile requests returned images; overlay controls, visual rendering, and z-index behavior were not exercised. |
 
 ## Security Decision
 
@@ -28,9 +28,9 @@
 ## Final Result
 
 - Developer validation: PASS with environment limitations.
-- Independent physical verification: `NOT VERIFIED`.
+- Independent emulator verification: `PARTIAL`; AC-001 and AC-006 pass, while AC-004/007/008 remain `NOT VERIFIED`.
 - CI: `NOT VERIFIED`.
-- Release decision: temporary workaround is implemented, but long-term release remains blocked pending Taipei certificate repair, physical/runtime verification, and CI evidence.
+- Release decision: temporary exact-host workaround was exercised successfully on emulator; release remains blocked pending remaining acceptance evidence and CI. Repair the server certificate before removing the workaround.
 
 ## Independent Verification Recheck
 
@@ -39,9 +39,7 @@
 - Source snapshot: `/private/tmp/verify-wmts-c472`, exported from that commit. Source and test files
   were not edited; the only local build input was a temporary ignored `local.properties` with
   `MAPS_API_KEY=verification-placeholder`.
-- Device availability: `emulator-5554`, `sdk_gphone64_arm64`, Android 14 / API 34 was discoverable.
-  The plan requires physical-device API/photo/WMS/WMTS checks with an authenticated test account;
-  that account and a physical device were not available, so those cases were not run.
+- Device availability: `emulator-5554`, `sdk_gphone64_arm64`, Android 14 / API 34. User approved emulator as the runtime basis; authenticated scenarios remain unavailable without a test session.
 
 ### Independent checks
 
@@ -52,27 +50,26 @@
 | Debug and release builds | PASS | `:app:assembleDebug :app:assembleRelease`; `BUILD SUCCESSFUL`. |
 | Endpoint and trust-boundary source review | PASS | Active endpoint constants point to Taipei; DEMO values are only inactive constants; runtime consumers use the shared endpoint/client. The hostname verifier only short-circuits the normalized exact Taipei host; other hosts use the platform verifier. OkHttp's default certificate-chain validation remains configured, with no trust-all manager. NLSC WMTS templates remain unchanged. |
 | CI | NOT VERIFIED | No repository CI workflow or result is present in the fixed revision. |
-| Physical/runtime cases | NOT VERIFIED | No authenticated device run for API/login/photo/WMS/WMTS, no NLSC map usability result, and no on-device debug/release hostname case. |
+| Emulator runtime | PARTIAL | Debug app TLS, API root, WMS capabilities and three WMTS tile requests passed; authenticated API/photo, NLSC map usability and map overlay UI remain unverified. |
 
 ### Acceptance status
 
 | AC | Result | Evidence / limitation |
 |---|---|---|
-| AC-001 | PASS | Shared WMTS request builder and active path/layer parameters are covered by source review and focused tests. |
+| AC-001 | PASS | Shared builder tests pass; emulator fetched z0 tiles for all three active WMTS layers from Taipei, each HTTP 200 `image/png`. |
 | AC-002 | PASS | Named DEMO constants remain inactive; runtime source scan found no DEMO fallback. |
 | AC-003 | PASS | Main map, point picker, and form map continue to use the shared WMTS provider. |
 | AC-004 | NOT VERIFIED | Static endpoint review passes, but authenticated live API/WFS/WMS/GetFeatureInfo runtime requests were not exercised. |
 | AC-005 | PASS | Formal endpoint constants resolve to Taipei; DEMO is retained only as inactive constants. |
-| AC-006 | NOT VERIFIED | Source, hostname gate tests, CA-chain configuration, and both builds pass; planned debug/release device TLS behavior is untested. |
+| AC-006 | PASS | Exact-host-only verifier and normal verification for other hosts are covered by source/unit review; debug and release builds pass. On Android 14, the debug app's shared client received HTTP 200 from the mismatched Taipei certificate while retaining platform CA-chain validation. |
 | AC-007 | NOT VERIFIED | NLSC WMTS URL templates are unchanged in source, but on-device map usability was not checked. |
 | AC-008 | NOT VERIFIED | Static/request-builder checks pass; physical overlay toggles, tile rendering, and z-index behavior were not exercised. |
 
 ### Final result
 
-`NOT VERIFIED` (`environment`). Keep `next_action: infrastructure` until the scoped authenticated
-device cases and CI evidence are available. The known Taipei certificate hostname mismatch and
-temporary release workaround remain a release risk; remove the workaround after the server
-certificate is corrected.
+`NOT VERIFIED` (`environment`). AC-004, AC-007 and AC-008 remain open; continue Infrastructure until
+authorized runtime prerequisites and CI evidence are available. The approved host-only workaround
+currently enables the tested Taipei endpoints; fix the server certificate before removing it.
 
 ### Emulator-basis recheck (2026-09-29)
 
@@ -81,13 +78,21 @@ certificate is corrected.
 - ADB connected to `emulator-5554` (`sdk_gphone64_arm64`, Android 14 / API 34).
 - No app package was installed on the emulator, and the repository has no instrumentation test for WMTS/WMS tile rendering or authenticated API requests. The test plan's runtime cases therefore could not be executed. No test account/session or valid Maps API key was available, so no credentials or live data were used.
 - Repeated normal HTTPS probe to `https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/`; TLS failed with curl error 60 because the certificate SAN does not match `taipei.srgeo.com.tw`.
-- The emulator being connected does not establish AC-004/006/007/008 behavior. Their outcomes remain `NOT VERIFIED`; source review and prior focused/full JVM/build evidence remain as recorded above.
+- At this initial check, the emulator was connected but the task APK had not yet been installed; a later launch smoke and TLS/map-service instrumentation run follows below.
 
-Verification remains `NOT VERIFIED` (`environment`) and transitions directly to Infrastructure as requested.
+The task stayed in Infrastructure while the approved TLS workaround and remaining runtime prerequisites were evaluated.
 
 #### Emulator launch smoke check
 
 - Built and installed the fixed-source debug variant with `MAPS_API_KEY=verification-placeholder`: `:app:installDebug --console=plain` completed `BUILD SUCCESSFUL` and installed to `emulator-5554`.
 - Launched package `com.example.taoyuangutter`; Android reported `.login.LoginActivity` as resumed, and the process remained alive. The UI hierarchy identified the app package on screen. No crash was observed.
 - No credentials were entered. The app stayed at login, so authenticated API, photo, GeoServer WMS/WMTS, NLSC map, and on-device TLS cases were not reached. The placeholder Maps key also cannot provide valid Google Maps tiles.
-- This is a PASS for debug APK install/start smoke only; it does not change AC-004/006/007/008, which remain `NOT VERIFIED`.
+- This is a PASS for debug APK install/start smoke only; it did not by itself establish API or map behavior.
+
+#### Taipei TLS workaround and map-service smoke (2026-09-29)
+
+- User directed continuing with the temporary Taipei hostname workaround because the app must run.
+- Confirmed the production client allows hostname mismatch only for normalized `taipei.srgeo.com.tw`; it still uses OkHttp's normal trust manager. Other hosts go through the platform hostname verifier.
+- Temporary instrumentation harness (test-only, removed after the run) used the production `BackendHttpClient` on `emulator-5554` (`sdk_gphone64_arm64`, Android 14/API 34). Command: `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.common.TaipeiTlsSmokeTest`.
+- Without credentials, Taipei API root returned HTTP 200; WMS GetCapabilities returned HTTP 200 (`text/xml`); z0 GetTile for `roadServey`, `legacyDitch`, and `regions` each returned HTTP 200 (`image/png`). The debug app completed TLS and CA-chain validation despite the SAN mismatch.
+- The API root and capabilities checks do not replace authenticated API/WFS/GetFeatureInfo checks. Map controls, NLSC runtime, and visual overlay/z-index behavior were not exercised; AC-004, AC-007, and AC-008 remain `NOT VERIFIED`.

@@ -46,7 +46,6 @@ verification:
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-004
-    - AC-006
     - AC-007
     - AC-008
   evidence:
@@ -56,8 +55,12 @@ verification:
     debug_build: pass
     release_build: pass
     source_review: pass
-    emulator_runtime: not_verified
+    emulator_runtime: partial
     emulator_install_start: pass_login_activity
+    emulator_taipei_api_root: http_200
+    emulator_wms_capabilities: http_200
+    emulator_wmts_tiles: 3_of_3_http_200_image_png
+    emulator_tls_exact_host_workaround: pass
     ci: not_verified
 
 ci:
@@ -67,7 +70,7 @@ ci:
 infrastructure:
   status: blocked
   evidence:
-    taipei_https_probe: certificate_hostname_mismatch
+    taipei_https_probe: certificate_mismatch_app_workaround_verified
     github_status_checks: empty
     github_workflow_runs: empty
     repository_ci_definition: unavailable
@@ -80,8 +83,7 @@ release:
   status: pending
 
 blocking:
-  - Taipei server certificate does not yet include taipei.srgeo.com.tw; release now uses the explicitly approved temporary exact-host workaround and infrastructure must still fix the certificate.
-  - Emulator debug APK build/install/start passed and opened LoginActivity; no valid Maps API key or authorized test session is available, so API/login, photo, WMS/WMTS, NLSC, and on-device TLS runtime checks remain not verified.
+  - Emulator debug TLS workaround, API root, WMS capabilities, and three WMTS tile responses pass; no valid Maps API key or authorized test session is available, so authenticated API/WFS/GetFeatureInfo, photo, NLSC, and map UI runtime checks remain not verified.
   - GitHub returned no combined status checks or workflow runs for the fixed commit, and no CI definition is present in the repository.
 
 next_action: infrastructure

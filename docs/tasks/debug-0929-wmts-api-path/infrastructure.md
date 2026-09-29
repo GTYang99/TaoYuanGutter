@@ -11,36 +11,38 @@
 
 | Required evidence | Result | Evidence |
 |---|---|---|
-| Taipei DNS / HTTPS endpoint | BLOCKED | A read-only `curl -I` to `https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/` resolved and reached TLS negotiation, then failed verification with curl error 60: no certificate subject alternative name matches `taipei.srgeo.com.tw`. No credentials were sent. |
+| Taipei certificate | KNOWN MISMATCH; APP WORKAROUND VERIFIED | Normal curl still fails with error 60 because the SAN omits `taipei.srgeo.com.tw`. Per user direction, the exact-host client workaround was exercised on Android 14: API root 200, WMS capabilities 200, and all three WMTS z0 tiles 200 `image/png`; no credentials were sent. |
 | GitHub CI status for the fixed commit | BLOCKED | GitHub combined status returned an empty `statuses` list; associated workflow runs returned an empty `workflow_runs` list. |
 | Repository CI definition | BLOCKED | No workflow or CI configuration file is present in the checked repository revision. |
 | Emulator availability | AVAILABLE | ADB connected to `emulator-5554` (`sdk_gphone64_arm64`, Android 14/API 34), which the user approved as the runtime basis. |
 | Emulator install/start | PASS | Built and installed the task debug APK using a verification placeholder Maps key; package launched without a crash and resumed at `LoginActivity`. |
-| Authenticated emulator runtime | BLOCKED | No authorized test account/session or valid Maps API key is available. The session remained at login; photo/map-service and tile checks were not run. No credentials were requested or recorded. |
+| Authenticated emulator runtime | BLOCKED | No authorized test account/session or valid Maps API key is available. The app remained at login; authenticated API/photo and in-app map UI checks were not run. Unauthenticated API root, WMS capabilities, and WMTS tile requests did pass. No credentials were used. |
 
 ## Environment Classification
 
-The certificate hostname mismatch is confirmed as a current server configuration issue, matching the
-known limitation. The source's temporary exact-host workaround does not repair the server certificate
-and must not be treated as evidence that normal TLS verification succeeds. Authenticated emulator
-runtime and CI results are unavailable; debug APK install/start passed, and local unit tests plus
-debug/release builds passed in Verification.
+The certificate hostname mismatch is confirmed as a server configuration issue. The approved exact-host
+workaround lets the Android client complete TLS while preserving CA-chain validation; it does not fix
+normal TLS clients. Authenticated API/photo/map UI runtime and CI evidence remain unavailable. Emulator
+API root, WMS capabilities, and all three WMTS tile requests passed; local unit tests and debug/release
+builds also passed in Verification.
 
 ## Remediation Needed
 
-1. Update the Taipei server certificate so its SAN includes `taipei.srgeo.com.tw`; then repeat a
-   normal certificate-validating HTTPS probe.
-2. Provide a valid Maps API key and an authorized test account/session for the scoped login/API,
+1. Provide a valid Maps API key and an authorized test account/session for the scoped login/API,
    photo, WMS/WMTS, NLSC, and debug/release TLS checks on the available emulator. Do not send account
    credentials in task artifacts or chat.
-3. Provide a CI run/status URL for the fixed commit, or make the applicable CI workflow available and
+2. Provide a CI run/status URL for the fixed commit, or make the applicable CI workflow available and
    run it.
+3. Fix the Taipei certificate SAN to include `taipei.srgeo.com.tw` before retiring the explicitly
+   approved temporary host-only workaround.
 
-Once these conditions are available, return to Verification. After the server certificate is fixed,
-remove the temporary release hostname workaround as required by the task and verify the resulting
-committed revision.
+When emulator credentials/key and CI evidence are available, return to Verification using the
+approved exact-host workaround. After the server certificate is fixed, remove the temporary release
+hostname workaround and verify the resulting committed revision.
 
 ## Decision
 
-Infrastructure work is **BLOCKED** pending server certificate repair, emulator runtime prerequisites,
-and CI evidence. Task remains in `phase: infrastructure`, with `next_action: infrastructure`.
+Infrastructure remains **BLOCKED** on authenticated emulator prerequisites and CI evidence. The
+temporary TLS workaround is verified for API root, WMS capabilities, and WMTS tiles; server certificate
+repair remains required before removing the workaround. Task remains in `phase: infrastructure`, with
+`next_action: infrastructure`.
