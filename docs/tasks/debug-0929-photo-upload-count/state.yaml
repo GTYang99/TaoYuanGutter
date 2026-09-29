@@ -3,7 +3,7 @@ task:
   type: debug
 
 phase: implementation
-status: implementation_complete
+status: verification_in_progress
 
 knowledge_resolution:
   status: not_required
