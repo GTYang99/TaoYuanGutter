@@ -4,7 +4,7 @@
 
 - Fixed source revision: `c4721ee` on `codex/debug-0929-wmts-api-demo-reservation`.
 - Scope: endpoint/source review, focused/full JVM tests, debug/release builds, and Android 14 emulator runtime checks on the fixed source revision.
-- Runtime test basis: user-approved Android 14 emulator; no authorized test account was available. A configured local Maps key was used for the map UI smoke test and was not printed or committed.
+- Runtime test basis: user-approved Android 14 emulator. The user signed in directly for the authenticated follow-up; credentials were neither shared nor recorded. A configured local Maps key was used for the map UI smoke test and was not printed or committed.
 
 ## Acceptance Criteria
 
@@ -13,11 +13,11 @@
 | AC-001 | PASS | Request-builder tests and emulator requests confirm the active Taipei host and all three WMTS layers; each z0 tile returned HTTP 200 `image/png`. |
 | AC-002 | PASS | `BackendEndpoints` contains named legacy DEMO values; runtime source scan found no DEMO selection or fallback. |
 | AC-003 | PASS | Source review confirms shared `Wmts3857TileProvider`; emulator launched main map, point picker, and form map surfaces. |
-| AC-004 | NOT VERIFIED | API root and WMS capabilities returned 200, but authenticated API, WFS, and GetFeatureInfo flows were not exercised. |
+| AC-004 | PASS | User signed in on the Android 14 emulator. Sanitized runtime logs show Taipei login (3/3 HTTP 200), `scopeSearch` (26/26 HTTP 200), WFS `GetFeature` for `map_no_ditch_points` (13/13 HTTP 200), WMS `GetFeatureInfo` for the same layer (8/8 HTTP 200), and WMS `GetMap` responses for labels and no-ditch points (174/174 and 14/14 HTTP 200). |
 | AC-005 | PASS (static) | WMS/WMTS/API endpoint constants use `taipei.srgeo.com.tw`; NLSC URLs remain unchanged. |
 | AC-006 | PASS | Exact-host gate, platform validation for other hosts, and CA-chain behavior pass source/unit review. Debug and release clients both completed emulator TLS requests to Taipei. |
 | AC-007 | PASS | NLSC URL template is unchanged; emulator selected NLSC `EMAP01` on the main map and rendered it. Point-picker/form map surfaces also opened. |
-| AC-008 | NOT VERIFIED | All three WMTS tiles returned images; main map rendered and the plan overlay checkbox toggled off/on. Other WMS/WFS cases and complete overlay/z-index regression coverage remain open. |
+| AC-008 | PASS (scoped emulator check) | User confirmed layer overlays could each be switched on/off and the basemaps switched normally. Runtime logs show HTTP 200 tile responses for all three WMTS layers and successful WMS GetMap responses for labels/no-ditch. Some WMTS tile requests returned HTTP 400; the provider drops failed tiles individually and the map/controls remained usable. This is the approved per-tile degradation behavior. |
 
 ## Security Decision
 
@@ -28,9 +28,9 @@
 ## Final Result
 
 - Developer validation: PASS with environment limitations.
-- Independent emulator verification: `PARTIAL`; AC-001, AC-003, AC-005, AC-006, and AC-007 pass, while AC-004 and AC-008 remain `NOT VERIFIED`.
+- Independent emulator verification: `PASS` for the scoped criteria; AC-001 through AC-008 pass at their recorded scope, including the user-assisted authenticated AC-004 and overlay AC-008 run below.
 - CI: `NOT VERIFIED`.
-- Release decision: temporary exact-host workaround was exercised successfully on emulator; release remains blocked pending remaining acceptance evidence and CI. Repair the server certificate before removing the workaround.
+- Release decision: temporary exact-host workaround was exercised successfully on emulator; release remains blocked pending CI evidence. Repair the server certificate before removing the workaround.
 
 ## Independent Verification Recheck
 
@@ -67,9 +67,9 @@
 
 ### Final result
 
-`NOT VERIFIED` (`environment`). AC-004 and AC-008 remain open; continue Infrastructure until
-authorized runtime prerequisites and CI evidence are available. The approved host-only workaround
-currently enables the tested Taipei endpoints; fix the server certificate before removing it.
+`NOT VERIFIED` (`environment`) due to absent CI evidence. AC-004 and AC-008 were subsequently closed
+by the user-assisted emulator run below. The approved host-only workaround currently enables the
+tested Taipei endpoints; fix the server certificate before removing it.
 
 ### Emulator-basis recheck (2026-09-29)
 
@@ -109,3 +109,11 @@ The task stayed in Infrastructure while the approved TLS workaround and remainin
 #### Point-picker and form map emulator smoke (2026-09-29)
 
 - The same instrumentation suite launched `MapPointPickerActivity` with a fixed test coordinate and `GutterFormActivity` with one synthetic in-memory waypoint; both map containers were present after launch and remained active for five seconds. The test passed without login or submitting/saving data.
+
+#### User-assisted authenticated map verification (2026-09-29)
+
+- The user signed in directly on the Android 14 emulator; no credentials were shared in chat or recorded. The user manually opened and closed the map overlays and switched the basemaps, reporting normal behavior. No create/submit action was performed.
+- Sanitized request logging confirmed Taipei traffic: login `POST /TY_RSGDBIP_BK/api/login` 3/3 HTTP 200; `GET /TY_RSGDBIP_BK/api/v1/map/scopeSearch` 26/26 HTTP 200; WFS `GetFeature` for `map_no_ditch_points` 13/13 HTTP 200; WMS `GetFeatureInfo` for `map_no_ditch_points` 8/8 HTTP 200; WMS `GetMap` for `map_ditch_nodes_labels` 174/174 and `map_no_ditch_points` 14/14 HTTP 200. Queries, coordinates, headers, response bodies, and credentials were excluded from the evidence.
+- Each of the three WMTS layers (`legacyDitch`, `regions`, `roadServey`) had successful HTTP 200 tile responses in the capture. Some tile requests also returned HTTP 400. Source review confirms `HttpTileProvider` returns no tile on a non-success response; the map stayed rendered and the user reported overlay and basemap controls working normally. Treat these as individual unavailable tiles under the approved tile-by-tile degradation behavior, not as evidence that every tile succeeded.
+- The user tapped a blank map location with `map_no_ditch_points` enabled. The capture contained successful WMS `GetFeatureInfo` responses (HTTP 200); this was a read-only query and wrote no data.
+- Scope: this closes the planned AC-004 authenticated API/WFS/GetFeatureInfo path and the manual AC-008 layer/basemap behavior check on the fixed implementation revision. CI remains `NOT VERIFIED`; this evidence does not constitute release approval.

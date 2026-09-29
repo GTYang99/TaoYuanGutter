@@ -44,9 +44,7 @@ verification:
   result: not_verified
   category: environment
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
-    - AC-004
-    - AC-008
+  not_verified_acceptance_criteria: []
   evidence:
     fixed_revision: c4721ee
     targeted_unit_tests: pass
@@ -54,15 +52,20 @@ verification:
     debug_build: pass
     release_build: pass
     source_review: pass
-    emulator_runtime: partial
+    emulator_runtime: authenticated_map_and_overlay_checks_pass
     emulator_install_start: pass_login_activity
     emulator_taipei_api_root: http_200
     emulator_wms_capabilities: http_200
     emulator_wmts_tiles: 3_of_3_http_200_image_png
     emulator_tls_exact_host_workaround: pass
     emulator_tls_release_variant: pass_api_wms_wmts
-    emulator_main_map_ui: rendered_without_login
-    emulator_plan_overlay_toggle: off_on_pass
+    emulator_main_map_ui: rendered_authenticated
+    emulator_authenticated_api: login_3_of_3_http_200_scope_search_26_of_26_http_200
+    emulator_wfs_getfeature: 13_of_13_http_200
+    emulator_wms_getfeatureinfo: 8_of_8_http_200
+    emulator_wms_getmap: labels_174_of_174_no_ditch_14_of_14_http_200
+    emulator_overlay_basemap_manual_check: user_confirmed_on_off_and_switching_normal
+    emulator_wmts_tile_status: all_three_layers_have_http_200_some_tiles_http_400_degraded_individually
     emulator_nlsc_emap01: rendered
     emulator_picker_form_maps: opened
     ci: not_verified
@@ -88,7 +91,7 @@ release:
   status: pending
 
 blocking:
-  - Emulator debug TLS workaround, API root, WMS capabilities, three WMTS tile responses, main/NLSC map, one overlay toggle, and picker/form map launches pass; no authorized test session is available, so authenticated API/WFS/GetFeatureInfo, photo, and complete overlay regression remain not verified.
+  - CI remains NOT VERIFIED: no repository CI definition or GitHub workflow/status evidence is available for the fixed revision. The user-assisted emulator run closed AC-004 and the scoped AC-008 overlay/basemap checks; remaining release gates are tracked separately.
   - GitHub returned no combined status checks or workflow runs for the fixed commit, and no CI definition is present in the repository.
 
 next_action: infrastructure
