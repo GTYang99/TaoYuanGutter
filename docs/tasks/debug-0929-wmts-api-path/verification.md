@@ -73,3 +73,14 @@
 device cases and CI evidence are available. The known Taipei certificate hostname mismatch and
 temporary release workaround remain a release risk; remove the workaround after the server
 certificate is corrected.
+
+### Emulator-basis recheck (2026-09-29)
+
+- User approved emulator testing as the runtime basis for this verification.
+- Fixed implementation revision: `c4721ee3d785a2c6d6e1e928796912a10b062971`; task branch head contains documentation only above it.
+- ADB connected to `emulator-5554` (`sdk_gphone64_arm64`, Android 14 / API 34).
+- No app package was installed on the emulator, and the repository has no instrumentation test for WMTS/WMS tile rendering or authenticated API requests. The test plan's runtime cases therefore could not be executed. No test account/session or valid Maps API key was available, so no credentials or live data were used.
+- Repeated normal HTTPS probe to `https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/`; TLS failed with curl error 60 because the certificate SAN does not match `taipei.srgeo.com.tw`.
+- The emulator being connected does not establish AC-004/006/007/008 behavior. Their outcomes remain `NOT VERIFIED`; source review and prior focused/full JVM/build evidence remain as recorded above.
+
+Verification remains `NOT VERIFIED` (`environment`) and transitions directly to Infrastructure as requested.
