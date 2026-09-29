@@ -38,6 +38,11 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
 
+        <!-- Remote photos use the shared Taipei certificate workaround. -->
+        <meta-data
+            android:name="com.example.taoyuangutter.common.BackendGlideModule"
+            android:value="GlideModule" />
+
         <!-- Login Activity -->
         <activity
             android:name=".login.LoginActivity"
