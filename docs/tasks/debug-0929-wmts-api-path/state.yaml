@@ -2,8 +2,8 @@ task:
   id: debug-0929-wmts-api-path
   type: debug
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -42,18 +42,33 @@ git:
 
 verification:
   result: not_verified
-  category: null
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-004
+    - AC-006
+    - AC-007
+    - AC-008
+  evidence:
+    fixed_revision: c4721ee
+    targeted_unit_tests: pass
+    full_unit_tests: 137/137
+    debug_build: pass
+    release_build: pass
+    source_review: pass
+    physical_device_runtime: not_verified
+    ci: not_verified
 
 ci:
-  build: NOT_VERIFIED
-  test: NOT_VERIFIED
+  build: not_verified
+  test: not_verified
 
 release:
   status: pending
 
 blocking:
   - Taipei server certificate does not yet include taipei.srgeo.com.tw; release now uses the explicitly approved temporary exact-host workaround and infrastructure must still fix the certificate.
-  - Physical-device login, photo, WMS and WMTS runtime verification is still pending.
+  - Physical-device API/login, photo, WMS/WMTS and NLSC runtime verification is still pending; no authenticated test account or physical device was available.
+  - No repository CI workflow or result is available.
 
-next_action: verification
+next_action: infrastructure
