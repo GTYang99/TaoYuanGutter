@@ -2,14 +2,15 @@ task:
   id: debug-0929-photo-upload-count
   type: debug
 
-phase: investigation
-status: investigation_in_progress
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: not_required
 
 debug:
-  status: pending
+  status: completed
+  root_cause: conditional_success_without_numeric_img_id_is_omitted_from_storeDitch
   root_cause: conditional_success_without_numeric_img_id_is_omitted_from_storeDitch
   issues:
     - ISS-001
@@ -48,4 +49,4 @@ blocking:
   - Need one correlated nodeImage response, storeDitch request, and server record for the reported case.
   - Need backend confirmation whether success=true guarantees a numeric data.img_id for new/replaced photos.
 
-next_action: debug
+next_action: implementation_debug
