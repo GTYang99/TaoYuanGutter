@@ -46,7 +46,6 @@ verification:
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-004
-    - AC-007
     - AC-008
   evidence:
     fixed_revision: c4721ee
@@ -61,6 +60,11 @@ verification:
     emulator_wms_capabilities: http_200
     emulator_wmts_tiles: 3_of_3_http_200_image_png
     emulator_tls_exact_host_workaround: pass
+    emulator_tls_release_variant: pass_api_wms_wmts
+    emulator_main_map_ui: rendered_without_login
+    emulator_plan_overlay_toggle: off_on_pass
+    emulator_nlsc_emap01: rendered
+    emulator_picker_form_maps: opened
     ci: not_verified
 
 ci:
@@ -74,7 +78,8 @@ infrastructure:
     github_status_checks: empty
     github_workflow_runs: empty
     repository_ci_definition: unavailable
-    emulator: connected_app_started_login_blocked
+    emulator: debug_release_tls_and_map_screens_pass_auth_flow_blocked
+    maps_api_key: configured_locally
     physical_device: not_required_for_this_verification
     authorized_test_session: unavailable
   resume_phase: verification
@@ -83,7 +88,7 @@ release:
   status: pending
 
 blocking:
-  - Emulator debug TLS workaround, API root, WMS capabilities, and three WMTS tile responses pass; no valid Maps API key or authorized test session is available, so authenticated API/WFS/GetFeatureInfo, photo, NLSC, and map UI runtime checks remain not verified.
+  - Emulator debug TLS workaround, API root, WMS capabilities, three WMTS tile responses, main/NLSC map, one overlay toggle, and picker/form map launches pass; no authorized test session is available, so authenticated API/WFS/GetFeatureInfo, photo, and complete overlay regression remain not verified.
   - GitHub returned no combined status checks or workflow runs for the fixed commit, and no CI definition is present in the repository.
 
 next_action: infrastructure

@@ -16,28 +16,29 @@
 | Repository CI definition | BLOCKED | No workflow or CI configuration file is present in the checked repository revision. |
 | Emulator availability | AVAILABLE | ADB connected to `emulator-5554` (`sdk_gphone64_arm64`, Android 14/API 34), which the user approved as the runtime basis. |
 | Emulator install/start | PASS | Built and installed the task debug APK using a verification placeholder Maps key; package launched without a crash and resumed at `LoginActivity`. |
-| Authenticated emulator runtime | BLOCKED | No authorized test account/session or valid Maps API key is available. The app remained at login; authenticated API/photo and in-app map UI checks were not run. Unauthenticated API root, WMS capabilities, and WMTS tile requests did pass. No credentials were used. |
+| Emulator runtime | PARTIAL | Configured local Maps key rendered the main/NLSC map; picker/form maps opened; debug and release TLS requests passed; layer sheet opened and the plan overlay checkbox toggled off/on. |
+| Authenticated emulator runtime | BLOCKED | Main/NLSC map, point-picker, and form map screens opened, but no authorized test account/session is available for authenticated API/photo and WFS/GetFeatureInfo cases. No credentials were used. |
 
 ## Environment Classification
 
 The certificate hostname mismatch is confirmed as a server configuration issue. The approved exact-host
 workaround lets the Android client complete TLS while preserving CA-chain validation; it does not fix
-normal TLS clients. Authenticated API/photo/map UI runtime and CI evidence remain unavailable. Emulator
-API root, WMS capabilities, and all three WMTS tile requests passed; local unit tests and debug/release
-builds also passed in Verification.
+normal TLS clients. Authenticated API/photo/WFS/GetFeatureInfo runtime and full overlay-regression
+evidence plus CI remain unavailable. Main/NLSC map, picker, and form map screens opened with the local
+key; emulator API root, WMS capabilities, all three WMTS tile requests, and one WMS toggle passed.
+Local unit tests and debug/release builds also passed. Both debug and release app clients completed the same unauthenticated API/WMS/WMTS TLS smoke on emulator; release used a temporary test-only signing/variant setup, which was reverted.
 
 ## Remediation Needed
 
-1. Provide a valid Maps API key and an authorized test account/session for the scoped login/API,
-   photo, WMS/WMTS, NLSC, and debug/release TLS checks on the available emulator. Do not send account
-   credentials in task artifacts or chat.
+1. Provide an authorized test account/session for scoped login/API, photo, and authenticated service
+   checks on the available emulator. Do not send account credentials in task artifacts or chat.
 2. Provide a CI run/status URL for the fixed commit, or make the applicable CI workflow available and
    run it.
 3. Fix the Taipei certificate SAN to include `taipei.srgeo.com.tw` before retiring the explicitly
    approved temporary host-only workaround.
 
-When emulator credentials/key and CI evidence are available, return to Verification using the
-approved exact-host workaround. After the server certificate is fixed, remove the temporary release
+When an authorized emulator test session and CI evidence are available, return to Verification using
+the approved exact-host workaround. After the server certificate is fixed, remove the runtime
 hostname workaround and verify the resulting committed revision.
 
 ## Decision
