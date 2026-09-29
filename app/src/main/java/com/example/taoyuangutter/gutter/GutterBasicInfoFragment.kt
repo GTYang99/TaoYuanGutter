@@ -760,8 +760,6 @@ class GutterBasicInfoFragment : Fragment() {
 
         binding.cbCantOpen.alpha = if (binding.cbCantOpen.isEnabled || cantOpenChecked) 1f else 0.5f
         binding.cbConnectPoint.alpha = if (binding.cbConnectPoint.isEnabled || tieInChecked) 1f else 0.5f
-        binding.layoutConnectPipe.alpha =
-            if (!isVirtualMode && !cantOpenChecked && !tieInChecked) 1f else 0.5f
     }
 
     private fun onCantOpenToggleChanged(button: CompoundButton, checked: Boolean) {

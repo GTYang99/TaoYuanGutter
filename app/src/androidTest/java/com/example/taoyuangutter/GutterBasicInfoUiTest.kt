@@ -16,6 +16,7 @@ import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import org.hamcrest.Matchers
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -86,6 +87,37 @@ class GutterBasicInfoUiTest {
             onView(withId(R.id.cbCantOpen)).check(matches(isChecked()))
             onView(withId(R.id.rbConnectPipe0)).check(matches(isNotChecked()))
             onView(withId(R.id.rbConnectPipe1)).check(matches(isNotChecked()))
+        }
+    }
+
+    @Test
+    fun detailExemptionKeepsConnectPipeOpacityAlignedWithOtherDisabledFields() {
+        listOf(
+            hashMapOf("NODE_TYP" to "1", "IS_TIEINPOINT" to "1"),
+            hashMapOf("NODE_TYP" to "1", "IS_CANTOPEN" to "1")
+        ).forEach { data ->
+            launchForm(data).use { scenario ->
+                scenario.onActivity { activity ->
+                    assertEquals(
+                        "connect pipe container must not apply a second alpha layer",
+                        1f,
+                        activity.findViewById<android.view.View>(R.id.layoutConnectPipe).alpha,
+                        0f
+                    )
+                    assertEquals(
+                        "connect pipe options must use the same disabled alpha as other groups",
+                        0.5f,
+                        activity.findViewById<android.view.View>(R.id.rgConnectPipe).alpha,
+                        0f
+                    )
+                    assertEquals(
+                        "connect pipe title must remain fully opaque",
+                        1f,
+                        activity.findViewById<android.view.View>(R.id.tvConnectPipeTitle).alpha,
+                        0f
+                    )
+                }
+            }
         }
     }
 
