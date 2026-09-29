@@ -29,7 +29,9 @@ validation:
   evidence_tests: pass
   full_unit_tests: pass
   debug_apk: pass
-  runtime_device: not_verified
+  instrumentation_compile: pass
+  runtime_device: pass
+  runtime_device_cases: 15/15
 
 git:
   branch: codex/debug-0929-photo-upload-count
@@ -42,7 +44,12 @@ verification:
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-004
-    - FIX-005
+  evidence:
+    targeted_unit_tests: pass
+    full_unit_tests: 136/136
+    debug_build: pass
+    device_regression: 15/15
+    diff_check: pass
 
 ci:
   build: not_verified
@@ -54,6 +61,6 @@ release:
 blocking:
   - Need one correlated nodeImage response, storeDitch request, and server record for the reported case.
   - Need backend confirmation whether success=true guarantees a numeric data.img_id for new/replaced photos.
-  - No Android device or repository CI result is available for independent runtime verification.
+  - No repository CI workflow or result is available.
 
 next_action: infrastructure

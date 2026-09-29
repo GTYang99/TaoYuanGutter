@@ -1,26 +1,29 @@
 # Verification Report
 
-## Verified revision
+## Verification round
 
+- Date: `2026-09-29`
 - Production revision under test: `ccaab159bd4fad9768a7044482fab12882ca42f5`
+- Verification worktree: `/Users/a10362/.codex/worktrees/photo-upload-investigation/TaoYuanGutter`
 - Branch: `codex/debug-0929-photo-upload-count`
-- Verification checkout was committed before testing; the only commits after the production fix contain
-  task state/report artifacts. `git diff ccaab159..HEAD -- app/src/main app/src/test` is empty.
+- `git diff ccaab159..HEAD -- app/src/main app/src/test`: empty
+- Worktree source/test state: clean after removing the temporary ignored `local.properties`
 - Package: `com.example.taoyuangutter`
 - Build variant: `debug`
-- APK: `app/build/outputs/apk/debug/app-debug.apk`
+- Device: `emulator-5554`, `sdk_gphone64_arm64`, Android 14 / API 34
 
-## Inputs and implementation review
+Independent Verification used the committed production fix revision. The later branch commits only
+contain task artifacts; no production or test source differs from `ccaab15`.
 
-- Reviewed: `requirement.md`, `analysis.md`, `fix-plan.md`, `root-cause.md`, `issue-log.md`, `state.yaml`,
-  the production diff, changed tests, `testing-rules.md`, and `verification-rules.md`.
-- User's later request explicitly expanded the investigation-only scope to bug fix and implementation;
-  `fix-plan.md` records that approved scope transition.
-- The fix is at the shared `GutterRepository.uploadNodeImage()` boundary. Direct submit, background
-  coordinator, and batch manager all consume this result, so a missing ID cannot be interpreted as a
-  completed upload by those callers.
-- URL-only imported photos use download/import state and do not call `uploadNodeImage()` unless replaced;
-  the fix does not require an ID for the import path.
+## Implementation review
+
+- `GutterRepository.uploadNodeImage()` is the shared boundary for direct submit, background
+  coordination, form activity upload, and batch upload manager paths.
+- A response is successful only when `success=true` and `data.img_id` is a positive integer.
+- Missing, zero, or negative IDs use the existing error path and cannot be treated as a completed
+  upload before `storeDitch`.
+- Unchanged URL-only imported photos remain on the import/download path and are not forced through
+  `uploadNodeImage()`.
 
 ## Acceptance criteria
 
@@ -28,59 +31,95 @@
 
 | AC | Result | Evidence |
 |---|---|---|
-| AC-001 | PASS | `GutterCompletionPolicyTest` covers special `[1]`, normal `[1,2,3]`, virtual empty; source review confirms form and submit validation use the policy. |
-| AC-002 | PASS | Source review plus `StoreDitchNodeRequestMapperTest` and the new boundary tests trace node-image result handling to `img_ids`. |
-| AC-003 | PASS | Historical `ISS-003` evidence separates the `0/X` progress mismatch from request payload mapping; the fix does not conflate them. |
-| AC-004 | NOT VERIFIED | Repository and history show nullable/URL-only response shapes, but there is no correlated live response for the reported operation. |
-| AC-005 | PASS | Targeted suite and full `:app:testDebugUnitTest` completed successfully. |
+| AC-001 | PASS | Source review and `GutterCompletionPolicyTest`; special mode requires slot 1, normal mode requires slots 1–3, virtual mode requires none. Device `GutterBasicInfoUiTest` passed 11/11. |
+| AC-002 | PASS | Source review traces `nodeImage` through repository result handling to `storeDitch.img_ids`; boundary and mapper tests pass. Device mapper test passed 1/1. |
+| AC-003 | PASS | `analysis.md`, `root-cause.md`, and `issue-log.md` distinguish local photo validation, payload loss, and the separate progress-count issue. |
+| AC-004 | NOT VERIFIED | No correlated live `nodeImage` response, `storeDitch` request, and server record exists for the reported operation; backend success-without-ID contract is still unconfirmed. |
+| AC-005 | PASS | Targeted JVM suite and full `:app:testDebugUnitTest` pass with 136 tests and no failures. |
 
 ### Fix criteria
 
 | FIX | Result | Evidence |
 |---|---|---|
-| FIX-001 | PASS | `GutterRepositoryNodeImageBoundaryTest.positiveImageIdRemainsSuccessful`; positive `img_id` remains `ApiResult.Success`. |
-| FIX-002 | PASS | Boundary tests for missing and non-positive IDs pass; repository returns `ApiResult.Error` before any caller can proceed to `storeDitch`. |
-| FIX-003 | PASS by source/unit evidence | Import flow does not call `uploadNodeImage()` for unchanged URL-only photos; existing `PhotoUploadCandidateResolverTest` coverage remains green. Runtime import was not executed. |
-| FIX-004 | PASS | Existing completion-policy and mapper tests preserve special/normal slot rules; no validation or request-rule weakening is present in the diff. |
-| FIX-005 | NOT VERIFIED | Local tests/build and diff checks pass, but CI and physical-device/backend evidence are unavailable. |
+| FIX-001 | PASS | `GutterRepositoryNodeImageBoundaryTest.positiveImageIdRemainsSuccessful` passes; positive ID remains `ApiResult.Success`. |
+| FIX-002 | PASS | Boundary tests for missing and non-positive IDs pass; the shared repository boundary returns `ApiResult.Error`. |
+| FIX-003 | PASS | Source review, `PhotoUploadCandidateResolverTest`, and device `GutterImportExistingWaypointUiTest` 1/1 pass; unchanged URL-only import remains unaffected. |
+| FIX-004 | PASS | Completion-policy, mapper, form UI, and device contract tests preserve special/normal photo requirements. |
+| FIX-005 | PASS | Targeted tests, full unit tests, debug APK assembly, instrumentation compilation, and `git diff --check` pass. Unavailable CI/backend evidence is recorded separately as `NOT VERIFIED`. |
 
-## Automated validation
+## Validation executed
 
-Command:
+### JVM and build
 
 ```text
-JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest :app:assembleDebug --console=plain
+JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest \
+  --tests com.example.taoyuangutter.api.GutterRepositoryNodeImageBoundaryTest \
+  --tests com.example.taoyuangutter.api.NodeImgDeserializationTest \
+  --tests com.example.taoyuangutter.api.StoreDitchNodeRequestMapperTest \
+  --tests com.example.taoyuangutter.gutter.GutterCompletionPolicyTest \
+  --tests com.example.taoyuangutter.gutter.PhotoUploadCandidateResolverTest \
+  --tests com.example.taoyuangutter.gutter.PhotoResultMetadataMergerTest \
+  --console=plain --no-daemon
 ```
 
-Result: `BUILD SUCCESSFUL`. JUnit reports 41 suites, 136 tests, 0 failures, 0 errors, 0 skipped.
-The first independent build attempt lacked the ignored `MAPS_API_KEY` placeholder and failed during manifest
-merging; rerun with the temporary placeholder passed. The placeholder was removed after validation.
+Result: `BUILD SUCCESSFUL`.
+
+```text
+JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:assembleDebug :app:compileDebugAndroidTestKotlin --console=plain --no-daemon
+```
+
+Result: `BUILD SUCCESSFUL`; debug APK and instrumentation sources compiled.
+
+```text
+JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest --console=plain --no-daemon
+```
+
+Result: `BUILD SUCCESSFUL`; 136 tests, 0 failures, 0 errors, 0 skipped.
 
 Additional checks:
 
 - `git diff --check`: PASS.
-- Production diff from `ccaab159` to the verification checkout: empty.
-- `adb devices -l`: no device returned; physical test unavailable.
-- Repository CI workflow/result: unavailable.
+- Production/test diff from `ccaab159` to verification branch tip: empty.
+- Temporary `local.properties` contained only `MAPS_API_KEY=verification-placeholder` and was removed.
 
-## Regression review
+### Device-focused regression slices
 
-- PASS: positive-ID upload path remains successful.
-- PASS: missing/zero/negative-ID upload path becomes an explicit error.
-- PASS: URL-only imported-photo state and replacement candidate tests remain green.
-- PASS: special mode maps only slot 1; normal mode retains all available valid IDs.
-- NOT VERIFIED: real authenticated node-image response without `img_id`, retry UI, and server-side record
-  after a controlled `storeDitch` operation.
+All were run with `:app:connectedDebugAndroidTest` and the Android instrumentation runner class
+argument on `emulator-5554`:
 
-## Issues and limitations
+| Test slice | Result | Scope |
+|---|---|---|
+| `GutterBasicInfoUiTest` | PASS, 11/11 | Required photo modes and related form regression |
+| `GutterImportExistingWaypointUiTest` | PASS, 1/1 | URL-only existing-photo import path |
+| `StoreDitchResponseWaypointMapperInstrumentedTest` | PASS, 1/1 | Returned photo IDs mapped into draft slots |
+| `GutterFormContractInstrumentedTest` | PASS, 2/2 | Form data boundary preservation |
 
-- `ISS-002`: the user's original incident is not correlated to a live request/response/server record.
-- `ISS-004`: CI and Android device/backend runtime evidence are unavailable; this is an environment limitation,
-  not an observed implementation failure.
+Total device slice: 15/15 passed.
+
+## Regression and limitations
+
+- PASS: positive image ID remains successful.
+- PASS: missing, zero, and negative image IDs become an explicit repository error.
+- PASS: special mode and normal mode photo-slot rules remain intact.
+- PASS: unchanged URL-only imported photos remain displayable without forced upload.
+- NOT VERIFIED: controlled authenticated `nodeImage` failure response, retry UI after that response,
+  subsequent `storeDitch`, and final server-side photo record for the reported incident.
+- NOT VERIFIED: repository CI workflow/result; no CI workflow is present in the fixed branch.
+
+## Issues
+
+- `ISS-002`: original incident is not correlated to a live request/response/server record.
+- `ISS-004`: backend correlation and CI evidence remain unavailable; device evidence is now available
+  and passed.
+
+## Failure classification
+
+`environment` / `unknown` for the unavailable external backend and CI evidence. No implementation
+failure was observed in the executed local or device slices.
 
 ## Final result
 
 NOT VERIFIED
 
-The implementation and local regression evidence pass. Release cannot advance until the missing environment
-evidence is supplied or the release owner explicitly accepts the recorded limitations.
+Local implementation and test-machine regression evidence pass. Release remains blocked by AC-004
+and the missing CI/backend evidence.
