@@ -73,10 +73,59 @@ the run.
 - No CI workflow/result was available in this worktree.
 - No physical-device reproduction was run in this investigation.
 
+## Implementation update
+
+- Production fix: `GutterRepository.uploadNodeImage()` now returns success only when the response
+  contains a positive `data.img_id`; missing, zero, or negative IDs use the existing `ApiResult.Error`
+  path. This is the shared boundary used by the direct submit, background coordinator, and batch manager.
+- URL-only imported photos remain unchanged because the import flow downloads them and does not call
+  `uploadNodeImage()` unless the user replaces the photo.
+- Added `GutterRepositoryNodeImageBoundaryTest` covering valid, missing, and non-positive IDs.
+- Production fix commit: `ccaab159bd4fad9768a7044482fab12882ca42f5` on
+  `codex/debug-0929-photo-upload-count`.
+
+## Implementation validation
+
+Targeted regression command:
+
+```text
+JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest \
+  --tests com.example.taoyuangutter.api.GutterRepositoryNodeImageBoundaryTest \
+  --tests com.example.taoyuangutter.api.NodeImgDeserializationTest \
+  --tests com.example.taoyuangutter.api.StoreDitchNodeRequestMapperTest \
+  --tests com.example.taoyuangutter.gutter.GutterCompletionPolicyTest \
+  --tests com.example.taoyuangutter.gutter.PhotoUploadCandidateResolverTest \
+  --tests com.example.taoyuangutter.gutter.PhotoResultMetadataMergerTest \
+  --tests com.example.taoyuangutter.gutter.SubmittedRetrySnapshotTest \
+  --console=plain
+```
+
+Result: `BUILD SUCCESSFUL`; 38 tests, 0 failures, 0 errors.
+
+Build command:
+
+```text
+JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home" ./gradlew :app:testDebugUnitTest :app:assembleDebug --console=plain
+```
+
+Result: `BUILD SUCCESSFUL` in 11s; debug APK generated at
+`app/build/outputs/apk/debug/app-debug.apk`. The Android Gradle build reported only existing deprecation
+warnings and native-library strip warnings; no build failure.
+
+## Verification handoff
+
+- Worktree must remain unchanged for Independent Verification at commit
+  `ccaab159bd4fad9768a7044482fab12882ca42f5`.
+- Package: `com.example.taoyuangutter`.
+- Build variant: `debug`.
+- APK: `app/build/outputs/apk/debug/app-debug.apk`.
+- Required runtime cases: special mode with missing-ID response, normal mode with one missing-ID response,
+  valid-ID success, URL-only imported photo without replacement, and retry after the explicit upload error.
+- No test account or secret is recorded in this artifact.
+
 ## Decision
 
-The codebase makes incomplete final photo upload **possible** under the conditional response shape above.
-The code-level root-cause confidence is now **99%**. The reported case itself remains **NOT VERIFIED** until
-the required request/response correlation evidence is available; its incident-attribution confidence remains
-below 95%. Route ISS-001 to `debug` if a production fix is authorized; keep ISS-002 in `investigation` until
-the live contract/case is captured.
+The codebase makes incomplete final photo upload **possible** under the conditional response shape above;
+the production fix now prevents that response from being treated as a completed upload. The reported case
+itself remains **NOT VERIFIED** until the required request/response correlation evidence is available.
+The implementation is ready for Independent Verification; CI and physical-device evidence remain pending.

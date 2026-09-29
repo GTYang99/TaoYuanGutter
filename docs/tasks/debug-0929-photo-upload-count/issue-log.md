@@ -5,11 +5,11 @@
 ```yaml
 issue_id: ISS-001
 task_id: debug-0929-photo-upload-count
-phase: investigation
+phase: implementation
 category: implementation_regression
 priority: P1
 title: Successful nodeImage response without img_id can be silently omitted from storeDitch
-status: open
+status: fixed_pending_verification
 impact: A required photo can have a usable local path and success state but no numeric server image ID; the final img_ids list can therefore contain fewer photos than the mode requires.
 repro_steps:
   - Provide a required photo path for a special or normal waypoint.
@@ -17,7 +17,7 @@ repro_steps:
   - Observe AddGutterBottomSheet writing UploadState=success and no photo{slot}ImgId.
   - Build StoreDitchNodeRequestMapper output and inspect img_ids.
 expected: A successful required upload has a valid server image ID before storeDitch, or the flow blocks with an explicit error.
-actual: The client accepts success=true without validating img_id, and mapNotNull omits the slot from img_ids.
+actual: Before the fix, the client accepted success=true without validating img_id, and mapNotNull omitted the slot from img_ids. The current implementation now rejects that response at the repository boundary.
 evidence:
   - app/src/main/java/com/example/taoyuangutter/api/GutterRepository.kt:648-655
   - app/src/main/java/com/example/taoyuangutter/gutter/AddGutterBottomSheet.kt:2205-2215
@@ -26,7 +26,7 @@ evidence:
   - app/src/test/java/com/example/taoyuangutter/api/NodeImgDeserializationTest.kt:successfulNodeImageResponseCanDeserializeWithoutImageId
   - app/src/test/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapperTest.kt:cantOpenSuccessWithoutImageIdProducesNoPhotoId
   - app/src/test/java/com/example/taoyuangutter/api/StoreDitchNodeRequestMapperTest.kt:normalSuccessWithoutOneImageIdSilentlyDropsThatSlot
-next_action: debug
+next_action: verification
 owner: developer
 ```
 

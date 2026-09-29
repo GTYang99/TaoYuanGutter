@@ -2,8 +2,8 @@ task:
   id: debug-0929-photo-upload-count
   type: debug
 
-phase: debug
-status: debug_complete
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -11,32 +11,34 @@ knowledge_resolution:
 debug:
   status: completed
   root_cause: conditional_success_without_numeric_img_id_is_omitted_from_storeDitch
-  root_cause: conditional_success_without_numeric_img_id_is_omitted_from_storeDitch
   issues:
     - ISS-001
     - ISS-002
     - ISS-003
 
 implementation:
-  status: pending
+  status: completed
+  mode: debug_fix
+  scope: require_positive_node_image_id_before_success
 
 validation:
   status: completed
   static_source_review: completed
   targeted_unit_tests: pass
   evidence_tests: pass
+  full_unit_tests: pass
+  debug_apk: pass
   runtime_device: not_verified
 
 git:
   branch: codex/debug-0929-photo-upload-count
-  commit: 650c039
+  commit: ccaab159bd4fad9768a7044482fab12882ca42f5
   status: committed
 
 verification:
-  result: not_verified
-  category: unknown
-  failed_acceptance_criteria:
-    - AC-004: live nodeImage response contract and reported-case correlation are unavailable
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
 
 ci:
   build: not_verified
@@ -49,4 +51,4 @@ blocking:
   - Need one correlated nodeImage response, storeDitch request, and server record for the reported case.
   - Need backend confirmation whether success=true guarantees a numeric data.img_id for new/replaced photos.
 
-next_action: implementation_debug
+next_action: verification
