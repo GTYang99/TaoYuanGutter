@@ -1,0 +1,57 @@
+task:
+  id: debug-0929-wmts-api-path
+  type: debug
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: resolved
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+debug:
+  status: completed
+  root_cause: endpoint_selection_is_split_between_unused_demo_constant_internal_base_url_and_hardcoded_map_hosts
+  issues:
+    - ISS-DBG-0929-001
+    - ISS-DBG-0929-002
+
+implementation:
+  status: completed
+  mode: debug_fix
+  source_scope: endpoint_migration_and_debug_hostname_workaround
+
+validation:
+  status: completed_with_limitations
+  focused_unit_test: passed
+  full_unit_test: passed
+  debug_build: passed
+  release_build: passed
+  physical_device: not_verified
+
+git:
+  branch: codex/debug-0929-wmts-api-demo-reservation
+  commit: ""
+  status: pending_commit
+
+verification:
+  result: not_verified
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: NOT_VERIFIED
+  test: NOT_VERIFIED
+
+release:
+  status: pending
+
+blocking:
+  - Taipei server certificate does not yet include taipei.srgeo.com.tw; debug workaround is temporary and release verification remains blocked until infrastructure fixes the certificate.
+
+next_action: verification

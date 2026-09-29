@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.map
 
+import com.example.taoyuangutter.common.BackendEndpoints
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 import org.junit.Assert.assertEquals
@@ -18,6 +19,7 @@ class Wmts3857TileProviderTest {
         expectedFormats.forEach { (layer, format) ->
             val query = queryOf(Wmts3857RequestBuilder.buildTileUrl(layer, x = 12, y = 7, zoom = 5))
 
+            assertEquals(BackendEndpoints.ACTIVE_WMTS_URL, Wmts3857RequestBuilder.BASE_URL)
             assertEquals("WMTS", query["SERVICE"])
             assertEquals("1.0.0", query["VERSION"])
             assertEquals("GetTile", query["REQUEST"])
@@ -33,7 +35,7 @@ class Wmts3857TileProviderTest {
 
     @Test
     fun unsupportedZoomReturnsNoTile() {
-        assertNull(Wmts3857TileProvider(BackgroundWmtsLayer.REGIONS).getTileUrl(0, 0, 25))
+        assertNull(Wmts3857TileProvider(BackgroundWmtsLayer.REGIONS).getTile(0, 0, 25))
     }
 
     private fun queryOf(url: String): Map<String, String> = url.substringAfter('?').split('&').associate {

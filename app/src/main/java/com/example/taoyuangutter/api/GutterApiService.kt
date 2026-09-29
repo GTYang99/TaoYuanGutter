@@ -1,12 +1,11 @@
 package com.example.taoyuangutter.api
 
-import android.util.Log
 import com.example.taoyuangutter.BuildConfig
+import com.example.taoyuangutter.common.BackendEndpoints
+import com.example.taoyuangutter.common.BackendHttpClient
 import com.google.gson.GsonBuilder
 import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
 import okhttp3.RequestBody
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
@@ -18,7 +17,6 @@ import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Query
-import java.util.concurrent.TimeUnit
 
 // ════════════════════════════════════════════════════════════════
 //  Retrofit 服務接口
@@ -237,7 +235,7 @@ interface GutterApiService {
     /**
      * 取得無側溝點位（WMS GetFeatureInfo；用於點擊/二次查證）。
      *
-     * GET https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/ows?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&BBOX=...&CRS=EPSG:4326&WIDTH=...&HEIGHT=...&LAYERS=map_no_ditch_points&QUERY_LAYERS=map_no_ditch_points&INFO_FORMAT=application/json&I=...&J=...
+     * GET https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/ows?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetFeatureInfo&BBOX=...&CRS=EPSG:4326&WIDTH=...&HEIGHT=...&LAYERS=map_no_ditch_points&QUERY_LAYERS=map_no_ditch_points&INFO_FORMAT=application/json&I=...&J=...
      *
      * @param bbox 地圖可視範圍 [minLng,minLat,maxLng,maxLat]
      * @param width 地圖寬度像素
@@ -266,7 +264,7 @@ interface GutterApiService {
     /**
      * 取得無側溝點位清單（WFS GetFeature；用於畫可點 Marker）。
      *
-     * GET https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/ows?service=WFS&version=1.1.0&request=GetFeature&typeName=map_no_ditch_points&outputFormat=application/json&srsName=EPSG:4326&bbox=minLng,minLat,maxLng,maxLat,EPSG:4326
+     * GET https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/ows?service=WFS&version=1.1.0&request=GetFeature&typeName=map_no_ditch_points&outputFormat=application/json&srsName=EPSG:4326&bbox=minLng,minLat,maxLng,maxLat,EPSG:4326
      */
     @GET("geoserver/ows")
     suspend fun getNoDitchPointsByBbox(
@@ -297,29 +295,6 @@ object GutterApiClient {
      * 正式環境請替換為真實域名，例如 "https://api.taoyuangutter.gov.tw/"
      * 本機開發（Android Emulator → Host）可改為 "http://10.0.2.2:8080/"
      */
-    private const val BASE_URL = "http://192.168.10.84/TY_RSGDBIP/"
-    private const val DEMO_URL = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/"
-
-    private val loggingInterceptor = HttpLoggingInterceptor { message ->
-        Log.d("OkHttp", message)
-    }.apply {
-        // 只在 debug 模式印完整 request/response，release 模式關閉 log
-        level = if (!BuildConfig.DEBUG) {
-            HttpLoggingInterceptor.Level.NONE
-        } else {
-            HttpLoggingInterceptor.Level.BODY
-        }
-        // 避免把 token 印出來；若你真的要看 token，可以暫時註解這行
-        redactHeader("Authorization")
-    }
-
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .build()
-
     private val gson = GsonBuilder()
         // 後端偶發回傳 Int 欄位為空字串 ""（例如 END_DEP / END_WID），避免 Gson 解析直接炸掉
         .registerTypeAdapter(Int::class.javaObjectType, EmptyStringToNullIntAdapter())
@@ -329,8 +304,8 @@ object GutterApiClient {
 
     val instance: GutterApiService by lazy {
         Retrofit.Builder()
-            .baseUrl(BASE_URL)
-            .client(okHttpClient)
+            .baseUrl(BackendEndpoints.ACTIVE_API_BASE_URL)
+            .client(BackendHttpClient.instance)
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
             .create(GutterApiService::class.java)

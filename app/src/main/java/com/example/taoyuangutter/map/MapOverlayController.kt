@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.map
 
+import com.example.taoyuangutter.common.BackendEndpoints
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.TileOverlay
 import com.google.android.gms.maps.model.TileOverlayOptions
@@ -101,7 +102,7 @@ class MapOverlayController(
         val map = mapProvider() ?: return
         if (measureLabelsWmsOverlay != null) return
         val provider = Wms3857TileProvider(
-            baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+            baseUrl = BackendEndpoints.ACTIVE_WMS_URL,
             layers = "map_ditch_nodes_labels",
             styles = "TY_RSGDBIP_測量座標編號",
             format = "image/png8"
@@ -164,7 +165,7 @@ class MapOverlayController(
         if (showNoDitchPointsOverlay) {
             if (noDitchPointsWmsOverlay == null) {
                 val provider = Wms3857TileProvider(
-                    baseUrl = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+                    baseUrl = BackendEndpoints.ACTIVE_WMS_URL,
                     layers = "map_no_ditch_points",
                     styles = "",
                     format = "image/png8"

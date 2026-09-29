@@ -6,10 +6,10 @@ import android.os.Build
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
+import com.example.taoyuangutter.common.BackendHttpClient
 import com.google.android.gms.maps.model.LatLng
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -69,10 +69,7 @@ internal fun validateNodeImageUploadSuccess(
 class GutterRepository(
     private val api: GutterApiService = GutterApiClient.instance
 ) {
-    private val rawHttp = OkHttpClient.Builder()
-        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .build()
+    private val rawHttp = BackendHttpClient.instance
 
     private data class ApiErrorEnvelope(
         val success: Boolean? = null,

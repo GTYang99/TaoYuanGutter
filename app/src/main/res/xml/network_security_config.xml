@@ -5,9 +5,10 @@
         <domain includeSubdomains="false">192.168.10.84</domain>
     </domain-config>
 
-    <!-- release/debug 都只針對 demo.srgeo.com.tw 額外信任此 CA，避免放大信任範圍 -->
+    <!-- 正式與 legacy GeoServer host 共用既有 CA chain；hostname mismatch 僅由 debug OkHttp verifier 暫時處理 -->
     <domain-config>
         <domain includeSubdomains="true">demo.srgeo.com.tw</domain>
+        <domain includeSubdomains="true">taipei.srgeo.com.tw</domain>
         <trust-anchors>
             <certificates src="system" />
             <certificates src="@raw/cacert" />
