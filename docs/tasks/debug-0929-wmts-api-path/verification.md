@@ -2,7 +2,7 @@
 
 ## Verification Scope
 
-- Fixed source revision: follow-up release-scope commit will be recorded in `state.yaml` after the final validation.
+- Fixed source revision: `65a81f6` on `codex/debug-0929-wmts-api-demo-reservation`.
 - Scope: endpoint source review, focused/full JVM tests, debug/release builds, and security-boundary review.
 - Physical device and live Taipei service checks: `NOT VERIFIED`.
 
