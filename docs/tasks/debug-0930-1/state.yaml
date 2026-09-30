@@ -24,27 +24,26 @@ validation:
   debug_build: passed
   release_compile: passed
   instrumentation_compile: passed
-  runtime_ui: not_verified
+  runtime_ui: passed
 
 git:
   branch: codex/debug-0930-1
-  commit: 947c8208477130f32c5623c97d59ea593d72ef6d
+  commit: 6ee92733971c14e193637a149bea95058d59acf3
   status: committed
 
 verification:
   result: not_verified
   category: environment
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
-    - AC-001
+  not_verified_acceptance_criteria: []
   evidence:
-    fixed_revision: 947c8208477130f32c5623c97d59ea593d72ef6d
+    fixed_revision: 6ee92733971c14e193637a149bea95058d59acf3
     targeted_unit_tests: pass
     ci_local_parity: pass
     debug_build: pass
     release_compile: pass
     instrumentation_compile: pass
-    runtime_ui: not_verified
+    runtime_ui: pass
     remote_ci: not_verified
     independent_review: not_verified
 
@@ -56,7 +55,6 @@ release:
   status: pending
 
 blocking:
-  - Run the scoped login-screen UI verification for AC-001 on revision 947c8208477130f32c5623c97d59ea593d72ef6d.
-  - Obtain independent verification and remote CI results for revision 947c8208477130f32c5623c97d59ea593d72ef6d.
+  - Obtain independent verification and remote CI results for revision 6ee92733971c14e193637a149bea95058d59acf3.
 
 next_action: verification

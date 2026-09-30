@@ -11,8 +11,9 @@
 ## Login-Page Correction Revision
 
 - Branch: `codex/debug-0930-1`
-- Commit: `947c8208477130f32c5623c97d59ea593d72ef6d`
-- The previous verification record is scoped to commit `397ebd7d5cd76f3ce1286aba279a58cafd4528f9`; it does not verify the login-page correction. The current revision remains pending a fresh verification.
+- Selector correction commit: `947c8208477130f32c5623c97d59ea593d72ef6d`
+- Current implementation revision: `6ee92733971c14e193637a149bea95058d59acf3`
+- The previous verification record is scoped to commit `397ebd7d5cd76f3ce1286aba279a58cafd4528f9`; it does not verify the login-page correction. A fresh independent verification is still pending.
 
 ## Developer Validation
 
@@ -38,5 +39,4 @@ The first Gradle invocation could not process the manifest because the worktree 
 
 ## Remaining Release Gates
 
-- Commit the login-page selector correction on `codex/debug-0930-1`.
-- Independent Verification and CI remain pending.
+- Independent Verification and remote CI remain pending for `6ee92733971c14e193637a149bea95058d59acf3`.
