@@ -8,6 +8,12 @@
 - Added a login-page environment control in `activity_login.xml`, visible only when `ENABLE_GROUP_SIMULATION` is true. The control is absent from the authenticated map UI.
 - WMS/WMTS endpoints remain unchanged. No automatic target fallback was added.
 
+## Login-Page Correction Revision
+
+- Branch: `codex/debug-0930-1`
+- Commit: `947c8208477130f32c5623c97d59ea593d72ef6d`
+- The previous verification record is scoped to commit `397ebd7d5cd76f3ce1286aba279a58cafd4528f9`; it does not verify the login-page correction. The current revision remains pending a fresh verification.
+
 ## Developer Validation
 
 | Check | Result | Evidence |

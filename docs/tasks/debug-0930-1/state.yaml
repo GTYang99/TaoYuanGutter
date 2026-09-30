@@ -28,7 +28,7 @@ validation:
 
 git:
   branch: codex/debug-0930-1
-  commit: 397ebd7d5cd76f3ce1286aba279a58cafd4528f9
+  commit: 947c8208477130f32c5623c97d59ea593d72ef6d
   status: committed
 
 verification:
@@ -38,7 +38,7 @@ verification:
   not_verified_acceptance_criteria:
     - AC-001
   evidence:
-    fixed_revision: 397ebd7d5cd76f3ce1286aba279a58cafd4528f9
+    fixed_revision: 947c8208477130f32c5623c97d59ea593d72ef6d
     targeted_unit_tests: pass
     ci_local_parity: pass
     debug_build: pass
@@ -56,7 +56,7 @@ release:
   status: pending
 
 blocking:
-  - Run the scoped emulator UI verification for AC-001.
-  - Obtain independent verification and remote CI results for the fixed revision.
+  - Run the scoped login-screen UI verification for AC-001 on revision 947c8208477130f32c5623c97d59ea593d72ef6d.
+  - Obtain independent verification and remote CI results for revision 947c8208477130f32c5623c97d59ea593d72ef6d.
 
 next_action: verification
