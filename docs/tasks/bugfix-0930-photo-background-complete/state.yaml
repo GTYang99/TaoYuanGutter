@@ -26,8 +26,8 @@ validation:
 
 git:
   branch: codex/bugfix-0930-photo-background-complete
-  commit: ""
-  status: pending
+  commit: d865b499ce867ebc4563df49a95e5ad584e6ff9d
+  status: committed
 
 verification:
   result: pending
