@@ -2,8 +2,8 @@ task:
   id: bugfix-0930-photo-background-complete
   type: bugfix
 
-phase: implementation
-status: implementation_complete
+phase: infrastructure
+status: infrastructure_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -30,9 +30,19 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
+  evidence:
+    fixed_revision: bc4f2ab4f0f0a40e2093aea6006bf8b396d67553
+    worktree_at_start: clean
+    focused_unit_tests: pass_20_of_20
+    debug_build: pass
+    source_review: pass
+    diff_check: pass
+    device: ac002_inflight_photo_return_and_draft_handoff_pass
+    ci: not_verified
 
 ci:
   build: not_verified
@@ -41,5 +51,7 @@ ci:
 release:
   status: pending
 
-blocking: []
-next_action: verification
+blocking:
+  - CI workflow is prepared locally; a remote run is pending branch push.
+  - The device's effective API route is not independently confirmed as the test station.
+next_action: infrastructure
