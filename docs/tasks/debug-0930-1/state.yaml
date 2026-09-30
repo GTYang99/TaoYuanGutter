@@ -2,8 +2,8 @@ task:
   id: debug-0930-1
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: completed
@@ -28,13 +28,25 @@ validation:
 
 git:
   branch: codex/debug-0930-1
-  commit: ""
-  status: pending
+  commit: 397ebd7d5cd76f3ce1286aba279a58cafd4528f9
+  status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+  evidence:
+    fixed_revision: 397ebd7d5cd76f3ce1286aba279a58cafd4528f9
+    targeted_unit_tests: pass
+    ci_local_parity: pass
+    debug_build: pass
+    release_compile: pass
+    instrumentation_compile: pass
+    runtime_ui: not_verified
+    remote_ci: not_verified
+    independent_review: not_verified
 
 ci:
   build: not_verified
@@ -43,5 +55,8 @@ ci:
 release:
   status: pending
 
-blocking: []
-next_action: git_commit
+blocking:
+  - Run the scoped emulator UI verification for AC-001.
+  - Obtain independent verification and remote CI results for the fixed revision.
+
+next_action: verification
