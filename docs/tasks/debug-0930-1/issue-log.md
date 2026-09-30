@@ -8,12 +8,12 @@ task_id: debug-0930-1
 phase: implementation
 category: enhancement_request
 priority: P2
-title: Debug testers cannot switch the API backend from the home screen
+title: Debug testers cannot switch the API backend before login
 status: implemented_pending_verification
 impact: Testers cannot select the requested backend target at runtime; current API calls use the fixed Taipei endpoint.
 repro_steps:
   - Launch the app in a debug build.
-  - Open the map home screen.
+  - Open the login screen.
   - Look for an API environment selector.
 expected: A hidden tester entry is available when ENABLE_GROUP_SIMULATION is true and can select base, Taipei, or DEMO.
 actual: No environment selector exists; GutterApiClient creates its service with the fixed Taipei URL.

@@ -2,11 +2,11 @@
 
 ## Background
 
-目前 API client 固定選擇一個後端環境。測試人員需要在首頁透過隱藏入口，在三個後端目標間切換。
+目前 API client 固定選擇一個後端環境。測試人員需要在登入頁透過隱藏入口，在三個後端目標間切換。
 
 ## Goal
 
-當 `GutterApiClient.ENABLE_GROUP_SIMULATION == true` 時，提供測試人員從首頁開啟的隱藏環境選擇入口，切換 API client 使用的後端目標：`base`、`taipei`、`demo`。
+當 `GutterApiClient.ENABLE_GROUP_SIMULATION == true` 時，提供測試人員從登入頁開啟的隱藏環境選擇入口，切換 API client 使用的後端目標：`base`、`taipei`、`demo`。
 
 ## Functional Requirements
 
@@ -20,8 +20,8 @@
 
 ## Acceptance Criteria
 
-- AC-001：`ENABLE_GROUP_SIMULATION == true` 時，首頁提供不干擾一般操作的隱藏環境入口。
-- AC-002：`ENABLE_GROUP_SIMULATION == false` 時，首頁不顯示該入口且無法觸發環境切換。
+- AC-001：`ENABLE_GROUP_SIMULATION == true` 時，登入頁提供不干擾一般操作的隱藏環境入口。
+- AC-002：`ENABLE_GROUP_SIMULATION == false` 時，登入頁不顯示該入口且無法觸發環境切換。
 - AC-003：測試人員可選取 `base`、`taipei` 或 `demo`，所選環境會套用至 `GutterApiClient` 的 API request。
 - AC-004：環境切換不會造成自動 fallback 或跨環境重送。
 - AC-005：release build 不提供此測試入口。

@@ -5,7 +5,7 @@
 - Added process-local API targets for base, Taipei, and DEMO; default remains Taipei.
 - `GutterApiClient` now returns a Retrofit service for the selected target and rejects target changes when the debug gate is false.
 - `GutterRepository` now resolves its service per API call so existing repositories use subsequent target changes.
-- Added a map-home environment control. It is visible only when `ENABLE_GROUP_SIMULATION` is true and refuses changes while gutter editing/inspection flows are active.
+- Added a login-page environment control in `activity_login.xml`, visible only when `ENABLE_GROUP_SIMULATION` is true. The control is absent from the authenticated map UI.
 - WMS/WMTS endpoints remain unchanged. No automatic target fallback was added.
 
 ## Developer Validation
@@ -17,9 +17,10 @@
 | `:app:compileDebugAndroidTestKotlin` | PASS | Instrumentation sources compile, including gate/target selection assertion. |
 | `:app:compileReleaseKotlin` | PASS | Release source compiles with the gate disabled by `BuildConfig.DEBUG`. |
 | `git diff --check` | PASS | No whitespace errors in tracked source diff. |
+| `:app:assembleDebug` after moving the selector to LoginActivity | PASS | Updated login layout binding and Kotlin compile; `BUILD SUCCESSFUL` on 2026-09-30. |
 | CI workflow local parity | PASS | The exact task-scoped JVM test classes and `:app:assembleDebug` from `.github/workflows/android-ci.yml` passed locally. |
 | Remote CI result | NOT VERIFIED | CI has not run on the remote branch. |
-| Runtime UI verification | NOT VERIFIED | No emulator interaction performed; the layout/code path is compile-verified only. |
+| Runtime UI verification | NOT VERIFIED | No emulator interaction performed; updated login layout/code path is compile-verified only. |
 | Live API write | NOT RUN | No backend data was written. |
 
 ## Environment Note
@@ -28,5 +29,5 @@ The first Gradle invocation could not process the manifest because the worktree 
 
 ## Remaining Release Gates
 
-- Commit the implementation on `codex/debug-0930-1`.
+- Commit the login-page selector correction on `codex/debug-0930-1`.
 - Independent Verification and CI remain pending.

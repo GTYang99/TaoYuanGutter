@@ -11,7 +11,7 @@
 2. Keep Taipei as the default; target selection is process-local and resets on app restart.
 3. Expose the selector only when `GutterApiClient.ENABLE_GROUP_SIMULATION` is true.
 4. Switch API requests only; leave WMS/WMTS unchanged and do not add cross-target fallback.
-5. Keep the selector unavailable while a gutter form, list, inspection, or edit workflow is active.
+5. Place the selector on the login page so environment choice is made before authenticated map, form, and upload workflows.
 6. Validate endpoint mapping and service selection without real backend writes.
 
 ## Affected Files
@@ -20,4 +20,4 @@ See `plan.md`. No API request or response contract changes are required.
 
 ## Rollback Boundary
 
-Reverting the task commit restores the fixed Taipei API client and removes the home selector.
+Reverting the task commit restores the fixed Taipei API client and removes the login-page selector.

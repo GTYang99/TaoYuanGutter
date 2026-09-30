@@ -2,9 +2,9 @@
 
 ## Scope and Conclusion
 
-本任務分析「debug build 中讓測試人員從首頁切換 API 後端」的程式缺口；沒有修改 production code。
+本任務分析「debug build 中讓測試人員切換 API 後端」的程式缺口；入口位置經使用者確認為登入頁。
 
-這不是已知回歸：目前沒有證據顯示環境切換曾存在。直接原因是 app 的 API endpoint 在程式中固定，沒有 runtime 選擇狀態或首頁入口。`GutterApiClient` 第一次被讀取時以 Taipei URL 建立 Retrofit singleton；之後新選項若只改一個變數，已建立的 `GutterRepository` 仍可能保留舊 `GutterApiService`。
+這不是已知回歸：目前沒有證據顯示環境切換曾存在。直接原因是 app 的 API endpoint 在程式中固定，沒有 runtime 選擇狀態或登入頁入口。`GutterApiClient` 第一次被讀取時以 Taipei URL 建立 Retrofit singleton；之後新選項若只改一個變數，已建立的 `GutterRepository` 仍可能保留舊 `GutterApiService`。
 
 ## Evidence Chain
 
@@ -17,7 +17,7 @@
 
 ## Why the Issue Occurs
 
-系統目前只支援 build-time/source-level endpoint 選擇，沒有 runtime environment model。雖然存在 debug-only simulation gate，它目前只控制既有的上傳失敗模擬入口，並未連接 API endpoint。故測試人員無法透過首頁把後續 API request 從固定 Taipei service 改到其他環境。
+系統目前只支援 build-time/source-level endpoint 選擇，沒有 runtime environment model。雖然存在 debug-only simulation gate，它目前只控制既有的上傳失敗模擬入口，並未連接 API endpoint。故測試人員無法在登入前把後續 API request 從固定 Taipei service 改到其他環境。
 
 ## Classification
 
@@ -35,4 +35,4 @@
 
 ## Minimum Fix Boundary
 
-在 `base` 目標及切換範圍確認後，集中維護 endpoint 清單與選擇狀態；在 `ENABLE_GROUP_SIMULATION` 為 true 時，從地圖首頁提供隱藏選擇入口；令後續 `GutterApiClient` request 使用所選 service，處理已建立 repository 的 service lifecycle，並確保 release 沒有入口、request 不會自動跨環境 fallback。此為後續計畫方向，尚非已核准 implementation plan。
+在 `base` 目標及切換範圍確認後，集中維護 endpoint 清單與選擇狀態；在 `ENABLE_GROUP_SIMULATION` 為 true 時，從登入頁提供隱藏選擇入口；令後續 `GutterApiClient` request 使用所選 service，處理已建立 repository 的 service lifecycle，並確保 release 沒有入口、request 不會自動跨環境 fallback。

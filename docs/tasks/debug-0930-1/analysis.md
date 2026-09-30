@@ -9,11 +9,11 @@
 - `GutterApiClient.instance` 是 lazy singleton，建立 Retrofit 時固定採用 `BackendEndpoints.ACTIVE_API_TAPIEI_URL`。目前沒有 runtime endpoint selector。
 - `GutterRepository` 在建立時取得 `GutterApiClient.instance`，故即使只替換 singleton accessor，已建立的 repository 仍可能持有舊 service。
 - WMS、WMTS 各自使用 `BackendEndpoints` 的固定 Taipei URL。只改 API Retrofit base URL 不會切換 GeoServer。
-- 沒有找到首頁環境按鈕或其他 API endpoint 切換入口。
+- 初版曾將環境切換入口放在地圖首頁；使用者明確更正入口應位於登入頁，故修訂需求與 implementation scope。
 
 ## Expected Behavior
 
-- Debug/test build 可從首頁隱藏入口選擇一個明確環境。
+- Debug/test build 可從登入頁隱藏入口選擇一個明確環境。
 - 所選環境須對 `GutterApiClient` 後續 request 生效；release 與 gate=false 時不出現控制項。
 - 變更不應產生隱式跨環境 fallback。
 
@@ -31,14 +31,14 @@
 
 ## Root-Cause Classification
 
-目前沒有證據顯示此切換功能曾存在後來失效，因此不分類為 implementation regression。這是新增測試能力的 `enhancement_request`。直接技術原因是 endpoint 僅以常數指定，Retrofit service 透過 lazy singleton 固定建構，repository 又會保存建立當下的 service；系統沒有環境選擇狀態或首頁控制項。
+目前沒有證據顯示此切換功能曾存在後來失效，因此不分類為 implementation regression。這是新增測試能力的 `enhancement_request`。直接技術原因是 endpoint 僅以常數指定，Retrofit service 透過 lazy singleton 固定建構，repository 又會保存建立當下的 service；系統沒有環境選擇狀態或登入頁控制項。
 
 ## Affected Modules
 
 - `common/BackendEndpoints.kt`: define the approved target URLs in a single typed inventory.
 - `api/GutterApiClient`: replace the fixed lazy service with an endpoint-aware access boundary that downstream callers can actually observe.
 - `api/GutterRepository` and any direct `GutterApiClient.instance` consumers: confirm how service changes propagate.
-- Home UI: add a gated, hidden tester entry and selection UI.
+- Login UI: add a gated, hidden tester entry and selection UI in `activity_login.xml` / `LoginActivity.kt`.
 - GeoServer URLs remain outside scope per the resolved API-only requirement.
 
 ## Risks

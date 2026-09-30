@@ -2,6 +2,10 @@
 
 ## Review Comments
 
+### User-Approved Scope Correction
+
+The user clarified that the gated API target selector belongs on `activity_login.xml` / `LoginActivity.kt`, not the map home. The requirement, affected files, implementation step, and AC-001/AC-002 UI verification target have been updated to the login page. Login happens before authenticated API work, so the selector is unavailable during map, form, and upload workflows.
+
 ### Finding 1
 
 Severity: Major
@@ -12,7 +16,7 @@ Description:
 `GutterRepository` currently captures `GutterApiClient.instance` in its constructor, while submissions can issue photo and ditch requests as a multi-step flow. A dynamic client accessor alone could leave existing repository instances on the old target or split a workflow if selection changes between calls.
 
 Recommendation:
-The implementation plan now requires repository request-time provider lookup, selector unavailability while an active gutter form/upload workflow is open, and tests proving each target maps to its own cached service while existing/in-flight calls keep their original URL.
+The implementation plan requires repository request-time provider lookup and tests proving each target maps to its own cached service while existing/in-flight calls keep their original URL. After the user's correction, the selector is scoped to the login page.
 
 Planning Response:
 Added this lifecycle boundary to Implementation Step 3 and the Regression Plan. Endpoint routing validation will use a recording `Call.Factory`/interceptor without sending live writes or adding a server dependency.
@@ -40,7 +44,7 @@ Status: Resolved
 
 - Requirements and acceptance criteria: Pass — AC-001 through AC-005 map to UI gate, endpoint mapping, no-fallback, and release checks.
 - Repository analysis: Pass — fixed Retrofit singleton, repository capture, and separate WMS/WMTS clients are documented.
-- Affected files and dependencies: Pass — endpoint constants, client, repository, map UI/layout, strings, and tests are listed.
+- Affected files and dependencies: Pass — endpoint constants, client, repository, login UI/layout, strings, and tests are listed.
 - Implementation steps: Pass — endpoint selection, propagation, UI gate, and tests are ordered.
 - Test and regression plan: Pass — target mapping and service identity are asserted without live writes; default Taipei and no-fallback are included.
 - Risks and rollback: Pass — wrong target writes, private-network reachability, service propagation, and rollback are addressed.

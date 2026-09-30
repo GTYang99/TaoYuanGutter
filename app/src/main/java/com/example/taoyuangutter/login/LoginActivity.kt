@@ -18,8 +18,11 @@ import androidx.lifecycle.lifecycleScope
 import com.example.taoyuangutter.MainActivity
 import com.example.taoyuangutter.MainShellActivity
 import com.example.taoyuangutter.api.ApiResult
+import com.example.taoyuangutter.api.GutterApiClient
 import com.example.taoyuangutter.api.GutterRepository
+import com.example.taoyuangutter.common.ApiBackendTarget
 import com.example.taoyuangutter.databinding.ActivityLoginBinding
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlinx.coroutines.launch
 
 class LoginActivity : AppCompatActivity() {
@@ -66,6 +69,7 @@ class LoginActivity : AppCompatActivity() {
         setupLoginButtonListener()
         setupPasswordToggle()
         setupOfflineButtons()
+        setupApiEnvironmentButton()
     }
 
     override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
@@ -184,6 +188,46 @@ class LoginActivity : AppCompatActivity() {
             finish()
         }
     }
+
+    private fun setupApiEnvironmentButton() {
+        val button = binding.btnApiEnvironment
+        if (!GutterApiClient.ENABLE_GROUP_SIMULATION) {
+            button.visibility = View.GONE
+            button.setOnClickListener(null)
+            return
+        }
+
+        button.visibility = View.VISIBLE
+        button.text = getString(
+            com.example.taoyuangutter.R.string.api_environment_button_format,
+            apiEnvironmentLabel(GutterApiClient.selectedTarget)
+        )
+        button.setOnClickListener {
+            val targets = ApiBackendTarget.values()
+            val labels = targets.map(::apiEnvironmentLabel).toTypedArray()
+            MaterialAlertDialogBuilder(this)
+                .setTitle(com.example.taoyuangutter.R.string.api_environment_title)
+                .setSingleChoiceItems(labels, targets.indexOf(GutterApiClient.selectedTarget)) { dialog, which ->
+                    if (GutterApiClient.selectTarget(targets[which])) {
+                        button.text = getString(
+                            com.example.taoyuangutter.R.string.api_environment_button_format,
+                            labels[which]
+                        )
+                    }
+                    dialog.dismiss()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        }
+    }
+
+    private fun apiEnvironmentLabel(target: ApiBackendTarget): String = getString(
+        when (target) {
+            ApiBackendTarget.BASE -> com.example.taoyuangutter.R.string.api_environment_base
+            ApiBackendTarget.TAIPEI -> com.example.taoyuangutter.R.string.api_environment_taipei
+            ApiBackendTarget.DEMO -> com.example.taoyuangutter.R.string.api_environment_demo
+        }
+    )
 
     /** 登入進行中：停用按鈕、顯示 loading 狀態 */
     private fun setLoading(loading: Boolean) {
