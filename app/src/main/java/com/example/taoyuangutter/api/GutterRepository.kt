@@ -67,8 +67,12 @@ internal fun validateNodeImageUploadSuccess(
  * 所有公開方法皆為 suspend function，請在 CoroutineScope 內呼叫。
  */
 class GutterRepository(
-    private val api: GutterApiService = GutterApiClient.instance
+    private val apiProvider: () -> GutterApiService = { GutterApiClient.instance }
 ) {
+    constructor(api: GutterApiService) : this({ api })
+
+    private val api: GutterApiService
+        get() = apiProvider()
     private val rawHttp = BackendHttpClient.instance
 
     private data class ApiErrorEnvelope(

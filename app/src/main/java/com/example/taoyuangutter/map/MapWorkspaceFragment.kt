@@ -30,6 +30,7 @@ import com.example.taoyuangutter.api.DitchNode
 import com.example.taoyuangutter.api.GutterApiClient
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.NoDitchPoint
+import com.example.taoyuangutter.common.ApiBackendTarget
 import com.example.taoyuangutter.common.LocationPickEvents
 import com.example.taoyuangutter.common.PhotoImgIdTraceDebugger
 import com.example.taoyuangutter.common.PhotoUriStore
@@ -635,7 +636,46 @@ class MapWorkspaceFragment : Fragment(),
         requestBackgroundScopeRefresh()
     }
 
+    private fun setupApiEnvironmentButton() {
+        val button = binding.btnApiEnvironment
+        val enabled = GutterApiClient.ENABLE_GROUP_SIMULATION
+        button.visibility = if (enabled) View.VISIBLE else View.GONE
+        button.isEnabled = enabled
+        button.setOnClickListener(if (enabled) View.OnClickListener {
+            if (activeSheet != null || addGutterListSheet != null || inspectSheet != null || isInspecting ||
+                isOfflineMainMode || isAddFormHandoffActive || isInEditingMode || measureManager?.isMeasuring == true
+            ) {
+                Toast.makeText(requireContext(), R.string.api_environment_idle_only, Toast.LENGTH_SHORT).show()
+                return@OnClickListener
+            }
+            val targets = ApiBackendTarget.values()
+            val labels = targets.map(::apiEnvironmentLabel).toTypedArray()
+            MaterialAlertDialogBuilder(requireContext())
+                .setTitle(R.string.api_environment_title)
+                .setSingleChoiceItems(labels, targets.indexOf(GutterApiClient.selectedTarget)) { dialog, which ->
+                    if (GutterApiClient.selectTarget(targets[which])) {
+                        button.text = getString(R.string.api_environment_button_format, labels[which])
+                    }
+                    dialog.dismiss()
+                }
+                .setNegativeButton(android.R.string.cancel, null)
+                .show()
+        } else null)
+        if (enabled) {
+            button.text = getString(R.string.api_environment_button_format, apiEnvironmentLabel(GutterApiClient.selectedTarget))
+        }
+    }
+
+    private fun apiEnvironmentLabel(target: ApiBackendTarget): String = getString(
+        when (target) {
+            ApiBackendTarget.BASE -> R.string.api_environment_base
+            ApiBackendTarget.TAIPEI -> R.string.api_environment_taipei
+            ApiBackendTarget.DEMO -> R.string.api_environment_demo
+        }
+    )
+
     private fun setupButtons() {
+        setupApiEnvironmentButton()
         binding.btnLogout.setOnClickListener {
             if (isOfflineMainMode) {
                 authNavigator.clearAuthAndGoLogin()

@@ -1,6 +1,7 @@
 package com.example.taoyuangutter.api
 
 import com.example.taoyuangutter.BuildConfig
+import com.example.taoyuangutter.common.ApiBackendTarget
 import com.example.taoyuangutter.common.BackendEndpoints
 import com.example.taoyuangutter.common.BackendHttpClient
 import com.google.gson.GsonBuilder
@@ -8,6 +9,7 @@ import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.ConcurrentHashMap
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
@@ -281,30 +283,43 @@ interface GutterApiService {
 
 object GutterApiClient {
 
-    /**
-     * Enables the existing no-network upload-failure simulator for debug builds only.
-     * Release builds must never expose this test-only control.
-     */
+    /** Debug-only access to test backend targets and the existing failure simulator. */
     val ENABLE_GROUP_SIMULATION = BuildConfig.DEBUG
 
-    /**
-     * 後端 API 的 Base URL。
-     * 正式環境請替換為真實域名，例如 "https://api.taoyuangutter.gov.tw/"
-     * 本機開發（Android Emulator → Host）可改為 "http://10.0.2.2:8080/"
-     */
+    @Volatile
+    var selectedTarget: ApiBackendTarget = ApiBackendTarget.TAIPEI
+        private set
+
     private val gson = GsonBuilder()
-        // 後端偶發回傳 Int 欄位為空字串 ""（例如 END_DEP / END_WID），避免 Gson 解析直接炸掉
         .registerTypeAdapter(Int::class.javaObjectType, EmptyStringToNullIntAdapter())
         .registerTypeAdapter(DashboardLengthGroup::class.java, DashboardLengthGroupDeserializer())
         .registerTypeAdapter(DashboardProgressGroup::class.java, DashboardProgressGroupDeserializer())
         .create()
 
-    val instance: GutterApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(BackendEndpoints.ACTIVE_API_TAPIEI_URL)
-            .client(BackendHttpClient.instance)
-            .addConverterFactory(GsonConverterFactory.create(gson))
-            .build()
-            .create(GutterApiService::class.java)
+    private val services = ConcurrentHashMap<ApiBackendTarget, GutterApiService>()
+
+    /** Current API service. Existing/in-flight calls keep their original URL. */
+    val instance: GutterApiService
+        get() = serviceFor(selectedTarget)
+
+    fun selectTarget(target: ApiBackendTarget): Boolean {
+        if (!ENABLE_GROUP_SIMULATION) return false
+        selectedTarget = target
+        return true
+    }
+
+    internal fun serviceFor(target: ApiBackendTarget): GutterApiService =
+        services.computeIfAbsent(target) { environment ->
+            Retrofit.Builder()
+                .baseUrl(BackendEndpoints.apiBaseUrl(environment))
+                .client(BackendHttpClient.instance)
+                .addConverterFactory(GsonConverterFactory.create(gson))
+                .build()
+                .create(GutterApiService::class.java)
+        }
+
+    internal fun resetTargetForTests() {
+        selectedTarget = ApiBackendTarget.TAIPEI
+        services.clear()
     }
 }

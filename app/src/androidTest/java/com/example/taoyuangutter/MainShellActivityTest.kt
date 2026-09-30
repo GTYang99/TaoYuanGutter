@@ -26,6 +26,7 @@ import com.example.taoyuangutter.gutter.AddGutterListAdapter
 import com.example.taoyuangutter.gutter.GutterSessionFlowCoordinator
 import com.example.taoyuangutter.gutter.MultiGutterSessionCoordinator
 import com.example.taoyuangutter.api.GutterApiClient
+import com.example.taoyuangutter.common.ApiBackendTarget
 import com.example.taoyuangutter.main.MainBlockingUiController
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -95,6 +96,10 @@ class MainShellActivityTest {
     fun debugBuildEnablesOnlyTheExistingFailureSimulationGate() {
         assertTrue(BuildConfig.DEBUG)
         assertTrue(GutterApiClient.ENABLE_GROUP_SIMULATION)
+        GutterApiClient.resetTargetForTests()
+        assertTrue(GutterApiClient.selectTarget(ApiBackendTarget.DEMO))
+        assertEquals(ApiBackendTarget.DEMO, GutterApiClient.selectedTarget)
+        GutterApiClient.resetTargetForTests()
     }
 
     @Test

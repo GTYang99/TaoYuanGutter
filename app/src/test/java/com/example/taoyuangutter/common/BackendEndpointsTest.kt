@@ -38,4 +38,12 @@ class BackendEndpointsTest {
         assertTrue(BackendHttpClient.isTemporaryTaipeiHost("TAIPEI.SRGEO.COM.TW."))
         assertFalse(BackendHttpClient.isTemporaryTaipeiHost("www.srgeo.com.tw"))
     }
+
+    @Test
+    fun apiBackendTargetsMapToApprovedUrls() {
+        assertEquals("http://192.168.10.84/TY_RSGDBIP/", BackendEndpoints.apiBaseUrl(ApiBackendTarget.BASE))
+        assertEquals("https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/", BackendEndpoints.apiBaseUrl(ApiBackendTarget.TAIPEI))
+        assertEquals("https://demo.srgeo.com.tw/TY_RSGDBIP_BK/", BackendEndpoints.apiBaseUrl(ApiBackendTarget.DEMO))
+    }
+
 }

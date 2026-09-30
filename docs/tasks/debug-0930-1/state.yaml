@@ -1,0 +1,47 @@
+task:
+  id: debug-0930-1
+  type: feature
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: completed
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+  targeted_unit_tests: passed
+  ci_local_parity: passed
+  debug_build: passed
+  release_compile: passed
+  instrumentation_compile: passed
+  runtime_ui: not_verified
+
+git:
+  branch: codex/debug-0930-1
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking: []
+next_action: git_commit

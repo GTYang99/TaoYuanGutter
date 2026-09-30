@@ -344,4 +344,11 @@
     <string name="msg_submit_success">送出成功</string>
     <string name="measure_crosshair_desc">測距準星</string>
 
+    <string name="api_environment_button_format">API：%1$s</string>
+    <string name="api_environment_idle_only">請回到地圖首頁後再切換 API 環境</string>
+    <string name="api_environment_button_desc">選擇測試 API 環境</string>
+    <string name="api_environment_title">切換 API 環境</string>
+    <string name="api_environment_base">內網 BASE</string>
+    <string name="api_environment_taipei">API：台北</string>
+    <string name="api_environment_demo">DEMO</string>
 </resources>
