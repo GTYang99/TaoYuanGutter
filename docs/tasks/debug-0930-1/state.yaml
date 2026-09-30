@@ -28,7 +28,7 @@ validation:
 
 git:
   branch: codex/debug-0930-1
-  commit: 6ee92733971c14e193637a149bea95058d59acf3
+  commit: b7ceb17a8c27d2a4c0a217f653b2b54213fcf63f
   status: committed
 
 verification:
@@ -37,7 +37,7 @@ verification:
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria: []
   evidence:
-    fixed_revision: 6ee92733971c14e193637a149bea95058d59acf3
+    fixed_revision: b7ceb17a8c27d2a4c0a217f653b2b54213fcf63f
     targeted_unit_tests: pass
     ci_local_parity: pass
     debug_build: pass
@@ -45,7 +45,9 @@ verification:
     instrumentation_compile: pass
     runtime_ui: pass
     remote_ci: not_verified
-    independent_review: not_verified
+    independent_review: completed
+    verifier_test_rerun: not_verified
+    verifier_emulator_ui: pass
 
 ci:
   build: not_verified
@@ -55,6 +57,6 @@ release:
   status: pending
 
 blocking:
-  - Obtain independent verification and remote CI results for revision 6ee92733971c14e193637a149bea95058d59acf3.
+  - Obtain remote CI results for revision b7ceb17a8c27d2a4c0a217f653b2b54213fcf63f.
 
 next_action: verification
