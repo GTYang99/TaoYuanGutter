@@ -29,6 +29,7 @@
 | Emulator login selector check | PASS | Android 14 emulator (`emulator-5554`): selector visible as `API：台北`; dialog offered base/Taipei/DEMO; selecting base updated it to `API：內網 BASE`; force-stop/relaunch reset it to Taipei. No backend request was made. |
 | `:app:testReleaseUnitTest --tests GutterApiClientEnvironmentTest` | NOT AVAILABLE | The project has no `testReleaseUnitTest` Gradle task. Release gate evidence is `BuildConfig.DEBUG=false`, the source guard, and successful `:app:assembleRelease`. |
 | CI workflow local parity | PASS | The exact task-scoped JVM test classes and `:app:assembleDebug` from `.github/workflows/android-ci.yml` passed locally. |
+| CI workflow local parity rerun on the current task revision | PASS | Reran the workflow's three JVM classes plus `BackendEndpointsTest` and `GutterApiClientEnvironmentTest`, then `:app:assembleDebug`; `BUILD SUCCESSFUL` on 2026-09-30. |
 | Remote CI result | NOT VERIFIED | CI has not run on the remote branch. |
 | Runtime UI verification | PASS | Scoped login-screen selector and process-reset behavior verified on Android 14 emulator. |
 | Live API write | NOT RUN | No backend data was written. |
