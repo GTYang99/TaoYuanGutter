@@ -1,0 +1,45 @@
+task:
+  id: bugfix-0930-photo-background-complete
+  type: bugfix
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+  focused_unit_tests: passed
+  debug_build: passed
+  static_review: passed
+  physical_device: not_required_by_plan
+
+git:
+  branch: codex/bugfix-0930-photo-background-complete
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification

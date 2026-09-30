@@ -46,7 +46,6 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
 import com.google.android.gms.maps.model.Polyline
@@ -85,7 +84,7 @@ import kotlinx.coroutines.delay
 import java.net.MalformedURLException
 import java.net.URL
 
-class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadingHost,
+class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
     GutterBasicInfoFragment.DraftChangeHost,
     GutterPhotosFragment.DraftChangeHost {
 
@@ -103,7 +102,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private lateinit var binding: ActivityGutterFormBinding
     private lateinit var pagerAdapter: GutterFormPagerAdapter
-    private var photoLoadingCount: Int = 0
     private var restoredCurrentFormData: HashMap<String, String>? = null
     private var restoredIsVirtual: Boolean? = null
     private var photoDraftBatchDepth: Int = 0
@@ -128,12 +126,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         currentFormData.putAll(data)
         syncCurrentWaypointFromCurrentFormData()
         pagerAdapter.getBasicInfoFragment()?.restoreCantOpenSessionState(data)
-    }
-
-    override fun setPhotoLoading(visible: Boolean) {
-        if (!::binding.isInitialized) return
-        if (visible) photoLoadingCount++ else photoLoadingCount = (photoLoadingCount - 1).coerceAtLeast(0)
-        binding.photoLoadingOverlay.visibility = if (photoLoadingCount > 0) View.VISIBLE else View.GONE
     }
 
     override fun onBasicInfoDraftChanged(data: Map<String, String>) {
@@ -2183,7 +2175,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             finishSubmittedDraftReadOnly()
             return
         }
-        dispatchResultAfterPendingPhotoUploads {
+        dispatchResultAfterPhotoDraftSync {
             val data = currentFormSnapshot()
             logPhotoImgIdTrace("saveAndFinish.snapshot", data)
             val (photo1, photo2, photo3) = currentFormPhotos()
@@ -2355,78 +2347,22 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     /**
-     * A form result must not be published while one of its single-photo
-     * workers is still completing. The worker is application-scoped, while
-     * this Activity unregisters its listener during destruction; waiting here
-     * keeps the result and the live waypoint on the same completed state.
+     * Persist the current form before returning it. Single-photo upload is
+     * process-scoped and continues independently; the parent submit gate
+     * reconciles its final ID before calling storeDitch.
      */
-    private fun dispatchResultAfterPendingPhotoUploads(dispatch: () -> Unit) {
+    private fun dispatchResultAfterPhotoDraftSync(dispatch: () -> Unit) {
         if (submittedDraftReadOnly) return
         if (resultDispatchInProgress) return
         resultDispatchInProgress = true
         lifecycleScope.launch {
             try {
-                if (!awaitPendingPhotoUploadsBeforeResult()) {
-                    Toast.makeText(this@GutterFormActivity, "照片尚未上傳完成，請稍後再試", Toast.LENGTH_SHORT).show()
-                    return@launch
-                }
                 syncSessionDraftNow()
                 dispatch()
             } finally {
                 resultDispatchInProgress = false
             }
         }
-    }
-
-    private suspend fun awaitPendingPhotoUploadsBeforeResult(): Boolean {
-        val resolvedDraftId = sessionDraftId.takeIf { it > 0L } ?: return true
-
-        for (slot in 1..3) {
-            val photoPath = currentFormData["photo$slot"]?.trim().orEmpty()
-            if (photoPath.isEmpty() || PhotoUploadSlotState.isAlreadyUploaded(currentFormData, slot)) {
-                continue
-            }
-
-            val uploadInFlight = PhotoSlotUploadCoordinator.isUploading(
-                resolvedDraftId,
-                currentIndex,
-                slot
-            )
-            if (!uploadInFlight &&
-                PhotoUploadSlotState.readState(currentFormData, slot) != PhotoUploadSlotState.STATE_UPLOADING
-            ) {
-                continue
-            }
-
-            val completed = withContext(Dispatchers.IO) {
-                PhotoSlotUploadCoordinator.awaitCompletion(
-                    context = applicationContext,
-                    draftId = resolvedDraftId,
-                    waypointIndex = currentIndex,
-                    slot = slot,
-                    timeoutMs = 30_000L
-                )
-            }
-            if (completed?.state == PhotoUploadSlotState.STATE_SUCCESS) {
-                updatePhotoUploadState(
-                    slot = slot,
-                    state = completed.state,
-                    imgId = completed.imgId,
-                    error = null
-                )
-            } else {
-                completed?.let {
-                    updatePhotoUploadState(
-                        slot = slot,
-                        state = it.state,
-                        imgId = it.imgId,
-                        error = it.error
-                    )
-                }
-                return false
-            }
-        }
-        return true
     }
 
     private fun finishSubmittedDraftReadOnly() {
@@ -2439,7 +2375,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             finishSubmittedDraftReadOnly()
             return
         }
-        dispatchResultAfterPendingPhotoUploads {
+        dispatchResultAfterPhotoDraftSync {
             val basicData = currentFormSnapshot()
             logPhotoImgIdTrace("buildAndFinishWithResult.snapshot", basicData)
             val (photo1, photo2, photo3) = currentFormPhotos()

@@ -136,24 +136,25 @@ object PhotoSlotUploadCoordinator {
 
             when (result) {
                 is ApiResult.Success -> {
+                    val outcome = PhotoUploadSlotState.outcomeForUploadResponse(result.data.data?.imgId)
                     updateDraftAndNotify(
                         context = context,
                         draftId = draftId,
                         waypointIndex = waypointIndex,
                         slot = slot,
                         expectedPhotoPath = photoPath,
-                        state = PhotoUploadSlotState.STATE_SUCCESS,
-                        imgId = result.data.data?.imgId,
-                        error = null
+                        state = outcome.state,
+                        imgId = outcome.imgId,
+                        error = outcome.error
                     )
                     completed[key] = Snapshot(
                         draftId = draftId,
                         waypointIndex = waypointIndex,
                         slot = slot,
                         photoPath = photoPath.trim(),
-                        state = PhotoUploadSlotState.STATE_SUCCESS,
-                        imgId = result.data.data?.imgId,
-                        error = null
+                        state = outcome.state,
+                        imgId = outcome.imgId,
+                        error = outcome.error
                     )
                 }
                 is ApiResult.Error -> {

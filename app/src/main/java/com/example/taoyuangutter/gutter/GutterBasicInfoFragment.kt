@@ -403,7 +403,6 @@ class GutterBasicInfoFragment : Fragment() {
             val formActivity = activity as? GutterFormActivity
             val acceptsResult = token == 0L || formActivity?.acceptsCantOpenCapture(slot, token) == true
             if (code == Activity.RESULT_OK && acceptsResult && !path.isNullOrBlank() && slot in 1..3) {
-                (activity as? PhotoLoadingHost)?.setPhotoLoading(true)
                 val file = File(path)
                 setCapturedAtForSlot(
                     slot = slot,
@@ -1824,7 +1823,6 @@ class GutterBasicInfoFragment : Fragment() {
                         showPhoto(binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
                     }
                 }
-                (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
             }
             return
         }
@@ -1884,7 +1882,6 @@ class GutterBasicInfoFragment : Fragment() {
             renderPhotoSectionState(slot, isFormEditable && !isImportLocked, isViewMode = !isFormEditable)
             renderCapturedAtLabels()
             renderPhotoUploadIndicators()
-            (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
             if (!suppressPhotoDraftCallbacks && notifyUploadHost) {
                 photoDraftChangeHost?.onPhotoSlotReadyForUpload(slot, null)
                 photoDraftChangeHost?.onPhotoCapturedAtDraftChanged(slot, null)
@@ -1975,7 +1972,6 @@ class GutterBasicInfoFragment : Fragment() {
                         val delayMs = (250L - (SystemClock.uptimeMillis() - startMs)).coerceAtLeast(0L)
                         loading.postDelayed({ if (_binding != null) loading.visibility = View.GONE }, delayMs)
                     }
-                    (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
                     photoView.visibility = View.GONE
                     placeholder.visibility = View.VISIBLE
                     if (isRemote) showPhotoLoadErrorAlert()
@@ -1993,7 +1989,6 @@ class GutterBasicInfoFragment : Fragment() {
                         val delayMs = (250L - (SystemClock.uptimeMillis() - startMs)).coerceAtLeast(0L)
                         loading.postDelayed({ if (_binding != null) loading.visibility = View.GONE }, delayMs)
                     }
-                    (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
                     return false
                 }
             })

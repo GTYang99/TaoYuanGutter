@@ -1227,12 +1227,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 syncLatestDraftStateIntoWaypoints()
                 repairWaypointPhotosFromPendingIfNeeded(waypoints)
                 restoreUnchangedPhotoMetadataIntoWaypoints(waypoints)
-                val uploadingLabel = findUploadingWaypointLabel(waypoints.toList())
-                if (!uploadingLabel.isNullOrBlank()) {
-                    showPhotosUploadingAlert(uploadingLabel)
-                    updateSubmitButtonState()
-                    return@launch
-                }
                 if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) {
                     updateSubmitButtonState()
                     return@launch
@@ -2049,24 +2043,6 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         return LatLng(lat, lng)
     }
 
-    private fun findUploadingWaypointLabel(waypoints: List<Waypoint>): String? {
-        val resolvedDraftId = draftId.takeIf { it > 0L } ?: return null
-        return waypoints.withIndex().firstOrNull { (index, wp) ->
-            (1..3).any { slot ->
-                PhotoUploadSlotState.readImgId(wp.basicData, slot) == null &&
-                    PhotoSlotUploadCoordinator.isUploading(resolvedDraftId, index, slot)
-            }
-        }?.value?.label
-    }
-
-    private fun showPhotosUploadingAlert(label: String) {
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("照片上傳中")
-            .setMessage("$label 照片上傳中，請稍後上傳")
-            .setPositiveButton("確定", null)
-            .show()
-    }
-
     private fun countPendingPhotoUploads(candidateWaypoints: List<Waypoint>): Int {
         val ctx = context ?: return 0
         var count = 0
@@ -2188,6 +2164,18 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                                 imgId = null,
                                 error = completed.error
                             )
+                            if (updateFormState) {
+                                waypoints[index] = waypoint
+                                adapter.notifyItemChanged(index)
+                                onWaypointsChanged?.invoke(waypoints.toList())
+                            }
+                            MaterialAlertDialogBuilder(requireContext())
+                                .setTitle("照片上傳未完成")
+                                .setMessage(
+                                    "${waypoint.label} 第${slot}張照片${completed.error ?: "上傳失敗"}，請重試。"
+                                )
+                                .setPositiveButton("確定", null)
+                                .show()
                             return null
                         }
                         // Do not fall through to a second upload if the
@@ -2204,14 +2192,31 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     )
                     when (result) {
                         is ApiResult.Success -> {
-                            host?.onPendingPhotoUploadProgress(true)
+                            val outcome = PhotoUploadSlotState.outcomeForUploadResponse(
+                                result.data.data?.imgId
+                            )
                             PhotoUploadSlotState.writeState(
                                 waypoint.basicData,
                                 slot,
-                                state = PhotoUploadSlotState.STATE_SUCCESS,
-                                imgId = result.data.data?.imgId,
-                                error = null
+                                state = outcome.state,
+                                imgId = outcome.imgId,
+                                error = outcome.error
                             )
+                            if (outcome.state == PhotoUploadSlotState.STATE_FAILED) {
+                                host?.onPendingPhotoUploadProgress(false)
+                                if (updateFormState) {
+                                    waypoints[index] = waypoint
+                                    adapter.notifyItemChanged(index)
+                                    onWaypointsChanged?.invoke(waypoints.toList())
+                                }
+                                MaterialAlertDialogBuilder(requireContext())
+                                    .setTitle("照片上傳未完成")
+                                    .setMessage("${waypoint.label} 第${slot}張照片${outcome.error}，請重試。")
+                                    .setPositiveButton("確定", null)
+                                    .show()
+                                return null
+                            }
+                            host?.onPendingPhotoUploadProgress(true)
                             logPhotoImgIdTrace("ensurePhotos.uploadedSlot$slot", waypoint.basicData, waypoint.label)
                         }
                         is ApiResult.Error -> {
