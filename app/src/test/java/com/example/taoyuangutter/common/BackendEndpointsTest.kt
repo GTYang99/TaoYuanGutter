@@ -12,7 +12,7 @@ class BackendEndpointsTest {
         assertEquals("taipei.srgeo.com.tw", BackendEndpoints.ACTIVE_HOST)
         assertEquals(
             "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/",
-            BackendEndpoints.ACTIVE_API_BASE_URL
+            BackendEndpoints.ACTIVE_API_TAPIEI_URL
         )
         assertEquals(
             "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
@@ -26,7 +26,7 @@ class BackendEndpointsTest {
             "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/gwc/service/wmts",
             BackendEndpoints.ACTIVE_WMTS_URL
         )
-        assertNotEquals(BackendEndpoints.ACTIVE_API_BASE_URL, BackendEndpoints.LEGACY_DEMO_API_BASE_URL)
+        assertNotEquals(BackendEndpoints.ACTIVE_API_TAPIEI_URL, BackendEndpoints.LEGACY_DEMO_API_BASE_URL)
         assertNotEquals(
             BackendEndpoints.ACTIVE_GEOSERVER_BASE_URL,
             BackendEndpoints.LEGACY_DEMO_GEOSERVER_BASE_URL

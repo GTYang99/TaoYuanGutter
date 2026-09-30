@@ -8,8 +8,8 @@ package com.example.taoyuangutter.common
  */
 object BackendEndpoints {
     const val ACTIVE_HOST = "taipei.srgeo.com.tw"
-
-    const val ACTIVE_API_BASE_URL = "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/"
+    //const val ACTIVE_API_BASE_URL = "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/"
+    const val ACTIVE_API_TAPIEI_URL = "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/"
     const val LEGACY_DEMO_API_BASE_URL = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/"
 
     const val ACTIVE_GEOSERVER_BASE_URL =
