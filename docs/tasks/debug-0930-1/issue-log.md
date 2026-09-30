@@ -29,3 +29,26 @@ owner: planning
 
 - Classified as an enhancement because no prior working selector or regression evidence was found.
 - The user confirmed the `base` URL; implementation is pending independent verification.
+
+## ISS-002
+
+```yaml
+issue_id: ISS-002
+task_id: debug-0930-1
+phase: verification
+category: implementation_regression
+priority: P3
+title: Taipei selector label repeats the API prefix
+status: verified
+impact: The debug login selector displays a duplicated prefix for the Taipei target.
+repro_steps:
+  - Launch the debug build on the login screen.
+  - Read the selected environment label.
+expected: API：台北
+actual: API：API：台北
+evidence:
+  - Emulator login UI hierarchy shows the corrected label after rebuilding the current worktree.
+  - :app:assembleDebug completed successfully.
+next_action: verification
+owner: developer
+```
