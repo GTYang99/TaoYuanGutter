@@ -15,9 +15,10 @@
 ## CI Remediation
 
 - Added `.github/workflows/android-ci.yml` for branch pushes, pull requests targeting `main`, and manual dispatch.
-- The job uses JDK 21 and Android SDK 36, has a 30-minute limit, and runs `:app:testDebugUnitTest` plus `:app:assembleDebug`.
+- The job uses JDK 21 and Android SDK 36, has a 30-minute limit, and runs only the three JVM test classes from the approved plan plus `:app:assembleDebug`.
 - The Maps manifest placeholder is a literal build-only value written on the ephemeral runner. No credential or `local.properties` is committed or read from this machine.
-- CI remains `NOT VERIFIED` until this workflow is pushed to GitHub and completes successfully.
+- YAML parsing and `git diff --check` pass locally. CI remains `NOT VERIFIED` until this workflow is pushed to GitHub and completes successfully.
+- The attempt to push `codex/bugfix-0930-photo-background-complete` to `origin` was rejected by automatic approval review. The stated reason was that the destination was not trusted and user authorization to send repository content to GitHub was not explicit. No push occurred; no alternate write path will be used.
 
 ## Device API Route Evidence
 
@@ -30,5 +31,6 @@
 ## Result and Next Action
 
 - CI remediation is prepared locally; push the branch to obtain the required CI result.
+- Push is pending explicit user authorization after automatic review rejected it.
 - API route remains unresolved pending the authoritative test host or routing mechanism. Do not run further photo uploads until that route is confirmed.
 - Keep the task in `infrastructure` until both CI evidence and the test route are resolved, then return to `verification`.

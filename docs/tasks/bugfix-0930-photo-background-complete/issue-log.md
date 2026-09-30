@@ -32,11 +32,12 @@
 - priority: P2
 - title: 固定提交沒有可用的 CI build/test 結果
 - status: open
-- impact: 本機 targeted tests 與 debug build 通過，但專案 Release gate 要求 CI PASS；workflow 已加到本地分支，尚無遠端執行結果。
+- impact: 本機 targeted tests 與 debug build 通過，但專案 Release gate 要求 CI PASS；workflow 已加到本地分支，推送遭自動審查拒絕，尚無遠端執行結果。
 - evidence:
   - Repository scan found no `.github/workflows`, `.gitlab-ci.yml`, `Jenkinsfile`, `azure-pipelines.yml`, or `.circleci/config.yml`.
   - `state.yaml` and developer execution report both record CI build/test as `NOT VERIFIED`.
   - Added `.github/workflows/android-ci.yml`; remote CI remains unverified until the task branch is pushed and the workflow completes.
+  - `git push -u origin codex/bugfix-0930-photo-background-complete` was rejected by automatic approval review because user authorization for that remote destination was not explicit. No push occurred.
 - expected: Provide a CI workflow and passing build/test result for the fixed revision.
 - next_action: infrastructure
 - owner: environment

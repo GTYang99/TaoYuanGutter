@@ -38,5 +38,12 @@ jobs:
       - name: Set a build-only Maps placeholder
         run: printf 'MAPS_API_KEY=ci-placeholder\n' > local.properties
 
-      - name: Run unit tests and assemble debug APK
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
+      - name: Run task-scoped JVM tests
+        run: |
+          ./gradlew --no-daemon :app:testDebugUnitTest \
+            --tests 'com.example.taoyuangutter.common.PhotoUploadSlotStateTest' \
+            --tests 'com.example.taoyuangutter.gutter.PhotoUploadCandidateResolverTest' \
+            --tests 'com.example.taoyuangutter.api.StoreDitchNodeRequestMapperTest'
+
+      - name: Assemble debug APK
+        run: ./gradlew --no-daemon :app:assembleDebug

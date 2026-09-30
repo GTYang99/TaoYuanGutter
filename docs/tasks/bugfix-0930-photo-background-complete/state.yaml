@@ -3,7 +3,7 @@ task:
   type: bugfix
 
 phase: infrastructure
-status: infrastructure_in_progress
+status: blocked
 
 knowledge_resolution:
   status: not_required
@@ -52,6 +52,6 @@ release:
   status: pending
 
 blocking:
-  - CI workflow is prepared locally; a remote run is pending branch push.
+  - Automatic approval review rejected pushing the CI workflow branch to origin; explicit user authorization is required.
   - The device's effective API route is not independently confirmed as the test station.
 next_action: infrastructure

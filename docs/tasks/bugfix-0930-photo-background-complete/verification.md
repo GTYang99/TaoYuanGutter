@@ -38,7 +38,7 @@
 
 ## CI and Limitations
 
-- CI build/test: `NOT VERIFIED`. `.github/workflows/android-ci.yml` now defines the test/build job, but no remote run exists until the task branch is pushed. This blocks Release.
+- CI build/test: `NOT VERIFIED`. `.github/workflows/android-ci.yml` defines the plan-scoped test/build job, but no remote run exists; the attempted branch push was rejected by automatic approval review pending explicit user authorization. This blocks Release.
 - The device run relied on the operator's report that the API test station was active. The checked-in app source statically targets the Taipei host; verify the device's actual route before any further photo uploads.
 
 ## Issues
