@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_not_verified
+status: verification_passed
 
 knowledge_resolution:
   status: completed
@@ -28,35 +28,34 @@ validation:
 
 git:
   branch: codex/debug-0930-1
-  commit: b7ceb17a8c27d2a4c0a217f653b2b54213fcf63f
+  commit: 2b0f14325ffc94f3564cc3e93ad6c082898b474f
   status: committed
 
 verification:
-  result: not_verified
-  category: environment
+  result: pass
+  category: null
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria: []
   evidence:
-    fixed_revision: b7ceb17a8c27d2a4c0a217f653b2b54213fcf63f
+    fixed_revision: 2b0f14325ffc94f3564cc3e93ad6c082898b474f
     targeted_unit_tests: pass
     ci_local_parity: pass
     debug_build: pass
     release_compile: pass
     instrumentation_compile: pass
     runtime_ui: pass
-    remote_ci: not_verified
+    remote_ci: pass
     independent_review: completed
-    verifier_test_rerun: not_verified
-    verifier_emulator_ui: pass
+    verifier_test_rerun: pass
+    verifier_device_ui: pass
 
 ci:
-  build: not_verified
-  test: not_verified
+  build: pass
+  test: pass
 
 release:
   status: pending
 
-blocking:
-  - Obtain remote CI results for revision b7ceb17a8c27d2a4c0a217f653b2b54213fcf63f.
+blocking: []
 
-next_action: verification
+next_action: release

@@ -2,33 +2,58 @@
 
 ## Revision Under Review
 
-- Fixed revision: `b7ceb17a8c27d2a4c0a217f653b2b54213fcf63f` (`codex/debug-0930-1`).
-- Worktree was clean at verification start.
-- The only changes after implementation revision `6ee9273` are task documentation and state; production/test source is unchanged.
+- Fixed revision: `2b0f14325ffc94f3564cc3e93ad6c082898b474f` (`codex/debug-0930-1`).
+- Worktree was clean before verification. The implementation source is unchanged from `6ee9273`; later commits before this verification only updated task records.
+
+## Physical Device Context
+
+```yaml
+revision: 2b0f14325ffc94f3564cc3e93ad6c082898b474f
+device:
+  serial: QV710EDR3A
+  model: XQ-AU52
+  android_version: "12 (API 31)"
+app:
+  package: com.example.taoyuangutter
+  build_variant: debug
+```
 
 ## Acceptance Criteria
 
-| AC | Result | Evidence |
-|---|---|---|
-| AC-001 | PASS | Independently reproduced on Android 14 emulator `emulator-5554`, package `com.example.taoyuangutter`: LoginActivity showed `API：台北`; tapping it opened BASE/Taipei/DEMO choices; selecting BASE changed the button to `API：內網 BASE`; force-stop/relaunch reset it to `API：台北`. The installed debug APK was built from this worktree's unchanged implementation source (current fixed revision differs from implementation revision only in task docs/state). No API request was made. |
-| AC-002 | PASS | Source review: when the gate is false, the login view is `GONE`, its click listener is cleared, and `GutterApiClient.selectTarget()` returns false. `ENABLE_GROUP_SIMULATION` is `BuildConfig.DEBUG`; the recorded release Kotlin compile passed. |
-| AC-003 | PASS | `BackendEndpointsTest.apiBackendTargetsMapToApprovedUrls` asserts the three approved URLs. `GutterApiClientEnvironmentTest` checks Taipei default and distinct selected services; `GutterRepository` resolves `GutterApiClient.instance` per call. The execution report records these targeted tests passing. No live API request/write was made. |
-| AC-004 | PASS | Source review: service construction uses only the selected target's URL; no cross-target fallback/retry is present. Existing WMS/WMTS URLs remain fixed to Taipei. |
-| AC-005 | PASS | `ENABLE_GROUP_SIMULATION` directly uses `BuildConfig.DEBUG`; the false-gate path hides/disables the selector. The execution report records successful release compilation. |
+| AC | Steps | Result | Actual Result | Evidence | Retry Count |
+|---|---|---|---|---|---:|
+| AC-001 | Install current debug APK; open LoginActivity; inspect and tap the environment control. | PASS | Login page showed `API：台北`; selector listed `內網 BASE`, `台北`, and `DEMO`. | Physical XQ-AU52 UI hierarchy filtered to `btnApiEnvironment` and those three labels. | 1 |
+| AC-002 | Review the false-gate path and release BuildConfig. | PASS | `BuildConfig.DEBUG` is false in release; LoginActivity sets the control GONE and clears its listener when the gate is false; `selectTarget()` rejects changes. | `GutterApiService.kt:287,305-308`; `LoginActivity.kt:193-197`; generated release `BuildConfig.java`; release build passed. | 0 |
+| AC-003 | Select BASE on device; verify process reset; run focused endpoint/client unit tests; review repository service lookup. | PASS | Selecting BASE displayed `API：內網 BASE`; after force-stop/reopen it returned to `API：台北`. Tests confirmed all three URL mappings and distinct selected services. Repository resolves the selected service when API calls access its provider. | Physical device UI; `BackendEndpointsTest` (2 tests) and `GutterApiClientEnvironmentTest` (2 tests), all passed; `BackendEndpoints.kt:9-20`; `GutterApiService.kt:301-318`; `GutterRepository.kt:69-75`. No backend request was sent. | 0 |
+| AC-004 | Review selected-service construction and endpoint routing. | PASS | Retrofit is built against the selected target URL; no cross-target fallback or retry exists. | `GutterApiService.kt:311-319`; `BackendEndpoints.kt:4-5,16-20`. | 0 |
+| AC-005 | Build release and inspect the release gate. | PASS | Release build succeeded with `BuildConfig.DEBUG = false`; the false-gate path hides and detaches the control. | `:app:assembleRelease` passed; generated release `BuildConfig.java:7`; `LoginActivity.kt:193-197`. | 0 |
 
 ## Validation and Regression Review
 
-- Reviewed implementation diff from `397ebd7` through `6ee9273`, the current source, tests, and the scoped emulator evidence in `execution-report.md`.
-- Previously recorded targeted endpoint/client JVM tests, CI-parity tests, debug/release builds, and instrumentation compilation are consistent with source at the fixed revision; those results were not rerun in this verification environment.
-- Attempted the two focused JVM test classes. They could not start because no Java runtime is available (`Unable to locate a Java Runtime`).
-- AC-001 emulator interaction was independently completed using elevated ADB after normal ADB startup was denied.
-- Remote CI: `NOT VERIFIED`; no remote run/result is recorded.
-- No live backend traffic was sent. WMS/WMTS routes remain unchanged; default selection remains Taipei; selection remains process-local.
+- Focused tests plus debug build: `:app:testDebugUnitTest` for `BackendEndpointsTest` and `GutterApiClientEnvironmentTest`, then `:app:assembleDebug` — **PASS**, 4 tests, 0 failures, 0 skipped.
+- Release build: `:app:assembleRelease` — **PASS**.
+- Remote CI for the fixed revision — **PASS**: [Android CI run 36696611501](https://github.com/GTYang99/TaoYuanGutter/actions/runs/36696611501). The Unit tests and debug build job and all its steps completed successfully.
+- Device steps did not submit login credentials or send API traffic. BASE selection and process-local reset were verified without backend reads or writes.
+- Regression review: Taipei remains the default; WMS/WMTS constants remain fixed to Taipei; the selector is referenced only by LoginActivity and its login layout; no fallback was added.
+- The first UI hierarchy read returned no root while the device was asleep; after waking it, the single retry succeeded. No test case was repeated after passing.
+- No screenshot was retained. Automatic review rejected a full-device screenshot because it could expose prefilled login fields; filtered UI hierarchy evidence was used instead.
 
-## Final Result
+## Issues
 
-`NOT VERIFIED`: AC-001 through AC-005 pass, but remote CI has no result. No implementation failure was found. Preserve the fixed revision and resume Verification when remote CI evidence is available.
+無。
+
+## Validation Limitations
+
+無。A real API request was intentionally not sent; target routing is supported by the endpoint mapping and selected-service tests plus source review.
+
+## Failure Classification
+
+不適用（PASS）。
 
 ## Next Action
 
-`verification`
+`release`
+
+## Final Result
+
+`PASS`
