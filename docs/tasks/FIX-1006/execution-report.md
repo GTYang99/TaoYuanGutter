@@ -4,6 +4,9 @@
 
 `AddGutterBottomSheet` now forwards map-area touch events using a copied `MotionEvent` offset from the Dialog decor's screen origin into the Activity decor's coordinate space. Sheet-originated events continue through the original Dialog callback. Route selection remains fixed from ACTION_DOWN until ACTION_UP or ACTION_CANCEL.
 
+- Branch: `fix/FIX-1006-gutter-map-drag`
+- Implementation commit: `f503217`
+
 ## Validation
 
 | Check | Result | Evidence |

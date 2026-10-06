@@ -25,8 +25,8 @@ validation:
 
 git:
   branch: fix/FIX-1006-gutter-map-drag
-  commit: ""
-  status: pending
+  commit: f503217
+  status: committed
 
 verification:
   result: pending
