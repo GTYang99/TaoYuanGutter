@@ -1,0 +1,44 @@
+task:
+  id: FIX-1006
+  type: bugfix
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+  debug_build: passed
+  physical_device: not_verified
+  automated_tests: not_run
+
+git:
+  branch: fix/FIX-1006-gutter-map-drag
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification

@@ -681,7 +681,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                         }
                     }
                     val handled = if (routeToActivity) {
-                        requireActivity().dispatchTouchEvent(event)
+                        dispatchTouchEventToActivity(event)
                     } else {
                         originalCb.dispatchTouchEvent(event)
                     }
@@ -694,6 +694,32 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     return handled
                 }
             }
+        }
+    }
+
+    /**
+     * Dialog and Activity use different window coordinate origins. Preserve the
+     * original event for the Dialog callback, and offset a copy into Activity
+     * decor coordinates before forwarding map-area gestures.
+     */
+    private fun dispatchTouchEventToActivity(event: MotionEvent): Boolean {
+        val hostActivity = activity ?: return false
+        val dialogDecor = dialog?.window?.decorView ?: return false
+        val activityDecor = hostActivity.window.decorView
+        val dialogLocation = IntArray(2)
+        val activityLocation = IntArray(2)
+        dialogDecor.getLocationOnScreen(dialogLocation)
+        activityDecor.getLocationOnScreen(activityLocation)
+
+        val forwardedEvent = MotionEvent.obtain(event)
+        return try {
+            forwardedEvent.offsetLocation(
+                (dialogLocation[0] - activityLocation[0]).toFloat(),
+                (dialogLocation[1] - activityLocation[1]).toFloat()
+            )
+            hostActivity.dispatchTouchEvent(forwardedEvent)
+        } finally {
+            forwardedEvent.recycle()
         }
     }
 
