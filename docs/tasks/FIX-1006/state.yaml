@@ -20,8 +20,15 @@ implementation:
 validation:
   status: completed
   debug_build: passed
-  physical_device: not_verified
-  automated_tests: not_run
+  physical_device: partial
+  physical_device_revision: 7c6db3b
+  physical_device_model: XQ-AU52
+  physical_device_android: "12"
+  AC-001: pass_shared_sheet_add_mode
+  AC-002: pass_shared_sheet_add_mode
+  edit_mode_specific: not_verified
+  automated_tests: passed
+  targeted_unit_tests: 2_passed
 
 git:
   branch: fix/FIX-1006-gutter-map-drag

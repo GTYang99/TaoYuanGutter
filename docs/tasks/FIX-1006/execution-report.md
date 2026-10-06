@@ -13,11 +13,20 @@
 |---|---|---|
 | `git diff --check` | PASS | No whitespace errors reported |
 | `PATH="/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin:$PATH" ./gradlew :app:compileDebugKotlin` | PASS | `BUILD SUCCESSFUL`; only existing `adapterPosition` deprecation warnings in `AddGutterBottomSheet.kt` |
-| `adb devices -l` | NOT VERIFIED | ADB query succeeded but returned no attached devices |
-| AC-001 physical map drag | NOT VERIFIED | No Android device is attached |
-| AC-002 sheet controls and waypoint editing | NOT VERIFIED | No Android device is attached |
-| Automated tests | NOT RUN | No test command was run in this implementation turn |
+| `PATH="/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin:$PATH" ./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.map.NoDitchPointHitTesterTest' :app:assembleDebug` | PASS | Targeted map hit-test unit suite: 2 passed, 0 failed; debug APK assembled |
+| AC-001 physical map drag | PASS for shared `AddGutterBottomSheet` routing; edit-mode-specific check NOT VERIFIED | On the attached phone, injected a horizontal drag in the visible map region (`x=250,y=330` to `x=760,y=330`, 650 ms); map content shifted and sheet stayed open. The displayed sheet title was `新增側溝`, so this confirms the shared touch callback, not an existing-gutter edit session. |
+| AC-002 physical sheet controls | PASS for shared sheet controls; edit-mode-specific check NOT VERIFIED | Tapped the curve-type radio and restored the default type; opened the start-waypoint editor and backed out without changing fields or submitting. The displayed sheet was in add mode. |
+
+## Physical Device Record
+
+- Revision under test: `7c6db3b` (contains implementation commit `f503217`)
+- Device serial: `adb-QV710EDR3A-hF5XZF._adb-tls-connect._tcp`
+- Device model: `XQ-AU52`
+- Android version: `12`
+- Package: `com.example.taoyuangutter`
+- Preconditions: app installed with `adb install -r`; user logged in using the already-saved account; no gutter was submitted
+- Scope: AC-001 and AC-002 only
 
 ## Limitations and Next Action
 
-Compile evidence confirms Kotlin source compiles but does not prove cross-window touch routing at runtime. Run the focused AC-001 and AC-002 checks on an attached Android device before Release. If either case fails, capture only the relevant event trace and update the root-cause evidence before changing the implementation.
+The exact pre-existing-gutter edit mode was not reached; the phone displayed the add mode of the same `AddGutterBottomSheet` component. The tested touch callback is shared across modes, but edit-mode-only behavior remains `NOT VERIFIED`. Independent Verification should confirm the edit mode if a selectable existing gutter is available. The unit test covers nearby map hit testing, not the cross-window event offset itself.
