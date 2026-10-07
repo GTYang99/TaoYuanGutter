@@ -2,6 +2,7 @@ package com.example.taoyuangutter.gutter
 
 import com.example.taoyuangutter.R
 import android.app.Activity
+import android.annotation.SuppressLint
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -33,6 +34,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.example.taoyuangutter.map.LocationFixQualityPolicy
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -575,9 +577,44 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
 		    private var importLocationTimeoutJob: Job? = null
 		    private var importBestLocation: Location? = null
 
+            private var editMapLocationFlowActive = false
+            private var editMapLocationPermissionRetryUsed = false
+            private var editMapLocationSettingsLaunched = false
+            private var editMapLocationUserMoved = false
+            private var editMapLocationAttempt = 0
+            private var editMapLocationMaxAttempts = 2
+            private var editMapLocationCancellation: CancellationTokenSource? = null
+            private var editMapLocationTimeoutJob: Job? = null
+
 		    private val importLocationStaleMs: Long = 30_000L
 		    private val importLocationAccuracyM: Float = 30f
 		    private val importLocationTimeoutMs: Long = 25_000L
+
+            private val editMapLocationPermissionLauncher = registerForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions()
+            ) { grants ->
+                if (!editMapLocationFlowActive || isFinishing || isDestroyed) return@registerForActivityResult
+                if (EditMapLocationPolicy.hasForegroundLocationPermission(
+                        grants[Manifest.permission.ACCESS_FINE_LOCATION] == true,
+                        grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                    )
+                ) {
+                    beginEditMapLocationAttempts()
+                } else {
+                    val canAskAgain = ActivityCompat.shouldShowRequestPermissionRationale(
+                        this,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) || ActivityCompat.shouldShowRequestPermissionRationale(
+                        this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                    if (EditMapLocationPolicy.shouldRetryPermission(canAskAgain, editMapLocationPermissionRetryUsed)) {
+                        showEditMapLocationPermissionRetryDialog()
+                    } else {
+                        showEditMapLocationUnavailableDialog(showSettingsAction = !canAskAgain)
+                    }
+                }
+            }
 
 		    // 由主地圖帶入的最後定位（避免再次等待 GPS fix）
 		    private var hostLastLatLng: LatLng? = null
@@ -1469,8 +1506,23 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
         super.onPause()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (!editMapLocationSettingsLaunched) return
+        editMapLocationSettingsLaunched = false
+        if (!editMapLocationFlowActive || isFinishing || isDestroyed) return
+        if (hasEditMapLocationPermission()) {
+            // Returning from Settings resumes with one acquisition attempt, as agreed.
+            beginEditMapLocationAttempts(maxAttempts = 1)
+        } else {
+            editMapLocationFlowActive = false
+        }
+    }
+
     override fun onDestroy() {
         stopImportLocationUpdates()
+        stopEditMapLocationAttempt()
+        editMapLocationFlowActive = false
         unregisterPhotoUploadListeners()
         authExpiredHandler.reset()
         offlinePolygonOverlays.release()
@@ -1603,6 +1655,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
 
         renderSessionPreview(map)
         updateFormMapViewportPadding()
+        map.setOnCameraMoveStartedListener { reason ->
+            if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE && editMapLocationFlowActive) {
+                editMapLocationUserMoved = true
+            }
+        }
 
         val currentWaypoint = sessionWaypoints.getOrNull(currentIndex)
         val currentTarget = currentWaypoint?.latitude?.let { wpLat ->
@@ -1615,8 +1672,143 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
             val lat = if (currentLat != 0.0) currentLat else 24.9929
             val lng = if (currentLng != 0.0) currentLng else 121.3011
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
+            if (EditMapLocationPolicy.shouldLocateForInitialCamera(
+                    isEditMode = isEditMode,
+                    isViewMode = isViewMode,
+                    isOfflineMode = isOfflineMode,
+                    submittedDraftReadOnly = submittedDraftReadOnly,
+                    hasSavedCoordinates = false
+                )
+            ) {
+                editMapLocationFlowActive = true
+                editMapLocationUserMoved = false
+                beginEditMapLocationPermissionFlow()
+            }
         }
         updateImportMapClickListener()
+    }
+
+    private fun hasEditMapLocationPermission(): Boolean = EditMapLocationPolicy.hasForegroundLocationPermission(
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED,
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    )
+
+    private fun beginEditMapLocationPermissionFlow() {
+        if (!editMapLocationFlowActive || isFinishing || isDestroyed) return
+        if (hasEditMapLocationPermission()) {
+            beginEditMapLocationAttempts()
+        } else {
+            editMapLocationPermissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun beginEditMapLocationAttempts(maxAttempts: Int = 2) {
+        if (!editMapLocationFlowActive || isFinishing || isDestroyed) return
+        editMapLocationMaxAttempts = maxAttempts
+        editMapLocationAttempt = 0
+        startEditMapLocationAttempt()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startEditMapLocationAttempt() {
+        if (!editMapLocationFlowActive || isFinishing || isDestroyed || !hasEditMapLocationPermission()) return
+        editMapLocationAttempt++
+        stopEditMapLocationAttempt()
+        val cancellation = CancellationTokenSource()
+        editMapLocationCancellation = cancellation
+        val timeoutJob = lifecycleScope.launch {
+            delay(importLocationTimeoutMs)
+            if (editMapLocationCancellation !== cancellation) return@launch
+            stopEditMapLocationAttempt()
+            onEditMapLocationAttemptFailed()
+        }
+        editMapLocationTimeoutJob = timeoutJob
+
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cancellation.token)
+            .addOnSuccessListener { location ->
+                if (editMapLocationCancellation !== cancellation) return@addOnSuccessListener
+                stopEditMapLocationAttempt()
+                val validLocation = location?.takeIf {
+                    it.latitude.isFinite() && it.longitude.isFinite() &&
+                        it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0
+                }
+                if (validLocation == null) {
+                    onEditMapLocationAttemptFailed()
+                    return@addOnSuccessListener
+                }
+                if (EditMapLocationPolicy.shouldApplyLocation(editMapLocationUserMoved, editMapLocationFlowActive)) {
+                    formMap?.animateCamera(
+                        CameraUpdateFactory.newLatLng(LatLng(validLocation.latitude, validLocation.longitude))
+                    )
+                }
+                editMapLocationFlowActive = false
+            }
+            .addOnFailureListener {
+                if (editMapLocationCancellation !== cancellation) return@addOnFailureListener
+                stopEditMapLocationAttempt()
+                onEditMapLocationAttemptFailed()
+            }
+    }
+
+    private fun onEditMapLocationAttemptFailed() {
+        if (!editMapLocationFlowActive || isFinishing || isDestroyed) return
+        if (EditMapLocationPolicy.shouldRetryLocation(editMapLocationAttempt) &&
+            editMapLocationAttempt < editMapLocationMaxAttempts
+        ) {
+            startEditMapLocationAttempt()
+        } else {
+            editMapLocationFlowActive = false
+            showEditMapLocationUnavailableDialog(showSettingsAction = false)
+        }
+    }
+
+    private fun stopEditMapLocationAttempt() {
+        editMapLocationTimeoutJob?.cancel()
+        editMapLocationTimeoutJob = null
+        editMapLocationCancellation?.cancel()
+        editMapLocationCancellation = null
+    }
+
+    private fun showEditMapLocationPermissionRetryDialog() {
+        if (isFinishing || isDestroyed) return
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.edit_map_location_permission_title)
+            .setMessage(R.string.edit_map_location_permission_retry)
+            .setNegativeButton(R.string.edit_map_location_continue) { _, _ ->
+                editMapLocationFlowActive = false
+                binding.root.post { showEditMapLocationUnavailableDialog(showSettingsAction = false) }
+            }
+            .setPositiveButton(R.string.edit_map_location_retry) { _, _ ->
+                editMapLocationPermissionRetryUsed = true
+                editMapLocationPermissionLauncher.launch(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                )
+            }
+            .show()
+    }
+
+    private fun showEditMapLocationUnavailableDialog(showSettingsAction: Boolean) {
+        if (isFinishing || isDestroyed) return
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.edit_map_location_unavailable_title)
+            .setMessage(
+                if (showSettingsAction) R.string.edit_map_location_settings_message
+                else R.string.edit_map_location_unavailable_message
+            )
+            .setNegativeButton(R.string.edit_map_location_continue) { _, _ ->
+                editMapLocationFlowActive = false
+            }
+        if (showSettingsAction) {
+            dialog.setPositiveButton(R.string.edit_map_location_open_settings) { _, _ ->
+                editMapLocationFlowActive = true
+                editMapLocationSettingsLaunched = true
+                openAppSettings()
+            }
+        }
+        dialog.show()
     }
 
     private fun applyBackgroundWmsOverlays() {
