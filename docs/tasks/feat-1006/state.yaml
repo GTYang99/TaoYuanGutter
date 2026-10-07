@@ -31,6 +31,7 @@ validation:
     - ./gradlew :app:compileDebugAndroidTestKotlin
     - focused :app:connectedDebugAndroidTest on Android 14 Medium_Phone AVD (2/2 tests)
     - ./gradlew :app:assembleRelease
+    - repository Android CI commands reproduced locally (scoped JVM tests and :app:assembleDebug)
     - release APK asset readback and SHA-256 comparison
   not_verified:
     - physical-device network isolation, visual alignment and fill, four-host toggles, pan/zoom responsiveness, and repeated lifecycle scenarios
@@ -49,6 +50,7 @@ verification:
 ci:
   build: pending
   test: pending
+  local_workflow_equivalent: passed
 
 release:
   status: pending

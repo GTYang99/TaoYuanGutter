@@ -17,6 +17,7 @@
 | `:app:compileDebugAndroidTestKotlin` | PASS | Instrumented data-store/provider test compiles. |
 | `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.map.OfflinePolygonDataStoreInstrumentedTest` | PASS | Android 14 `Medium_Phone(AVD) - 14`; 2 tests, 0 failures. Both packaged sources returned polygon geometry for the Taoyuan extent; a populated legacy tile was returned before release and `NO_TILE` afterward. |
 | `:app:assembleRelease` | PASS | Rebuilt after the RTree fix; package contents inspected below. Build used a temporary compile-only Maps key placeholder. |
+| Repository Android CI job commands | PASS locally | Reproduced the workflow's task-scoped JVM tests and `:app:assembleDebug`; command completed successfully. This is local evidence, not a remote CI result. |
 | APK asset readback and SHA-256 comparison | PASS | Both original asset byte lengths and SHA-256 values matched. APK is 46,745,127 bytes; GPKG compressed to 7,668,975 bytes and GeoJSON to 25,342,525 bytes. See `asset-manifest.md`. |
 | `git diff --check` | PASS | No whitespace errors before commit. |
 | Physical Android device / map-host scenarios | NOT VERIFIED | No physical Android device is attached. AVD instrumentation does not cover host UI toggles, visual alignment/colors, repeated host lifecycle, network request capture, or pan/zoom/no-ANR scenarios in all four hosts. |
@@ -43,3 +44,4 @@ An initial Gradle invocation could not locate Java through the default shell PAT
 - Implementation commit: `af49905` (`feat(FEAT-1006): render offline map overlays`).
 - Debug-fix commit: `dddd391` (`fix(FEAT-1006): replace SQLite RTree dependency`).
 - CI: NOT RUN / pending; no CI result is available in this worktree. Independent Verification and Release have not started.
+- Remote check: the feature branch has no configured upstream in this checkout. `git ls-remote --heads origin feature/FEAT-1006-wmts-offline-data` could not resolve `github.com` in the current environment, so remote CI status and push availability could not be verified.
