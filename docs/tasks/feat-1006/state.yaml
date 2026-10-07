@@ -46,7 +46,7 @@ validation:
 
 git:
   branch: feature/FEAT-1006-wmts-offline-data
-  commit: 5f96a1a
+  commit: 0d58ada
   status: committed
 
 verification:

@@ -6,10 +6,10 @@
 - Category: environment
 - Priority: P1
 - Status: open
-- Impact: Planned physical-device checks for AC-001 through AC-005 remain outstanding. A local Android 14 AVD provides partial runtime coverage.
-- Evidence: Current `adb devices -l` output lists only `emulator-5554` (`sdk_gphone64_arm64`); no Android 9+ physical device is attached. The focused Android 14 AVD tests passed but do not cover the planned host UI scenarios. See execution report for exact coverage.
-- Next action: infrastructure
-- Remediation: connect an Android 9+ physical device and run the plan's focused scenarios in all four map hosts.
+- Impact: Planned physical-device checks for AC-001 through AC-005 remain outstanding. A local Android 14 AVD and a connected Android 12 device provide partial runtime coverage.
+- Evidence: On 2026-10-07, targeted AC-007 instrumentation passed on `XQ-AU52` Android 12. The planned four-host network, alignment, toggle, pan/zoom, and repeated-lifecycle scenarios for AC-001 through AC-005 have not been run. See execution report for exact coverage.
+- Next action: verification
+- Remediation: run the remaining plan-scoped scenarios on the available Android 9+ device; record any unavailable case as `NOT VERIFIED`.
 
 ## ISS-FEAT-1006-002 — Android SQLite lacks the RTree module
 
