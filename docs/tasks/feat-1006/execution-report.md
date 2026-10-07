@@ -43,5 +43,6 @@ An initial Gradle invocation could not locate Java through the default shell PAT
 - Required precondition for remaining checks: Android 9+ physical device with the app installed and a valid Maps key; make the two feature-data endpoints unavailable during the local-source check.
 - Implementation commit: `af49905` (`feat(FEAT-1006): render offline map overlays`).
 - Debug-fix commit: `dddd391` (`fix(FEAT-1006): replace SQLite RTree dependency`).
+- Tested revision: `5f96a1a` (`test(FEAT-1006): verify offline tile pixels and labels`); the AVD test run completed on the same source/test tree before this commit was created.
 - CI: NOT RUN / pending; no CI result is available in this worktree. Independent Verification and Release have not started.
 - Remote check: the feature branch has no configured upstream in this checkout. `git ls-remote --heads origin feature/FEAT-1006-wmts-offline-data` could not resolve `github.com` in the current environment, so remote CI status and push availability could not be verified.
