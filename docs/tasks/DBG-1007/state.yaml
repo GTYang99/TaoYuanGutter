@@ -25,8 +25,8 @@ validation:
 
 git:
   branch: codex/DBG-1007-minimap-location
-  commit: ""
-  status: pending
+  commit: 5114269122aa762c28f0093904c145e03ce3bd72
+  status: committed
 
 verification:
   result: pending
