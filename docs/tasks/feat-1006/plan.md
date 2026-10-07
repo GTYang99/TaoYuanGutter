@@ -8,6 +8,7 @@
 
 - Include only the two explicitly linked files, their offline parse/index/tile-render path, wiring in `MainActivity`, `MapWorkspaceFragment`, form, and point-picker map hosts, tests, and task evidence.
 - Change only the two layer-option titles to append `.gpkg` and `.geojson`; keep layout, all other labels, and other online base/region/no-ditch/deleted-area layers unchanged.
+- Add a configurable same-color boundary outline to both offline polygon layers, default 2.0 tile pixels; preserve existing fill colors and holes, with screen-space thickness stable across zoom levels.
 - Treat current file-to-layer pairing as trial-only; definitive data mapping remains a follow-up before later releases.
 
 ## Affected Files
@@ -34,6 +35,7 @@
 7. Route `MapOverlayController`, `GutterFormActivity`, and `MapPointPickerActivity` through the shared offline renderer while preserving existing toggles, z-order, state restore, and unrelated WMTS layers.
 8. Add unit tests for both real file formats, CRS/projection known points, Polygon/MultiPolygon rings and holes, tile intersection/fill output, empty/out-of-range requests, and visibility/resource lifecycle; add a UI assertion for the two option titles.
 9. Run targeted unit tests, assemble the configured APK/AAB, record packaged size and asset compression, then perform focused physical-device checks for AC-001–AC-006 across all four map hosts; record any unavailable check as `NOT VERIFIED`.
+10. Draw each queried polygon path using the existing fill, then its same-color outline using `OfflinePolygonStyle.OFFLINE_POLYGON_STROKE_WIDTH_PX` (default `2.0f`). Allow the provider to receive an alternate width for tests, and verify at broad and close zooms that width variation changes only the outline.
 
 ## Test Plan
 
@@ -41,6 +43,7 @@
 - Unit/instrumentation: existing overlay state/toggle restoration and provider lifecycle (disable/remove/re-enable without duplicated overlays or retained cache).
 - Build/package: assemble release artifact and inspect that both assets are packaged; record APK/AAB size and whether packaging compresses either file.
 - UI: verify the two option titles show the correct current source suffixes and that no other labels/layout changed.
+- Rendering: verify the default and alternate outline widths for both real data layers at broad and close zooms, while checking fill colors and holes remain correct.
 - Network: verify no feature-data requests go to WMTS `legacyDitch` or `roadServey`; verify unrelated base map and other overlays retain their current requests.
 - Physical device: Android 9+ device, feature-source network requests blocked; use `MainActivity`, `MapWorkspaceFragment`, gutter form, and point-picker map hosts to inspect alignment, opaque fill, toggles, pan/zoom, and return/reopen lifecycle.
 
@@ -62,6 +65,7 @@
 | AC-004 | Android device | With each/both layers enabled, pan and zoom through populated and sparse coverage in all four hosts | No crash, ANR, or blocking parse/render operation; map remains interactive; record load/memory observations | Instrumentation/device result; record observed loading behavior |
 | AC-005 | Android device, memory/resource inspection where available | Toggle both layers off/on repeatedly and leave/reopen all four map hosts | Removed layer is absent; re-enable restores one copy with provider-owned cache released/bounded and no duplicate overlay | Instrumentation result or device run record |
 | AC-006 | Android UI test | Open the layer sheet and inspect the two overlay option titles | Titles exactly identify `.gpkg` and `.geojson`; other labels/layout are unchanged | UI assertion/result; screenshot on failure |
+| AC-007 | Unit/instrumented tile-render test | Render both real polygon layers at broad and close zoom levels using default and alternate widths | Same-color outline is visible at 2.0 tile pixels by default, remains stable in screen space across zoom levels, alternate widths are honored, and fills/holes remain correct | Pixel assertions for fill, outline, and hole regions |
 
 ## Regression Plan
 
@@ -99,6 +103,7 @@
 | AC-004 | 2, 3, 5, 9 | Background parsing tests and physical pan/zoom/no-ANR scenarios in all four map hosts |
 | AC-005 | 5, 7, 8 | Cache/provider lifecycle tests and repeated device toggling/teardown |
 | AC-006 | 6, 8 | UI assertion for exact layer option labels; review other labels/layout for no changes |
+| AC-007 | 10 | Unit/instrumented tile-pixel assertions for outline configuration, zoom stability, fill colors, and holes |
 
 ## Failure Behavior
 

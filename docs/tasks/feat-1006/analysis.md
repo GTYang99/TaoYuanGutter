@@ -16,6 +16,7 @@
 
 - Package the specifically linked files with the app, decode each according to its actual format, and render their thematic roles from local data in the `MainActivity`/`MapWorkspaceFragment`, gutter-form, and point-picker map hosts.
 - Render filled polygons in the existing legend colors (`#156D1D` legacy and `#FA0000` possible), retaining polygon holes, existing controls, and removing the corresponding feature-data network requests.
+- Add a same-color polygon boundary outline for broad-extent visibility, defaulting to an adjustable 2.0 tile-pixel width that remains visually stable across zoom levels.
 - Append `.gpkg` to the legacy layer option title and `.geojson` to the possible-gutter option title; leave all other UI unchanged.
 - Parse/index off the UI thread, render only the needed map tiles/features, and release tile/overlay resources when hidden or when the map is destroyed.
 
@@ -26,6 +27,7 @@
 - `app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt` — route its legacy and `roadServey` overlays through the local renderer.
 - `app/src/main/java/com/example/taoyuangutter/gutter/MapPointPickerActivity.kt` — route its legacy and `roadServey` overlays through the local renderer.
 - New map data/parser/index/tile-rendering classes and unit tests under `app/src/main/java/.../map` and `app/src/test/.../map`.
+- `app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt` — draw the configurable boundary outline without changing layer colors, fill behavior, or hole semantics.
 - `app/src/main/assets/` — package the two supplied data files, subject to APK packaging/asset-compression confirmation during implementation.
 - `app/src/main/res/values/strings.xml` — update only the two map layer-option titles with the current source suffixes.
 - `app/build.gradle.kts` and version catalog only if an additional compatible GeoPackage reader is required.

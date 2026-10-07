@@ -16,7 +16,7 @@ plan_review:
 
 implementation:
   status: completed
-  mode: debug_fix
+  mode: approved_visual_refinement
   build: passed
   unit_tests: passed
   android_test_compile: passed
@@ -28,9 +28,11 @@ validation:
   status: completed
   passed:
     - git diff --check
-    - ./gradlew :app:testDebugUnitTest
-    - ./gradlew :app:compileDebugAndroidTestKotlin
-    - focused AVD instrumentation with real-data fill-color and layer-label checks (3/3 tests)
+    - Gradle :app:testDebugUnitTest
+    - Gradle :app:compileDebugAndroidTestKotlin
+    - Gradle :app:assembleDebug
+    - focused Android 12 XQ-AU52 instrumentation of both data sources at zoom 16 and 20 (3/3 tests)
+    - AC-007 alternate stroke width pixel comparison and unchanged interior fill assertion
     - AC-006 exact layer labels asserted from the inflated layer-sheet layout
     - ./gradlew :app:assembleRelease
     - repository Android CI commands reproduced locally (scoped JVM tests and :app:assembleDebug)

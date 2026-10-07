@@ -7,6 +7,7 @@
 - Replaced the `legacyDitch` and `roadServey` feature requests in `MapOverlayController`, `GutterFormActivity`, and `MapPointPickerActivity`; `MainActivity` and `MapWorkspaceFragment` pass their app context to the shared controller. Provider caches and overlays are removed on disable and map-host teardown.
 - Changed only the two specified layer-sheet strings to `水務局舊資料（.gpkg）` and `可能側溝位置（.geojson）`.
 - Added unit coverage for projection round-trip, GeoPackage geometry-header decoding, Polygon/MultiPolygon rings and holes, tile bounds, and color constants. Instrumented coverage queries both packaged sources, verifies exact opaque colors in PNG tiles sampled from true polygon interiors, checks provider release, and asserts the two layer labels in the inflated UI layout.
+- Added a same-color offline polygon outline controlled by `OfflinePolygonStyle.OFFLINE_POLYGON_STROKE_WIDTH_PX` (default `2.0f` tile pixels). The tile provider accepts an alternate width for focused rendering checks; fill colors and polygon paths remain unchanged.
 
 ## Validation
 
@@ -15,7 +16,8 @@
 | `git diff --check` | PASS | No whitespace errors. |
 | `:app:testDebugUnitTest` | PASS | Includes the new `OfflineGeometryTest`. |
 | `:app:compileDebugAndroidTestKotlin` | PASS | Instrumented data-store/provider test compiles. |
-| `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.map.OfflinePolygonDataStoreInstrumentedTest` | PASS | Android 14 `Medium_Phone(AVD) - 14`; 3 tests, 0 failures. Both packaged sources returned polygon geometry for the Taoyuan extent and real-data zoom-20 PNG tiles contained their exact opaque fill colors; legacy provider returns `NO_TILE` after release; inflated layer sheet exposes both exact source labels. |
+| `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.map.OfflinePolygonDataStoreInstrumentedTest` | PASS | Android 12 `XQ-AU52`; 3 tests, 0 failures. For both real polygon sources, zoom-16 and zoom-20 tiles rendered with the 2.0 default and injected 5.0 width; width variation changed tile edge pixels while a sampled interior pixel retained the exact layer fill color. Provider release and exact layer labels also passed. |
+| `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleDebug` | PASS | Built using Android Studio bundled JBR; unit tests passed, Android instrumentation sources compiled, and the updated renderer packaged in debug APK. |
 | `:app:assembleRelease` | PASS | Rebuilt after the RTree fix; package contents inspected below. Build used a temporary compile-only Maps key placeholder. |
 | Repository Android CI job commands | PASS locally | Reproduced the workflow's task-scoped JVM tests and `:app:assembleDebug`; command completed successfully. This is local evidence, not a remote CI result. |
 | APK asset readback and SHA-256 comparison | PASS | Both original asset byte lengths and SHA-256 values matched. APK is 46,745,127 bytes; GPKG compressed to 7,668,975 bytes and GeoJSON to 25,342,525 bytes. See `asset-manifest.md`. |
@@ -32,6 +34,7 @@ An initial Gradle invocation could not locate Java through the default shell PAT
 - AC-004: Indexing runs on the dedicated background executor and rendering uses the Maps tile-provider callback. Pan/zoom, crash, and ANR behavior in the four hosts are NOT VERIFIED.
 - AC-005: Provider cache is bounded; AVD instrumentation verifies provider release after a tile request. Repeated UI toggles, host teardown, and re-enable behavior are NOT VERIFIED.
 - AC-006: PASS on Android 14 AVD: inflated `sheet_layers.xml` displays exactly `水務局舊資料（.gpkg）` and `可能側溝位置（.geojson）`. Diff review confirms no other layer labels or layout elements changed in the scope.
+- AC-007: PASS on Android 12 `XQ-AU52`: both real layers rendered at zoom 16 and 20 with the 2.0 tile-pixel default; injected 5.0 width changed edge pixels while the sampled interior fill pixel remained unchanged. The configured width is independent of zoom and tile output dimensions remain 256×256. Manual broad/close map-host appearance remains part of the existing unverified all-host scenarios.
 
 ## Handoff
 

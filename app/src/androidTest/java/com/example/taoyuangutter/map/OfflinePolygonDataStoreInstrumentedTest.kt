@@ -24,6 +24,7 @@ class OfflinePolygonDataStoreInstrumentedTest {
     fun packagedSourcesReturnLocalPolygonGeometryForTaoyuanExtent() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val bounds = doubleArrayOf(274000.0, 2755000.0, 276000.0, 2760000.0)
+        assertEquals(2f, OfflinePolygonStyle.OFFLINE_POLYGON_STROKE_WIDTH_PX, 0f)
 
         listOf(OfflinePolygonLayer.LEGACY, OfflinePolygonLayer.POSSIBLE).forEach { layer ->
             val source = OfflinePolygonDataStore.load(context, layer).get()
@@ -51,26 +52,53 @@ class OfflinePolygonDataStoreInstrumentedTest {
                 interiorPoint.x,
                 interiorPoint.y
             )
-            val tile = tileCoordinate(center.first, center.second, zoom = 20)
-            val provider = OfflinePolygonTileProvider(context, layer)
-            try {
-                val rendered = provider.getTile(tile.first, tile.second, tile.third)
-                    ?: throw AssertionError("${layer.name} provider returned null instead of TileProvider.NO_TILE or a tile")
-                assertNotSame("${layer.name} should render a populated offline tile", TileProvider.NO_TILE, rendered)
-                val png = rendered.data ?: throw AssertionError("${layer.name} tile has no PNG data")
-                val bitmap = BitmapFactory.decodeByteArray(png, 0, png.size)
-                assertNotNull("${layer.name} tile should contain a decodable PNG", bitmap)
-                bitmap!!.let { image ->
-                    val pixels = IntArray(image.width * image.height)
-                    image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
-                    assertTrue(
-                        "${layer.name} tile should contain its opaque fill color",
-                        pixels.any { it == layer.color }
-                    )
-                    image.recycle()
+            listOf(16, 20).forEach { zoom ->
+                val tile = tileCoordinate(center.first, center.second, zoom)
+                val provider = OfflinePolygonTileProvider(context, layer)
+                val alternateWidthProvider = OfflinePolygonTileProvider(context, layer, outlineWidthPx = 5f)
+                try {
+                    val rendered = provider.getTile(tile.first, tile.second, tile.third)
+                        ?: throw AssertionError("${layer.name} provider returned null instead of TileProvider.NO_TILE or a tile")
+                    assertNotSame("${layer.name} should render a populated offline tile", TileProvider.NO_TILE, rendered)
+                    val png = rendered.data ?: throw AssertionError("${layer.name} tile has no PNG data")
+                    val bitmap = BitmapFactory.decodeByteArray(png, 0, png.size)
+                    assertNotNull("${layer.name} tile should contain a decodable PNG", bitmap)
+                    val alternateTile = alternateWidthProvider.getTile(tile.first, tile.second, tile.third)
+                        ?: throw AssertionError("${layer.name} alternate-width provider returned null")
+                    assertNotSame(TileProvider.NO_TILE, alternateTile)
+                    val alternatePng = alternateTile.data
+                        ?: throw AssertionError("${layer.name} alternate-width tile has no PNG data")
+                    val alternateBitmap = BitmapFactory.decodeByteArray(alternatePng, 0, alternatePng.size)
+                    assertNotNull("${layer.name} alternate-width tile should contain a decodable PNG", alternateBitmap)
+                    bitmap!!.let { image ->
+                        val pixels = IntArray(image.width * image.height)
+                        image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
+                        assertTrue(
+                            "${layer.name} tile should contain its opaque fill and outline color",
+                            pixels.any { it == layer.color }
+                        )
+                        val sample = WebMercatorTileMath.tilePixel(
+                            interiorPoint.x,
+                            interiorPoint.y,
+                            tile.first,
+                            tile.second,
+                            tile.third
+                        )
+                        val sampleX = sample.x.toInt().coerceIn(0, image.width - 1)
+                        val sampleY = sample.y.toInt().coerceIn(0, image.height - 1)
+                        assertEquals("${layer.name} interior fill must remain unchanged", layer.color, image.getPixel(sampleX, sampleY))
+                        val alternatePixels = IntArray(alternateBitmap!!.width * alternateBitmap.height)
+                        alternateBitmap.getPixels(alternatePixels, 0, alternateBitmap.width, 0, 0, alternateBitmap.width, alternateBitmap.height)
+                        assertTrue("${layer.name} fill must remain intact with an alternate outline width", alternatePixels.any { it == layer.color })
+                        assertEquals("${layer.name} alternate width must not affect the interior fill", layer.color, alternateBitmap.getPixel(sampleX, sampleY))
+                        assertFalse("${layer.name} alternate outline width should affect rendered edge pixels", pixels.contentEquals(alternatePixels))
+                        image.recycle()
+                        alternateBitmap.recycle()
+                    }
+                } finally {
+                    provider.release()
+                    alternateWidthProvider.release()
                 }
-            } finally {
-                provider.release()
             }
         }
     }

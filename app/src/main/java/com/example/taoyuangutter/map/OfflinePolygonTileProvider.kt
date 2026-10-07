@@ -18,7 +18,8 @@ import java.util.concurrent.ExecutionException
 
 internal class OfflinePolygonTileProvider(
     context: Context,
-    private val layer: OfflinePolygonLayer
+    private val layer: OfflinePolygonLayer,
+    private val outlineWidthPx: Float = OfflinePolygonStyle.OFFLINE_POLYGON_STROKE_WIDTH_PX
 ) : TileProvider {
     private data class TileKey(val x: Int, val y: Int, val zoom: Int)
 
@@ -75,7 +76,11 @@ internal class OfflinePolygonTileProvider(
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = layer.color
             style = Paint.Style.FILL
-            strokeWidth = 0f
+        }
+        val outlinePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = layer.color
+            style = Paint.Style.STROKE
+            strokeWidth = outlineWidthPx
         }
         features.forEach { blob ->
             val geometry = try {
@@ -100,6 +105,7 @@ internal class OfflinePolygonTileProvider(
                     path.close()
                 }
                 canvas.drawPath(path, paint)
+                if (outlineWidthPx > 0f) canvas.drawPath(path, outlinePaint)
             }
         }
         val stream = ByteArrayOutputStream()
@@ -114,6 +120,10 @@ internal class OfflinePolygonTileProvider(
         const val MAX_CACHED_TILES = 48
         val NO_TILE = TileProvider.NO_TILE
     }
+}
+
+internal object OfflinePolygonStyle {
+    const val OFFLINE_POLYGON_STROKE_WIDTH_PX = 2f
 }
 
 internal class OfflinePolygonOverlayManager(

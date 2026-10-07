@@ -30,3 +30,35 @@ None identified. The plan covers AC-001 through AC-006, names all four map hosts
 ## Decision
 
 APPROVED
+
+---
+
+## Addendum Review — Configurable Offline Polygon Outline
+
+### Review Scope
+
+Reviewed the user-approved AC-007 amendment, updated requirement, repository analysis, implementation plan, and existing tile-render instrumentation coverage.
+
+### Blocking Issues
+
+None identified. The change is limited to the shared offline tile renderer and its focused instrumentation test; both map colors and existing fill/hole behavior remain acceptance constraints. A fixed tile-pixel width gives consistent apparent thickness at each zoom because each generated map tile is rendered to the same pixel dimensions.
+
+### Improvement Suggestions
+
+- Severity: Suggestion
+- Category: Test Evidence
+- Description: The existing real-data test already decodes rendered tile PNGs and can compare an injected alternate width against the 2.0 default.
+- Recommendation: Assert that outline pixels change while an interior fill pixel remains the exact existing layer color.
+- Status: Accepted; include this assertion in the instrumentation test.
+
+### Checklist
+
+- Requirements and acceptance criteria: AC-007 defines the default, configurability, color, zoom behavior, and preservation of fills/holes.
+- Repository analysis and affected modules: Shared offline tile provider and existing instrumentation test identified; no extra dependency or UI change.
+- Implementation plan: One style configuration value plus provider injection parameter; bounded to the offline polygon renderer.
+- Validation and regression: Existing instrumentation test harness will compare default and alternate rendered widths for both real sources and check fill pixels; existing suite and build remain required.
+- Scope and rollback: No API contract change; reverting the focused renderer/test/artifact addendum restores current behavior.
+
+### Decision
+
+APPROVED

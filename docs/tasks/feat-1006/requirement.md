@@ -20,6 +20,7 @@
 - Package both files with the app installation and render the data without requesting the corresponding online data layers.
 - Draw the legacy data as solid green-filled polygons and possible-gutter data as solid red-filled polygons.
 - In the layer-option titles, mark the current trial source format: `水務局舊資料（.gpkg）` and `可能側溝位置（.geojson）`; make no other UI changes.
+- Draw a subtle, same-color outline around the offline polygons so their boundaries remain visible at broad map extents. Use an adjustable tile-pixel width with a default of `2.0`; keep the screen-space thickness stable across zoom levels so it does not become oversized when zoomed in.
 - Apply the offline overlays to the main map, gutter form map, and point-picker map.
 - Manage parsing, rendering, and map overlay resources so data loads off the UI thread and map pan/zoom remains usable.
 
@@ -36,6 +37,7 @@
 - AC-004: With each overlay enabled, a user can pan and zoom across the supplied data in all four map hosts without an app crash, ANR, or blocking the map UI while the data is parsed/rendered.
 - AC-005: Turning either overlay off removes its rendered content and releases its provider-owned cache and overlay resources; turning it on again restores the correct local content without duplicate overlays.
 - AC-006: The layer options display exactly `水務局舊資料（.gpkg）` and `可能側溝位置（.geojson）`; other UI labels and layout remain unchanged.
+- AC-007: Both offline polygon layers draw their existing fill color as a boundary outline at the configurable default width of `2.0` tile pixels; its visual thickness stays stable across zoom levels, and polygon fills and holes remain intact.
 
 ## Constraints
 
