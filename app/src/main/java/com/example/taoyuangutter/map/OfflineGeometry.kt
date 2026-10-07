@@ -63,6 +63,40 @@ internal object OfflineGeometryCodec {
         return readGeometry(buffer)
     }
 
+    fun boundsFromGeoPackage(blob: ByteArray): DoubleArray {
+        require(blob.size >= 8 && blob[0] == 'G'.code.toByte() && blob[1] == 'P'.code.toByte()) {
+            "Invalid GeoPackage geometry header"
+        }
+        val flags = blob[3].toInt() and 0xff
+        val envelopeCode = (flags shr 1) and 0x07
+        val envelopeDoubles = when (envelopeCode) {
+            0 -> 0
+            1 -> 4
+            2, 3 -> 6
+            4 -> 8
+            else -> throw IllegalArgumentException("Unsupported GeoPackage envelope code $envelopeCode")
+        }
+        if (envelopeDoubles >= 4) {
+            val byteOrder = if ((flags and 1) == 1) ByteOrder.LITTLE_ENDIAN else ByteOrder.BIG_ENDIAN
+            val envelope = ByteBuffer.wrap(blob, 8, envelopeDoubles * 8).slice().order(byteOrder)
+            val minX = envelope.double
+            val maxX = envelope.double
+            val minY = envelope.double
+            val maxY = envelope.double
+            return doubleArrayOf(minX, minY, maxX, maxY)
+        }
+        return bounds(fromGeoPackage(blob))
+    }
+
+    fun bounds(geometry: OfflineGeometry): DoubleArray {
+        val coordinates = geometry.polygons.flatMap { it.rings }.flatten()
+        require(coordinates.isNotEmpty()) { "Geometry has no coordinates" }
+        return doubleArrayOf(
+            coordinates.minOf { it.x }, coordinates.minOf { it.y },
+            coordinates.maxOf { it.x }, coordinates.maxOf { it.y }
+        )
+    }
+
     fun fromWkb(blob: ByteArray): OfflineGeometry = readGeometry(ByteBuffer.wrap(blob))
 
     private fun readGeometry(buffer: ByteBuffer): OfflineGeometry {
