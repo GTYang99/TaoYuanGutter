@@ -21,6 +21,7 @@ implementation:
   unit_tests: passed
   android_test_compile: passed
   android_runtime_tests: passed
+  android_test_count: 3
   release_build: passed
 
 validation:
@@ -29,13 +30,17 @@ validation:
     - git diff --check
     - ./gradlew :app:testDebugUnitTest
     - ./gradlew :app:compileDebugAndroidTestKotlin
-    - focused :app:connectedDebugAndroidTest on Android 14 Medium_Phone AVD (2/2 tests)
+    - focused AVD instrumentation with real-data fill-color and layer-label checks (3/3 tests)
+    - AC-006 exact layer labels asserted from the inflated layer-sheet layout
     - ./gradlew :app:assembleRelease
     - repository Android CI commands reproduced locally (scoped JVM tests and :app:assembleDebug)
     - release APK asset readback and SHA-256 comparison
   not_verified:
-    - physical-device network isolation, visual alignment and fill, four-host toggles, pan/zoom responsiveness, and repeated lifecycle scenarios
-    - AC-006 layer sheet runtime inspection and confirmation that surrounding UI is unchanged
+    - AC-001 feature-network request capture and runtime activation through each map host
+    - AC-002 geographic alignment against the base map on device
+    - AC-003 runtime toggles in all four map hosts
+    - AC-004 pan/zoom responsiveness and no-ANR behavior in all four map hosts
+    - AC-005 repeated host toggles, teardown, and re-enable scenarios
 
 git:
   branch: feature/FEAT-1006-wmts-offline-data

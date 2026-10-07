@@ -31,3 +31,15 @@ Resolve `ISS-FEAT-1006-002` by removing dependence on the optional SQLite RTree 
 - `:app:testDebugUnitTest`: PASS.
 - `:app:assembleRelease`: PASS; both source asset byte lengths and SHA-256 values match the originals.
 - Code fix committed as `dddd391` (`fix(FEAT-1006): replace SQLite RTree dependency`).
+
+## ISS-FEAT-1006-003 Test-Only Fix
+
+Apply `Theme.TaoYuanGutter` to the instrumentation test's layout-inflation context with `ContextThemeWrapper`, then rerun `layerSheetInflatesExactOfflineSourceLabels` and the focused test class. Do not change production resources or layout for this harness failure.
+
+Completion: exact layer labels are verified after inflating `sheet_layers.xml` with the app theme; focused AVD suite passed.
+
+## ISS-FEAT-1006-004 Test Sampling Fix
+
+Choose a sample point that is verified by point-in-ring checks to lie within an exterior ring and outside its holes. Request a high-zoom tile containing that point and assert its PNG contains the exact opaque color for the layer. This keeps the pixel assertion tied to actual polygon coverage rather than a feature bounding box.
+
+Completion: `findInteriorPoint` selects a polygon interior sample and the focused AVD test decodes both real-data tiles and finds the expected opaque color; 3 tests passed with 0 failures.

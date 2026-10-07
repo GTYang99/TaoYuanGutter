@@ -6,7 +6,7 @@
 - Added background GeoJSON-to-SQLite indexing and GeoPackage staging/reading with a persistent 512-meter EPSG:3826 cell index built from ordinary SQLite tables. Both sources filter cell candidates by exact bounds without requiring SQLite RTree support. Polygon WKB decoding, projection, and bounded offline tile rendering preserve holes.
 - Replaced the `legacyDitch` and `roadServey` feature requests in `MapOverlayController`, `GutterFormActivity`, and `MapPointPickerActivity`; `MainActivity` and `MapWorkspaceFragment` pass their app context to the shared controller. Provider caches and overlays are removed on disable and map-host teardown.
 - Changed only the two specified layer-sheet strings to `水務局舊資料（.gpkg）` and `可能側溝位置（.geojson）`.
-- Added unit coverage for projection round-trip, GeoPackage geometry-header decoding, Polygon/MultiPolygon rings and holes, tile bounds, and exact opaque colors. Added instrumented coverage for packaged-source spatial queries and provider release.
+- Added unit coverage for projection round-trip, GeoPackage geometry-header decoding, Polygon/MultiPolygon rings and holes, tile bounds, and color constants. Instrumented coverage queries both packaged sources, verifies exact opaque colors in PNG tiles sampled from true polygon interiors, checks provider release, and asserts the two layer labels in the inflated UI layout.
 
 ## Validation
 
@@ -15,7 +15,7 @@
 | `git diff --check` | PASS | No whitespace errors. |
 | `:app:testDebugUnitTest` | PASS | Includes the new `OfflineGeometryTest`. |
 | `:app:compileDebugAndroidTestKotlin` | PASS | Instrumented data-store/provider test compiles. |
-| `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.map.OfflinePolygonDataStoreInstrumentedTest` | PASS | Android 14 `Medium_Phone(AVD) - 14`; 2 tests, 0 failures. Both packaged sources returned polygon geometry for the Taoyuan extent; a populated legacy tile was returned before release and `NO_TILE` afterward. |
+| `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.map.OfflinePolygonDataStoreInstrumentedTest` | PASS | Android 14 `Medium_Phone(AVD) - 14`; 3 tests, 0 failures. Both packaged sources returned polygon geometry for the Taoyuan extent and real-data zoom-20 PNG tiles contained their exact opaque fill colors; legacy provider returns `NO_TILE` after release; inflated layer sheet exposes both exact source labels. |
 | `:app:assembleRelease` | PASS | Rebuilt after the RTree fix; package contents inspected below. Build used a temporary compile-only Maps key placeholder. |
 | Repository Android CI job commands | PASS locally | Reproduced the workflow's task-scoped JVM tests and `:app:assembleDebug`; command completed successfully. This is local evidence, not a remote CI result. |
 | APK asset readback and SHA-256 comparison | PASS | Both original asset byte lengths and SHA-256 values matched. APK is 46,745,127 bytes; GPKG compressed to 7,668,975 bytes and GeoJSON to 25,342,525 bytes. See `asset-manifest.md`. |
@@ -26,12 +26,12 @@ An initial Gradle invocation could not locate Java through the default shell PAT
 
 ## Acceptance-Criteria Status
 
-- AC-001: Both exact packaged assets and both local data-store queries are verified on Android 14 AVD. Network request capture with feature endpoints unavailable and launch through each host are NOT VERIFIED.
-- AC-002: Required color constants and geometry-hole preservation have unit evidence. Visual fill and geographic alignment are NOT VERIFIED on device.
+- AC-001: Both exact packaged assets and both local data-store queries are verified on Android 14 AVD. Feature-network request capture and launch through each host are NOT VERIFIED.
+- AC-002: Both real-data tile PNGs contain their required exact opaque fill color on Android 14 AVD; geometry-hole preservation has unit evidence. Geographic alignment against the base map is NOT VERIFIED on device.
 - AC-003: All four source paths compile; runtime toggle behavior in the four hosts is NOT VERIFIED.
 - AC-004: Indexing runs on the dedicated background executor and rendering uses the Maps tile-provider callback. Pan/zoom, crash, and ANR behavior in the four hosts are NOT VERIFIED.
 - AC-005: Provider cache is bounded; AVD instrumentation verifies provider release after a tile request. Repeated UI toggles, host teardown, and re-enable behavior are NOT VERIFIED.
-- AC-006: Exact two strings are present in resources; the layer sheet and unchanged surrounding UI were not inspected on device.
+- AC-006: PASS on Android 14 AVD: inflated `sheet_layers.xml` displays exactly `水務局舊資料（.gpkg）` and `可能側溝位置（.geojson）`. Diff review confirms no other layer labels or layout elements changed in the scope.
 
 ## Handoff
 
