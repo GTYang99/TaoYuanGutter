@@ -190,6 +190,7 @@ class MapWorkspaceFragment : Fragment(),
     }
     private val mapOverlayController by lazy {
         MapOverlayController(
+            context = requireContext(),
             mapProvider = { googleMap },
             onNoDitchPointsLayerChanged = { enabled ->
                 if (!enabled) clearNoDitchPointsMarkers()
@@ -395,6 +396,7 @@ class MapWorkspaceFragment : Fragment(),
     override fun onDestroyView() {
         myLocationController.cancelPendingLocationRequest()
         authExpiredHandler.reset()
+        mapOverlayController.releaseOfflineOverlays()
         super.onDestroyView()
         _binding = null
     }

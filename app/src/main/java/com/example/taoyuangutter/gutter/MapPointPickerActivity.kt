@@ -53,8 +53,9 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private var showPossibleOverlay = true
     private var showRegionOverlay = true
 
-    private var planWmsOverlay: TileOverlay? = null
-    private var waterOldWmsOverlay: TileOverlay? = null
+    private val offlinePolygonOverlays by lazy {
+        com.example.taoyuangutter.map.OfflinePolygonOverlayManager(this) { googleMap }
+    }
     private var regionWmsOverlay: TileOverlay? = null
 
     // ── 現在位置 ──────────────────────────────────────────────────────────
@@ -209,6 +210,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
 
     override fun onDestroy() {
         myLocationController.cancelPendingLocationRequest()
+        offlinePolygonOverlays.release()
         super.onDestroy()
     }
 
@@ -241,29 +243,9 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun applyBackgroundWmsOverlays() {
         val map = googleMap ?: return
 
-        // 本次計畫調查 (roadServey) - 這裡由 showPossibleOverlay 控制
-        if (showPossibleOverlay) {
-            if (planWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
-                    com.example.taoyuangutter.map.BackgroundWmtsLayer.ROAD_SURVEY
-                )
-                planWmsOverlay = map.addTileOverlay(
-                    TileOverlayOptions().tileProvider(provider).zIndex(0f)
-                )
-            }
-        }
+        offlinePolygonOverlays.setVisibility(showWaterOldOverlay, showPossibleOverlay)
 
-        // 水務局舊資料 (legacyDitch)
-        if (showWaterOldOverlay) {
-            if (waterOldWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
-                    com.example.taoyuangutter.map.BackgroundWmtsLayer.LEGACY_DITCH
-                )
-                waterOldWmsOverlay = map.addTileOverlay(
-                    TileOverlayOptions().tileProvider(provider).zIndex(0.1f)
-                )
-            }
-        }
+        // The legacy and possible-gutter overlays use local GeoPackage/GeoJSON tile providers.
 
         // 桃園行政區 (regions)
         if (showRegionOverlay) {

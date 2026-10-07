@@ -241,6 +241,7 @@ class MainActivity : AppCompatActivity(),
     }
     private val mapOverlayController by lazy {
         MapOverlayController(
+            context = this,
             mapProvider = { googleMap },
             onNoDitchPointsLayerChanged = { enabled ->
                 if (!enabled) clearNoDitchPointsMarkers()
@@ -687,6 +688,7 @@ class MainActivity : AppCompatActivity(),
 
     override fun onDestroy() {
         myLocationController.cancelPendingLocationRequest()
+        if (googleMap != null) mapOverlayController.releaseOfflineOverlays()
         runCatching { unregisterReceiver(waypointLocationChangedReceiver) }
         authExpiredHandler.reset()
         super.onDestroy()

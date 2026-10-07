@@ -514,8 +514,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
     // ── 背景地圖 ──────────────────────────────────────────────────────────
     private var formMap: GoogleMap? = null
     private var formMapTileOverlay: TileOverlay? = null
-    private var planWmsOverlay: TileOverlay? = null
-    private var waterOldWmsOverlay: TileOverlay? = null
+    private val offlinePolygonOverlays by lazy {
+        com.example.taoyuangutter.map.OfflinePolygonOverlayManager(this) { formMap }
+    }
     private var regionWmsOverlay: TileOverlay? = null
 
     private val sessionMarkers = mutableListOf<Marker>()
@@ -1472,6 +1473,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
         stopImportLocationUpdates()
         unregisterPhotoUploadListeners()
         authExpiredHandler.reset()
+        offlinePolygonOverlays.release()
         if (isFinishing) discardCantOpenSnapshot()
         super.onDestroy()
     }
@@ -1620,29 +1622,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
     private fun applyBackgroundWmsOverlays() {
         val map = formMap ?: return
 
-        // 本次計畫調查 (roadServey) - 這裡由 showPossibleOverlay 控制，與 MainActivity 邏輯一致
-        if (showPossibleOverlay) {
-            if (planWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
-                    com.example.taoyuangutter.map.BackgroundWmtsLayer.ROAD_SURVEY
-                )
-                planWmsOverlay = map.addTileOverlay(
-                    com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(0f)
-                )
-            }
-        }
+        offlinePolygonOverlays.setVisibility(showWaterOldOverlay, showPossibleOverlay)
 
-        // 水務局舊資料 (legacyDitch)
-        if (showWaterOldOverlay) {
-            if (waterOldWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
-                    com.example.taoyuangutter.map.BackgroundWmtsLayer.LEGACY_DITCH
-                )
-                waterOldWmsOverlay = map.addTileOverlay(
-                    com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(0.1f)
-                )
-            }
-        }
+        // The legacy and possible-gutter overlays use local GeoPackage/GeoJSON tile providers.
 
         // 桃園行政區 (regions)
         if (showRegionOverlay) {

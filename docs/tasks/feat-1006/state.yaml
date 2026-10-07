@@ -1,0 +1,54 @@
+task:
+  id: FEAT-1006
+  type: feature
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: resolved
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+  build: passed
+  unit_tests: passed
+  android_test_compile: passed
+
+validation:
+  status: completed
+  passed:
+    - git diff --check
+    - ./gradlew :app:testDebugUnitTest
+    - ./gradlew :app:compileDebugAndroidTestKotlin
+    - ./gradlew :app:assembleRelease
+    - release APK asset readback and SHA-256 comparison
+  not_verified:
+    - AC-001 through AC-005 Android runtime/device scenarios
+    - AC-006 layer sheet runtime inspection
+
+git:
+  branch: feature/FEAT-1006-wmts-offline-data
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking:
+  - ISS-FEAT-1006-001
+next_action: verification

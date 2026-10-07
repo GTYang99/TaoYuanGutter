@@ -89,8 +89,8 @@
     <string name="layers_sheet_overlays">圖層套疊</string>
     <string name="layers_sheet_basemap">底圖切換</string>
     <string name="layers_sheet_plan">本次計畫調查</string>
-    <string name="layers_sheet_water_old">水務局舊資料</string>
-    <string name="layers_sheet_possible">可能側溝位置</string>
+    <string name="layers_sheet_water_old">水務局舊資料（.gpkg）</string>
+    <string name="layers_sheet_possible">可能側溝位置（.geojson）</string>
     <string name="layers_sheet_region">桃園行政區</string>
     <string name="layers_sheet_no_ditch_points">無側溝點位</string>
     <string name="layers_sheet_deleted_area">0910刪除資料</string>
