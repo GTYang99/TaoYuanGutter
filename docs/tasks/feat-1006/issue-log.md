@@ -7,7 +7,7 @@
 - Priority: P1
 - Status: open
 - Impact: Planned physical-device checks for AC-001 through AC-005 remain outstanding. A local Android 14 AVD provides partial runtime coverage.
-- Evidence: `Medium_Phone(AVD) - 14` ran the focused data-store/provider instrumentation tests successfully; no physical device is attached. See execution report for exact coverage.
+- Evidence: Current `adb devices -l` output lists only `emulator-5554` (`sdk_gphone64_arm64`); no Android 9+ physical device is attached. The focused Android 14 AVD tests passed but do not cover the planned host UI scenarios. See execution report for exact coverage.
 - Next action: infrastructure
 - Remediation: connect an Android 9+ physical device and run the plan's focused scenarios in all four map hosts.
 

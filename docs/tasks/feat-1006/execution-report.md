@@ -20,7 +20,7 @@
 | Repository Android CI job commands | PASS locally | Reproduced the workflow's task-scoped JVM tests and `:app:assembleDebug`; command completed successfully. This is local evidence, not a remote CI result. |
 | APK asset readback and SHA-256 comparison | PASS | Both original asset byte lengths and SHA-256 values matched. APK is 46,745,127 bytes; GPKG compressed to 7,668,975 bytes and GeoJSON to 25,342,525 bytes. See `asset-manifest.md`. |
 | `git diff --check` | PASS | No whitespace errors before commit. |
-| Physical Android device / map-host scenarios | NOT VERIFIED | No physical Android device is attached. AVD instrumentation does not cover host UI toggles, visual alignment/colors, repeated host lifecycle, network request capture, or pan/zoom/no-ANR scenarios in all four hosts. |
+| Physical Android device / map-host scenarios | NOT VERIFIED | Current `adb devices -l` lists only `emulator-5554` (`sdk_gphone64_arm64`); no physical Android device is attached. AVD instrumentation does not cover host UI toggles, visual alignment against the basemap, repeated host lifecycle, network request capture, or pan/zoom/no-ANR scenarios in all four hosts. |
 
 An initial Gradle invocation could not locate Java through the default shell PATH. Using Android Studio's bundled JBR resolved that environment issue. A subsequent initial manifest-processing attempt lacked `MAPS_API_KEY`; the successful compile/package checks used an ephemeral non-secret placeholder, then removed `local.properties`. The APK is therefore packaging evidence and is not suitable for distribution or runtime map verification.
 
@@ -45,4 +45,4 @@ An initial Gradle invocation could not locate Java through the default shell PAT
 - Debug-fix commit: `dddd391` (`fix(FEAT-1006): replace SQLite RTree dependency`).
 - Tested revision: `5f96a1a` (`test(FEAT-1006): verify offline tile pixels and labels`); the AVD test run completed on the same source/test tree before this commit was created.
 - CI: NOT RUN / pending; no CI result is available in this worktree. Independent Verification and Release have not started.
-- Remote check: the feature branch has no configured upstream in this checkout. `git ls-remote --heads origin feature/FEAT-1006-wmts-offline-data` could not resolve `github.com` in the current environment, so remote CI status and push availability could not be verified.
+- Remote check: GitHub branch search returned no `feature/FEAT-1006-wmts-offline-data` branch, and the feature branch has no configured upstream in this checkout. `git ls-remote --heads origin feature/FEAT-1006-wmts-offline-data` could not resolve `github.com`, so no remote CI run is available for the tested revision.
