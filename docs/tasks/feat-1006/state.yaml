@@ -34,8 +34,8 @@ validation:
 
 git:
   branch: feature/FEAT-1006-wmts-offline-data
-  commit: ""
-  status: pending
+  commit: af49905
+  status: committed
 
 verification:
   result: pending

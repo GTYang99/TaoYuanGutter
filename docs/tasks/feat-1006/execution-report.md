@@ -38,4 +38,4 @@ An initial Gradle invocation could not locate Java through the default shell PAT
 - Application ID: `com.example.taoyuangutter`
 - Test account: none required for offline polygon unit/data-store tests.
 - Required precondition for remaining checks: Android 9+ device with the app installed and a valid Maps key; make the two feature-data endpoints unavailable during the local-source check.
-- Commit: pending.
+- Implementation commit: `af49905` (`feat(FEAT-1006): render offline map overlays`).
