@@ -16,9 +16,12 @@ plan_review:
 
 implementation:
   status: completed
+  mode: debug_fix
   build: passed
   unit_tests: passed
   android_test_compile: passed
+  android_runtime_tests: passed
+  release_build: passed
 
 validation:
   status: completed
@@ -26,15 +29,16 @@ validation:
     - git diff --check
     - ./gradlew :app:testDebugUnitTest
     - ./gradlew :app:compileDebugAndroidTestKotlin
+    - focused :app:connectedDebugAndroidTest on Android 14 Medium_Phone AVD (2/2 tests)
     - ./gradlew :app:assembleRelease
     - release APK asset readback and SHA-256 comparison
   not_verified:
-    - AC-001 through AC-005 Android runtime/device scenarios
-    - AC-006 layer sheet runtime inspection
+    - physical-device network isolation, visual alignment and fill, four-host toggles, pan/zoom responsiveness, and repeated lifecycle scenarios
+    - AC-006 layer sheet runtime inspection and confirmation that surrounding UI is unchanged
 
 git:
   branch: feature/FEAT-1006-wmts-offline-data
-  commit: af49905
+  commit: dddd391
   status: committed
 
 verification:
