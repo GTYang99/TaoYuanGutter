@@ -2,60 +2,56 @@
 
 ## Task Classification
 
-- Type: `feature` — add offline data loading and rendering behavior for two existing map overlays. This is an exploratory implementation with the user-supplied data and does not establish the future authoritative dataset mapping.
+- Type: `feature` — replace two WMTS feature sources with app-packaged offline GPKG data and support these overlays in all existing map contexts.
 
 ## Current Behavior
 
-- `MapOverlayController` creates the legacy layer from WMTS `legacyDitch`; its `showPossible` toggle creates WMTS `roadServey`. `MainActivity` and `MapWorkspaceFragment` each use this controller.
-- `GutterFormActivity` and `MapPointPickerActivity` each create their own WMTS overlays, so replacing only the shared main-map controller would leave two contexts online.
-- The app uses Google Maps `TileOverlay` and `UrlTileProvider`; Gson is already available, but no offline GeoPackage/GeoJSON map-rendering implementation or spatial index is present in the inspected map package.
-- The two specified files contain 36,970 Polygon features in the GPKG and 61,435 MultiPolygon features in the GeoJSON. Both declare EPSG:3826. Their raw sizes are approximately 19 MiB and 93 MiB (about 112 MiB total).
-- Existing `Wms3826RequestBuilder` contains a forward TWD97 TM2 zone 121 projection calculation; it does not expose the inverse transform needed to convert these local geometries for Google Maps coordinates.
+- The current FEAT-1006 implementation branch already renders the legacy overlay from a GPKG and routes main map, form, and point-picker contexts through offline polygon providers.
+- The possible-gutter source is still the earlier GeoJSON file. `OfflinePolygonDataStore` indexes/imports that source separately, and `OfflinePolygonTileProvider` selects its GeoJSON WKB path.
+- The current possible-layer option title ends in `.geojson`; the requested title must end in `.gpkg`.
+- Prior implementation evidence and tests cover the earlier legacy-GPKG/possible-GeoJSON pair. They do not establish that the newly confirmed possible-layer GPKG parses, indexes, packages, or renders.
+- Both newly confirmed inputs declare EPSG:3826. The legacy source is a `Polygon` table with 36,970 records; possible-gutter source is a `MultiPolygon` table with 61,435 records. Their raw sizes are 19,615,744 bytes and 60,661,760 bytes (80,277,504 bytes total, about 76.6 MiB).
 
 ## Expected Behavior
 
-- Package the specifically linked files with the app, decode each according to its actual format, and render their thematic roles from local data in the `MainActivity`/`MapWorkspaceFragment`, gutter-form, and point-picker map hosts.
-- Render filled polygons in the existing legend colors (`#156D1D` legacy and `#FA0000` possible), retaining polygon holes, existing controls, and removing the corresponding feature-data network requests.
-- Add a same-color polygon boundary outline for broad-extent visibility, defaulting to an adjustable 2.0 tile-pixel width that remains visually stable across zoom levels.
-- Append `.gpkg` to the legacy layer option title and `.geojson` to the possible-gutter option title; leave all other UI unchanged.
-- Parse/index off the UI thread, render only the needed map tiles/features, and release tile/overlay resources when hidden or when the map is destroyed.
+- Package and read both confirmed GPKGs locally in all four map hosts, and stop requesting their corresponding `legacyDitch` / `roadServey` feature data.
+- Use the current GPKG staging and portable spatial cell-index strategy for both layers; validate each source's CRS and expected geometry metadata. The possible source requires accepting `MULTIPOLYGON` and mapping its `refactored` table.
+- Render both sources through the GeoPackage geometry path, preserving polygon rings/holes, fill colors, and the existing adjustable same-color outline.
+- Show exactly `水務局舊資料（.gpkg）` and `可能側溝位置（.gpkg）` for the two options.
+- Remove the old GeoJSON asset and safely invalidate task-owned GeoJSON import/index artifacts so a prior installed build cannot retain the obsolete large cache.
 
 ## Affected Modules
 
-- `app/src/main/java/com/example/taoyuangutter/map/MapOverlayController.kt` — replace the two main-map online data sources and coordinate shared provider lifecycle.
-- `app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt` and `MainActivity.kt` — verify both users of the shared overlay controller and state restoration.
-- `app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt` — route its legacy and `roadServey` overlays through the local renderer.
-- `app/src/main/java/com/example/taoyuangutter/gutter/MapPointPickerActivity.kt` — route its legacy and `roadServey` overlays through the local renderer.
-- New map data/parser/index/tile-rendering classes and unit tests under `app/src/main/java/.../map` and `app/src/test/.../map`.
-- `app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt` — draw the configurable boundary outline without changing layer colors, fill behavior, or hole semantics.
-- `app/src/main/assets/` — package the two supplied data files, subject to APK packaging/asset-compression confirmation during implementation.
-- `app/src/main/res/values/strings.xml` — update only the two map layer-option titles with the current source suffixes.
-- `app/build.gradle.kts` and version catalog only if an additional compatible GeoPackage reader is required.
-- `app/src/androidTest/` — focused map-context and interaction validation if existing instrumentation setup supports it.
+- `app/src/main/assets/` — add `20260601_水務局未調查側溝_v5.gpkg`; remove `20261006_0601版可能側溝位置.geojson` from the app assets.
+- `app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt` — map the possible layer to its GPKG file/table, validate MultiPolygon metadata, use the GeoPackage path, and clean up obsolete task-owned import cache safely.
+- `app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt` — ensure both layers decode GeoPackage geometry through the same supported path.
+- `app/src/main/java/com/example/taoyuangutter/map/OfflineGeometry.kt` and related tests — confirm GeoPackage `MultiPolygon` decoding and hole/member handling.
+- `app/src/main/res/values/strings.xml` and affected UI/instrumentation tests — update the possible-layer title to `.gpkg`.
+- `app/src/test/` and `app/src/androidTest/` — cover the real new source, package contents, GPKG metadata and geometry, styles, tile queries, and source-label behavior.
+- `docs/tasks/feat-1006/` — update the source manifest and, during implementation, execution and validation evidence.
 
 ## Dependencies
 
-- The two exact files linked by the source requirement; no substitute dataset is in scope.
-- Google Maps SDK, existing `TileOverlay` interfaces, Gson, and existing map layer state/toggles.
-- A way to decode GeoPackage polygon geometry and GeoJSON MultiPolygon geometry, spatially query features for a requested map tile, and convert EPSG:3826 coordinates to Google Maps coordinates or tile coordinates.
-- Android asset packaging and installed APK sizing; the raw source files total about 112 MiB.
+- The two user-confirmed GPKGs and their schemas/metadata.
+- Existing GeoPackage staging, SQLite-backed 512-meter cell index, geometry decoder, offline tile provider, Google Maps SDK, and layer controls.
+- Existing Android SQLite ordinary-table index path; do not depend on optional SQLite RTree support.
 
 ## Risks
 
-- App download/install size may grow substantially when bundling about 112 MiB of raw geospatial data; compression and delivered APK/AAB size need evidence.
-- Loading all ~98k polygon features and their vertices as Google Maps objects could exhaust memory or block the map; rendering needs background parsing, spatial filtering/indexing, and bounded tile caching.
-- Incorrect EPSG:3826 conversion, coordinate ordering, multipolygon rings/holes, or fill rules could place or paint polygons incorrectly.
-- The layer association is intentionally provisional for this trial; do not treat it as the final dataset mapping.
-- Duplicated map paths can diverge in style, toggle behavior, and lifecycle if not routed through a shared renderer/provider.
+- The new source is a 61,435-feature MultiPolygon GeoPackage, while current input path is GeoJSON. Incorrect metadata validation or geometry dispatch could yield blank tiles or malformed fills.
+- Bundled raw data totals about 76.6 MiB. Record APK/AAB size and compression; no trial size limit applies.
+- Existing instrumented passes against the old pair cannot serve as proof for the new possible-layer source.
+- A stale GeoJSON-generated private cache may consume storage or be incorrectly reused after upgrade unless it is invalidated safely.
+- Physical-device scenarios AC-001 through AC-005 remain outstanding per `ISS-FEAT-1006-001`; the acceptance criterion remains no crash, no ANR, and no parse/render blocking of the UI, with observations recorded.
 
 ## Unknowns
 
-- Candidate GeoPackage reader/rendering strategy and whether it adds a runtime dependency. Resolve by a constrained implementation spike using the actual GPKG before selecting a dependency.
-- Peak memory and pan/zoom observations on the supported physical test device; record APK/AAB size without enforcing a limit for this trial.
-- Definitive dataset-to-layer association for later releases; explicitly deferred by the user and non-blocking for this exploratory task.
+- Whether the current GPKG reader accepts the possible source's `MULTIPOLYGON` metadata and table naming without code changes beyond format dispatch. Resolve by testing against the exact file.
+- Release artifact size/compression and physical-device responsiveness with the larger possible-layer GPKG; record measurements during implementation/validation.
+- Future authoritative data versions are explicitly outside this trial.
 
 ## Potential Issue Categories
 
-- `planning_gap`: missing performance/resource targets discovered during plan review.
-- `implementation_regression`: any map crashes, freezes, bad coordinates, incorrect geometry fills, or overlay-state regressions.
-- `environment`: inability to package the supplied data, build the app, or run required physical-device validation.
+- `planning_gap`: a required handling detail for the confirmed source is absent from the approved plan.
+- `implementation_regression`: parse/index/render failures, bad geometry/fills, resource leaks, crashes, ANRs, or UI stalls.
+- `environment`: inability to package the source, build, or run required device checks.

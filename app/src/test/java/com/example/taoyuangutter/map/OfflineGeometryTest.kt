@@ -57,6 +57,26 @@ class OfflineGeometryTest {
     }
 
     @Test
+    fun `GeoPackage MultiPolygon decoding keeps all polygon members and holes`() {
+        val polygon = OfflinePolygon(
+            listOf(
+                listOf(OfflineCoordinate(1.0, 2.0), OfflineCoordinate(3.0, 2.0), OfflineCoordinate(1.0, 2.0)),
+                listOf(OfflineCoordinate(1.5, 2.1), OfflineCoordinate(1.7, 2.1), OfflineCoordinate(1.5, 2.1))
+            )
+        )
+        val wkb = OfflineGeometryCodec.fromGeoJsonMultiPolygon(listOf(polygon, polygon))
+        val geoPackage = ByteBuffer.allocate(8 + wkb.size).order(ByteOrder.LITTLE_ENDIAN)
+            .put('G'.code.toByte()).put('P'.code.toByte()).put(0).put(1)
+            .putInt(3826).put(wkb).array()
+
+        val decoded = OfflineGeometryCodec.fromGeoPackage(geoPackage)
+        assertEquals(2, decoded.polygons.size)
+        assertEquals(2, decoded.polygons[0].rings.size)
+        assertEquals(2, decoded.polygons[1].rings.size)
+        assertEquals(1.5, decoded.polygons[1].rings.last().first().x, 0.0)
+    }
+
+    @Test
     fun `tile bounds contain a known Taoyuan coordinate`() {
         val longitude = 121.3011
         val latitude = 24.9929

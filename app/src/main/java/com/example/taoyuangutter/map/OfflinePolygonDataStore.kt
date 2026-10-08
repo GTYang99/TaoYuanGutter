@@ -4,12 +4,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteStatement
 import android.util.Log
-import com.google.gson.JsonArray
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
-import com.google.gson.stream.JsonReader
 import java.io.File
-import java.io.InputStreamReader
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutorService
@@ -19,17 +14,18 @@ import kotlin.math.floor
 internal enum class OfflinePolygonLayer(
     val assetName: String,
     val tableName: String,
+    val geometryType: String,
     val color: Int,
     val assetSizeBytes: Long,
     val assetSha256: String
 ) {
     LEGACY(
-        "20260824_水務局既有側溝更新v3_線轉面.gpkg", "line_buffer_polygon", OfflinePolygonColors.LEGACY_ARGB.toInt(),
+        "20260824_水務局既有側溝更新v3_線轉面.gpkg", "line_buffer_polygon", "POLYGON", OfflinePolygonColors.LEGACY_ARGB.toInt(),
         19_615_744L, "4b0df3e90dab556b3de0bd859511dee5a3af5d171255e4157e32b8d3f6e1ecaf"
     ),
     POSSIBLE(
-        "20261006_0601版可能側溝位置.geojson", "possible_polygon", OfflinePolygonColors.POSSIBLE_ARGB.toInt(),
-        97_531_074L, "2f08586b3de41bd1c87af0558b65be56b18de2dda64ab03cd4dd6e67dad91af8"
+        "20260601_水務局未調查側溝_v5.gpkg", "refactored", "MULTIPOLYGON", OfflinePolygonColors.POSSIBLE_ARGB.toInt(),
+        60_661_760L, "de68967c0fd607b1921a8bd3856d2a6d70e754d2bbb966beca89c82f6cc16177"
     )
 }
 
@@ -57,7 +53,10 @@ internal object OfflinePolygonDataStore {
             CompletableFuture.supplyAsync({
                 when (layer) {
                     OfflinePolygonLayer.LEGACY -> openGeoPackage(appContext, layer)
-                    OfflinePolygonLayer.POSSIBLE -> importGeoJsonIndex(appContext, layer)
+                    OfflinePolygonLayer.POSSIBLE -> {
+                        invalidateObsoleteGeoJsonIndex(appContext)
+                        openGeoPackage(appContext, layer)
+                    }
                 }
             }, executor)
         }
@@ -90,7 +89,7 @@ internal object OfflinePolygonDataStore {
             check(cursor.moveToFirst()) { "GeoPackage layer ${layer.tableName} is missing" }
             cursor.getInt(0) to cursor.getString(1)
         }
-        check(metadata.first == 3826 && metadata.second.equals("POLYGON", ignoreCase = true)) {
+        check(metadata.first == 3826 && metadata.second.equals(layer.geometryType, ignoreCase = true)) {
             "Unsupported GeoPackage CRS/geometry: $metadata"
         }
         val indexFile = File(dataDir, "${layer.tableName}.spatial.sqlite")
@@ -100,13 +99,17 @@ internal object OfflinePolygonDataStore {
         return GeoPackageDataSource(database, indexDatabase, layer)
     }
 
-    private fun importGeoJsonIndex(context: Context, layer: OfflinePolygonLayer): OfflinePolygonDataSource {
-        val indexFile = File(context.filesDir, "offline_polygon_data/${layer.tableName}.sqlite")
-        indexFile.parentFile?.mkdirs()
-        val database = openVersionedIndex(indexFile, layer.assetSha256) { freshDatabase ->
-            buildGeoJsonIndex(context, layer, freshDatabase)
+    internal fun invalidateObsoleteGeoJsonIndex(context: Context) {
+        val dataDirectory = File(context.filesDir, "offline_polygon_data")
+        val obsoleteIndex = File(dataDirectory, "possible_polygon.sqlite")
+        listOf(
+            obsoleteIndex,
+            File(dataDirectory, "possible_polygon.sqlite-journal"),
+            File(dataDirectory, "possible_polygon.sqlite-wal"),
+            File(dataDirectory, "possible_polygon.sqlite-shm")
+        ).forEach { file ->
+            check(!file.exists() || file.delete()) { "Unable to remove obsolete possible-layer GeoJSON cache" }
         }
-        return GeoJsonDataSource(database, layer)
     }
 
     private fun openVersionedIndex(
@@ -150,14 +153,6 @@ internal object OfflinePolygonDataStore {
         database.execSQL("CREATE INDEX spatial_cells_by_y ON spatial_cells(cell_y,cell_x)")
     }
 
-    private fun createGeoJsonCellIndex(database: SQLiteDatabase, layer: OfflinePolygonLayer) {
-        database.execSQL("PRAGMA synchronous=OFF")
-        database.execSQL("CREATE TABLE metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL)")
-        database.execSQL("CREATE TABLE ${layer.tableName} (id INTEGER PRIMARY KEY, geom BLOB NOT NULL, minx REAL NOT NULL, miny REAL NOT NULL, maxx REAL NOT NULL, maxy REAL NOT NULL)")
-        database.execSQL("CREATE TABLE spatial_cells (cell_x INTEGER NOT NULL, cell_y INTEGER NOT NULL, id INTEGER NOT NULL, PRIMARY KEY(cell_x,cell_y,id)) WITHOUT ROWID")
-        database.execSQL("CREATE INDEX spatial_cells_by_y ON spatial_cells(cell_y,cell_x)")
-    }
-
     private fun buildGeoPackageSpatialIndex(
         sourceDatabase: SQLiteDatabase,
         layer: OfflinePolygonLayer,
@@ -187,69 +182,6 @@ internal object OfflinePolygonDataStore {
         } finally {
             indexDatabase.endTransaction()
             boundsInsert.close()
-            cellInsert.close()
-        }
-    }
-
-    private fun buildGeoJsonIndex(
-        context: Context,
-        layer: OfflinePolygonLayer,
-        database: SQLiteDatabase
-    ) {
-        createGeoJsonCellIndex(database, layer)
-        val featureInsert = database.compileStatement(
-            "INSERT INTO ${layer.tableName}(geom,minx,miny,maxx,maxy) VALUES (?,?,?,?,?)"
-        )
-        val cellInsert = database.compileStatement("INSERT OR IGNORE INTO spatial_cells(cell_x,cell_y,id) VALUES(?,?,?)")
-        var count = 0
-        database.beginTransaction()
-        try {
-            context.assets.open(layer.assetName).use { input ->
-                val reader = JsonReader(InputStreamReader(input, Charsets.UTF_8))
-                reader.isLenient = false
-                reader.beginObject()
-                var validatedCrs = false
-                while (reader.hasNext()) {
-                    when (reader.nextName()) {
-                        "type" -> check(reader.nextString() == "FeatureCollection") { "GeoJSON is not a FeatureCollection" }
-                        "crs" -> {
-                            val crs = JsonParser.parseReader(reader).asJsonObject
-                            val name = crs.getAsJsonObject("properties")?.get("name")?.asString.orEmpty()
-                            check(name.contains("3826")) { "Unsupported GeoJSON CRS: $name" }
-                            validatedCrs = true
-                        }
-                        "features" -> {
-                            check(validatedCrs) { "GeoJSON CRS must be declared before features" }
-                            reader.beginArray()
-                            while (reader.hasNext()) {
-                                val geometry = readFeatureGeometry(reader) ?: continue
-                                val blob = OfflineGeometryCodec.fromGeoJsonMultiPolygon(geometry.polygons)
-                                val bounds = calculateBounds(geometry)
-                                featureInsert.clearBindings()
-                                featureInsert.bindBlob(1, blob)
-                                featureInsert.bindDouble(2, bounds[0])
-                                featureInsert.bindDouble(3, bounds[1])
-                                featureInsert.bindDouble(4, bounds[2])
-                                featureInsert.bindDouble(5, bounds[3])
-                                val id = featureInsert.executeInsert()
-                                insertCells(cellInsert, id, bounds)
-                                count++
-                            }
-                            reader.endArray()
-                        }
-                        else -> reader.skipValue()
-                    }
-                }
-                reader.endObject()
-                reader.close()
-            }
-            check(count > 0) { "GeoJSON has no supported polygon features" }
-            recordIndexMetadata(database, layer, count)
-            database.setTransactionSuccessful()
-            Log.i(TAG, "Indexed $count GeoJSON polygons")
-        } finally {
-            database.endTransaction()
-            featureInsert.close()
             cellInsert.close()
         }
     }
@@ -319,69 +251,6 @@ internal object OfflinePolygonDataStore {
             }
             return results
         }
-    }
-
-    private class GeoJsonDataSource(
-        private val database: SQLiteDatabase,
-        private val layer: OfflinePolygonLayer
-    ) : OfflinePolygonDataSource {
-        override fun query(bounds: DoubleArray): List<ByteArray> {
-            val minX = cellCoordinate(bounds[0])
-            val minY = cellCoordinate(bounds[1])
-            val maxX = cellCoordinate(bounds[2])
-            val maxY = cellCoordinate(bounds[3])
-            val args = arrayOf(
-                minX.toString(), maxX.toString(), minY.toString(), maxY.toString(),
-                bounds[2].toString(), bounds[0].toString(), bounds[3].toString(), bounds[1].toString()
-            )
-            return database.rawQuery(
-                "SELECT DISTINCT f.geom FROM spatial_cells s JOIN ${layer.tableName} f ON f.id = s.id " +
-                    "WHERE s.cell_x BETWEEN ? AND ? AND s.cell_y BETWEEN ? AND ? " +
-                    "AND f.minx <= ? AND f.maxx >= ? AND f.miny <= ? AND f.maxy >= ?",
-                args
-            ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getBlob(0)) } }
-        }
-    }
-
-    private fun readFeatureGeometry(reader: JsonReader): OfflineGeometry? {
-        var geometry: JsonObject? = null
-        reader.beginObject()
-        while (reader.hasNext()) {
-            when (reader.nextName()) {
-                "geometry" -> {
-                    if (reader.peek() == com.google.gson.stream.JsonToken.NULL) reader.nextNull()
-                    else geometry = JsonParser.parseReader(reader).asJsonObject
-                }
-                else -> reader.skipValue()
-            }
-        }
-        reader.endObject()
-        val value = geometry ?: return null
-        val type = value.get("type")?.asString ?: return null
-        val coordinates = value.getAsJsonArray("coordinates") ?: return null
-        return when (type) {
-            "Polygon" -> OfflineGeometry(listOf(parsePolygon(coordinates)))
-            "MultiPolygon" -> OfflineGeometry(coordinates.map { parsePolygon(it.asJsonArray) })
-            else -> null
-        }
-    }
-
-    private fun parsePolygon(coordinates: JsonArray): OfflinePolygon = OfflinePolygon(
-        coordinates.map { ringElement ->
-            ringElement.asJsonArray.map { pointElement ->
-                val point = pointElement.asJsonArray
-                OfflineCoordinate(point[0].asDouble, point[1].asDouble)
-            }
-        }
-    )
-
-    private fun calculateBounds(geometry: OfflineGeometry): DoubleArray {
-        val coordinates = geometry.polygons.flatMap { it.rings }.flatten()
-        check(coordinates.isNotEmpty()) { "Polygon has no coordinates" }
-        return doubleArrayOf(
-            coordinates.minOf { it.x }, coordinates.minOf { it.y },
-            coordinates.maxOf { it.x }, coordinates.maxOf { it.y }
-        )
     }
 
     private fun File.readTextOrNull(): String? = if (isFile) runCatching { readText() }.getOrNull() else null

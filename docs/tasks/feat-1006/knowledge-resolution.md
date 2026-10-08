@@ -2,46 +2,45 @@
 
 ## Sources Reviewed
 
-- User request: prepare the WMTS overlays for offline GPKG/GeoJSON and work from commit `203b3351c56902a9c612952d6412425ffddcb576`.
-- User-provided requirement attachment; task identifier corrected to `FEAT-1006` per user instruction.
-- Attachment folder inventory and file sizes: `20260824_水務局既有側溝更新v3_線轉面.gpkg` (19 MiB), `20261006_0601版可能側溝位置.geojson` (93 MiB), and `20261006_0824版既有側溝.geojson` (23 MiB).
-- Repository `ai/architecture.md`, `ai/knowledge-resolution-rules.md`, `ai/planning-rules.md`, `ai/git-rules.md`, and the asset manifest template.
-- Current map rendering at the requested revision: `MapOverlayController`, `MapPointPickerActivity`, `GutterFormActivity`, `Wmts3857TileProvider`, and layer strings.
+- Current user request: confirmed GPKG sources and requested edits in the `feat/FEAT-1006-wmts-offline-data` worktree.
+- User-provided requirement attachment in `/Users/a10362/Desktop/markdown file/TY/`, including its later `1008 決議調整工項` section.
+- The two linked/confirmed files in `/Users/a10362/Desktop/markdown file/TY/`.
+- Existing FEAT-1006 task artifacts and current branch implementation/evidence.
+- Repository `AGENTS.md`, `ai/knowledge-resolution-rules.md`, and `ai/planning-rules.md`.
 
 ## Resolved Decisions
 
 | Decision | Source | Confidence | Affected AC |
 |---|---|---:|---|
-| For this exploratory task, use the two files explicitly linked by the requirement, pairing the legacy GPKG with the legacy layer and the possible-location GeoJSON with the possible layer; determine parser by actual file format, and defer definitive dataset mapping to a later task | User clarification and linked attachment names | High for this trial; provisional for later releases | AC-001 |
-| Package both supplied files in the app installation | User clarification | High | AC-001 |
-| Fill legacy polygons solid green and possible-location polygons solid red | User clarification | High | AC-002 |
-| Apply both offline overlays in the main map, gutter form map, and point-picker map | User clarification | High | AC-003, AC-004 |
-| The `roadServey` WMTS is the current source for the possible-gutter overlay | User clarification | High | AC-001, AC-003 |
-| Label the two layer options with their trial source suffixes `.gpkg` and `.geojson`; no other UI changes | Current user clarification, overriding the source's general no-UI-change constraint for these option titles only | High | AC-006 |
-| No APK/AAB size limit applies to this trial; use the existing qualitative no-crash/no-ANR/no-UI-blocking criteria and record observations | Current user clarification | High | AC-001, AC-004 |
-| New worktree is based at the requested commit and uses a dedicated task branch | User request and repository Git rules | High | N/A |
+| Task ID and task-artifact date use `FEAT-1006`; the original attachment filename remains unchanged as source provenance | User correction | High | All task artifacts |
+| Use `20260824_水務局既有側溝更新v3_線轉面.gpkg` for the Water Department legacy overlay | Attachment's later 1008 decision and user's confirmation | High for this trial | AC-001, AC-002 |
+| Use `20260601_水務局未調查側溝_v5.gpkg` for the possible-gutter overlay | Attachment's later 1008 decision and user's confirmation | High for this trial | AC-001, AC-002 |
+| Include both GPKGs in the app installation; remove the former GeoJSON from this trial's app assets | Latest source decision; current request | High | AC-001 |
+| Keep the `roadServey` semantic mapping as “可能側溝位置” for the layer being replaced | Earlier explicit user clarification | High | AC-001, AC-003 |
+| Both option titles identify `.gpkg`; no other UI change | Latest GPKG decision combined with earlier UI constraint | High | AC-006 |
+| Keep solid green/red fill, outline, all four hosts, and qualitative no-crash/no-ANR/no-UI-blocking criteria with observations recorded | Earlier explicit user decisions; latest request changes the data source only | High | AC-002–AC-007 |
 
-## Repository Evidence
+## Source Evidence
 
-- At the requested revision, `MapOverlayController` loads the legacy overlay from `BackgroundWmtsLayer.LEGACY_DITCH`; the `showPossible` toggle currently controls `BackgroundWmtsLayer.ROAD_SURVEY`.
-- `GutterFormActivity` and `MapPointPickerActivity` contain separate WMTS overlay loading paths, so limiting the change to the main map would leave other map contexts unchanged.
-- `docs/assets/` contains only an asset-manifest template; there is no approved asset manifest specifying these datasets or their distribution policy.
+- Legacy GPKG: `line_buffer_polygon`, EPSG:3826, Polygon, 36,970 features, 19,615,744 bytes, SHA-256 `4b0df3e90dab556b3de0bd859511dee5a3af5d171255e4157e32b8d3f6e1ecaf`.
+- Possible-gutter GPKG: `refactored`, EPSG:3826, MultiPolygon, 61,435 features, 60,661,760 bytes, SHA-256 `de68967c0fd607b1921a8bd3856d2a6d70e754d2bbb966beca89c82f6cc16177`.
+- Combined source size is 80,277,504 bytes (about 76.6 MiB).
+- The original attachment contains older mixed-format wording and links; the later dated adjustment section names both GPKGs. The later explicit decision and the user's confirmation resolve that conflict for this trial.
 
 ## Unresolved Conflicts
 
-- The source requirement's format labels are reversed relative to the linked files' actual formats; for this trial the user clarified to use those exact linked files, label the option titles with actual suffixes, and defer definitive data mapping until after testing.
-- A third `20261006_0824版既有側溝.geojson` exists in the attachment folder, but the user specified using the two explicitly linked files for this trial.
+- 無。The latest decision identifies both input files and their trial layer roles.
 
 ## Safe Planning Assumptions
 
-- The present file-to-layer association is only an experiment and must not be represented as the final dataset mapping for later releases.
-- Use each file's actual format for parsing despite the reversed format labels in the original source.
-- Existing layer controls stay unchanged; `roadServey` is the current possible-gutter online source to be replaced.
+- Preserve previous rendering decisions and scope except where the confirmed source format requires GPKG ingestion and `.gpkg` labeling.
+- Existing tests, release APK measurements, and execution report refer to the prior GeoJSON/GPKG pair; retain them as historical evidence only and repeat applicable validation against the new source.
+- Keep task artifacts and branch consistently named `FEAT-1006`; source dataset filenames retain their original data dates.
 
 ## Questions Requiring Approval
 
-- The definitive dataset-to-layer mapping remains a documented follow-up question; it does not block this exploratory plan.
+- 無。
 
 ## Resolution Status
 
-- Resolved for exploratory Planning. The final dataset-to-layer mapping remains out of scope and must be confirmed before a later production data refresh.
+- Resolved for the amended exploratory Planning scope. Future source refreshes remain outside this task.

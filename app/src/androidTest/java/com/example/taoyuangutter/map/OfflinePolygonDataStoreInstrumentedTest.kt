@@ -15,11 +15,51 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
+import java.security.MessageDigest
 import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.tan
 
 class OfflinePolygonDataStoreInstrumentedTest {
+    @Test
+    fun packagedGeoPackagesMatchManifestAndExcludeObsoleteGeoJson() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val assetNames = context.assets.list("")?.toSet().orEmpty()
+
+        listOf(OfflinePolygonLayer.LEGACY, OfflinePolygonLayer.POSSIBLE).forEach { layer ->
+            assertTrue("${layer.assetName} must be packaged", layer.assetName in assetNames)
+            val digest = MessageDigest.getInstance("SHA-256")
+            var sizeBytes = 0L
+            context.assets.open(layer.assetName).use { input ->
+                val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                while (true) {
+                    val count = input.read(buffer)
+                    if (count < 0) break
+                    sizeBytes += count
+                    digest.update(buffer, 0, count)
+                }
+            }
+            assertEquals(layer.assetSizeBytes, sizeBytes)
+            assertEquals(layer.assetSha256, digest.digest().joinToString("") {
+                (it.toInt() and 0xff).toString(16).padStart(2, '0')
+            })
+        }
+        assertFalse("The superseded GeoJSON asset must not be packaged", "20261006_0601版可能側溝位置.geojson" in assetNames)
+    }
+
+    @Test
+    fun obsoleteGeoJsonImportDatabaseAndSidecarsAreRemoved() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val directory = File(context.filesDir, "offline_polygon_data").apply { mkdirs() }
+        val obsolete = listOf("possible_polygon.sqlite", "possible_polygon.sqlite-journal", "possible_polygon.sqlite-wal", "possible_polygon.sqlite-shm")
+            .map { File(directory, it).apply { writeText("test-only stale cache") } }
+
+        OfflinePolygonDataStore.invalidateObsoleteGeoJsonIndex(context)
+
+        obsolete.forEach { assertFalse("${it.name} should be removed", it.exists()) }
+    }
+
     @Test
     fun packagedSourcesReturnLocalPolygonGeometryForTaoyuanExtent() {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -31,20 +71,13 @@ class OfflinePolygonDataStoreInstrumentedTest {
             val geometries = source.query(bounds)
             assertFalse("${layer.name} should have packaged features in the selected extent", geometries.isEmpty())
             geometries.forEach { blob ->
-                val geometry = if (layer == OfflinePolygonLayer.LEGACY) {
-                    OfflineGeometryCodec.fromGeoPackage(blob)
-                } else {
-                    OfflineGeometryCodec.fromWkb(blob)
-                }
+                val geometry = OfflineGeometryCodec.fromGeoPackage(blob)
                 assertFalse("${layer.name} geometry should contain polygon rings", geometry.polygons.isEmpty())
                 assertFalse("${layer.name} geometry should contain a ring", geometry.polygons.first().rings.isEmpty())
             }
 
             val interiorPoint = geometries.asSequence()
-                .map { blob ->
-                    if (layer == OfflinePolygonLayer.LEGACY) OfflineGeometryCodec.fromGeoPackage(blob)
-                    else OfflineGeometryCodec.fromWkb(blob)
-                }
+                .map(OfflineGeometryCodec::fromGeoPackage)
                 .mapNotNull(::findInteriorPoint)
                 .firstOrNull()
                 ?: throw AssertionError("${layer.name} query results should contain a polygon interior point")
@@ -124,7 +157,7 @@ class OfflinePolygonDataStoreInstrumentedTest {
         val view = LayoutInflater.from(themedContext).inflate(R.layout.sheet_layers, null, false)
 
         assertEquals("水務局舊資料（.gpkg）", view.findViewById<MaterialCheckBox>(R.id.cbWaterOld).text.toString())
-        assertEquals("可能側溝位置（.geojson）", view.findViewById<MaterialCheckBox>(R.id.cbPossible).text.toString())
+        assertEquals("可能側溝位置（.gpkg）", view.findViewById<MaterialCheckBox>(R.id.cbPossible).text.toString())
     }
 
     private fun tileCoordinate(longitude: Double, latitude: Double, zoom: Int): Triple<Int, Int, Int> {

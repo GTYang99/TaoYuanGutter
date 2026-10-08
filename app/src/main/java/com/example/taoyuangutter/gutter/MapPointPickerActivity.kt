@@ -245,7 +245,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
 
         offlinePolygonOverlays.setVisibility(showWaterOldOverlay, showPossibleOverlay)
 
-        // The legacy and possible-gutter overlays use local GeoPackage/GeoJSON tile providers.
+        // The legacy and possible-gutter overlays use local GeoPackage tile providers.
 
         // 桃園行政區 (regions)
         if (showRegionOverlay) {

@@ -8,8 +8,13 @@
 - Status: open
 - Impact: Planned physical-device checks for AC-001 through AC-005 remain outstanding. A local Android 14 AVD and a connected Android 12 device provide partial runtime coverage.
 - Evidence: On 2026-10-07, targeted AC-007 instrumentation passed on `XQ-AU52` Android 12. The planned four-host network, alignment, toggle, pan/zoom, and repeated-lifecycle scenarios for AC-001 through AC-005 have not been run. See execution report for exact coverage.
-- Next action: verification
-- Remediation: run the remaining plan-scoped scenarios on the available Android 9+ device; record any unavailable case as `NOT VERIFIED`.
+- Next action: infrastructure
+- Remediation: connect the designated Android 9+ test device, verify its identity, then run the plan-scoped checks on that device; record any unavailable case as `NOT VERIFIED`.
+
+### Current test-device availability (2026-10-08)
+
+- `adb devices -l` reports only `emulator-5554` (`sdk_gphone64_arm64`). The user requires runtime testing only on the test device, so this emulator will not be used for FEAT-1006 tests.
+- The prior Android 12 `XQ-AU52` AC-007 result remains historical evidence, but that device is not currently connected. AC-001 through AC-007 for the amended GPKG pair remain `NOT VERIFIED` until the test device is available.
 
 ## ISS-FEAT-1006-002 — Android SQLite lacks the RTree module
 

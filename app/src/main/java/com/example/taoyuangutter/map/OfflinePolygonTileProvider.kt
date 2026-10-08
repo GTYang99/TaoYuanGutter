@@ -84,8 +84,7 @@ internal class OfflinePolygonTileProvider(
         }
         features.forEach { blob ->
             val geometry = try {
-                if (layer == OfflinePolygonLayer.LEGACY) OfflineGeometryCodec.fromGeoPackage(blob)
-                else OfflineGeometryCodec.fromWkb(blob)
+                OfflineGeometryCodec.fromGeoPackage(blob)
             } catch (failure: Exception) {
                 if (geometryFailureLogged.compareAndSet(false, true)) {
                     Log.e(TAG, "Skipping an unreadable ${layer.name} polygon geometry", failure)

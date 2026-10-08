@@ -1,6 +1,54 @@
 # FEAT-1006 Developer Execution Report
 
-## Implementation
+> This report records the restarted implementation against the amended two-GPKG plan. Earlier GeoJSON-pair evidence is retained below as historical only.
+
+## Current Reimplementation — Confirmed GPKG Pair (2026-10-08)
+
+### Implementation
+
+- Added `20260601_水務局未調查側溝_v5.gpkg` unchanged and removed the superseded possible-layer GeoJSON app asset. The legacy GPKG remains unchanged.
+- Configured the possible layer for GeoPackage table `refactored`, EPSG:3826 `MULTIPOLYGON`, 61,435 features; both layers now use GeoPackage staging, metadata validation, cell indexing, and GeoPackage WKB decoding.
+- Removed the GeoJSON importer/data source. On first load of the new possible GPKG, the app removes only the old `possible_polygon.sqlite` cache and its SQLite journal/WAL/SHM sidecars.
+- Changed the possible-layer title to `可能側溝位置（.gpkg）`; the existing fill colors, adjustable 2.0-pixel outline, and all four map-host wiring remain in place.
+- Added device instrumentation for packaged asset size/hash and absence of the old asset, stale-cache invalidation, real-source query/render at zoom 16 and 20, and exact option labels. Added a MultiPolygon-with-hole GeoPackage decoder unit case.
+
+### Developer Validation
+
+| Command/check | Result | Evidence / limitation |
+|---|---|---|
+| `git diff --check` | PASS | No whitespace errors. |
+| `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:compileDebugUnitTestKotlin :app:assembleDebug :app:assembleRelease` | PASS | All main and test sources compile; debug and release APKs build in the FEAT-1006 worktree. No app was launched by this command. |
+| Release APK contents, size and SHA-256 readback | PASS | APK is 43,752,030 bytes. Both GPKG asset entries match their manifest hashes and byte lengths; the obsolete GeoJSON entry is absent. See `asset-manifest.md`. |
+| Android instrumentation on the designated test device | NOT VERIFIED | `adb devices -l` listed only `emulator-5554` (`sdk_gphone64_arm64`) on 2026-10-08. Per user instruction no FEAT-1006 tests were run on the emulator. |
+| Host JVM unit-test execution | NOT RUN | Only test-device runtime testing was requested; unit-test source compiled successfully. Actual GPKG/MultiPolygon/render tests remain in the device instrumentation suite. |
+| Remote CI / independent verification | NOT VERIFIED | No result is available for this new worktree branch. |
+
+### Acceptance-Criteria Status
+
+- AC-001: APK packaging and source hashes PASS; runtime local load and absence of feature-data requests across hosts are NOT VERIFIED.
+- AC-002: NOT VERIFIED for the amended source pair; real-device fill, alignment, MultiPolygon members, and holes need test-device evidence.
+- AC-003: NOT VERIFIED; four-host toggles have not been exercised on the test device.
+- AC-004: NOT VERIFIED; pan/zoom responsiveness and no-ANR/no-UI-blocking checks have not been run on the test device.
+- AC-005: NOT VERIFIED; test-device hide/show and host teardown/reopen lifecycle checks remain.
+- AC-006: Exact source strings are present and Android test code compiles; runtime UI assertion is NOT VERIFIED on the test device.
+- AC-007: Existing 2.0 tile-pixel outline is retained; tests against the amended GPKG source are NOT VERIFIED on the test device.
+
+### Handoff
+
+- Branch: `codex/feat-1006-gpkg-restart` in the dedicated FEAT-1006 worktree.
+- Release APK: `app/build/outputs/apk/release/app-release-unsigned.apk` (43,752,030 bytes); debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
+- Application ID: `com.example.taoyuangutter`.
+- Device precondition: connect the designated Android 9+ test device; capture its serial, model, Android version, and available-memory observation before testing. No emulator may be used.
+- Test scope: AC-001–AC-007 as mapped in `plan.md`, covering the four map hosts, both layers, toggles, outline/fill/holes, pan/zoom, and lifecycle; block the two feature-data endpoints for AC-001.
+- Implementation is compiled and packaged; device validation remains the next action.
+
+---
+
+## Historical Evidence — Superseded GPKG/GeoJSON Source Pair
+
+The implementation and results in the following historical sections describe the earlier possible-layer GeoJSON source. They do not verify the amended GPKG source.
+
+## Historical Implementation
 
 - Bundled the two exact user-linked source files in `app/src/main/assets/` and recorded source metadata and checksums in `asset-manifest.md`.
 - Added background GeoJSON-to-SQLite indexing and GeoPackage staging/reading with a persistent 512-meter EPSG:3826 cell index built from ordinary SQLite tables. Both sources filter cell candidates by exact bounds without requiring SQLite RTree support. Polygon WKB decoding, projection, and bounded offline tile rendering preserve holes.
@@ -9,7 +57,7 @@
 - Added unit coverage for projection round-trip, GeoPackage geometry-header decoding, Polygon/MultiPolygon rings and holes, tile bounds, and color constants. Instrumented coverage queries both packaged sources, verifies exact opaque colors in PNG tiles sampled from true polygon interiors, checks provider release, and asserts the two layer labels in the inflated UI layout.
 - Added a same-color offline polygon outline controlled by `OfflinePolygonStyle.OFFLINE_POLYGON_STROKE_WIDTH_PX` (default `2.0f` tile pixels). The tile provider accepts an alternate width for focused rendering checks; fill colors and polygon paths remain unchanged.
 
-## Validation
+## Historical Validation
 
 | Command/check | Result | Evidence / limitation |
 |---|---|---|
@@ -26,7 +74,7 @@
 
 An initial Gradle invocation could not locate Java through the default shell PATH. Using Android Studio's bundled JBR resolved that environment issue. A subsequent initial manifest-processing attempt lacked `MAPS_API_KEY`; the successful compile/package checks used an ephemeral non-secret placeholder, then removed `local.properties`. The APK is therefore packaging evidence and is not suitable for distribution or runtime map verification.
 
-## Acceptance-Criteria Status
+## Historical Acceptance-Criteria Status
 
 - AC-001: Both exact packaged assets and both local data-store queries are verified on Android 14 AVD. Feature-network request capture and launch through each host are NOT VERIFIED.
 - AC-002: Both real-data tile PNGs contain their required exact opaque fill color on Android 14 AVD; geometry-hole preservation has unit evidence. Geographic alignment against the base map is NOT VERIFIED on device.
@@ -36,7 +84,7 @@ An initial Gradle invocation could not locate Java through the default shell PAT
 - AC-006: PASS on Android 14 AVD: inflated `sheet_layers.xml` displays exactly `水務局舊資料（.gpkg）` and `可能側溝位置（.geojson）`. Diff review confirms no other layer labels or layout elements changed in the scope.
 - AC-007: PASS on Android 12 `XQ-AU52`: both real layers rendered at zoom 16 and 20 with the 2.0 tile-pixel default; injected 5.0 width changed edge pixels while the sampled interior fill pixel remained unchanged. The configured width is independent of zoom and tile output dimensions remain 256×256. Manual broad/close map-host appearance remains part of the existing unverified all-host scenarios.
 
-## Handoff
+## Historical Handoff
 
 - Branch: `feature/FEAT-1006-wmts-offline-data`
 - Build variant: release (unsigned package-content evidence)
