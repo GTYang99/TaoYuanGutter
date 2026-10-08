@@ -2,11 +2,13 @@ package com.example.taoyuangutter.gutter
 
 import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.location.Location
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.withText
-import android.location.Location
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -17,6 +19,7 @@ import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -66,6 +69,30 @@ class EditMapInitialLocationInstrumentedTest {
             scenario.onActivity { activity ->
                 assertEquals(false, readField<Boolean>(activity, "editMapLocationFlowActive"))
             }
+        }
+    }
+
+    @Test
+    fun savedCoordinateEditWithLocationDeniedDoesNotRequestPermission() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(
+            PackageManager.PERMISSION_DENIED,
+            context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        )
+        assertEquals(
+            PackageManager.PERMISSION_DENIED,
+            context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        )
+        val saved = LatLng(24.1234, 121.5678)
+
+        launchForm(isEditMode = true, waypoint = waypoint(saved.latitude, saved.longitude)).use { scenario ->
+            val actual = awaitCameraTarget(scenario, saved, toleranceMeters = 100.0)
+            assertNotNull("Saved-coordinate edit did not retain its waypoint target", actual)
+            assertTrue(distanceMeters(saved, actual!!) <= 100.0)
+            scenario.onActivity { activity ->
+                assertFalse(readField<Boolean>(activity, "editMapLocationFlowActive"))
+            }
+            onView(withText(R.string.edit_map_location_unavailable_title)).check(doesNotExist())
         }
     }
 

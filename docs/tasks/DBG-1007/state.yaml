@@ -2,8 +2,8 @@ task:
   id: DBG-1007
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: investigation
+status: investigation_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -21,7 +21,7 @@ validation:
   status: completed
   build: passed
   unit_test: passed
-  emulator_instrumentation: passed
+  emulator_instrumentation: not_verified
   device: not_verified
 
 git:
@@ -35,7 +35,6 @@ verification:
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-001
-    - AC-002
     - AC-003
     - AC-004
     - AC-005
@@ -51,5 +50,6 @@ ci:
 release:
   status: pending
 
-blocking: []
-next_action: verification
+blocking:
+  - ISS-DBG-1007-LOC-002
+next_action: investigation
