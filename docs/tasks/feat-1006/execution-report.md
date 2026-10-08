@@ -21,13 +21,14 @@
 | `:app:testDebugUnitTest :app:assembleDebug :app:assembleRelease` | PASS | JVM unit tests, debug APK, and unsigned release APK built successfully. |
 | Release APK asset readback | PASS | APK size 43,752,006 bytes. Both GPKG source contents matched the source hashes and lengths; exactly two `.gpkg` entries and no `.geojson` entry were present. |
 | `OfflinePolygonDataStoreInstrumentedTest` on `emulator-5554` | PASS | Android 14 emulator, `OK (5 tests)`, 2.591 seconds. |
-| `OfflinePolygonMapHostInstrumentedTest` on `emulator-5554` | PASS | Android 14 emulator, `OK (3 tests)`, 42.781 seconds. Only the emulator appeared in `adb devices -l`; no physical phone was used. |
-| Source route review for feature requests | PASS, static evidence | The four host paths use `OfflinePolygonOverlayManager`; application call sites instantiate `Wmts3857TileProvider` only for `REGIONS`. No app call site uses `LEGACY_DITCH` or `ROAD_SURVEY`. No packet-level request capture was performed. |
+| `OfflinePolygonMapHostInstrumentedTest` on `emulator-5554` | PASS | Android 14 emulator, `OK (3 tests)`, 63.11 seconds in the request-capture rerun. Only the emulator appeared in `adb devices -l`; no physical phone was used. |
+| Emulator app-process OkHttp request capture | PASS | During the four-host suite, 374 outgoing GET entries were logged for the app process; 242 requested WMTS `regions`, 128 requested WMS `map_ditch_nodes_labels`, and 0 requested `legacyDitch` or `roadServey`. See `evidence/AC-001-emulator-okhttp-capture.md`. This is application-level request logging, not a raw packet capture. |
+| Source route review for feature requests | PASS, static evidence | The four host paths use `OfflinePolygonOverlayManager`; application call sites instantiate `Wmts3857TileProvider` only for `REGIONS`. No app call site uses `LEGACY_DITCH` or `ROAD_SURVEY`. |
 | Remote CI / independent verification | NOT VERIFIED | No CI result or independent Verification record is available for this worktree revision. |
 
 ### Acceptance-Criteria Status
 
-- AC-001: Package hashes, local source queries, and host-provider local tile renders PASS. Source review found no app route that constructs the legacy/road-survey WMTS providers. The plan's explicit feature-endpoint request capture was not performed, so the full criterion remains NOT VERIFIED.
+- AC-001: PASS on emulator. Both GPKG source hashes match the packaged assets, all four host providers rendered local features, and the app-process OkHttp capture recorded 0 `legacyDitch`/`roadServey` requests while other map requests were logged. Capture details are in `evidence/AC-001-emulator-okhttp-capture.md`.
 - AC-002: PASS on emulator. Real GPKG interior coordinates produced their exact opaque layer colors in host provider tiles; MainActivity snapshots at the projected interior points also matched the exact layer colors. Visual evidence is saved under `evidence/AC-002-main-legacy.png` and `evidence/AC-002-main-possible.png`.
 - AC-003: PASS on emulator. MainActivity and MapWorkspaceFragment layer-sheet controls hid/restored the corresponding offline providers. Gutter form and point picker honored their passed visibility states and rendered their enabled local providers.
 - AC-004: PASS for the focused plan scenarios. All four hosts reached zoom 16/18/20, panned through populated and sparse extents, and generated expected populated/empty local tiles. Camera calls returned under one second; no crash or ANR occurred in the test run.
@@ -37,11 +38,11 @@
 
 ### Restarted Validation Details
 
-- Instrumentation command for host scenarios: `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.map.OfflinePolygonMapHostInstrumentedTest com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — `OK (3 tests)`, 42.781 seconds.
+- Instrumentation command for host scenarios: `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.map.OfflinePolygonMapHostInstrumentedTest com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — `OK (3 tests)`, 63.11 seconds in the request-capture rerun.
 - Instrumentation command for data/style scenarios: `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.map.OfflinePolygonDataStoreInstrumentedTest com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — `OK (5 tests)`, 2.591 seconds.
 - Host coverage now includes two launch cycles for all four map contexts, real GPKG tiles at interior points and NO_TILE outside the source extents, layer manager hide/show and duplicate prevention, exact visible map snapshot colors for both sources, and zoom/pan across populated and sparse coordinates.
-- Responsiveness observation: synchronous camera changes returned in under one second and the complete host class finished in 42.781 seconds with no crash or ANR. The earlier MainActivity map observation recorded `TOTAL PSS: 164785 KiB`; no new memory profiler trace was collected in this re-entry.
-- Feature-request source review: application call sites use the WMTS provider for `REGIONS`; `LEGACY_DITCH` and `ROAD_SURVEY` occur only in the provider enum/test coverage, not as application provider construction. This supports the local-source route, but does not replace the plan's missing packet/request capture.
+- Responsiveness observation: synchronous camera changes returned in under one second and the request-capture rerun finished in 63.11 seconds with no crash or ANR. The earlier MainActivity map observation recorded `TOTAL PSS: 164785 KiB`; no new memory profiler trace was collected in this re-entry.
+- Feature-request evidence: application call sites use the WMTS provider for `REGIONS`; `LEGACY_DITCH` and `ROAD_SURVEY` occur only in the provider enum/test coverage, not as application provider construction. In the host test run, the app-process OkHttp log recorded 374 outgoing GET entries and zero for either feature layer; other map layer requests appeared in the same log. The capture is application-level logging rather than a raw packet trace.
 - Runtime tests used only `emulator-5554` (`sdk_gphone64_arm64`, Android 14). The shared emulator had no active instrumentation before these runs. No physical phone was used.
 
 ### Handoff
@@ -50,7 +51,7 @@
 - Build artifacts: `app/build/outputs/apk/debug/app-debug.apk`; `app/build/outputs/apk/release/app-release-unsigned.apk` (43,752,006 bytes).
 - Application ID: `com.example.taoyuangutter`; no test account required for offline map instrumentation.
 - Verification precondition: use the committed task branch and Android emulator only. The worktree is in use for this re-entry and must remain unchanged after independent Verification starts.
-- Remaining developer validation limit: no packet-level capture for `legacyDitch`/`roadServey`; this is explicitly NOT VERIFIED and must not be promoted to PASS without evidence.
+- Developer validation is complete against the emulator-only plan scope. The feature request capture is app-level OkHttp logging; a raw packet trace was not collected.
 
 ## Earlier Planning Re-entry — Zoom-Dependent Outline (2026-10-08; superseded by emulator-only scope and restarted validation above)
 

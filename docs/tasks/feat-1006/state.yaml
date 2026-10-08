@@ -31,13 +31,13 @@ validation:
     - Zoom outline profile implementation compiles at zoom 16, 18, and 20 endpoints
     - Emulator AndroidJUnitRunner OfflinePolygonDataStoreInstrumentedTest: 5 tests passed
     - Emulator MainActivity: exact GPKG labels observed and both layer toggles exercised
-    - Emulator AndroidJUnitRunner OfflinePolygonMapHostInstrumentedTest: 3 tests passed in 42.781 seconds; all four hosts reopened twice with provider lifecycle and deduplication assertions
+    - Emulator AndroidJUnitRunner OfflinePolygonMapHostInstrumentedTest: 3 tests passed in 63.11 seconds; all four hosts reopened twice with provider lifecycle and deduplication assertions
     - Emulator map-host providers rendered exact fill-color tiles at populated coordinates and returned NO_TILE beyond the source extents in all four hosts
     - MainActivity emulator snapshots showed both exact GPKG fill colors at projected interior coordinates; evidence saved under docs/tasks/feat-1006/evidence/
     - MainActivity and MapWorkspaceFragment emulator UI toggles matched offline provider creation/removal; form and picker honored propagated visibility values
     - All four emulator hosts exercised zoom 16/18/20 and populated/sparse pan; camera updates returned under one second with no crash or ANR
-  not_verified:
-    - AC-001 packet/request capture for legacyDitch and roadServey feature endpoints
+    - Emulator app-process OkHttp request capture during four-host suite: 374 GET entries, 0 for legacyDitch/roadServey; other map-layer requests were observed, see docs/tasks/feat-1006/evidence/AC-001-emulator-okhttp-capture.md
+  not_verified: []
 
 git:
   branch: codex/feat-1006-gpkg-restart
