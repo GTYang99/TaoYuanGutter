@@ -1,0 +1,2 @@
+10-08 10:23:27.763  4801  4827 I TestRunner: started: missingCoordinateEditWithoutUsableFixKeepsFallbackAndShowsUnavailablePrompt(com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest)
+10-08 10:24:22.128  4801  4827 I TestRunner: finished: missingCoordinateEditWithoutUsableFixKeepsFallbackAndShowsUnavailablePrompt(com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest)

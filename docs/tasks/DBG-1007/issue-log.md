@@ -35,3 +35,15 @@
 - Impact: No remaining acceptance-criterion blocker from native permission-dialog interaction.
 - Resolution: Added a fixed-AVD shell interaction helper to the instrumentation case; verified Settings opens and returning without permission retains the fallback. The Settings-granted return path is captured in `emulator-results/AC-011-granted.xml`.
 - Next action: closed
+
+## ISS-DBG-1007-LOC-004
+
+- Task: DBG-1007
+- Category: environment
+- Priority: P2
+- Title: Emulator no-fix state was not established for independent verification
+- Status: closed
+- Evidence: The initial independent run was affected by Fused's cached mock fix. After a normal reboot (no data wipe), `dumpsys location` showed null last locations for fused, GPS, and network providers. `missingCoordinateEditWithoutUsableFixKeepsFallbackAndShowsUnavailablePrompt` then passed on `emulator-5554`; the connected test XML reports one test, zero failures, and 54.298 seconds. Assertions confirmed the flow completed, unavailable prompt appeared, fallback remained, and waypoint/form coordinates stayed empty. Source review confirms a 25-second timeout per attempt and one retry maximum.
+- Impact: The emulator cache had prevented clean no-fix verification; AC-006 is now verified.
+- Resolution: Rebooted the emulator and reran the targeted no-fix instrumentation case successfully.
+- Next action: closed
