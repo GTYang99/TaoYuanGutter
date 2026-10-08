@@ -112,6 +112,33 @@ class EditMapInitialLocationInstrumentedTest {
     }
 
     @Test
+    fun coarseOnlyPermissionStartsEditLocationWithoutPermissionPrompt() {
+        grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        assertEquals(
+            PackageManager.PERMISSION_DENIED,
+            context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        )
+        assertEquals(
+            PackageManager.PERMISSION_GRANTED,
+            context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        )
+
+        launchForm(isEditMode = true, waypoint = waypoint(latitude = null, longitude = null)).use { scenario ->
+            val deadline = System.currentTimeMillis() + 10_000L
+            var attempt = 0
+            while (System.currentTimeMillis() < deadline && attempt == 0) {
+                scenario.onActivity { activity ->
+                    attempt = readField<Int>(activity, "editMapLocationAttempt")
+                }
+                if (attempt == 0) Thread.sleep(100L)
+            }
+            assertTrue("Coarse permission did not start a location attempt", attempt > 0)
+            onView(withText(R.string.edit_map_location_permission_title)).check(doesNotExist())
+        }
+    }
+
+    @Test
     fun newPointDoesNotRecenterOnDeviceLocation() {
         grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)

@@ -39,7 +39,6 @@ verification:
     - AC-004
     - AC-005
     - AC-009
-    - AC-010
     - AC-011
 
 ci:
