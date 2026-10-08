@@ -19,7 +19,7 @@
 - Title: Emulator location input does not demonstrate the edit-map Fused Location path
 - Status: open
 - Evidence: On `emulator-5554` (Medium_Phone AVD, Android 14 / API 34), `adb emu geo fix 121.5000 25.0300` returned `OK`; `dumpsys location` showed a mock location in the fused provider, but the Activity camera remained at the Taoyuan fallback. A test-only `FusedLocationProviderClient.setMockMode` probe was rejected by Android because the caller was not selected as the mock location app, including after the target package was written to the secure setting. The separate AC-009 mock harness did not reach its behavior assertion: its first attempt lacked an Application context and the one retry lacked Google Play Services version metadata in the test APK. AC-002, AC-010, AC-011 and the no-fix flow passed independently.
-- Impact: AC-001, AC-003, and AC-009 still lack the required successful Fused callback evidence. The emulator mock path cannot distinguish GMS delivery from an application-side request issue.
+- Impact: AC-001, AC-003, and AC-009 still lack successful Fused callback evidence. The emulator mock path cannot distinguish GMS delivery from an application-side request issue.
 - Next action: investigation
 
 ## ISS-DBG-1007-LOC-003
