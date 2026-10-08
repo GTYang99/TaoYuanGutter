@@ -12,52 +12,61 @@
 - Changed the possible-layer title to `可能側溝位置（.gpkg）`; fill colors and all four map-host wiring remain in place. The outline now follows amended AC-007: thicker at broad zoom and thinner at close zoom.
 - Added device instrumentation for packaged asset size/hash and absence of the old asset, stale-cache invalidation, real-source query/render at zoom 16 and 20, and exact option labels. Added a MultiPolygon-with-hole GeoPackage decoder unit case.
 
-### Developer Validation
+### Developer Validation — Worktree Re-entry (2026-10-08)
 
 | Command/check | Result | Evidence / limitation |
 |---|---|---|
-| `git diff --check` | PASS | No whitespace errors. |
-| `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:compileDebugUnitTestKotlin :app:assembleDebug :app:assembleRelease` | PASS | All main and test sources compile; debug and release APKs build in the FEAT-1006 worktree. No app was launched by this command. |
-| Release APK contents, size and SHA-256 readback | PASS | APK is 43,752,030 bytes. Both GPKG asset entries match their manifest hashes and byte lengths; the obsolete GeoJSON entry is absent. See `asset-manifest.md`. |
-| Android instrumentation on the designated emulator | PASS | `emulator-5554`, model `sdk_gphone64_arm64`, Android 14. Data-store suite: 5 tests passed. Four-host map suite: 3 tests passed in 36.767 seconds. No physical phone was used. |
-| Host JVM unit-test execution | NOT RUN | Unit-test source compiled successfully. Actual GPKG/MultiPolygon/render checks ran in the emulator instrumentation suite. |
-| Remote CI / independent verification | NOT VERIFIED | No result is available for this new worktree branch. |
+| `git diff --check` | PASS | No whitespace errors in the re-entry changes. |
+| `:app:compileDebugAndroidTestKotlin :app:assembleDebugAndroidTest` | PASS | Latest host test sources, including populated/sparse tiles and map snapshots, compile and package. A temporary ignored `local.properties` contained only a non-real Maps key placeholder and was removed after validation. |
+| `:app:testDebugUnitTest :app:assembleDebug :app:assembleRelease` | PASS | JVM unit tests, debug APK, and unsigned release APK built successfully. |
+| Release APK asset readback | PASS | APK size 43,752,006 bytes. Both GPKG source contents matched the source hashes and lengths; exactly two `.gpkg` entries and no `.geojson` entry were present. |
+| `OfflinePolygonDataStoreInstrumentedTest` on `emulator-5554` | PASS | Android 14 emulator, `OK (5 tests)`, 2.591 seconds. |
+| `OfflinePolygonMapHostInstrumentedTest` on `emulator-5554` | PASS | Android 14 emulator, `OK (3 tests)`, 42.781 seconds. Only the emulator appeared in `adb devices -l`; no physical phone was used. |
+| Source route review for feature requests | PASS, static evidence | The four host paths use `OfflinePolygonOverlayManager`; application call sites instantiate `Wmts3857TileProvider` only for `REGIONS`. No app call site uses `LEGACY_DITCH` or `ROAD_SURVEY`. No packet-level request capture was performed. |
+| Remote CI / independent verification | NOT VERIFIED | No CI result or independent Verification record is available for this worktree revision. |
 
 ### Acceptance-Criteria Status
 
-- AC-001: APK packaging, source hashes, and real local GPKG queries PASS. Runtime tests exercise all four hosts, but feature-endpoint request capture (`legacyDitch`/`roadServey`) remains NOT VERIFIED.
-- AC-002: Real GPKG geometry and exact fill-color tile checks PASS, including the possible-layer MultiPolygon source. Geographic alignment against the basemap in populated extents remains NOT VERIFIED.
-- AC-003: MainActivity and MapWorkspaceFragment UI toggles PASS, with provider presence/removal asserted. Gutter form and point picker PASS their requested initial visibility states; interactive toggles there remain NOT VERIFIED.
-- AC-004: All four hosts passed map-ready, zoom 16/18/20, and pan smoke checks in two launch cycles; camera operations returned under one second and no crash/ANR was observed. Broader populated/sparse-area responsiveness and UI-blocking observation remain NOT VERIFIED.
-- AC-005: MainActivity and MapWorkspaceFragment hide/show provider removal/restoration and teardown cleanup PASS. All four hosts passed two-cycle teardown/reopen checks; interactive disable/re-enable coverage in form and point picker remains NOT VERIFIED.
-- AC-006: PASS on emulator: exact two `.gpkg` titles asserted in instrumentation and observed in MainActivity UI.
-- AC-007: PASS on emulator: the data-store suite rendered real sources and checked the zoom 16/18/20 profile, alternate profile, fill-color preservation, and provider cleanup.
+- AC-001: Package hashes, local source queries, and host-provider local tile renders PASS. Source review found no app route that constructs the legacy/road-survey WMTS providers. The plan's explicit feature-endpoint request capture was not performed, so the full criterion remains NOT VERIFIED.
+- AC-002: PASS on emulator. Real GPKG interior coordinates produced their exact opaque layer colors in host provider tiles; MainActivity snapshots at the projected interior points also matched the exact layer colors. Visual evidence is saved under `evidence/AC-002-main-legacy.png` and `evidence/AC-002-main-possible.png`.
+- AC-003: PASS on emulator. MainActivity and MapWorkspaceFragment layer-sheet controls hid/restored the corresponding offline providers. Gutter form and point picker honored their passed visibility states and rendered their enabled local providers.
+- AC-004: PASS for the focused plan scenarios. All four hosts reached zoom 16/18/20, panned through populated and sparse extents, and generated expected populated/empty local tiles. Camera calls returned under one second; no crash or ANR occurred in the test run.
+- AC-005: PASS on emulator. Each host manager released provider/overlay references on hide and teardown, restored one provider per enabled layer, and retained the same provider on repeated enable.
+- AC-006: PASS on emulator. Both exact `.gpkg` titles were asserted in instrumentation and observed in MainActivity.
+- AC-007: PASS on emulator. Real-source rendering and style checks covered zoom 16/18/20, alternate outline width, unchanged interior fill, and provider cleanup.
+
+### Restarted Validation Details
+
+- Instrumentation command for host scenarios: `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.map.OfflinePolygonMapHostInstrumentedTest com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — `OK (3 tests)`, 42.781 seconds.
+- Instrumentation command for data/style scenarios: `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.map.OfflinePolygonDataStoreInstrumentedTest com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — `OK (5 tests)`, 2.591 seconds.
+- Host coverage now includes two launch cycles for all four map contexts, real GPKG tiles at interior points and NO_TILE outside the source extents, layer manager hide/show and duplicate prevention, exact visible map snapshot colors for both sources, and zoom/pan across populated and sparse coordinates.
+- Responsiveness observation: synchronous camera changes returned in under one second and the complete host class finished in 42.781 seconds with no crash or ANR. The earlier MainActivity map observation recorded `TOTAL PSS: 164785 KiB`; no new memory profiler trace was collected in this re-entry.
+- Feature-request source review: application call sites use the WMTS provider for `REGIONS`; `LEGACY_DITCH` and `ROAD_SURVEY` occur only in the provider enum/test coverage, not as application provider construction. This supports the local-source route, but does not replace the plan's missing packet/request capture.
+- Runtime tests used only `emulator-5554` (`sdk_gphone64_arm64`, Android 14). The shared emulator had no active instrumentation before these runs. No physical phone was used.
 
 ### Handoff
 
 - Branch: `codex/feat-1006-gpkg-restart` in the dedicated FEAT-1006 worktree.
-- Production implementation commits: `5bb2b32` (`feat(FEAT-1006): use GeoPackage for possible layer`) and `ec16975` (`feat(FEAT-1006): scale outline width with zoom`). Emulator host lifecycle test commit: `31f6819` (`test(FEAT-1006): assert offline host layer lifecycle`).
-- Release APK: `app/build/outputs/apk/release/app-release-unsigned.apk` (43,752,030 bytes); debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
-- Application ID: `com.example.taoyuangutter`.
-- Device precondition: connect the designated Android 9+ test device; capture its serial, model, Android version, and available-memory observation before testing. No emulator may be used.
-- Test scope: AC-001–AC-007 as mapped in `plan.md`, covering the four map hosts, both layers, toggles, outline/fill/holes, pan/zoom, and lifecycle; block the two feature-data endpoints for AC-001.
-- Implementation is compiled and packaged; device validation remains the next action.
+- Build artifacts: `app/build/outputs/apk/debug/app-debug.apk`; `app/build/outputs/apk/release/app-release-unsigned.apk` (43,752,006 bytes).
+- Application ID: `com.example.taoyuangutter`; no test account required for offline map instrumentation.
+- Verification precondition: use the committed task branch and Android emulator only. The worktree is in use for this re-entry and must remain unchanged after independent Verification starts.
+- Remaining developer validation limit: no packet-level capture for `legacyDitch`/`roadServey`; this is explicitly NOT VERIFIED and must not be promoted to PASS without evidence.
 
-## Planning Re-entry — Zoom-Dependent Outline (2026-10-08)
+## Earlier Planning Re-entry — Zoom-Dependent Outline (2026-10-08; superseded by emulator-only scope and restarted validation above)
 
 - User clarified that the outline should be slightly thicker when viewing a broad area and smaller when zoomed in. The previous constant-width AC-007 did not express that behavior and is superseded by the amended requirement and plan.
-- Current status: planning, plan review, and implementation are complete for the AC-007 change. Tunable defaults are 2.5 tile pixels at zoom 16 and below, linearly transitioning to 1.5 at zoom 20 and above. The style values remain subject to physical test-device visual validation.
-- Validation: `git diff --check` PASS. `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:compileDebugUnitTestKotlin` PASS. `:app:assembleDebug :app:assembleRelease` PASS. No unit, instrumentation, emulator, or device tests were executed.
-- ADB inventory was successfully read with elevated local access and listed only `emulator-5554` (`sdk_gphone64_arm64`). Per user instruction, no tests were run on the emulator. Physical-device visual/runtime validation remains NOT VERIFIED.
+- Current status: planning, plan review, and implementation are complete for the AC-007 change. Tunable defaults are 2.5 tile pixels at zoom 16 and below, linearly transitioning to 1.5 at zoom 20 and above. At that planning point, zoom-dependent style appearance had not yet been checked at runtime; the restarted emulator validation above now covers zoom 16, 18, and 20. Physical-phone testing is out of scope per the user.
+- Validation at that point: `git diff --check` PASS. `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:compileDebugUnitTestKotlin` PASS. `:app:assembleDebug :app:assembleRelease` PASS. Unit, instrumentation, and runtime tests had not yet been executed; the restarted emulator results are recorded above.
+- This was the pre-reentry status before the user narrowed device testing to emulator-only. The emulator-only validation results are recorded above; no physical phone was used.
 - Implementation commit: `ec16975` (`feat(FEAT-1006): scale outline width with zoom`). Debug APK: `app/build/outputs/apk/debug/app-debug.apk`; release APK: `app/build/outputs/apk/release/app-release-unsigned.apk`.
 
-## Validation Scope Update — Emulator Only (2026-10-08)
+## Earlier Validation Scope Update — Emulator Only (2026-10-08; superseded by restarted validation above)
 
 - User directed that runtime testing must use an Android emulator only; physical phone testing is out of scope. The requirement and plan now specify emulator-only testing, and plan review approved the update.
 - Current ADB inventory contains `emulator-5554` (`sdk_gphone64_arm64`). All runtime/instrumentation commands will target this serial explicitly.
-- Previous `NOT VERIFIED` entries describe validation before this scope update. Current-source emulator validation is now the next action; no emulator test result is claimed yet.
+- At the time of this update, current-source emulator validation had not started. Its results are recorded in the restarted validation section above.
 
-## Emulator Validation — Four Map Hosts (2026-10-08)
+## Earlier Emulator Validation — Four Map Hosts (2026-10-08; superseded by restarted validation above)
 
 - Build command: Android Studio bundled JBR running `GradleWrapperMain :app:compileDebugAndroidTestKotlin :app:assembleDebugAndroidTest` — PASS. An initial attempt exposed test-local variable scope errors in the new lifecycle assertions; declarations were moved outside the `try/finally` blocks and the same build then passed. No production-code change was needed.
 - Device inventory: `adb devices -l` listed only `emulator-5554` (`sdk_gphone64_arm64`); `getprop ro.build.version.release` returned `14`. No physical phone was used.
@@ -67,7 +76,7 @@
 - Shared-emulator condition: the other project's app remained installed/foreground after the run, but no competing AndroidJUnitRunner was active when checked; FEAT-1006 tests completed successfully. The separate AVD remains unavailable due to low host disk space and was not needed.
 - Remaining evidence: feature-endpoint request capture and visual geographic alignment against the basemap are still `NOT VERIFIED`; form and point-picker interactive hide/show is also not exercised. See the per-AC status above.
 
-## Emulator Validation — Focused Pass (2026-10-08)
+## Earlier Emulator Validation — Focused Pass (2026-10-08; superseded by restarted validation above)
 
 - Emulator: `emulator-5554`, `sdk_gphone64_arm64`, Android 14. The app reported `TOTAL PSS: 164785 KiB` during MainActivity map display.
 - Command: `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.map.OfflinePolygonDataStoreInstrumentedTest com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — PASS, `OK (5 tests)`, 61.19 seconds.
