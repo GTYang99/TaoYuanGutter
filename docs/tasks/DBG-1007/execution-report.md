@@ -36,4 +36,4 @@ The first Gradle attempt could not locate Java through the shell PATH. Validatio
 
 ## Remaining Verification Scope
 
-Use a fixed committed revision and the emulator to cover the remaining cases in `plan.md`. AC-001/003 need evidence from a location fix the app's Fused Location client can consume; the injected emulator mock did not move the camera. See `investigation.md` for the unresolved classification. No physical-device test is in scope.
+Use a fixed committed revision and the emulator to cover the remaining cases in `plan.md`. AC-001/003 need evidence from a location fix the app's Fused Location client can consume; AC-009 needs a delayed successful callback after a manual pan. See `investigation.md` for the unresolved classification. CI and independent verification are also pending. No physical-device test is in scope.
