@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.example.taoyuangutter.gutter.EditMapLocationPolicyTest" tests="4" skipped="0" failures="0" errors="0" timestamp="2026-10-08T06:44:15.616Z" hostname="10362-P10333.local" time="0.01">
+  <properties/>
+  <testcase name="acceptsEitherForegroundPermission" classname="com.example.taoyuangutter.gutter.EditMapLocationPolicyTest" time="0.002"/>
+  <testcase name="permissionRetryIsOfferedOnlyOnceForRecoverableDenial" classname="com.example.taoyuangutter.gutter.EditMapLocationPolicyTest" time="0.0"/>
+  <testcase name="initialCameraLocationIsLimitedToNormalMissingCoordinateEdits" classname="com.example.taoyuangutter.gutter.EditMapLocationPolicyTest" time="0.0"/>
+  <testcase name="locationIsRetriedOnlyAfterFirstAttemptAndNeverOverridesManualPan" classname="com.example.taoyuangutter.gutter.EditMapLocationPolicyTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

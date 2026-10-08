@@ -34,7 +34,7 @@ verification:
   category: environment
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria: []
-  commit: 9e35233f4b94a67344f61ca88fe7f4c49b7eff42
+  commit: d7548429f5bd6d04c1d4c388ab16eceefb43bba1
   worktree_at_start: clean
 
 ci:

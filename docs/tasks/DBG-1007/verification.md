@@ -1,11 +1,19 @@
 # Independent Verification
 
-## Revision and Worktree
+## Focused Rerun (2026-10-08)
+
+- Revision tested: `d7548429f5bd6d04c1d4c388ab16eceefb43bba1`; the branch worktree was clean when the rerun started.
+- The application, JVM test, and instrumentation test sources are unchanged from implementation/evidence commit `9e35233f4b94a67344f61ca88fe7f4c49b7eff42`; `git diff 9e35233..d754842 -- app/src/main app/src/test app/src/androidTest` is empty. The commits between these revisions only update task records and evidence.
+- Focused unit command: `./gradlew --no-daemon :app:testDebugUnitTest --tests 'com.example.taoyuangutter.gutter.EditMapLocationPolicyTest' --rerun-tasks` using Android Studio's bundled JBR — **PASS**, 4 tests, 0 failures. XML: `unit-results/EditMapLocationPolicyTest-2026-10-08.xml`.
+- Focused emulator command: `ANDROID_SERIAL=emulator-5556 ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#savedCoordinateEditKeepsSavedCameraTarget` using Android Studio's bundled JBR — **PASS**, 1 test, 0 failures, 3.317 seconds. Device: Medium_Phone AVD, Android 14 / API 34. It confirmed an edit with saved coordinates retains the saved camera target and leaves the initial-location flow inactive. XML: `emulator-results/AC-002-current-2026-10-08.xml`.
+- No physical device was used. This rerun supplements the prior full AC evidence below.
+
+## Baseline Full Verification Revision
 
 - Task: `DBG-1007`
 - Branch: `codex/DBG-1007-minimap-location`
-- Commit under test: `9e35233f4b94a67344f61ca88fe7f4c49b7eff42`
-- Worktree at verification start: clean (`git status --porcelain=v1` returned no paths).
+- Commit under test for the previously completed full AC run: `9e35233f4b94a67344f61ca88fe7f4c49b7eff42`
+- Worktree at that verification start: clean (`git status --porcelain=v1` returned no paths). The focused rerun on `d7548429f5bd6d04c1d4c388ab16eceefb43bba1` is recorded above.
 - Production implementation is unchanged since `5114269122aa762c28f0093904c145e03ce3bd72`; commits after it add task evidence and emulator test harness/coverage. `git diff 5114269..HEAD -- app/src/main` is empty.
 - Physical device: not used, per user direction.
 
@@ -20,7 +28,7 @@ Implementation review of `GutterFormActivity.onMapReady()` and its location call
 | AC | Result | Verification evidence |
 |---|---|---|
 | AC-001 | PASS | Independently ran `missingCoordinateEditWithFusedMockLocationCentersCameraOnly` on `emulator-5554` using the selected test APK framework GPS provider and fix `25.030000,121.500000`; instrumentation returned `OK (1 test)`. Test asserts camera target within 100 m. Existing detailed record: `emulator-results/AC-001-AC-003-fused-mock.md` and its concise logcat. |
-| AC-002 | PASS | Independently revoked fine and coarse permission and reran `savedCoordinateEditWithLocationDeniedDoesNotRequestPermission` on `emulator-5554`; `OK (1 test)`. It asserted both permissions denied, saved camera target retained, location flow inactive, and no unavailable prompt. |
+| AC-002 | PASS | Independently revoked fine and coarse permission and reran `savedCoordinateEditWithLocationDeniedDoesNotRequestPermission` on `emulator-5554`; `OK (1 test)`. It asserted both permissions denied, saved camera target retained, location flow inactive, and no unavailable prompt. The focused rerun on `emulator-5556` also retained the saved camera target with the location flow inactive; see `emulator-results/AC-002-current-2026-10-08.xml`. |
 | AC-003 | PASS | Same independent AC-001 run asserted `currentLat/currentLng` remain zero, `NODE_X`/`NODE_Y` remain blank, and session waypoint latitude/longitude remain null. |
 | AC-004 | PASS | Reviewed `emulator-results/AC-004.xml` (one passing denial/retry case) and the test procedure in `execution-report.md`: first native denial offered one retry; second denial showed the unavailable prompt without another loop. Production callback tracks `editMapLocationPermissionRetryUsed`. |
 | AC-005 | PASS | `emulator-results/AC-011-denied.xml` records the passing denied-return case; `execution-report.md` records that the unavailable prompt exposed Settings and Continue, Settings opened, and the form remained at fallback without permission. AC-004 evidence covers Continue dismissal. |
@@ -32,6 +40,8 @@ Implementation review of `GutterFormActivity.onMapReady()` and its location call
 | AC-011 | PASS | Reviewed `emulator-results/AC-011-granted.xml` and `AC-011-denied.xml`: returning from Settings with permission started one attempt; returning denied stopped the flow and kept the fallback. The instrumented test assertions cover the Settings-return flag and attempt count. |
 
 ## Tests and Build
+
+- Current focused rerun on `d7548429f5bd6d04c1d4c388ab16eceefb43bba1`: `EditMapLocationPolicyTest` — **PASS**, 4 tests, 0 failures; saved-coordinate edit instrumentation on `emulator-5556` — **PASS**, 1 test, 0 failures. The source/test tree matches the implementation revision previously verified at `9e35233f4b94a67344f61ca88fe7f4c49b7eff42`.
 
 - Targeted policy unit test: `./gradlew --no-daemon :app:testDebugUnitTest --tests 'com.example.taoyuangutter.gutter.EditMapLocationPolicyTest' --rerun-tasks` — **PASS**, 32 tasks executed; Gradle reported `BUILD SUCCESSFUL`.
 - App and instrumentation APKs: `./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest` — **PASS**, `BUILD SUCCESSFUL` (tasks were up-to-date after the forced compile/test run).
