@@ -28,11 +28,11 @@
 ## Test Plan
 - Unit tests for edit eligibility, fine/coarse grant handling, one permission retry limit, one location reacquisition limit, and permanent-denial Settings routing.
 - Build the Android app and run the targeted location-policy unit tests.
-- Physical device checks for AC-001 through AC-007 and AC-009 through AC-011 if a device with granted/denied permission states is available; otherwise record these as `NOT VERIFIED`.
+- Emulator checks for AC-001 through AC-007 and AC-009 through AC-011, using the available runtime-capable Maps setup; record any flow the emulator cannot exercise as `NOT VERIFIED`.
 
-### Physical Device Test Scope
-- Requires physical device: Yes
-- Device/environment: Android device with Google Play Services; exercise granted permission, recoverable denial, and permanent denial states.
+### Emulator Test Scope
+- Requires physical device: No; follow the user's instruction to use the test emulator and skip physical-device testing.
+- Device/environment: `emulator-5554`, Medium_Phone AVD, Android 14 / API 34, with Google Maps available. Exercise granted permission, location-unavailable, and permission-denial states where the emulator supports them.
 - In-scope Acceptance Criteria: AC-001 through AC-007, AC-009 through AC-011
 - Regression risk: Location permission result and form-map camera behavior can affect map initialization and existing edit flow.
 - Full regression required: No
@@ -41,16 +41,16 @@
 
 | AC | Environment | Steps | Expected | Evidence |
 |---|---|---|---|---|
-| AC-001 | Android device | Open an existing point with no coordinates while location permission is granted | Form map centers on a usable device fix; coordinate fields stay unchanged | Screen recording or camera target observation; coordinate state before/after |
-| AC-002 | Android device | Open an existing point with saved coordinates and permission denied | Form map centers on the saved coordinate without requesting location | Camera target and permission-dialog observation |
-| AC-003 | Android device | Open a missing-coordinate edit and grant location | Only the map viewport moves; waypoint and coordinate fields remain unchanged | Before/after form-data inspection |
-| AC-004 | Android device | Deny the first permission request, then choose retry and deny again | One retry is offered; unavailable prompt appears after second denial; no loop | Dialog sequence and result |
-| AC-005 | Android device | Revoke permission and enter a permanently denied state; open edit form | Unavailable prompt offers Settings and continue/dismiss | Dialog actions and result |
-| AC-006 | Android device | Grant permission with device location unavailable | One bounded reacquisition runs, then unavailable prompt appears | Timing and prompt result |
-| AC-007 | Android device | Dismiss unavailable prompt | Form remains usable at Taoyuan fallback and map remains manually movable | Map interaction observation |
-| AC-009 | Android device | Start location acquisition, pan the map before the callback | The later callback does not move the map away from the user's manual position | Camera target before/after callback |
-| AC-010 | Android device | Grant approximate/coarse location only, then open a missing-coordinate edit | The app attempts location acquisition without showing a permission-denied prompt | Permission result and map target observation |
-| AC-011 | Android device | Open Settings from permanent denial, grant permission, and return | Form retries location once and centers on a fix; if permission remains denied, fallback remains usable | Permission state and resulting map target |
+| AC-001 | Android emulator | Open an existing point with no coordinates while location permission is granted and provide a usable emulator fix | Form map centers on a usable fix; coordinate fields stay unchanged | Camera target and coordinate state before/after |
+| AC-002 | Android emulator | Open an existing point with saved coordinates and permission denied | Form map centers on the saved coordinate without requesting location | Camera target and permission-dialog observation |
+| AC-003 | Android emulator | Open a missing-coordinate edit and grant location | Only the map viewport moves; waypoint and coordinate fields remain unchanged | Before/after form-data inspection |
+| AC-004 | Android emulator | Deny the first permission request, then choose retry and deny again | One retry is offered; unavailable prompt appears after second denial; no loop | Dialog sequence and result |
+| AC-005 | Android emulator | Revoke permission and enter a permanently denied state; open edit form | Unavailable prompt offers Settings and continue/dismiss | Dialog actions and result |
+| AC-006 | Android emulator | Grant permission with emulator location unavailable | One bounded reacquisition runs, then unavailable prompt appears | Timing and prompt result |
+| AC-007 | Android emulator | Dismiss unavailable prompt | Form remains usable at Taoyuan fallback and map remains manually movable | Map interaction observation |
+| AC-009 | Android emulator | Start location acquisition, pan the map before the callback | The later callback does not move the map away from the user's manual position | Camera target before/after callback |
+| AC-010 | Android emulator | Grant approximate/coarse location only, then open a missing-coordinate edit | The app attempts location acquisition without showing a permission-denied prompt | Permission result and map target observation |
+| AC-011 | Android emulator | Open Settings from permanent denial, grant permission, and return | Form retries location once and centers on a fix; if permission remains denied, fallback remains usable | Permission state and resulting map target |
 
 ## Regression Plan
 - Confirm existing-coordinate edit still opens at the saved point without a permission prompt.
