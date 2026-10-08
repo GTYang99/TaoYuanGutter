@@ -41,8 +41,8 @@ validation:
 
 git:
   branch: codex/feat-1006-gpkg-restart
-  commit: pending
-  status: pending
+  commit: 726f258
+  status: committed
 
 verification:
   result: pending
