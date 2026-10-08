@@ -5,47 +5,29 @@
 - ID: `ISS-DBG-1007-LOC-002`
 - Task: `DBG-1007`
 - Origin: emulator developer validation
-- Affected acceptance criteria: AC-001 and AC-003
-- Status: unresolved; classification remains `unknown`
+- Affected acceptance criteria: AC-001, AC-003, and AC-009
+- Status: resolved; category `environment`
 
-## Expected and Observed
+## Initial Failure
 
-- Expected: an edit form with missing waypoint coordinates uses a usable current fix for the map camera and leaves waypoint/form coordinates unchanged.
-- Observed: after injecting `25.0300, 121.5000`, the camera remained at `24.992900, 121.301100`, about 20.5 km away.
-- Test device: `emulator-5554`, Medium_Phone AVD, Android 14 / API 34.
+On `emulator-5554` (Medium_Phone AVD, Android 14 / API 34), `adb emu geo fix 121.5000 25.0300` returned `OK` and `dumpsys location` showed a fused mock fix, while the form camera remained at `24.992900,121.301100`. This input did not prove that the Activity's current-location callback received the fix.
 
-## Evidence Collected
+The first test-only `FusedLocationProviderClient.setMockMode(true)` setup was rejected because the caller had not been selected as the mock-location app. Setting a secure setting directly did not grant the mock-location app-op. After the user explicitly authorized selecting the test APK, the first instrumentation-process client call failed in Google Play Services with `Unknown calling package name 'com.example.taoyuangutter.test'`. The instrumentation runner was executing in the target app process while identifying itself with the test package. This points to a caller identity mismatch; it is an inference from the binder error and the two package identities.
 
-1. `adb emu geo fix 121.5000 25.0300` returned `OK`.
-2. `adb shell dumpsys location` reported a mock location at `25.030000,121.500000` in the fused provider.
-3. The full `EditMapInitialLocationInstrumentedTest` run had three passing cases and one failed successful-location assertion.
-4. One isolated retry of that same assertion also failed; the camera was still at the Taoyuan fallback.
-5. Location permissions were granted for those runs. The separate saved-coordinate case passed with both location permissions denied.
-6. Source inspection shows the form requests `FusedLocationProviderClient.getCurrentLocation(PRIORITY_BALANCED_POWER_ACCURACY, ...)` and applies a returned valid fix only to the map camera.
+## Resolution and Runtime Evidence
 
-## Competing Explanations
+1. Installed `com.example.taoyuangutter.test` and selected it in Android Developer Options > Select mock location app. Android then reported `MOCK_LOCATION: allow` for that package.
+2. Added a test-only Java `BroadcastReceiver` to the instrumentation APK. A shell broadcast starts it under the selected test APK's own UID; it registers and controls the framework GPS test provider using Android APIs. The helper does not depend on Google Play Services classes or the target APK classpath.
+3. Ran `missingCoordinateEditWithFusedMockLocationCentersCameraOnly` with a usable fix at `25.030000,121.500000`. The test passed, the camera reached the fix, and it verified `currentLat`/`currentLng`, `NODE_X`/`NODE_Y`, and the waypoint's nullable coordinates remained unchanged. Evidence: `emulator-results/AC-001-AC-003-fused-mock.md`.
+4. Ran `manualPanBeforeFusedMockCallbackKeepsManualCameraTarget`. The test started location acquisition without a fix, panned the form map, then injected the fix. It passed with the manual camera target retained and no unavailable prompt. Evidence: `emulator-results/AC-009-delayed-fused-callback.md`, `.xml`, and `-logcat.txt`.
 
-- The emulator/GMS stack may keep the injected mock fix in framework state without returning it through the app's Fused Location request.
-- The app-side request or callback lifecycle may prevent a usable result from reaching the camera.
-
-Current logs and provider state do not distinguish these explanations. No production code was changed as part of this investigation.
+The test APK is removed by the Gradle connected-test task after execution, which removes its mock-location app-op. Reinstalling it requires selecting it again before another run. This is an emulator setup detail, not a production-app defect.
 
 ## Classification and Route
 
-- Category: `unknown`
-- Route: `investigation`
-- Reason: the emulator reports the injected fix, but the Activity's camera remains at fallback; this is insufficient to attribute the failure to either the emulator environment or application behavior.
+- Category: `environment`
+- Resolution: closed
+- Reason: The initial mock input and instrumentation caller identity did not exercise the application's successful Fused callback path. The separately selected test APK's framework GPS provider did; both the successful-location and late-callback behaviors passed on the emulator.
+- Next workflow action: commit the test harness and evidence, then independent verification. CI remains pending.
 
-## Missing Evidence / Next Step
-
-Need a permitted test setup that proves whether the app's Fused Location client receives a valid fix. Automatic review rejected another retry of the same acceptance case after the full-class run and one isolated retry, with the reason that the retry limit had been reached and indirect workarounds must not be used. Do not repeat that case unless the user authorizes a materially different test target or environment.
-
-## Follow-up Emulator Evidence (2026-10-08)
-
-- Reconnected to `emulator-5554` (Android 14 / API 34); location services were enabled. The last fused mock fix was stale, so it was not treated as a current-location result.
-- Emulator inventory on this host contains only the `Medium_Phone` AVD, with `emulator-5554` as the only connected test device. No second emulator image is available for an alternate run.
-- AC-005 and both AC-011 Settings-return outcomes passed using a shell-level denial interaction for Android's native permission dialog. Evidence is in `emulator-results/AC-011-granted.xml` and `emulator-results/AC-011-denied.xml`.
-- A different test-only Fused mock route was explored. Android rejected `setMockMode(true)` because the caller was not the selected mock-location app. Selecting the target package via the secure setting did not authorize the call.
-- An AC-009 mock harness was not retained. The first run used a context without an Application; the one retry failed at Fused client setup because the instrumentation APK lacked the required `com.google.android.gms.version` metadata. Evidence: `emulator-results/AC-009-fused-test-setup.xml`.
-- Source review of the valid-location callback confirms it only calls `formMap.animateCamera(...)`; it does not update waypoint coordinates, form fields, draft data, or a My Location layer. This is supporting evidence for AC-003, but the callback has not been exercised and AC-003 remains `NOT VERIFIED`.
-- No production code change was made during this follow-up. AC-001/003 and AC-009 remain `NOT VERIFIED`; further emulator success-path work needs a valid selected mock-location app test setup or a different permitted emulator configuration. No physical device was used.
+No production source changes were made during this investigation. No physical device was used.

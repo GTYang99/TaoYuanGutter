@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="0" errors="0" skipped="0" time="0.000" timestamp="2026-10-08T02:09:26" hostname="localhost">
+  <testsuite name="com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest" tests="1" failures="0" errors="0" skipped="0" time="6.237" timestamp="2026-10-08T02:09:26" hostname="localhost">
+    <properties>
+      <property name="device" value="emulator-5554" />
+    </properties>
+    <testcase name="manualPanBeforeFusedMockCallbackKeepsManualCameraTarget" classname="com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest" time="6.237" />
+  </testsuite>
+</testsuites>

@@ -3,24 +3,26 @@
 ## ISS-DBG-1007-LOC-001
 
 - Task: DBG-1007
-- Category: enhancement_request (classification: current behavior confirmed; defect status depends on product requirement)
-- Priority: P3 pending product impact confirmation
+- Category: enhancement_request (addressed by approved FR-001)
+- Priority: P3
 - Title: Missing waypoint coordinates use a fixed form-map fallback
-- Status: open
+- Status: closed
 - Evidence: `GutterFormActivity.onMapReady()` explicitly selects `LatLng(24.9929, 121.3011)` when the edited waypoint lacks coordinates; it does not use the host location passed in the intent. The separate main map attempts its own asynchronous location recentering.
 - Impact: A point without coordinates opens its form map at the fixed Taoyuan-area location even when the shared main map has recentered on the device.
-- Next action: investigation
+- Next action: closed
+- Resolution: Approved edit-only initial-location behavior was implemented and exercised on the emulator; missing-coordinate edits now use a usable fix only for the form-map camera and retain the Taoyuan fallback on failure. See `execution-report.md` and the AC-001/AC-003 emulator evidence.
 
 ## ISS-DBG-1007-LOC-002
 
 - Task: DBG-1007
-- Category: unknown
+- Category: environment
 - Priority: P2
 - Title: Emulator location input does not demonstrate the edit-map Fused Location path
-- Status: open
-- Evidence: On `emulator-5554` (Medium_Phone AVD, Android 14 / API 34), `adb emu geo fix 121.5000 25.0300` returned `OK`; `dumpsys location` showed a mock location in the fused provider, but the Activity camera remained at the Taoyuan fallback. A test-only `FusedLocationProviderClient.setMockMode` probe was rejected by Android because the caller was not selected as the mock location app, including after the target package was written to the secure setting. The separate AC-009 mock harness did not reach its behavior assertion: its first attempt lacked an Application context and the one retry lacked Google Play Services version metadata in the test APK. AC-002, AC-010, AC-011 and the no-fix flow passed independently.
-- Impact: AC-001, AC-003, and AC-009 still lack successful Fused callback evidence. The emulator mock path cannot distinguish GMS delivery from an application-side request issue.
-- Next action: investigation
+- Status: closed
+- Evidence: The earlier `adb emu geo fix` and direct Fused mock probes did not establish the app callback path. After the user authorized selecting the Android test APK, `com.example.taoyuangutter.test` was selected in Developer Options and Android reported `MOCK_LOCATION: allow`. A test-APK Java `BroadcastReceiver` then added a framework GPS test provider. AC-001/003 passed with the injected fix at `25.030000,121.500000`, confirming the form camera moved while node/form coordinates remained unchanged (`emulator-results/AC-001-AC-003-fused-mock.md`). AC-009 passed after manual pan and later fix injection (`emulator-results/AC-009-delayed-fused-callback.md` and XML/logcat evidence).
+- Impact: The original emulator input path could not distinguish GMS delivery from an application-side request issue. The selected test-APK framework provider now supplies a reproducible mock fix for developer emulator validation.
+- Resolution: Resolved the test-environment blocker with a selected test APK and framework GPS test provider; confirmed both the successful callback and delayed-callback behavior. This issue is closed. Independent verification and CI remain workflow gates.
+- Next action: closed
 
 ## ISS-DBG-1007-LOC-003
 

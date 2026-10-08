@@ -1,0 +1,5 @@
+10-08 10:06:55.210 24260 24285 I TestRunner: started: missingCoordinateEditWithFusedMockLocationCentersCameraOnly(com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest)
+10-08 10:06:56.201 24295 24295 I DBG1007MockLocation: Mock provider action completed: enable
+10-08 10:07:18.299 24295 24295 I DBG1007MockLocation: Mock provider action completed: disable
+10-08 10:07:19.166 24260 24285 I TestRunner: finished: missingCoordinateEditWithFusedMockLocationCentersCameraOnly(com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest)
+10-08 10:07:19.753 24260 24285 I TestRunner: run finished: 1 tests, 0 failed, 0 ignored

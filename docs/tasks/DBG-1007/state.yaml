@@ -2,8 +2,8 @@ task:
   id: DBG-1007
   type: feature
 
-phase: investigation
-status: investigation_in_progress
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -21,22 +21,19 @@ validation:
   status: completed
   build: passed
   unit_test: passed
-  emulator_instrumentation: not_verified
+  emulator_instrumentation: passed
   device: not_verified
 
 git:
   branch: codex/DBG-1007-minimap-location
-  commit: e5f45ac
+  commit: 130bf20
   status: committed
 
 verification:
   result: pending
   category: null
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
-    - AC-001
-    - AC-003
-    - AC-009
+  not_verified_acceptance_criteria: []
 
 ci:
   build: not_verified
@@ -45,6 +42,5 @@ ci:
 release:
   status: pending
 
-blocking:
-  - ISS-DBG-1007-LOC-002
-next_action: investigation
+blocking: []
+next_action: verification
