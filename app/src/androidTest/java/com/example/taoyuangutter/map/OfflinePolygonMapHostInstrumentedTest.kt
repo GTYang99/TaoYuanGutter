@@ -41,15 +41,25 @@ class OfflinePolygonMapHostInstrumentedTest {
             val intent = Intent(context, MainActivity::class.java)
                 .putExtra(MainActivity.EXTRA_OFFLINE_MAIN, true)
             val scenario = ActivityScenario.launch<MainActivity>(intent)
+            var offlineManager: Any? = null
             try {
                 val map = awaitMainMap(scenario)
-                scenario.onActivity { exerciseCameraProfile(map) }
+                scenario.onActivity { activity ->
+                    exerciseCameraProfile(map)
+                    offlineManager = offlineProviderManager(activity)
+                    assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = true)
+                }
                 onView(withId(R.id.btnLayers)).perform(click())
-                assertLayerToggle(R.id.cbWaterOld, "水務局舊資料（.gpkg）")
-                assertLayerToggle(R.id.cbPossible, "可能側溝位置（.gpkg）")
+                assertLayerToggle(R.id.cbWaterOld, "水務局舊資料（.gpkg）") { visible ->
+                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = visible, possibleVisible = true) }
+                }
+                assertLayerToggle(R.id.cbPossible, "可能側溝位置（.gpkg）") { visible ->
+                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = visible) }
+                }
             } finally {
                 scenario.close()
             }
+            assertProvidersReleased(offlineManager!!)
         }
     }
 
@@ -57,6 +67,7 @@ class OfflinePolygonMapHostInstrumentedTest {
     fun mapWorkspaceFragmentShowsAndTogglesBothGeoPackageLayers() {
         repeat(HOST_REOPEN_COUNT) {
             val scenario = ActivityScenario.launch<MainShellActivity>(Intent(context, MainShellActivity::class.java))
+            var offlineManager: Any? = null
             try {
                 val mapReady = CountDownLatch(1)
                 val mapReference = AtomicReference<GoogleMap>()
@@ -72,20 +83,32 @@ class OfflinePolygonMapHostInstrumentedTest {
                     }
                 }
                 assertTrue("MapWorkspaceFragment Google map should become ready", mapReady.await(60, TimeUnit.SECONDS))
-                scenario.onActivity { exerciseCameraProfile(mapReference.get()) }
+                scenario.onActivity { activity ->
+                    exerciseCameraProfile(mapReference.get())
+                    val workspace = activity.supportFragmentManager
+                        .findFragmentById(R.id.shell_container) as MapWorkspaceFragment
+                    offlineManager = offlineProviderManager(workspace)
+                    assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = true)
+                }
 
                 onView(withId(R.id.btnLayers)).perform(click())
-                assertLayerToggle(R.id.cbWaterOld, "水務局舊資料（.gpkg）")
-                assertLayerToggle(R.id.cbPossible, "可能側溝位置（.gpkg）")
+                assertLayerToggle(R.id.cbWaterOld, "水務局舊資料（.gpkg）") { visible ->
+                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = visible, possibleVisible = true) }
+                }
+                assertLayerToggle(R.id.cbPossible, "可能側溝位置（.gpkg）") { visible ->
+                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = visible) }
+                }
             } finally {
                 scenario.close()
             }
+            assertProvidersReleased(offlineManager!!)
         }
     }
 
     @Test
     fun gutterFormAndPointPickerMapHostsBecomeReady() {
         repeat(HOST_REOPEN_COUNT) {
+            var formManager: Any? = null
             val formScenario = ActivityScenario.launch<GutterFormActivity>(
                 GutterFormActivity.newViewIntent(
                     context = context,
@@ -94,7 +117,7 @@ class OfflinePolygonMapHostInstrumentedTest {
                     lng = 121.3011,
                     waypointIndex = 0,
                     basicData = hashMapOf(),
-                    showWaterOld = true,
+                    showWaterOld = false,
                     showPossible = true
                 )
             )
@@ -111,18 +134,24 @@ class OfflinePolygonMapHostInstrumentedTest {
                     }
                 }
                 assertTrue("Gutter form Google map should become ready", formMapReady.await(60, TimeUnit.SECONDS))
-                formScenario.onActivity { exerciseCameraProfile(formMapReference.get()) }
+                formScenario.onActivity { activity ->
+                    exerciseCameraProfile(formMapReference.get())
+                    formManager = offlineProviderManager(activity)
+                    assertProviderVisibility(formManager!!, legacyVisible = false, possibleVisible = true)
+                }
             } finally {
                 formScenario.close()
             }
+            assertProvidersReleased(formManager!!)
 
+            var pickerManager: Any? = null
             val pickerScenario = ActivityScenario.launch<MapPointPickerActivity>(
                 MapPointPickerActivity.newIntent(
                     context = context,
                     initialLat = 24.9929,
                     initialLng = 121.3011,
                     showWaterOld = true,
-                    showPossible = true
+                    showPossible = false
                 )
             )
             try {
@@ -138,10 +167,15 @@ class OfflinePolygonMapHostInstrumentedTest {
                     }
                 }
                 assertTrue("Point picker Google map should become ready", pickerMapReady.await(60, TimeUnit.SECONDS))
-                pickerScenario.onActivity { exerciseCameraProfile(pickerMapReference.get()) }
+                pickerScenario.onActivity { activity ->
+                    exerciseCameraProfile(pickerMapReference.get())
+                    pickerManager = offlineProviderManager(activity)
+                    assertProviderVisibility(pickerManager!!, legacyVisible = true, possibleVisible = false)
+                }
             } finally {
                 pickerScenario.close()
             }
+            assertProvidersReleased(pickerManager!!)
         }
     }
 
@@ -173,13 +207,51 @@ class OfflinePolygonMapHostInstrumentedTest {
         assertEquals(PAN_TARGET.longitude, map.cameraPosition.target.longitude, 0.0001)
     }
 
-    private fun assertLayerToggle(viewId: Int, label: String) {
+    private fun assertLayerToggle(viewId: Int, label: String, assertProviderVisibility: (Boolean) -> Unit) {
         onView(withId(viewId)).check(matches(withText(label)))
         onView(withId(viewId)).check(matches(isChecked()))
+        assertProviderVisibility(true)
         onView(withId(viewId)).perform(click())
         onView(withId(viewId)).check(matches(isNotChecked()))
+        assertProviderVisibility(false)
         onView(withId(viewId)).perform(click())
         onView(withId(viewId)).check(matches(isChecked()))
+        assertProviderVisibility(true)
+    }
+
+    private fun offlineProviderManager(host: Any): Any {
+        val controller = when (host) {
+            is MainActivity -> privateProperty(host, "mapOverlayController")!!
+            is MapWorkspaceFragment -> privateProperty(host, "mapOverlayController")!!
+            is GutterFormActivity, is MapPointPickerActivity -> host
+            else -> error("Unsupported FEAT-1006 map host: ${host.javaClass.name}")
+        }
+        return privateProperty(controller, "offlinePolygonOverlays")!!
+    }
+
+    private fun assertProviderVisibility(manager: Any, legacyVisible: Boolean, possibleVisible: Boolean) {
+        assertEquals(legacyVisible, privateProperty(manager, "legacyProvider") != null)
+        assertEquals(possibleVisible, privateProperty(manager, "possibleProvider") != null)
+    }
+
+    private fun assertProvidersReleased(manager: Any) {
+        assertProviderVisibility(manager, legacyVisible = false, possibleVisible = false)
+        assertEquals(null, privateProperty(manager, "legacyOverlay"))
+        assertEquals(null, privateProperty(manager, "possibleOverlay"))
+    }
+
+    private fun privateProperty(owner: Any, name: String): Any? {
+        val getterName = "get" + name.replaceFirstChar(Char::uppercase)
+        val getter = owner.javaClass.declaredMethods.firstOrNull {
+            it.name == getterName && it.parameterCount == 0
+        }
+        if (getter != null) {
+            getter.isAccessible = true
+            return getter.invoke(owner)
+        }
+        val field = owner.javaClass.getDeclaredField(name)
+        field.isAccessible = true
+        return field.get(owner)
     }
 
     private companion object {
