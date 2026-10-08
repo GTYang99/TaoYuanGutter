@@ -22,7 +22,7 @@
 - Package both confirmed GPKG files with the app installation and render their features locally without requesting corresponding WMTS feature data.
 - Render legacy polygons with opaque `#156D1D` fill and possible-gutter polygons with opaque `#FA0000` fill. Preserve polygon holes and MultiPolygon members.
 - In the layer-option titles, identify both source files as GPKG: `水務局舊資料（.gpkg）` and `可能側溝位置（.gpkg）`. Make no other UI changes.
-- Draw a same-color outline around both offline polygon layers, with adjustable width and a default of `2.0` tile pixels. Keep screen-space thickness stable across zoom levels.
+- Draw a same-color outline around both offline polygon layers with zoom-dependent, adjustable width. At broad scale (zoom 16 and below), use a slightly thicker `2.5` tile pixels; at close scale (zoom 20 and above), use `1.5` tile pixels so the line does not dominate. Interpolate continuously between those zooms. Expose the reference zooms and endpoint widths as tunable style parameters.
 - Apply the offline overlays in the `MainActivity` and `MapWorkspaceFragment` main-map hosts, the gutter form map, and the point-picker map.
 - Parse and render without blocking the UI thread. Avoid crashes and ANRs; release or bound provider-owned overlay and cache resources when disabled or when a map is destroyed.
 
@@ -40,7 +40,7 @@
 - AC-004: With either or both overlays enabled, pan and zoom through the supplied data in all four map hosts without a crash, ANR, or UI-blocking parse/render operation. Record observed responsiveness and load behavior.
 - AC-005: Disabling a layer removes its rendered content and releases or bounds its provider-owned cache/resources. Re-enabling restores one correct local overlay without duplicates.
 - AC-006: The layer options display exactly `水務局舊資料（.gpkg）` and `可能側溝位置（.gpkg）`; other UI labels and layout remain unchanged.
-- AC-007: Both polygon layers display the same-color outline at adjustable default width `2.0` tile pixels; screen-space thickness remains stable across zoom levels, and fills and holes remain intact.
+- AC-007: Both polygon layers display a same-color outline whose width changes continuously with zoom: `2.5` tile pixels at zoom 16 and below, interpolated between zoom 16 and 20, and `1.5` tile pixels at zoom 20 and above. Reference zooms and endpoint widths are adjustable style parameters. The outline remains visible at broad scale without appearing oversized at close scale; fills and holes remain intact.
 
 ## Constraints
 

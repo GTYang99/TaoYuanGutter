@@ -1,5 +1,16 @@
 # FEAT-1006 Issue Log
 
+## ISS-FEAT-1006-005 — AC-007 outline zoom behavior clarified
+
+- Phase: planning
+- Category: requirement_gap
+- Priority: P2
+- Status: closed
+- Impact: The previously approved constant-width AC-007 did not match the user's clarified need for a slightly thicker line at broad scale and a restrained line at close scale.
+- Evidence: User clarification on 2026-10-08; the requirement, analysis, plan, and plan-review addendum now define a continuous 2.5 px at/below zoom 16 to 1.5 px at/above zoom 20 profile, with tunable parameters.
+- Resolution: Planning re-entry and plan review completed; implementation may proceed under the revised AC-007.
+- Next action: implementation
+
 ## ISS-FEAT-1006-001 — Physical Android device unavailable for planned host scenarios
 
 - Phase: implementation

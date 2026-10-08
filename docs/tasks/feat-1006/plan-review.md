@@ -106,3 +106,26 @@ None that prevent implementation from beginning.
 ### Decision
 
 **APPROVED** — implementation may proceed. The open physical-device issue remains an environment gate: AC-001–AC-005 must not be reported as passed, and Release cannot proceed on the current evidence alone.
+
+---
+
+## Re-review Addendum — Zoom-Dependent Outline Width
+
+### Review Scope
+
+Reviewed the user's clarified visual requirement, updated AC-007, analysis, implementation plan, state, tile renderer, and existing real-GPKG tile-render instrumentation.
+
+### Findings
+
+- Requirement is now explicit and testable: `2.5` tile pixels at zoom 16 and below, linear interpolation to `1.5` at zoom 20 and above, with endpoint widths and reference zooms exposed as style parameters.
+- The shared tile provider receives the requested zoom in `getTile` and owns outline painting, so it can apply the profile without changing map-host APIs or other map overlays.
+- Existing fill, hole, and MultiPolygon assertions remain in scope. The instrumented real-source test can compare broad, midpoint, and close zoom outputs and alternate injected profiles.
+- Test-device runtime evidence is still required; the current environment's ADB server could not start due to sandbox permission (`Operation not permitted`). No emulator test will substitute for the requested test-device run.
+
+### Blocking Issues
+
+None for implementation. Device validation remains an environment gate and does not permit AC-001–AC-007 to be marked passed without test-device evidence.
+
+### Decision
+
+**APPROVED** — implementation may proceed against the amended zoom-dependent AC-007. The selected endpoint values are recorded as tunable defaults so they can be adjusted through `OfflinePolygonStyle` after visual review.

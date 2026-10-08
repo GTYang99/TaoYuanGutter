@@ -6,7 +6,7 @@
 
 ## Scope
 
-- Replace the possible-gutter GeoJSON input with the confirmed GPKG; retain the existing legacy GPKG, colors, outline behavior, offline tile architecture, controls, and host coverage.
+- Replace the possible-gutter GeoJSON input with the confirmed GPKG; retain the existing legacy GPKG, colors, offline tile architecture, controls, and host coverage. Update the outline behavior to vary smoothly with zoom so it is clearer at broad scale and restrained at close scale.
 - Bundle only the two confirmed GPKGs for these overlays and update the two option titles to `.gpkg`.
 - Do not change unrelated map layers, UI, or permanent data-source policy.
 
@@ -15,7 +15,7 @@
 - `app/src/main/assets/20260601_水務局未調查側溝_v5.gpkg` — new bundled possible-gutter source.
 - `app/src/main/assets/20261006_0601版可能側溝位置.geojson` — remove obsolete source asset.
 - `app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt` — possible-layer GPKG table selection, metadata checks, indexing, and obsolete cache invalidation.
-- `app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt` and `OfflineGeometry.kt` — GPKG geometry dispatch and MultiPolygon coverage.
+- `app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt` and `OfflineGeometry.kt` — GPKG geometry dispatch, MultiPolygon coverage, and zoom-aware outline styling.
 - `app/src/main/res/values/strings.xml` and relevant tests — update/assert both `.gpkg` titles.
 - Related map parser/index/provider unit and instrumentation tests under `app/src/test/` and `app/src/androidTest/`.
 - `docs/tasks/feat-1006/asset-manifest.md`, `execution-report.md`, and `verification.md` as their corresponding phases proceed.
@@ -25,7 +25,7 @@
 1. Add the confirmed possible-gutter GPKG unchanged and remove the earlier GeoJSON asset; record both actual input hashes, schema metadata, feature counts, raw sizes, and release packaging size.
 2. Update offline source configuration so legacy reads `line_buffer_polygon` and possible-gutter reads `refactored`; validate EPSG:3826 and the expected Polygon/MultiPolygon table geometry types.
 3. Use the existing background GPKG staging and portable SQLite cell index for both sources; do not depend on optional RTree support. Safely invalidate only obsolete app-private artifacts created by the previous GeoJSON importer.
-4. Route both layers through the GeoPackage geometry decode path; preserve rings, holes, MultiPolygon members, existing fill colors, and adjustable same-color outlines.
+4. Route both layers through the GeoPackage geometry decode path; preserve rings, holes, MultiPolygon members, and existing fill colors. Calculate the same-color outline width continuously from zoom using tunable endpoint values: 2.5 tile pixels at zoom 16 and below, 1.5 at zoom 20 and above.
 5. Change only the possible-layer option suffix from `.geojson` to `.gpkg`; assert exact titles for both options.
 6. Extend focused tests to parse/query/render the exact two GPKGs, validate the possible source MultiPolygon path, and check layer lifecycle, package contents, style, and absence of the old GeoJSON asset/source.
 7. Run relevant unit and instrumentation checks, debug/release packaging checks, and the approved physical-device scenarios; record observations and any unavailable checks without treating them as PASS.
@@ -33,7 +33,7 @@
 ## Test Plan
 
 - Data: verify both packaged source hashes, GPKG metadata, CRS, feature counts, geometry types, and successful spatial queries for real features.
-- Geometry/render: verify Polygon and MultiPolygon members, holes, exact opaque fill colors, outlines at default and alternate widths, and consistent screen-space width at broad and close zooms.
+- Geometry/render: verify Polygon and MultiPolygon members, holes, exact opaque fill colors, and broad/close outline widths at zooms 16 and 20, including a midpoint interpolation check and an alternate injected profile.
 - Package/UI: inspect APK for both GPKGs and no obsolete GeoJSON source; verify both exact `.gpkg` layer titles and no unrelated UI changes.
 - Network/hosts: check that enabling either offline layer does not fetch `legacyDitch`/`roadServey` feature data and verify existing toggles in all four map hosts.
 - Lifecycle/performance: exercise hide/show, map teardown/reopen, and pan/zoom. Record observed load time/responsiveness and available memory; acceptance is no crash, no ANR, and no UI-blocking parse/render.
@@ -57,7 +57,7 @@
 | AC-004 | Android device | Pan and zoom across populated and sparse areas with each/both layers enabled | No crash, ANR, or parse/render UI blocking; record observed responsiveness/load behavior | Device notes, logs, and observations |
 | AC-005 | Android device | Repeatedly disable/enable layers and leave/reopen each host | Removed overlay releases/bounds its provider resources; re-enable shows one correct overlay | Lifecycle results and available resource observations |
 | AC-006 | Android UI test | Open layer sheet and inspect titles | Exact titles are `水務局舊資料（.gpkg）` and `可能側溝位置（.gpkg）`; other UI unchanged | UI assertion/result |
-| AC-007 | Unit/instrumented tile-render test | Render both real GPKGs at broad/close zooms with default and alternate outline widths | 2.0-tile-pixel default outline remains screen-stable; fill colors and holes stay intact | Pixel assertions and test results |
+| AC-007 | Unit/instrumented tile-render test | Render both real GPKGs at zooms 16, 18, and 20 using default and alternate profiles | Width is 2.5 px at zoom 16 and below, 2.0 px at zoom 18, and 1.5 px at zoom 20 and above; fills and holes stay intact | Style-function assertions and rendered tile pixel comparisons |
 
 ## Regression Plan
 
@@ -83,7 +83,7 @@
 
 ## Expected Behavior
 
-- Both overlays use the two confirmed packaged GPKGs through the local GPKG reader and tile-render path, with existing colors, holes, outlines, controls, and host coverage preserved.
+- Both overlays use the two confirmed packaged GPKGs through the local GPKG reader and tile-render path, with existing colors, holes, controls, and host coverage preserved. Their outline is slightly thicker at broad scale and thinner at close scale through a continuous, tunable zoom profile.
 - The layer options identify both files as `.gpkg`, and the old GeoJSON source is not packaged or loaded.
 
 ## Acceptance Criteria Traceability
@@ -96,7 +96,7 @@
 | AC-004 | 3, 6, 7 | Background parsing checks and four-host physical pan/zoom observations |
 | AC-005 | 3, 6, 7 | Cache/provider lifecycle tests and repeated host toggling/teardown |
 | AC-006 | 5, 6 | Exact option-title UI assertions; verify other labels/layout unchanged |
-| AC-007 | 4, 6 | Tile pixel assertions for outline width/zoom stability, fills, and holes |
+| AC-007 | 4, 6 | Style and rendered tile assertions for zoom interpolation, endpoint widths, fills, and holes |
 
 ## Failure Behavior
 

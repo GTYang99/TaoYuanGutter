@@ -2,8 +2,8 @@ task:
   id: FEAT-1006
   type: feature
 
-phase: infrastructure
-status: infrastructure_in_progress
+phase: implementation
+status: implementation_in_progress
 
 knowledge_resolution:
   status: resolved
@@ -15,8 +15,8 @@ plan_review:
   status: approved
 
 implementation:
-  status: completed
-  mode: confirmed_possible_gpkg_source
+  status: in_progress
+  mode: confirmed_possible_gpkg_source_and_zoom_dependent_outline
   build: passed
   android_test_compile: passed
   release_build: passed
@@ -56,4 +56,4 @@ release:
 
 blocking:
   - ISS-FEAT-1006-001
-next_action: infrastructure
+next_action: implementation

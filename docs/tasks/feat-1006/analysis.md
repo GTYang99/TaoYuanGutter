@@ -16,7 +16,7 @@
 
 - Package and read both confirmed GPKGs locally in all four map hosts, and stop requesting their corresponding `legacyDitch` / `roadServey` feature data.
 - Use the current GPKG staging and portable spatial cell-index strategy for both layers; validate each source's CRS and expected geometry metadata. The possible source requires accepting `MULTIPOLYGON` and mapping its `refactored` table.
-- Render both sources through the GeoPackage geometry path, preserving polygon rings/holes, fill colors, and the existing adjustable same-color outline.
+- Render both sources through the GeoPackage geometry path, preserving polygon rings/holes and fill colors. Make the same-color outline wider at broad zoom (2.5 tile pixels at zoom 16 and below) and narrower at close zoom (1.5 tile pixels at zoom 20 and above), with continuous interpolation and tunable style parameters.
 - Show exactly `水務局舊資料（.gpkg）` and `可能側溝位置（.gpkg）` for the two options.
 - Remove the old GeoJSON asset and safely invalidate task-owned GeoJSON import/index artifacts so a prior installed build cannot retain the obsolete large cache.
 

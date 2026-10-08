@@ -9,7 +9,7 @@
 - Added `20260601_水務局未調查側溝_v5.gpkg` unchanged and removed the superseded possible-layer GeoJSON app asset. The legacy GPKG remains unchanged.
 - Configured the possible layer for GeoPackage table `refactored`, EPSG:3826 `MULTIPOLYGON`, 61,435 features; both layers now use GeoPackage staging, metadata validation, cell indexing, and GeoPackage WKB decoding.
 - Removed the GeoJSON importer/data source. On first load of the new possible GPKG, the app removes only the old `possible_polygon.sqlite` cache and its SQLite journal/WAL/SHM sidecars.
-- Changed the possible-layer title to `可能側溝位置（.gpkg）`; the existing fill colors, adjustable 2.0-pixel outline, and all four map-host wiring remain in place.
+- Changed the possible-layer title to `可能側溝位置（.gpkg）`; fill colors and all four map-host wiring remain in place. The outline styling is being updated per amended AC-007 to be thicker at broad zoom and thinner at close zoom.
 - Added device instrumentation for packaged asset size/hash and absence of the old asset, stale-cache invalidation, real-source query/render at zoom 16 and 20, and exact option labels. Added a MultiPolygon-with-hole GeoPackage decoder unit case.
 
 ### Developer Validation
@@ -31,16 +31,23 @@
 - AC-004: NOT VERIFIED; pan/zoom responsiveness and no-ANR/no-UI-blocking checks have not been run on the test device.
 - AC-005: NOT VERIFIED; test-device hide/show and host teardown/reopen lifecycle checks remain.
 - AC-006: Exact source strings are present and Android test code compiles; runtime UI assertion is NOT VERIFIED on the test device.
-- AC-007: Existing 2.0 tile-pixel outline is retained; tests against the amended GPKG source are NOT VERIFIED on the test device.
+- AC-007: The amended zoom-dependent outline profile is not yet implemented; test-device rendering remains NOT VERIFIED.
 
 ### Handoff
 
 - Branch: `codex/feat-1006-gpkg-restart` in the dedicated FEAT-1006 worktree.
+- Implementation commit: `5bb2b32` (`feat(FEAT-1006): use GeoPackage for possible layer`).
 - Release APK: `app/build/outputs/apk/release/app-release-unsigned.apk` (43,752,030 bytes); debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 - Application ID: `com.example.taoyuangutter`.
 - Device precondition: connect the designated Android 9+ test device; capture its serial, model, Android version, and available-memory observation before testing. No emulator may be used.
 - Test scope: AC-001–AC-007 as mapped in `plan.md`, covering the four map hosts, both layers, toggles, outline/fill/holes, pan/zoom, and lifecycle; block the two feature-data endpoints for AC-001.
 - Implementation is compiled and packaged; device validation remains the next action.
+
+## Planning Re-entry — Zoom-Dependent Outline (2026-10-08)
+
+- User clarified that the outline should be slightly thicker when viewing a broad area and smaller when zoomed in. The previous constant-width AC-007 did not express that behavior and is superseded by the amended requirement and plan.
+- Current status: planning and plan review completed for the AC-007 change; implementation has not started. Proposed tunable defaults are 2.5 tile pixels at zoom 16 and below, linearly transitioning to 1.5 at zoom 20 and above. The style values are subject to physical test-device visual validation.
+- ADB availability check could not start the daemon in this sandbox (`Operation not permitted`); no emulator or device tests were run.
 
 ---
 
