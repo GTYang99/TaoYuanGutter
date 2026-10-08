@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_in_progress
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
