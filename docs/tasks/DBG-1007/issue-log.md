@@ -16,10 +16,10 @@
 - Task: DBG-1007
 - Category: unknown
 - Priority: P2
-- Title: Emulator mock fix does not demonstrate the edit-map current-location path
+- Title: Emulator location input does not demonstrate the edit-map Fused Location path
 - Status: open
-- Evidence: On `emulator-5554` (Medium_Phone AVD, Android 14 / API 34), `adb emu geo fix 121.5000 25.0300` returned `OK`; `dumpsys location` showed a mock location at that point in the fused provider. The edit-map instrumentation assertion nevertheless observed the unchanged Taoyuan fallback, about 20.5 km away. The full class run and one isolated retry both reproduced this result. App permissions were granted in those runs. AC-002 independently passed after both permissions were revoked.
-- Impact: AC-001 and AC-003 cannot yet be verified, and current evidence cannot distinguish emulator/Google Play Services mock-location behavior from an application-side location request issue.
+- Evidence: On `emulator-5554` (Medium_Phone AVD, Android 14 / API 34), `adb emu geo fix 121.5000 25.0300` returned `OK`; `dumpsys location` showed a mock location in the fused provider, but the Activity camera remained at the Taoyuan fallback. A test-only `FusedLocationProviderClient.setMockMode` probe was rejected by Android because the caller was not selected as the mock location app, including after the target package was written to the secure setting. The separate AC-009 mock harness did not reach its behavior assertion: its first attempt lacked an Application context and the one retry lacked Google Play Services version metadata in the test APK. AC-002, AC-010, AC-011 and the no-fix flow passed independently.
+- Impact: AC-001, AC-003, and AC-009 still lack the required successful Fused callback evidence. The emulator mock path cannot distinguish GMS delivery from an application-side request issue.
 - Next action: investigation
 
 ## ISS-DBG-1007-LOC-003
@@ -28,7 +28,8 @@
 - Category: environment
 - Priority: P2
 - Title: Native permission prompts need shell-level emulator control for repeatable UI checks
-- Status: open
-- Evidence: On Android 14 / API 34, Espresso alone could not interact with `com.google.android.permissioncontroller.permission.ui.GrantPermissionsActivity`. A manual emulator procedure using `uiautomator dump` plus `adb shell input tap` successfully completed AC-004. AC-005 and AC-011 have not been exercised with that procedure.
-- Impact: AC-005 and AC-011 remain unverified; the current permission tests need a reliable system-dialog interaction mechanism for repeatable automation.
-- Next action: infrastructure
+- Status: closed
+- Evidence: On Android 14 / API 34, Espresso alone cannot interact with `com.google.android.permissioncontroller.permission.ui.GrantPermissionsActivity`. Shell tapping the native denial button on the fixed 1080x2400 AVD, followed by Espresso for app dialogs, completed AC-004 and the AC-005/AC-011 Settings-return cases. Results: `emulator-results/AC-004.xml` and `emulator-results/AC-011-denied.xml`.
+- Impact: No remaining acceptance-criterion blocker from native permission-dialog interaction.
+- Resolution: Added a fixed-AVD shell interaction helper to the instrumentation case; verified Settings opens and returning without permission retains the fallback. The Settings-granted return path is captured in `emulator-results/AC-011-granted.xml`.
+- Next action: closed

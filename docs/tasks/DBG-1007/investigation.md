@@ -39,3 +39,11 @@ Current logs and provider state do not distinguish these explanations. No produc
 ## Missing Evidence / Next Step
 
 Need a permitted test setup that proves whether the app's Fused Location client receives a valid fix. Automatic review rejected another retry of the same acceptance case after the full-class run and one isolated retry, with the reason that the retry limit had been reached and indirect workarounds must not be used. Do not repeat that case unless the user authorizes a materially different test target or environment.
+
+## Follow-up Emulator Evidence (2026-10-08)
+
+- Reconnected to `emulator-5554` (Android 14 / API 34); location services were enabled. The last fused mock fix was stale, so it was not treated as a current-location result.
+- AC-005 and both AC-011 Settings-return outcomes passed using a shell-level denial interaction for Android's native permission dialog. Evidence is in `emulator-results/AC-011-granted.xml` and `emulator-results/AC-011-denied.xml`.
+- A different test-only Fused mock route was explored. Android rejected `setMockMode(true)` because the caller was not the selected mock-location app. Selecting the target package via the secure setting did not authorize the call.
+- An AC-009 mock harness was not retained. The first run used a context without an Application; the one retry failed at Fused client setup because the instrumentation APK lacked the required `com.google.android.gms.version` metadata. Evidence: `emulator-results/AC-009-fused-test-setup.xml`.
+- No production code change was made during this follow-up. AC-001/003 and AC-009 remain `NOT VERIFIED`; further emulator success-path work needs a valid selected mock-location app test setup or a different permitted emulator configuration. No physical device was used.

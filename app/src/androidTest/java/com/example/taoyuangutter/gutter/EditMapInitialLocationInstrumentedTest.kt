@@ -139,6 +139,79 @@ class EditMapInitialLocationInstrumentedTest {
     }
 
     @Test
+    fun returningFromSettingsWithPermissionStartsOneLocationAttempt() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        preparePermanentLocationDenial(context)
+
+        launchForm(isEditMode = true, waypoint = waypoint(latitude = null, longitude = null)).use { scenario ->
+            onView(withText(R.string.edit_map_location_unavailable_title)).check(matches(isDisplayed()))
+            onView(withText(R.string.edit_map_location_open_settings)).perform(click())
+
+            runShell("pm grant ${context.packageName} ${Manifest.permission.ACCESS_FINE_LOCATION}")
+            runShell("input keyevent KEYCODE_BACK")
+
+            val deadline = System.currentTimeMillis() + 10_000L
+            var attempt = 0
+            var permissionGranted = false
+            while (System.currentTimeMillis() < deadline && (attempt == 0 || !permissionGranted)) {
+                scenario.onActivity { activity ->
+                    attempt = readField<Int>(activity, "editMapLocationAttempt")
+                    permissionGranted = activity.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+                        PackageManager.PERMISSION_GRANTED
+                }
+                if (attempt == 0 || !permissionGranted) Thread.sleep(100L)
+            }
+
+            assertTrue("Permission granted in Settings was not visible after returning", permissionGranted)
+            assertEquals("Returning from Settings must start only one location attempt", 1, attempt)
+            scenario.onActivity { activity ->
+                assertFalse(readField<Boolean>(activity, "editMapLocationSettingsLaunched"))
+            }
+        }
+    }
+
+    @Test
+    fun returningFromSettingsWithoutPermissionKeepsFallbackUsable() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        prepareLocationPermissionPrompt(context)
+        val fallback = LatLng(24.9929, 121.3011)
+
+        launchForm(isEditMode = true, waypoint = waypoint(latitude = null, longitude = null)).use { scenario ->
+            Thread.sleep(1_000L)
+            denySystemLocationPermissionPrompt()
+            onView(withText(R.string.edit_map_location_retry)).check(matches(isDisplayed())).perform(click())
+            Thread.sleep(1_000L)
+            denySystemLocationPermissionPrompt()
+            onView(withText(R.string.edit_map_location_unavailable_title)).check(matches(isDisplayed()))
+            onView(withText(R.string.edit_map_location_open_settings)).perform(click())
+            Thread.sleep(1_000L)
+            runShell("input keyevent KEYCODE_BACK")
+            Thread.sleep(1_000L)
+
+            val deadline = System.currentTimeMillis() + 10_000L
+            var settingsLaunched = true
+            var flowActive = true
+            while (System.currentTimeMillis() < deadline && settingsLaunched) {
+                scenario.onActivity { activity ->
+                    settingsLaunched = readField<Boolean>(activity, "editMapLocationSettingsLaunched")
+                    flowActive = readField<Boolean>(activity, "editMapLocationFlowActive")
+                }
+                if (settingsLaunched) Thread.sleep(100L)
+            }
+
+            assertFalse("Settings return flag was not cleared", settingsLaunched)
+            assertFalse("Location flow should stop when permission remains denied", flowActive)
+            assertEquals(
+                PackageManager.PERMISSION_DENIED,
+                context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+            )
+            val actual = cameraTarget(scenario)
+            assertNotNull("Map camera was not initialized", actual)
+            assertTrue("Denied return should retain the Taoyuan fallback", distanceMeters(fallback, actual!!) <= 100.0)
+        }
+    }
+
+    @Test
     fun newPointDoesNotRecenterOnDeviceLocation() {
         grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -186,6 +259,30 @@ class EditMapInitialLocationInstrumentedTest {
             ApplicationProvider.getApplicationContext<Context>().packageName,
             permission
         )
+    }
+
+    private fun prepareLocationPermissionPrompt(context: Context) {
+        listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION).forEach { permission ->
+            runShell("pm revoke ${context.packageName} $permission")
+            runShell("pm clear-permission-flags ${context.packageName} $permission user-set user-fixed")
+        }
+    }
+
+    private fun preparePermanentLocationDenial(context: Context) {
+        listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION).forEach { permission ->
+            runShell("pm revoke ${context.packageName} $permission")
+            runShell("pm clear-permission-flags ${context.packageName} $permission user-set user-fixed")
+            runShell("pm set-permission-flags ${context.packageName} $permission user-set user-fixed")
+        }
+    }
+
+    private fun denySystemLocationPermissionPrompt() {
+        // The fixed Android 14 test emulator is 1080x2400; this is the native "Don't allow" button.
+        runShell("input tap 540 1748")
+    }
+
+    private fun runShell(command: String) {
+        InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(command).close()
     }
 
     private fun cameraTarget(scenario: ActivityScenario<GutterFormActivity>): LatLng? {
