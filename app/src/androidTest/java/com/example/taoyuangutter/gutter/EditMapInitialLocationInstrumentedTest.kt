@@ -32,6 +32,64 @@ import org.junit.runner.RunWith
 class EditMapInitialLocationInstrumentedTest {
 
     @Test
+    fun missingCoordinateEditWithFusedMockLocationCentersCameraOnly() {
+        grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        val testPoint = LatLng(25.03, 121.5)
+        try {
+            setMockLocation(testPoint)
+            launchForm(isEditMode = true, waypoint = waypoint(latitude = null, longitude = null)).use { scenario ->
+                val actual = awaitCameraTarget(scenario, testPoint, toleranceMeters = 100.0)
+                assertNotNull("Fused mock location did not center the form map", actual)
+                assertTrue("Form map did not center on the Fused mock location", distanceMeters(testPoint, actual!!) <= 100.0)
+                awaitLocationFlowFinish(scenario)
+                scenario.onActivity { activity ->
+                    assertEquals(0.0, readField<Double>(activity, "currentLat"), 0.0)
+                    assertEquals(0.0, readField<Double>(activity, "currentLng"), 0.0)
+                    @Suppress("UNCHECKED_CAST")
+                    val formData = readField<HashMap<String, String>>(activity, "currentFormData")
+                    assertTrue("Location must not populate NODE_X", formData["NODE_X"].isNullOrBlank())
+                    assertTrue("Location must not populate NODE_Y", formData["NODE_Y"].isNullOrBlank())
+                    val savedWaypoint = readField<List<WaypointSnapshot>>(activity, "sessionWaypoints")[0]
+                    assertEquals(null, savedWaypoint.latitude)
+                    assertEquals(null, savedWaypoint.longitude)
+                }
+                onView(withText(R.string.edit_map_location_unavailable_title)).check(doesNotExist())
+            }
+        } finally {
+            setMockLocation(null)
+        }
+    }
+
+    @Test
+    fun manualPanBeforeFusedMockCallbackKeepsManualCameraTarget() {
+        grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        val injectedLocation = LatLng(25.03, 121.5)
+        setMockLocation(null)
+        try {
+            launchForm(isEditMode = true, waypoint = waypoint(latitude = null, longitude = null)).use { scenario ->
+                awaitLocationAttempt(scenario, expectedAttempt = 1)
+                swipeVisibleMapArea(scenario)
+                val manualTarget = cameraTarget(scenario)
+                assertNotNull("Manual map gesture did not produce a camera target", manualTarget)
+                val fallback = LatLng(24.9929, 121.3011)
+                assertTrue("Manual map gesture did not move the camera", distanceMeters(fallback, manualTarget!!) > 100.0)
+
+                setMockLocation(injectedLocation)
+                awaitLocationFlowFinish(scenario)
+                val afterCallback = cameraTarget(scenario)
+                assertNotNull(afterCallback)
+                assertTrue("Late Fused callback overrode the manual camera position", distanceMeters(manualTarget, afterCallback!!) <= 100.0)
+                assertTrue("Callback location should differ from the manual camera target", distanceMeters(injectedLocation, afterCallback) > 100.0)
+                onView(withText(R.string.edit_map_location_unavailable_title)).check(doesNotExist())
+            }
+        } finally {
+            setMockLocation(null)
+        }
+    }
+
+    @Test
     fun missingCoordinateEditWithoutUsableFixKeepsFallbackAndShowsUnavailablePrompt() {
         grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -259,6 +317,26 @@ class EditMapInitialLocationInstrumentedTest {
             ApplicationProvider.getApplicationContext<Context>().packageName,
             permission
         )
+    }
+
+    private fun setMockLocation(location: LatLng?) {
+        val extras = if (location == null) {
+            "--es action disable"
+        } else {
+            "--es action enable --ef lat ${location.latitude} --ef lng ${location.longitude}"
+        }
+        runShell("am broadcast -n com.example.taoyuangutter.test/com.example.taoyuangutter.MockLocationProviderReceiver $extras")
+        Thread.sleep(1_000L)
+    }
+
+    private fun awaitLocationAttempt(scenario: ActivityScenario<GutterFormActivity>, expectedAttempt: Int) {
+        val deadline = System.currentTimeMillis() + 10_000L
+        var attempt = 0
+        while (System.currentTimeMillis() < deadline && attempt < expectedAttempt) {
+            scenario.onActivity { activity -> attempt = readField<Int>(activity, "editMapLocationAttempt") }
+            if (attempt < expectedAttempt) Thread.sleep(100L)
+        }
+        assertEquals("Edit map location attempt did not start", expectedAttempt, attempt)
     }
 
     private fun prepareLocationPermissionPrompt(context: Context) {
