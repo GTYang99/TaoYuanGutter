@@ -25,7 +25,8 @@
 ### Current test-device availability (2026-10-08)
 
 - `adb devices -l` reports only `emulator-5554` (`sdk_gphone64_arm64`). The user requires runtime testing only on the test device, so this emulator will not be used for FEAT-1006 tests.
-- The prior Android 12 `XQ-AU52` AC-007 result remains historical evidence, but that device is not currently connected. AC-001 through AC-007 for the amended GPKG pair remain `NOT VERIFIED` until the test device is available.
+- ADB inventory succeeded with elevated local access on 2026-10-08; there is no USB/ADB permission failure, only no connected physical test device. The prior Android 12 `XQ-AU52` AC-007 result is historical and predates the amended GPKG pair and zoom-dependent profile.
+- AC-001 through AC-007 for the current source pair and profile remain `NOT VERIFIED` until the test device is available.
 
 ## ISS-FEAT-1006-002 — Android SQLite lacks the RTree module
 

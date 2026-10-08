@@ -9,7 +9,7 @@
 - Added `20260601_水務局未調查側溝_v5.gpkg` unchanged and removed the superseded possible-layer GeoJSON app asset. The legacy GPKG remains unchanged.
 - Configured the possible layer for GeoPackage table `refactored`, EPSG:3826 `MULTIPOLYGON`, 61,435 features; both layers now use GeoPackage staging, metadata validation, cell indexing, and GeoPackage WKB decoding.
 - Removed the GeoJSON importer/data source. On first load of the new possible GPKG, the app removes only the old `possible_polygon.sqlite` cache and its SQLite journal/WAL/SHM sidecars.
-- Changed the possible-layer title to `可能側溝位置（.gpkg）`; fill colors and all four map-host wiring remain in place. The outline styling is being updated per amended AC-007 to be thicker at broad zoom and thinner at close zoom.
+- Changed the possible-layer title to `可能側溝位置（.gpkg）`; fill colors and all four map-host wiring remain in place. The outline now follows amended AC-007: thicker at broad zoom and thinner at close zoom.
 - Added device instrumentation for packaged asset size/hash and absence of the old asset, stale-cache invalidation, real-source query/render at zoom 16 and 20, and exact option labels. Added a MultiPolygon-with-hole GeoPackage decoder unit case.
 
 ### Developer Validation
@@ -31,7 +31,7 @@
 - AC-004: NOT VERIFIED; pan/zoom responsiveness and no-ANR/no-UI-blocking checks have not been run on the test device.
 - AC-005: NOT VERIFIED; test-device hide/show and host teardown/reopen lifecycle checks remain.
 - AC-006: Exact source strings are present and Android test code compiles; runtime UI assertion is NOT VERIFIED on the test device.
-- AC-007: The amended zoom-dependent outline profile is not yet implemented; test-device rendering remains NOT VERIFIED.
+- AC-007: The zoom-dependent profile and zoom 16/18/20 instrumentation coverage are implemented and compiled; test-device rendering remains NOT VERIFIED.
 
 ### Handoff
 
@@ -46,8 +46,10 @@
 ## Planning Re-entry — Zoom-Dependent Outline (2026-10-08)
 
 - User clarified that the outline should be slightly thicker when viewing a broad area and smaller when zoomed in. The previous constant-width AC-007 did not express that behavior and is superseded by the amended requirement and plan.
-- Current status: planning and plan review completed for the AC-007 change; implementation has not started. Proposed tunable defaults are 2.5 tile pixels at zoom 16 and below, linearly transitioning to 1.5 at zoom 20 and above. The style values are subject to physical test-device visual validation.
-- ADB availability check could not start the daemon in this sandbox (`Operation not permitted`); no emulator or device tests were run.
+- Current status: planning, plan review, and implementation are complete for the AC-007 change. Tunable defaults are 2.5 tile pixels at zoom 16 and below, linearly transitioning to 1.5 at zoom 20 and above. The style values remain subject to physical test-device visual validation.
+- Validation: `git diff --check` PASS. `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:compileDebugUnitTestKotlin` PASS. `:app:assembleDebug :app:assembleRelease` PASS. No unit, instrumentation, emulator, or device tests were executed.
+- ADB inventory was successfully read with elevated local access and listed only `emulator-5554` (`sdk_gphone64_arm64`). Per user instruction, no tests were run on the emulator. Physical-device visual/runtime validation remains NOT VERIFIED.
+- Implementation commit: `ec16975` (`feat(FEAT-1006): scale outline width with zoom`). Debug APK: `app/build/outputs/apk/debug/app-debug.apk`; release APK: `app/build/outputs/apk/release/app-release-unsigned.apk`.
 
 ---
 

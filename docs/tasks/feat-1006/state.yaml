@@ -2,8 +2,8 @@ task:
   id: FEAT-1006
   type: feature
 
-phase: implementation
-status: implementation_in_progress
+phase: infrastructure
+status: infrastructure_in_progress
 
 knowledge_resolution:
   status: resolved
@@ -15,7 +15,7 @@ plan_review:
   status: approved
 
 implementation:
-  status: in_progress
+  status: completed
   mode: confirmed_possible_gpkg_source_and_zoom_dependent_outline
   build: passed
   android_test_compile: passed
@@ -28,6 +28,7 @@ validation:
     - Gradle compileDebugKotlin, compileDebugAndroidTestKotlin, compileDebugUnitTestKotlin
     - Gradle assembleDebug and assembleRelease
     - APK asset size and SHA-256 readback; obsolete GeoJSON absent
+    - Zoom outline profile implementation compiles at zoom 16, 18, and 20 endpoints
   not_verified:
     - AC-001 runtime local-source/network checks
     - AC-002 on-device fill, alignment, MultiPolygon and hole rendering
@@ -35,11 +36,11 @@ validation:
     - AC-004 four-host pan/zoom responsiveness and no-ANR checks
     - AC-005 four-host hide/show and teardown/reopen lifecycle
     - AC-006 runtime layer-sheet title assertion
-    - AC-007 amended-GPKG outline width rendering on the test device
+    - AC-007 amended-GPKG zoom-dependent outline appearance on the test device
 
 git:
   branch: codex/feat-1006-gpkg-restart
-  commit: 5bb2b32
+  commit: ec16975
   status: committed
 
 verification:
@@ -56,4 +57,4 @@ release:
 
 blocking:
   - ISS-FEAT-1006-001
-next_action: implementation
+next_action: infrastructure
