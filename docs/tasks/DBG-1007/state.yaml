@@ -35,6 +35,7 @@ verification:
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-001
+    - AC-002
     - AC-003
     - AC-004
     - AC-005
