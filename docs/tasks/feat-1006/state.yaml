@@ -2,8 +2,8 @@ task:
   id: FEAT-1006
   type: feature
 
-phase: infrastructure
-status: infrastructure_in_progress
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: resolved
@@ -22,7 +22,7 @@ implementation:
   release_build: passed
 
 validation:
-  status: in_progress
+  status: completed
   passed:
     - git diff --check
     - Gradle compileDebugKotlin, compileDebugAndroidTestKotlin, compileDebugUnitTestKotlin
@@ -31,16 +31,20 @@ validation:
     - Zoom outline profile implementation compiles at zoom 16, 18, and 20 endpoints
     - Emulator AndroidJUnitRunner OfflinePolygonDataStoreInstrumentedTest: 5 tests passed
     - Emulator MainActivity: exact GPKG labels observed and both layer toggles exercised
+    - Emulator AndroidJUnitRunner OfflinePolygonMapHostInstrumentedTest: 3 tests passed; all four hosts reopened twice, zoom/pan exercised, and provider visibility/teardown cleanup asserted
+    - MainActivity and MapWorkspaceFragment emulator UI toggles matched offline provider creation/removal
+    - Gutter form and point picker emulator initial provider visibility and provider teardown cleanup
+    - Emulator Android 14 camera pan/zoom calls returned under one second; no crash or ANR observed in focused instrumentation
   not_verified:
-    - AC-001 feature-endpoint request capture and local-source checks across all four map hosts
-    - AC-002 visual alignment against the basemap in populated extents
-    - AC-003 toggle behavior in MapWorkspaceFragment, gutter form, and point picker
-    - AC-004 pan/zoom responsiveness and no-ANR checks in all four map hosts
-    - AC-005 repeated UI hide/show and host teardown/reopen in all four map hosts
+    - AC-001 feature-endpoint request capture for legacyDitch and roadServey
+    - AC-002 geographic alignment against the basemap in populated extents
+    - AC-003 interactive visibility toggles in gutter form and point picker
+    - AC-004 broad populated/sparse-area responsiveness and UI-blocking observation beyond focused camera smoke checks
+    - AC-005 interactive disable/re-enable lifecycle in gutter form and point picker
 
 git:
   branch: codex/feat-1006-gpkg-restart
-  commit: ec16975
+  commit: 31f6819
   status: committed
 
 verification:
@@ -55,6 +59,5 @@ ci:
 release:
   status: pending
 
-blocking:
-  - ISS-FEAT-1006-006
-next_action: infrastructure
+blocking: []
+next_action: verification

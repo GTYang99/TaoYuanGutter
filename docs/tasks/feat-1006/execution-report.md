@@ -19,24 +19,24 @@
 | `git diff --check` | PASS | No whitespace errors. |
 | `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin :app:compileDebugUnitTestKotlin :app:assembleDebug :app:assembleRelease` | PASS | All main and test sources compile; debug and release APKs build in the FEAT-1006 worktree. No app was launched by this command. |
 | Release APK contents, size and SHA-256 readback | PASS | APK is 43,752,030 bytes. Both GPKG asset entries match their manifest hashes and byte lengths; the obsolete GeoJSON entry is absent. See `asset-manifest.md`. |
-| Android instrumentation on the designated test device | NOT VERIFIED | `adb devices -l` listed only `emulator-5554` (`sdk_gphone64_arm64`) on 2026-10-08. Per user instruction no FEAT-1006 tests were run on the emulator. |
-| Host JVM unit-test execution | NOT RUN | Only test-device runtime testing was requested; unit-test source compiled successfully. Actual GPKG/MultiPolygon/render tests remain in the device instrumentation suite. |
+| Android instrumentation on the designated emulator | PASS | `emulator-5554`, model `sdk_gphone64_arm64`, Android 14. Data-store suite: 5 tests passed. Four-host map suite: 3 tests passed in 36.767 seconds. No physical phone was used. |
+| Host JVM unit-test execution | NOT RUN | Unit-test source compiled successfully. Actual GPKG/MultiPolygon/render checks ran in the emulator instrumentation suite. |
 | Remote CI / independent verification | NOT VERIFIED | No result is available for this new worktree branch. |
 
 ### Acceptance-Criteria Status
 
-- AC-001: APK packaging and source hashes PASS; runtime local load and absence of feature-data requests across hosts are NOT VERIFIED.
-- AC-002: NOT VERIFIED for the amended source pair; real-device fill, alignment, MultiPolygon members, and holes need test-device evidence.
-- AC-003: NOT VERIFIED; four-host toggles have not been exercised on the test device.
-- AC-004: NOT VERIFIED; pan/zoom responsiveness and no-ANR/no-UI-blocking checks have not been run on the test device.
-- AC-005: NOT VERIFIED; test-device hide/show and host teardown/reopen lifecycle checks remain.
-- AC-006: Exact source strings are present and Android test code compiles; runtime UI assertion is NOT VERIFIED on the test device.
-- AC-007: The zoom-dependent profile and zoom 16/18/20 instrumentation coverage are implemented and compiled; test-device rendering remains NOT VERIFIED.
+- AC-001: APK packaging, source hashes, and real local GPKG queries PASS. Runtime tests exercise all four hosts, but feature-endpoint request capture (`legacyDitch`/`roadServey`) remains NOT VERIFIED.
+- AC-002: Real GPKG geometry and exact fill-color tile checks PASS, including the possible-layer MultiPolygon source. Geographic alignment against the basemap in populated extents remains NOT VERIFIED.
+- AC-003: MainActivity and MapWorkspaceFragment UI toggles PASS, with provider presence/removal asserted. Gutter form and point picker PASS their requested initial visibility states; interactive toggles there remain NOT VERIFIED.
+- AC-004: All four hosts passed map-ready, zoom 16/18/20, and pan smoke checks in two launch cycles; camera operations returned under one second and no crash/ANR was observed. Broader populated/sparse-area responsiveness and UI-blocking observation remain NOT VERIFIED.
+- AC-005: MainActivity and MapWorkspaceFragment hide/show provider removal/restoration and teardown cleanup PASS. All four hosts passed two-cycle teardown/reopen checks; interactive disable/re-enable coverage in form and point picker remains NOT VERIFIED.
+- AC-006: PASS on emulator: exact two `.gpkg` titles asserted in instrumentation and observed in MainActivity UI.
+- AC-007: PASS on emulator: the data-store suite rendered real sources and checked the zoom 16/18/20 profile, alternate profile, fill-color preservation, and provider cleanup.
 
 ### Handoff
 
 - Branch: `codex/feat-1006-gpkg-restart` in the dedicated FEAT-1006 worktree.
-- Implementation commit: `5bb2b32` (`feat(FEAT-1006): use GeoPackage for possible layer`).
+- Production implementation commits: `5bb2b32` (`feat(FEAT-1006): use GeoPackage for possible layer`) and `ec16975` (`feat(FEAT-1006): scale outline width with zoom`). Emulator host lifecycle test commit: `31f6819` (`test(FEAT-1006): assert offline host layer lifecycle`).
 - Release APK: `app/build/outputs/apk/release/app-release-unsigned.apk` (43,752,030 bytes); debug APK: `app/build/outputs/apk/debug/app-debug.apk`.
 - Application ID: `com.example.taoyuangutter`.
 - Device precondition: connect the designated Android 9+ test device; capture its serial, model, Android version, and available-memory observation before testing. No emulator may be used.
@@ -56,6 +56,16 @@
 - User directed that runtime testing must use an Android emulator only; physical phone testing is out of scope. The requirement and plan now specify emulator-only testing, and plan review approved the update.
 - Current ADB inventory contains `emulator-5554` (`sdk_gphone64_arm64`). All runtime/instrumentation commands will target this serial explicitly.
 - Previous `NOT VERIFIED` entries describe validation before this scope update. Current-source emulator validation is now the next action; no emulator test result is claimed yet.
+
+## Emulator Validation — Four Map Hosts (2026-10-08)
+
+- Build command: Android Studio bundled JBR running `GradleWrapperMain :app:compileDebugAndroidTestKotlin :app:assembleDebugAndroidTest` — PASS. An initial attempt exposed test-local variable scope errors in the new lifecycle assertions; declarations were moved outside the `try/finally` blocks and the same build then passed. No production-code change was needed.
+- Device inventory: `adb devices -l` listed only `emulator-5554` (`sdk_gphone64_arm64`); `getprop ro.build.version.release` returned `14`. No physical phone was used.
+- Install/run: `adb -s emulator-5554 install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk` — PASS. `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.map.OfflinePolygonMapHostInstrumentedTest com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — PASS, `OK (3 tests)`, 36.767 seconds.
+- Coverage: MainActivity and MapWorkspaceFragment exact layer labels and off/on UI toggles; private provider visibility checked as each toggle changes; provider and overlay references checked cleared on host teardown. Gutter form and point picker each verified the requested initial per-layer visibility, map-ready callback, camera zoom 16/18/20 and pan, and complete provider release on close. Every host was launched twice.
+- Responsiveness observation: each synchronous camera move returned in under one second; no crash or ANR appeared during the three tests. This is focused smoke evidence, not a broad performance profile.
+- Shared-emulator condition: the other project's app remained installed/foreground after the run, but no competing AndroidJUnitRunner was active when checked; FEAT-1006 tests completed successfully. The separate AVD remains unavailable due to low host disk space and was not needed.
+- Remaining evidence: feature-endpoint request capture and visual geographic alignment against the basemap are still `NOT VERIFIED`; form and point-picker interactive hide/show is also not exercised. See the per-AC status above.
 
 ## Emulator Validation — Focused Pass (2026-10-08)
 

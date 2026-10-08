@@ -28,7 +28,7 @@
 4. Route both layers through the GeoPackage geometry decode path; preserve rings, holes, MultiPolygon members, and existing fill colors. Calculate the same-color outline width continuously from zoom using tunable endpoint values: 2.5 tile pixels at zoom 16 and below, 1.5 at zoom 20 and above.
 5. Change only the possible-layer option suffix from `.geojson` to `.gpkg`; assert exact titles for both options.
 6. Extend focused tests to parse/query/render the exact two GPKGs, validate the possible source MultiPolygon path, and check layer lifecycle, package contents, style, and absence of the old GeoJSON asset/source.
-7. Run relevant unit and instrumentation checks, debug/release packaging checks, and the approved physical-device scenarios; record observations and any unavailable checks without treating them as PASS.
+7. Run relevant unit and instrumentation checks, debug/release packaging checks, and the approved Android-emulator scenarios; record observations and any unavailable checks without treating them as PASS.
 
 ## Test Plan
 
@@ -70,7 +70,7 @@
 - The new possible-layer source uses MultiPolygon GeoPackage data; metadata or decoder assumptions may reject it or produce empty/incorrect tiles.
 - The source bundle totals about 76.6 MiB raw; record packaged size and compression, with no trial APK/AAB cap.
 - Prior runtime evidence covers the previous GeoJSON source and must be repeated for this GPKG.
-- Emulator checks AC-001–AC-005 remain outstanding; do not mark them PASS without emulator evidence. Physical phones are out of scope by user direction.
+- Request-capture and basemap-alignment checks remain outstanding until their specific emulator evidence is recorded. Physical phones are out of scope by user direction.
 
 ## Rollback Plan
 
@@ -91,9 +91,9 @@
 | AC | Implementation Step | Validation |
 |---|---|---|
 | AC-001 | 1–3, 6 | APK asset/hash inspection and feature-network request check |
-| AC-002 | 2, 4, 6 | Real-file geometry/projection/tile assertions and device alignment/color check |
+| AC-002 | 2, 4, 6 | Real-file geometry/projection/tile assertions and emulator alignment/color check |
 | AC-003 | 4, 6 | Existing controller tests and host-by-host toggle checks |
-| AC-004 | 3, 6, 7 | Background parsing checks and four-host physical pan/zoom observations |
+| AC-004 | 3, 6, 7 | Background parsing checks and four-host emulator pan/zoom observations |
 | AC-005 | 3, 6, 7 | Cache/provider lifecycle tests and repeated host toggling/teardown |
 | AC-006 | 5, 6 | Exact option-title UI assertions; verify other labels/layout unchanged |
 | AC-007 | 4, 6 | Style and rendered tile assertions for zoom interpolation, endpoint widths, fills, and holes |

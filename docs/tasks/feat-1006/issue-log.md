@@ -22,25 +22,23 @@
 - Next action: implementation
 - Remediation: Superseded by the user's emulator-only testing direction; use `emulator-5554` and record results as emulator evidence.
 
-### Current test-device availability (2026-10-08)
+### Test target resolution (2026-10-08)
 
-- `adb devices -l` reports only `emulator-5554` (`sdk_gphone64_arm64`). The user requires runtime testing only on the test device, so this emulator will not be used for FEAT-1006 tests.
-- ADB inventory succeeded with elevated local access on 2026-10-08; there is no USB/ADB permission failure, only no connected physical test device. The prior Android 12 `XQ-AU52` AC-007 result is historical and predates the amended GPKG pair and zoom-dependent profile.
-- AC-001 through AC-007 for the current source pair and profile remain `NOT VERIFIED` until emulator testing is completed.
-
-- Resolution (2026-10-08): User changed the validation scope to emulator-only and explicitly excluded physical phones. `emulator-5554` is connected, so physical-device unavailability no longer blocks the task. Validation will use the emulator and be labeled accordingly.
-- Next action: infrastructure
+- The earlier no-emulator-test statements above are historical and were superseded by the user's explicit emulator-only direction.
+- `emulator-5554` (`sdk_gphone64_arm64`, Android 14) is the sole ADB target. The amended GPKG source and zoom-dependent style were tested there; no physical phone was used. See the current emulator evidence in `execution-report.md`.
+- The prior Android 12 `XQ-AU52` AC-007 result remains historical and does not substitute for current-source emulator evidence.
+- Next action: verification
 
 ## ISS-FEAT-1006-006 — Shared emulator is occupied by another instrumentation run
 
 - Phase: infrastructure
 - Category: environment
 - Priority: P1
-- Status: open
+- Status: closed
 - Impact: The remaining emulator-only map-host UI, pan/zoom, endpoint-observation, and lifecycle checks cannot be run safely while another app's instrumentation test is driving the shared emulator.
-- Evidence: On 2026-10-08, `emulator-5554` foreground changed to `com.example.tp_ncolso_android`; `dumpsys activity processes` showed its `AndroidJUnitRunner` active. An isolated `Medium_Phone` emulator could not start because the host filesystem has only 406 MiB available and the emulator requires more disk space.
-- Remediation: Do not interrupt the other test. Resume on `emulator-5554` when it is idle; keep all FEAT-1006 runtime checks on emulator only.
-- Next action: infrastructure
+- Evidence: The other project's `AndroidJUnitRunner` had occupied `emulator-5554` during earlier manual checks. On 2026-10-08 its runner was no longer active; FEAT-1006 installed and completed `OfflinePolygonMapHostInstrumentedTest` on that emulator (`OK (3 tests)`, 36.767 seconds). A second AVD could not start because host disk space was low, but it was not required. No other project's app or test was stopped.
+- Resolution: The shared emulator became available for FEAT-1006 instrumentation. Focused host tests ran successfully on `emulator-5554`; remaining unverified acceptance evidence is listed in `execution-report.md`.
+- Next action: verification
 
 ## ISS-FEAT-1006-002 — Android SQLite lacks the RTree module
 
