@@ -2,8 +2,8 @@ task:
   id: FEAT-1006
   type: feature
 
-phase: implementation
-status: implementation_in_progress
+phase: infrastructure
+status: infrastructure_in_progress
 
 knowledge_resolution:
   status: resolved
@@ -29,14 +29,14 @@ validation:
     - Gradle assembleDebug and assembleRelease
     - APK asset size and SHA-256 readback; obsolete GeoJSON absent
     - Zoom outline profile implementation compiles at zoom 16, 18, and 20 endpoints
+    - Emulator AndroidJUnitRunner OfflinePolygonDataStoreInstrumentedTest: 5 tests passed
+    - Emulator MainActivity: exact GPKG labels observed and both layer toggles exercised
   not_verified:
-    - AC-001 runtime local-source/network checks
-    - AC-002 on-device fill, alignment, MultiPolygon and hole rendering
-    - AC-003 four-host toggles
-    - AC-004 four-host pan/zoom responsiveness and no-ANR checks
-    - AC-005 four-host hide/show and teardown/reopen lifecycle
-    - AC-006 runtime layer-sheet title assertion
-    - AC-007 amended-GPKG zoom-dependent outline appearance on the test device
+    - AC-001 feature-endpoint request capture and local-source checks across all four map hosts
+    - AC-002 visual alignment against the basemap in populated extents
+    - AC-003 toggle behavior in MapWorkspaceFragment, gutter form, and point picker
+    - AC-004 pan/zoom responsiveness and no-ANR checks in all four map hosts
+    - AC-005 repeated UI hide/show and host teardown/reopen in all four map hosts
 
 git:
   branch: codex/feat-1006-gpkg-restart
@@ -55,5 +55,6 @@ ci:
 release:
   status: pending
 
-blocking: []
-next_action: implementation
+blocking:
+  - ISS-FEAT-1006-006
+next_action: infrastructure

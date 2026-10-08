@@ -29,7 +29,18 @@
 - AC-001 through AC-007 for the current source pair and profile remain `NOT VERIFIED` until emulator testing is completed.
 
 - Resolution (2026-10-08): User changed the validation scope to emulator-only and explicitly excluded physical phones. `emulator-5554` is connected, so physical-device unavailability no longer blocks the task. Validation will use the emulator and be labeled accordingly.
-- Next action: implementation
+- Next action: infrastructure
+
+## ISS-FEAT-1006-006 — Shared emulator is occupied by another instrumentation run
+
+- Phase: infrastructure
+- Category: environment
+- Priority: P1
+- Status: open
+- Impact: The remaining emulator-only map-host UI, pan/zoom, endpoint-observation, and lifecycle checks cannot be run safely while another app's instrumentation test is driving the shared emulator.
+- Evidence: On 2026-10-08, `emulator-5554` foreground changed to `com.example.tp_ncolso_android`; `dumpsys activity processes` showed its `AndroidJUnitRunner` active. An isolated `Medium_Phone` emulator could not start because the host filesystem has only 406 MiB available and the emulator requires more disk space.
+- Remediation: Do not interrupt the other test. Resume on `emulator-5554` when it is idle; keep all FEAT-1006 runtime checks on emulator only.
+- Next action: infrastructure
 
 ## ISS-FEAT-1006-002 — Android SQLite lacks the RTree module
 
