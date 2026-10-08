@@ -230,6 +230,14 @@
     <string name="msg_location_permission_required">需要定位權限才能使用「現在位置」功能</string>
     <string name="msg_location_not_available">尚未取得定位，請稍後再試</string>
     <string name="msg_location_failed">定位失敗：%1$s</string>
+    <string name="edit_map_location_permission_title">需要定位權限</string>
+    <string name="edit_map_location_permission_retry">編輯點位缺少座標，無法將地圖移到目前位置。是否再次詢問定位權限？</string>
+    <string name="edit_map_location_retry">再試一次</string>
+    <string name="edit_map_location_unavailable_title">目前無法取得定位資訊</string>
+    <string name="edit_map_location_unavailable_message">地圖會維持在預設位置，您仍可手動移動地圖繼續編輯。</string>
+    <string name="edit_map_location_settings_message">請到系統設定開啟定位權限；返回後會再嘗試一次。您也可以繼續使用預設地圖位置。</string>
+    <string name="edit_map_location_open_settings">前往設定</string>
+    <string name="edit_map_location_continue">繼續編輯</string>
 
     <!-- 表單欄位標籤 -->
     <string name="field_gutter_material">側溝材質</string>
