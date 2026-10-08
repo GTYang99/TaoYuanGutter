@@ -36,7 +36,6 @@ verification:
   not_verified_acceptance_criteria:
     - AC-001
     - AC-003
-    - AC-004
     - AC-005
     - AC-009
     - AC-011

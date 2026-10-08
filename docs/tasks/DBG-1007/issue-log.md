@@ -27,8 +27,8 @@
 - Task: DBG-1007
 - Category: environment
 - Priority: P2
-- Title: Emulator automation cannot complete the system location-permission prompt
+- Title: Native permission prompts need shell-level emulator control for repeatable UI checks
 - Status: open
-- Evidence: On Android 14 / API 34, the system displayed `com.google.android.permissioncontroller.permission.ui.GrantPermissionsActivity`. The first Espresso attempt had no resumed app Activity; one accessibility-based retry could not find the system “Don't allow” action. The emulator package was removed after the run, restoring its permission state.
-- Impact: AC-004, AC-005, and AC-011 cannot be fully verified with the current instrumentation setup.
+- Evidence: On Android 14 / API 34, Espresso alone could not interact with `com.google.android.permissioncontroller.permission.ui.GrantPermissionsActivity`. A manual emulator procedure using `uiautomator dump` plus `adb shell input tap` successfully completed AC-004. AC-005 and AC-011 have not been exercised with that procedure.
+- Impact: AC-005 and AC-011 remain unverified; the current permission tests need a reliable system-dialog interaction mechanism for repeatable automation.
 - Next action: infrastructure
