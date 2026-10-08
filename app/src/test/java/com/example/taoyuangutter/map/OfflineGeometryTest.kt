@@ -11,6 +11,30 @@ import kotlin.math.tan
 
 class OfflineGeometryTest {
     @Test
+    fun `offline polygon outline gets thicker at broad scale and thinner at close scale`() {
+        assertEquals(2.5f, OfflinePolygonStyle.outlineWidthPxAtZoom(15), 0f)
+        assertEquals(2.5f, OfflinePolygonStyle.outlineWidthPxAtZoom(16), 0f)
+        assertEquals(2f, OfflinePolygonStyle.outlineWidthPxAtZoom(18), 0f)
+        assertEquals(1.5f, OfflinePolygonStyle.outlineWidthPxAtZoom(20), 0f)
+        assertEquals(1.5f, OfflinePolygonStyle.outlineWidthPxAtZoom(21), 0f)
+    }
+
+    @Test
+    fun `offline polygon outline profile values are adjustable`() {
+        assertEquals(
+            3f,
+            OfflinePolygonStyle.outlineWidthPxAtZoom(
+                zoom = 14,
+                broadScaleWidthPx = 4f,
+                closeScaleWidthPx = 2f,
+                broadScaleZoom = 12,
+                closeScaleZoom = 16
+            ),
+            0f
+        )
+    }
+
+    @Test
     fun `projection maps central meridian and round trips Taoyuan coordinates`() {
         val centralMeridian = Twd97Projection.longitudeLatitudeToTwd97(121.0, 0.0)
         assertEquals(250000.0, centralMeridian.x, 0.001)

@@ -64,7 +64,9 @@ class OfflinePolygonDataStoreInstrumentedTest {
     fun packagedSourcesReturnLocalPolygonGeometryForTaoyuanExtent() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val bounds = doubleArrayOf(274000.0, 2755000.0, 276000.0, 2760000.0)
-        assertEquals(2f, OfflinePolygonStyle.OFFLINE_POLYGON_STROKE_WIDTH_PX, 0f)
+        assertEquals(2.5f, OfflinePolygonStyle.outlineWidthPxAtZoom(16), 0f)
+        assertEquals(2f, OfflinePolygonStyle.outlineWidthPxAtZoom(18), 0f)
+        assertEquals(1.5f, OfflinePolygonStyle.outlineWidthPxAtZoom(20), 0f)
 
         listOf(OfflinePolygonLayer.LEGACY, OfflinePolygonLayer.POSSIBLE).forEach { layer ->
             val source = OfflinePolygonDataStore.load(context, layer).get()
@@ -85,7 +87,7 @@ class OfflinePolygonDataStoreInstrumentedTest {
                 interiorPoint.x,
                 interiorPoint.y
             )
-            listOf(16, 20).forEach { zoom ->
+            listOf(16, 18, 20).forEach { zoom ->
                 val tile = tileCoordinate(center.first, center.second, zoom)
                 val provider = OfflinePolygonTileProvider(context, layer)
                 val alternateWidthProvider = OfflinePolygonTileProvider(context, layer, outlineWidthPx = 5f)
