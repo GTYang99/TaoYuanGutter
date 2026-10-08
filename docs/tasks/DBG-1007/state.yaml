@@ -38,7 +38,6 @@ verification:
     - AC-003
     - AC-004
     - AC-005
-    - AC-007
     - AC-009
     - AC-010
     - AC-011
@@ -52,4 +51,5 @@ release:
 
 blocking:
   - ISS-DBG-1007-LOC-002
+  - ISS-DBG-1007-LOC-003
 next_action: investigation

@@ -4,6 +4,8 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.view.View
+import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
 import androidx.test.espresso.assertion.ViewAssertions.matches
@@ -53,6 +55,19 @@ class EditMapInitialLocationInstrumentedTest {
                 assertEquals(null, savedWaypoint.latitude)
                 assertEquals(null, savedWaypoint.longitude)
             }
+
+            onView(withText(R.string.edit_map_location_continue))
+                .check(matches(isDisplayed()))
+                .perform(click())
+            onView(withText(R.string.edit_map_location_unavailable_title)).check(doesNotExist())
+            val fallbackAfterDismiss = cameraTarget(scenario)
+            assertNotNull(fallbackAfterDismiss)
+            assertTrue(distanceMeters(fallback, fallbackAfterDismiss!!) <= 100.0)
+
+            swipeVisibleMapArea(scenario)
+            val afterManualPan = cameraTarget(scenario)
+            assertNotNull(afterManualPan)
+            assertTrue("Map did not respond to a manual swipe", distanceMeters(fallback, afterManualPan!!) > 100.0)
         }
     }
 
@@ -153,6 +168,23 @@ class EditMapInitialLocationInstrumentedTest {
             target = map?.cameraPosition?.target
         }
         return target
+    }
+
+    private fun swipeVisibleMapArea(scenario: ActivityScenario<GutterFormActivity>) {
+        val gesture = IntArray(4)
+        scenario.onActivity { activity ->
+            val mapContainer = activity.findViewById<View>(R.id.formMapContainer)
+            val screenLocation = IntArray(2)
+            mapContainer.getLocationOnScreen(screenLocation)
+            gesture[0] = screenLocation[0] + mapContainer.width / 2
+            gesture[1] = screenLocation[1] + mapContainer.height / 10
+            gesture[2] = gesture[0] + mapContainer.width / 8
+            gesture[3] = screenLocation[1] + mapContainer.height / 5
+        }
+        InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(
+            "input swipe ${gesture[0]} ${gesture[1]} ${gesture[2]} ${gesture[3]} 500"
+        ).close()
+        Thread.sleep(1_000L)
     }
 
     private fun awaitLocationFlowFinish(scenario: ActivityScenario<GutterFormActivity>) {
