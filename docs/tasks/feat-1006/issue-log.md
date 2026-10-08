@@ -1,5 +1,16 @@
 # FEAT-1006 Issue Log
 
+## ISS-FEAT-1006-007 — Remote CI evidence unavailable for verification revision
+
+- Phase: verification
+- Category: environment
+- Priority: P1
+- Status: open
+- Impact: The required CI gate cannot be confirmed, so Verification cannot advance to Release.
+- Evidence: At target revision `cded0859415658effe3eaf65f7747c95a06b85be`, task state and execution report show CI pending and no CI run result is available. The task branch has no configured upstream. Local JVM tests pass but are not remote CI evidence.
+- Next action: infrastructure
+- Remediation: Make the CI result for the exact verified revision available through the authorized CI path, then resume Verification. Do not substitute the local test result for CI.
+
 ## ISS-FEAT-1006-005 — AC-007 outline zoom behavior clarified
 
 - Phase: planning

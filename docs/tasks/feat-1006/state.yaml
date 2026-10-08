@@ -41,20 +41,22 @@ validation:
 
 git:
   branch: codex/feat-1006-gpkg-restart
-  commit: 726f258
+  commit: cded0859415658effe3eaf65f7747c95a06b85be
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
 
 ci:
-  build: pending
-  test: pending
+  build: not_verified
+  test: not_verified
 
 release:
   status: pending
 
-blocking: []
-next_action: verification
+blocking:
+  - Remote CI build and test results are unavailable for the verified revision.
+next_action: infrastructure
