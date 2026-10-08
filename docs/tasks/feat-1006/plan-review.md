@@ -129,3 +129,26 @@ None for implementation. Device validation remains an environment gate and does 
 ### Decision
 
 **APPROVED** — implementation may proceed against the amended zoom-dependent AC-007. The selected endpoint values are recorded as tunable defaults so they can be adjusted through `OfflinePolygonStyle` after visual review.
+
+---
+
+## Re-review Addendum — Emulator-Only Runtime Validation
+
+### Review Scope
+
+Reviewed the user's updated test-environment instruction and the revised requirement, plan, and task state.
+
+### Findings
+
+- The user explicitly directs runtime testing only on an Android emulator; physical phone testing is out of scope.
+- The currently attached `emulator-5554` is the sole target. Test commands must target that serial explicitly, and no physical device is needed to continue.
+- The plan retains AC-001 through AC-007 and their full host, data, rendering, lifecycle, and responsiveness scope; only the runtime environment changes.
+- Emulator results will be reported as emulator evidence and will not be described as physical-device results.
+
+### Blocking Issues
+
+None for proceeding with emulator validation.
+
+### Decision
+
+**APPROVED** — proceed with implementation validation on `emulator-5554` only.

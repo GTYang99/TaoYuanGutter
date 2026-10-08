@@ -48,6 +48,7 @@
 - Change only the two layer-option titles; do not change other UI labels or layout.
 - Preserve thematic colors, map controls, and unrelated map layers.
 - Do not claim this test establishes permanent dataset-to-layer mapping.
+- Run app/runtime tests only on an Android emulator; do not test on a physical phone.
 
 ## Open Questions
 

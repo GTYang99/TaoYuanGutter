@@ -16,17 +16,20 @@
 - Phase: implementation
 - Category: environment
 - Priority: P1
-- Status: open
-- Impact: Planned physical-device checks for AC-001 through AC-005 remain outstanding. A local Android 14 AVD and a connected Android 12 device provide partial runtime coverage.
-- Evidence: On 2026-10-07, targeted AC-007 instrumentation passed on `XQ-AU52` Android 12. The planned four-host network, alignment, toggle, pan/zoom, and repeated-lifecycle scenarios for AC-001 through AC-005 have not been run. See execution report for exact coverage.
-- Next action: infrastructure
-- Remediation: connect the designated Android 9+ test device, verify its identity, then run the plan-scoped checks on that device; record any unavailable case as `NOT VERIFIED`.
+- Status: closed
+- Impact: The previous plan requested physical-device checks for AC-001 through AC-005.
+- Evidence: On 2026-10-07, targeted AC-007 instrumentation passed on `XQ-AU52` Android 12. The planned four-host network, alignment, toggle, pan/zoom, and repeated-lifecycle scenarios for AC-001 through AC-005 had not been run under the prior scope. See execution report for exact coverage.
+- Next action: implementation
+- Remediation: Superseded by the user's emulator-only testing direction; use `emulator-5554` and record results as emulator evidence.
 
 ### Current test-device availability (2026-10-08)
 
 - `adb devices -l` reports only `emulator-5554` (`sdk_gphone64_arm64`). The user requires runtime testing only on the test device, so this emulator will not be used for FEAT-1006 tests.
 - ADB inventory succeeded with elevated local access on 2026-10-08; there is no USB/ADB permission failure, only no connected physical test device. The prior Android 12 `XQ-AU52` AC-007 result is historical and predates the amended GPKG pair and zoom-dependent profile.
-- AC-001 through AC-007 for the current source pair and profile remain `NOT VERIFIED` until the test device is available.
+- AC-001 through AC-007 for the current source pair and profile remain `NOT VERIFIED` until emulator testing is completed.
+
+- Resolution (2026-10-08): User changed the validation scope to emulator-only and explicitly excluded physical phones. `emulator-5554` is connected, so physical-device unavailability no longer blocks the task. Validation will use the emulator and be labeled accordingly.
+- Next action: implementation
 
 ## ISS-FEAT-1006-002 — Android SQLite lacks the RTree module
 

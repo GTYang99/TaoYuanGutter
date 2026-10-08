@@ -51,6 +51,12 @@
 - ADB inventory was successfully read with elevated local access and listed only `emulator-5554` (`sdk_gphone64_arm64`). Per user instruction, no tests were run on the emulator. Physical-device visual/runtime validation remains NOT VERIFIED.
 - Implementation commit: `ec16975` (`feat(FEAT-1006): scale outline width with zoom`). Debug APK: `app/build/outputs/apk/debug/app-debug.apk`; release APK: `app/build/outputs/apk/release/app-release-unsigned.apk`.
 
+## Validation Scope Update — Emulator Only (2026-10-08)
+
+- User directed that runtime testing must use an Android emulator only; physical phone testing is out of scope. The requirement and plan now specify emulator-only testing, and plan review approved the update.
+- Current ADB inventory contains `emulator-5554` (`sdk_gphone64_arm64`). All runtime/instrumentation commands will target this serial explicitly.
+- Previous `NOT VERIFIED` entries describe validation before this scope update. Current-source emulator validation is now the next action; no emulator test result is claimed yet.
+
 ---
 
 ## Historical Evidence — Superseded GPKG/GeoJSON Source Pair

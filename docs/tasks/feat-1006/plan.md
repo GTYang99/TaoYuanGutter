@@ -37,13 +37,13 @@
 - Package/UI: inspect APK for both GPKGs and no obsolete GeoJSON source; verify both exact `.gpkg` layer titles and no unrelated UI changes.
 - Network/hosts: check that enabling either offline layer does not fetch `legacyDitch`/`roadServey` feature data and verify existing toggles in all four map hosts.
 - Lifecycle/performance: exercise hide/show, map teardown/reopen, and pan/zoom. Record observed load time/responsiveness and available memory; acceptance is no crash, no ANR, and no UI-blocking parse/render.
-- Run relevant project unit tests, Android instrumentation, and debug/release builds. Checks not run or unavailable must be marked `NOT VERIFIED` with a reason.
+- Run relevant project unit-test source checks, Android instrumentation, and debug/release builds. Run app/runtime tests only on the Android emulator; do not test on a physical phone. Checks not run or unavailable must be marked `NOT VERIFIED` with a reason.
 
-### Physical Device Test Scope
+### Emulator Test Scope
 
-- Requires physical device: Yes
-- Device/environment: Android 9+ physical device; record model, OS build, and available-memory observation.
-- In-scope Acceptance Criteria: AC-001, AC-002, AC-003, AC-004, AC-005
+- Requires physical device: No
+- Device/environment: Android emulator `emulator-5554`; record emulator model, Android version, and available-memory observation.
+- In-scope Acceptance Criteria: AC-001, AC-002, AC-003, AC-004, AC-005, AC-006, AC-007
 - Regression risk: local GPKG loading, coordinate/geometry rendering, layer controls, UI responsiveness, and provider/cache lifecycle across map hosts.
 - Full regression required: No
 - Full regression trigger: A failure affecting general map navigation, multiple unrelated layers, or broader application startup.
@@ -51,13 +51,13 @@
 
 | AC | Environment | Steps | Expected | Evidence |
 |---|---|---|---|---|
-| AC-001 | APK inspection and Android device with feature-data network unavailable | Inspect packaged assets; launch each map host and enable both layers | Both exact GPKGs load locally; no `legacyDitch`/`roadServey` feature-data request | APK listing/hashes, request capture, runtime result |
-| AC-002 | Android device, populated extents in both data sets | Enable each overlay and compare representative features with basemap | Correct opaque colors, geographic alignment, holes, and MultiPolygon rendering | Device notes and screenshots on failure |
-| AC-003 | Android device | Toggle each layer in `MainActivity`, `MapWorkspaceFragment`, gutter form, and point picker | Existing controls reveal/hide the correct offline overlays | Host-by-host results |
-| AC-004 | Android device | Pan and zoom across populated and sparse areas with each/both layers enabled | No crash, ANR, or parse/render UI blocking; record observed responsiveness/load behavior | Device notes, logs, and observations |
-| AC-005 | Android device | Repeatedly disable/enable layers and leave/reopen each host | Removed overlay releases/bounds its provider resources; re-enable shows one correct overlay | Lifecycle results and available resource observations |
-| AC-006 | Android UI test | Open layer sheet and inspect titles | Exact titles are `水務局舊資料（.gpkg）` and `可能側溝位置（.gpkg）`; other UI unchanged | UI assertion/result |
-| AC-007 | Unit/instrumented tile-render test | Render both real GPKGs at zooms 16, 18, and 20 using default and alternate profiles | Width is 2.5 px at zoom 16 and below, 2.0 px at zoom 18, and 1.5 px at zoom 20 and above; fills and holes stay intact | Style-function assertions and rendered tile pixel comparisons |
+| AC-001 | APK inspection and Android emulator with feature-data network unavailable | Inspect packaged assets; launch each map host and enable both layers | Both exact GPKGs load locally; no `legacyDitch`/`roadServey` feature-data request | APK listing/hashes, request capture, emulator runtime result |
+| AC-002 | Android emulator, populated extents in both data sets | Enable each overlay and compare representative features with basemap | Correct opaque colors, geographic alignment, holes, and MultiPolygon rendering | Emulator notes and screenshots on failure |
+| AC-003 | Android emulator | Toggle each layer in `MainActivity`, `MapWorkspaceFragment`, gutter form, and point picker | Existing controls reveal/hide the correct offline overlays | Host-by-host results |
+| AC-004 | Android emulator | Pan and zoom across populated and sparse areas with each/both layers enabled | No crash, ANR, or parse/render UI blocking; record observed responsiveness/load behavior | Emulator notes, logs, and observations |
+| AC-005 | Android emulator | Repeatedly disable/enable layers and leave/reopen each host | Removed overlay releases/bounds its provider resources; re-enable shows one correct overlay | Lifecycle results and available resource observations |
+| AC-006 | Android UI test on emulator | Open layer sheet and inspect titles | Exact titles are `水務局舊資料（.gpkg）` and `可能側溝位置（.gpkg）`; other UI unchanged | UI assertion/result |
+| AC-007 | Instrumented tile-render test on emulator | Render both real GPKGs at zooms 16, 18, and 20 using default and alternate profiles | Width is 2.5 px at zoom 16 and below, 2.0 px at zoom 18, and 1.5 px at zoom 20 and above; fills and holes stay intact | Style-function assertions and rendered tile pixel comparisons |
 
 ## Regression Plan
 
@@ -70,7 +70,7 @@
 - The new possible-layer source uses MultiPolygon GeoPackage data; metadata or decoder assumptions may reject it or produce empty/incorrect tiles.
 - The source bundle totals about 76.6 MiB raw; record packaged size and compression, with no trial APK/AAB cap.
 - Prior runtime evidence covers the previous GeoJSON source and must be repeated for this GPKG.
-- Physical-device checks AC-001–AC-005 are still outstanding; do not mark them PASS without evidence.
+- Emulator checks AC-001–AC-005 remain outstanding; do not mark them PASS without emulator evidence. Physical phones are out of scope by user direction.
 
 ## Rollback Plan
 
