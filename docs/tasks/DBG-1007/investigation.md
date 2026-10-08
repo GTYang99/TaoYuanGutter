@@ -43,6 +43,7 @@ Need a permitted test setup that proves whether the app's Fused Location client 
 ## Follow-up Emulator Evidence (2026-10-08)
 
 - Reconnected to `emulator-5554` (Android 14 / API 34); location services were enabled. The last fused mock fix was stale, so it was not treated as a current-location result.
+- Emulator inventory on this host contains only the `Medium_Phone` AVD, with `emulator-5554` as the only connected test device. No second emulator image is available for an alternate run.
 - AC-005 and both AC-011 Settings-return outcomes passed using a shell-level denial interaction for Android's native permission dialog. Evidence is in `emulator-results/AC-011-granted.xml` and `emulator-results/AC-011-denied.xml`.
 - A different test-only Fused mock route was explored. Android rejected `setMockMode(true)` because the caller was not the selected mock-location app. Selecting the target package via the secure setting did not authorize the call.
 - An AC-009 mock harness was not retained. The first run used a context without an Application; the one retry failed at Fused client setup because the instrumentation APK lacked the required `com.google.android.gms.version` metadata. Evidence: `emulator-results/AC-009-fused-test-setup.xml`.
