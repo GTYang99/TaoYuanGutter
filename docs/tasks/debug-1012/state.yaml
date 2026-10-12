@@ -1,0 +1,53 @@
+task:
+  id: debug-1012
+  type: debug
+
+phase: debug
+status: debug_in_progress
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: pending
+
+plan_review:
+  status: pending
+
+debug:
+  status: investigating
+  root_cause: identified_from_static_code_evidence
+  issues:
+    - ISS-1012-001
+
+implementation:
+  status: pending
+
+validation:
+  status: not_verified
+  static_source_review: completed
+  runtime_device: not_verified
+
+git:
+  branch: codex/debug-1012
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - Required debug inputs are absent: requirement.md, plan.md, verification.md, and task-specific CI results.
+  - No request/response log or physical-device evidence was available; runtime reproduction remains not verified.
+
+next_action: debug
