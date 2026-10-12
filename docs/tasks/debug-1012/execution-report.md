@@ -26,3 +26,15 @@ Result: static source review identifies a stale loading state in the existing-gu
 
 - No task-specific requirement.md, plan.md, or verification.md was present, so formal failed-AC mapping is pending.
 - No request/response log or device evidence was available to confirm whether the reported 403 came from storeDitch rather than a photo endpoint.
+
+
+## Extended Cross-Path Review
+
+- Confirmed MainShellActivity defaults to MapWorkspaceFragment and single-gutter mode.
+- Confirmed the single-gutter draft-confirm callback returns false; the multi-gutter callback clears loading and persists before returning true.
+- Confirmed host dismissal recovery does not clear inspect loading and exits while the controller reports a blocking state.
+- Confirmed no matching callback/loading lifecycle tests are present under app/src/test.
+- Inspected the draft coordinator: without a current draft ID or a matching existing draft for the SPI_NUM, autosave returns without saving. The save-draft dialog callback itself does not call persistence in the single-gutter host.
+- Attempted read-only device discovery with adb devices -l. ADB daemon startup failed with Operation not permitted, so there is no device evidence.
+
+Confidence in the source-level spinner finding: 97%. This does not claim a device reproduction or prove the save-draft item is persisted in every session state.

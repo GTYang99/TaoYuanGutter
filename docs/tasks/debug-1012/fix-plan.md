@@ -31,3 +31,10 @@ Existing host implementations are already present in MainActivity.kt and MapWork
 - Record the fixed committed revision and run the validation required by the approved task plan.
 
 Implementation is not started in this debug phase. The missing approved task inputs must be resolved before re-implementation under the repository workflow.
+
+
+## Scope Clarification from Cross-Path Review
+
+The spinner fix remains the missing edit-flow cleanup callback. During implementation planning, also confirm the expected persistence contract for the save-draft action in the default single-gutter host: its current callback may only dismiss, and autosave depends on a current or matching draft record. Keep this as a separate acceptance check until product requirements confirm whether the dialog action must create a draft in all cases.
+
+The normal product route is MapWorkspaceFragment with isMultiGutterSession false. Validation should cover that default route in addition to the legacy MainActivity host and the multi-gutter branch, which already clears loading.

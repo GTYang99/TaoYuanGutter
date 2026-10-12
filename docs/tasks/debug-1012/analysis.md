@@ -49,3 +49,19 @@ A fix should clear the loading state for the failed edit request before displayi
 - The reported 403 is assumed to be from storeDitch because the reported dialog offers “重傳” and “存入草稿”. If the status came from a photo endpoint instead, that path needs separate trace evidence.
 - Task-specific requirement.md, plan.md, verification.md, logs, and CI results are absent. Formal failed-AC mapping and independent runtime verification are therefore pending.
 - ai/implementation-debug.md has unresolved merge-conflict markers around its issue-record output line. The higher-precedence AGENTS.md and ai/issue-management.md require/use an issue log, so this task records one without modifying the rule file.
+
+
+## Cross-Path Audit
+
+- MainShellActivity selects MapWorkspaceFragment as the default workspace. Its isMultiGutterSession flag defaults to false.
+- MapWorkspaceFragment clears loading and saves the draft in onGutterUploadFailureConfirmed only when isMultiGutterSession is true. In the normal single-gutter path it returns false. The edit dialog then dismisses the sheet without clearing loading.
+- Both host dismissal/recovery paths check busy state or restore buttons only; neither sets inspect loading false. The busy check therefore preserves the active overlay.
+- The only production LocationPickerHost implementations are MainActivity and MapWorkspaceFragment. The shared edit failure callback has no other cleanup implementation.
+- A source search found no app/src/test coverage for onGutterSubmitFailed, onGutterUploadFailureConfirmed, or the MainBlockingUiController loading lifecycle.
+- The draft choice does not itself persist data in MainActivity's default callback. Edit changes flow through autosave; GutterDraftCoordinator skips a save if there is no active draft ID and no existing draft matching the gutter SPI_NUM. This is an adjacent persistence question and is not needed to explain the spinner.
+
+## Confidence
+
+Confidence is 97% that the reviewed source revision contains the reported spinner-retention path for a standard existing-gutter update returning a non-network 403. This is based on the complete activation, error, host callback, dismiss, and overlay-stop path. Confidence refers to the source-level behavior on ac6c9dd; the live report was not reproduced.
+
+The Android Debug Bridge could not start in this environment: daemon startup failed with Operation not permitted before a device list was returned. Physical-device behavior remains NOT VERIFIED.

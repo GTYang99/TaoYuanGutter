@@ -49,5 +49,6 @@ release:
 blocking:
   - Required debug inputs are absent: requirement.md, plan.md, verification.md, and task-specific CI results.
   - No request/response log or physical-device evidence was available; runtime reproduction remains not verified.
+  - ADB device discovery failed because the daemon could not start with Operation not permitted.
 
 next_action: debug

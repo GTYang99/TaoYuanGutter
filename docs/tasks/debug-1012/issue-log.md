@@ -32,3 +32,11 @@ owner: developer
 
 - The source review identifies a possible runtime occurrence, but the reported case was not reproduced on a device.
 - The expected terminal state is taken from the user's issue report; no approved task requirement or formal AC file was present.
+
+
+## Investigation Addendum
+
+- MainShellActivity defaults to MapWorkspaceFragment; the standard single-gutter callback returns false and does not clear inspect loading.
+- Sheet dismissal recovery does not clear the loading flag; it returns while the blocking controller reports busy.
+- ADB device discovery was unavailable because the daemon failed to start with Operation not permitted.
+- Separate persistence check: the single-gutter save-draft callback may only dismiss, and autosave can skip when no current/matching draft ID exists. This is not established as the reported issue and remains outside ISS-1012-001.

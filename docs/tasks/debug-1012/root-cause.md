@@ -34,3 +34,16 @@ The fix should use the existing host cleanup callback for edit failures and pres
 ## Verification Limits
 
 No runtime logs, device reproduction, task verification report, or formal requirement/plan were available. The static cause is identified, but task state remains in debug because the repository's required inputs and runtime evidence are incomplete.
+
+
+## Cross-Path Audit and Confidence
+
+MainShellActivity's default destination is MapWorkspaceFragment, where isMultiGutterSession starts false. The normal single-gutter save-draft callback returns false without clearing loading; only the multi-gutter branch clears loading and saves before returning true. MainActivity has no override, so it uses the interface default false.
+
+Dismissing the sheet does not clear the state indirectly. AddGutterBottomSheet.onDismiss notifies the host; the MainActivity and MapWorkspaceFragment dismissal paths attempt to restore the UI, but their busy checks see inspectLoadingVisible still true and return without changing it. MainBlockingUiController stops the animation only when inspect loading and photo-upload blocking are both false.
+
+The new-gutter store failure path calls onGutterSubmitFailed before showing its dialog. The post-store photo-upload path also balances its blocking state in a finally block. These checks narrow this finding to the existing-gutter edit/storeDitch generic failure dialog, including HTTP 403.
+
+Confidence: 97% for the source-level conclusion on revision ac6c9dd. The source path was traced end to end across both hosts and the UI controller. Runtime confidence is unverified because ADB could not start; it failed with Operation not permitted before listing devices.
+
+Adjacent persistence note: the single-gutter save-draft callback may only dismiss the sheet. Edited values are autosaved through the normal change callbacks, but GutterDraftCoordinator returns without saving when there is no active session draft ID and no matching existing draft for the SPI_NUM. Whether the user's affected session had such a draft is unknown; this does not change the spinner root cause.
