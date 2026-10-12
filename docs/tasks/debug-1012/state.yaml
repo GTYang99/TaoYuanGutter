@@ -34,8 +34,8 @@ validation:
 
 git:
   branch: codex/debug-1012
-  commit: ""
-  status: pending
+  commit: 5714f53
+  status: committed
 
 verification:
   result: pending

@@ -4,6 +4,7 @@
 
 - Task branch: `codex/debug-1012`
 - Base revision reviewed: `ac6c9dd`
+- Implementation commit: `5714f53` (`fix(debug-1012): clear loading after edit upload failure`)
 - Package: `com.example.taoyuangutter`
 - Scope: clear host blocking loading on existing-gutter `storeDitch` failures, preserve the current error dialog and host draft flow, and cover 403/retry/save-draft behavior.
 - No API contract, 403 classification, draft persistence behavior, or runtime dependency changed.
