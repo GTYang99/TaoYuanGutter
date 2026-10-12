@@ -2,31 +2,35 @@ task:
   id: debug-1012
   type: debug
 
-phase: debug
-status: debug_in_progress
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
 
 planning:
-  status: pending
+  status: completed
 
 plan_review:
-  status: pending
+  status: approved
 
 debug:
-  status: investigating
+  status: completed
   root_cause: identified_from_static_code_evidence
   issues:
     - ISS-1012-001
 
 implementation:
-  status: pending
+  status: completed
+  mode: debug_fix
 
 validation:
-  status: not_verified
+  status: completed
   static_source_review: completed
-  runtime_device: not_verified
+  runtime_device: passed
+  connected_test: passed
+  unit_test: passed
+  debug_build: passed
 
 git:
   branch: codex/debug-1012
@@ -46,9 +50,6 @@ ci:
 release:
   status: pending
 
-blocking:
-  - Required debug inputs are absent: requirement.md, plan.md, verification.md, and task-specific CI results.
-  - No request/response log or physical-device evidence was available; runtime reproduction remains not verified.
-  - ADB device discovery failed because the daemon could not start with Operation not permitted.
+blocking: []
 
-next_action: debug
+next_action: verification

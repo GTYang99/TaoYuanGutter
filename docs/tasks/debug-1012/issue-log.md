@@ -8,30 +8,31 @@ phase: debug
 category: implementation_regression
 priority: P2
 title: Existing-gutter update failure leaves the blocking spinner active after save draft
-status: open
-impact: The failed update sheet can close while the host loading state remains true, leaving the blocking progress overlay and rotation animation active.
+status: resolved
+impact: Before the fix, the failed update sheet could close while the host loading state remained true, leaving the blocking progress overlay and rotation animation active.
 repro_steps:
   - Open an existing gutter in edit mode.
   - Submit the update and have storeDitch return HTTP 403.
   - Choose “存入草稿” in the upload-failure dialog.
-expected: The update is retained as a draft and the blocking loading animation stops after the decision is handled.
-actual: Static control-flow review shows the edit error handler does not clear host loading; the save-draft callback may dismiss the sheet without clearing it.
+expected: The blocking loading animation stops before the failure decision dialog; retry can restart loading, and choosing save draft completes the existing host close flow with loading stopped.
+actual: The edit API-error and exception branches now clear host loading before presenting their existing failure UI. Instrumentation on Medium_Phone returned HTTP 403 twice, verified loading stopped after each response, verified retry re-entered loading, and verified save-draft dismissed the sheet.
 evidence:
   - app/src/main/java/com/example/taoyuangutter/gutter/AddGutterBottomSheet.kt:1275
-  - app/src/main/java/com/example/taoyuangutter/gutter/AddGutterBottomSheet.kt:1296-1348
+  - app/src/main/java/com/example/taoyuangutter/gutter/AddGutterBottomSheet.kt:1298-1306, 1355-1362, 1380-1400
   - app/src/main/java/com/example/taoyuangutter/gutter/AddGutterBottomSheet.kt:1424-1430
   - app/src/main/java/com/example/taoyuangutter/MainActivity.kt:1011-1014
   - app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt:999-1005
   - app/src/main/java/com/example/taoyuangutter/main/MainBlockingUiController.kt:159-172
   - app/src/main/java/com/example/taoyuangutter/api/GutterRepository.kt:991-1007
   - app/src/main/java/com/example/taoyuangutter/common/UploadFailureClassifier.kt:73-99
-next_action: debug
+next_action: verification
 owner: developer
 
 ## Notes
 
-- The source review identifies a possible runtime occurrence, but the reported case was not reproduced on a device.
-- The expected terminal state is taken from the user's issue report; no approved task requirement or formal AC file was present.
+- The controlled emulator run used a fake API response; the original production session was not captured.
+- Draft persistence remains outside the approved spinner requirement and was not asserted.
+- Independent Verification and CI remain pending.
 
 
 ## Investigation Addendum

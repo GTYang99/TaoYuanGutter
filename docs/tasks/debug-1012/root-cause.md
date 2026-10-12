@@ -2,7 +2,7 @@
 
 ## Conclusion
 
-Yes, the code contains a path that can leave the loading animation active after choosing “存入草稿” when an existing gutter update receives HTTP 403. The confirmation is from static control-flow evidence; it has not been reproduced on a device.
+Yes. Static tracing found the unbalanced loading lifecycle, and a controlled Medium_Phone emulator test reproduced the 403 failure/dialog path. It confirmed loading stops after each error, retry activates it again for the next request, and choosing “存入草稿” closes the sheet with loading stopped. The test used an in-process fake API, so it confirms the client path without depending on a production server or account.
 
 The root cause is an unbalanced loading lifecycle in AddGutterBottomSheet.performEditSubmit(): the edit flow turns the host loading state on before storeDitch, but its API-error and generic-exception paths do not turn that state off. The save-draft action can dismiss the sheet without invoking the host's loading cleanup.
 
@@ -33,7 +33,7 @@ The fix should use the existing host cleanup callback for edit failures and pres
 
 ## Verification Limits
 
-No runtime logs, device reproduction, task verification report, or formal requirement/plan were available. The static cause is identified, but task state remains in debug because the repository's required inputs and runtime evidence are incomplete.
+The controlled runtime reproduction is recorded in `execution-report.md`. The original production session was not captured, physical-device behavior was not tested, and independent Verification and CI remain pending.
 
 
 ## Cross-Path Audit and Confidence
@@ -44,6 +44,6 @@ Dismissing the sheet does not clear the state indirectly. AddGutterBottomSheet.o
 
 The new-gutter store failure path calls onGutterSubmitFailed before showing its dialog. The post-store photo-upload path also balances its blocking state in a finally block. These checks narrow this finding to the existing-gutter edit/storeDitch generic failure dialog, including HTTP 403.
 
-Confidence: 97% for the source-level conclusion on revision ac6c9dd. The source path was traced end to end across both hosts and the UI controller. Runtime confidence is unverified because ADB could not start; it failed with Operation not permitted before listing devices.
+Confidence: high that the source path in revision ac6c9dd caused the spinner to persist. The client flow was reproduced with an HTTP 403 fake response on the approved Android emulator, and the modified flow passed its retry/save-draft regression test. The user's original production response was not captured, so the conclusion assumes the reported 403 came from `storeDitch`, consistent with the displayed retry/save-draft dialog.
 
 Adjacent persistence note: the single-gutter save-draft callback may only dismiss the sheet. Edited values are autosaved through the normal change callbacks, but GutterDraftCoordinator returns without saving when there is no active session draft ID and no matching existing draft for the SPI_NUM. Whether the user's affected session had such a draft is unknown; this does not change the spinner root cause.

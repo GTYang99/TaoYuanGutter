@@ -45,9 +45,9 @@ A fix should clear the loading state for the failed edit request before displayi
 
 ## Unknowns and Limitations
 
-- Static review confirms the code path can retain the loading state; no device reproduction or user-session log was available, so the live occurrence is NOT VERIFIED.
+- Static review and a controlled emulator regression test confirm the edit failure path. The instrumentation used a fake in-process storeDitch API returning HTTP 403; it reproduces the loading/dialog/retry/save-draft lifecycle without production account or server data. The user's original production session remains unobserved.
 - The reported 403 is assumed to be from storeDitch because the reported dialog offers “重傳” and “存入草稿”. If the status came from a photo endpoint instead, that path needs separate trace evidence.
-- Task-specific requirement.md, plan.md, verification.md, logs, and CI results are absent. Formal failed-AC mapping and independent runtime verification are therefore pending.
+- The task-specific requirement and approved plan are now present. Independent Verification and CI results are pending.
 - ai/implementation-debug.md has unresolved merge-conflict markers around its issue-record output line. The higher-precedence AGENTS.md and ai/issue-management.md require/use an issue log, so this task records one without modifying the rule file.
 
 
@@ -62,6 +62,13 @@ A fix should clear the loading state for the failed edit request before displayi
 
 ## Confidence
 
-Confidence is 97% that the reviewed source revision contains the reported spinner-retention path for a standard existing-gutter update returning a non-network 403. This is based on the complete activation, error, host callback, dismiss, and overlay-stop path. Confidence refers to the source-level behavior on ac6c9dd; the live report was not reproduced.
+Confidence is high that the reviewed source revision contains the reported spinner-retention path for a standard existing-gutter update returning a non-network 403. The source path was traced end to end and the client flow was reproduced on Medium_Phone using a controlled fake 403. The user's original production session remains unobserved.
 
-The Android Debug Bridge could not start in this environment: daemon startup failed with Operation not permitted before a device list was returned. Physical-device behavior remains NOT VERIFIED.
+The emulator test ran on Medium_Phone, Android 16 / API 36. Physical-device behavior remains NOT VERIFIED and was outside the approved scope.
+
+
+## Implementation Planning Decision
+
+- The task remains classified as debug; the user authorized implementing and validating the evidence-backed root-cause fix.
+- Approved implementation scope for this turn is balanced edit submission loading around storeDitch failure, plus emulator regression coverage. The existing save-draft host handling and API contract are preserved.
+- Whether a single-gutter host must always create a new persistent draft is a separate product contract question. It is recorded in requirement.md as an open question and is not used to expand this spinner fix.
