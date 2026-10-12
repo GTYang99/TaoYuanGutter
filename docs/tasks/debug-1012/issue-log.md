@@ -32,7 +32,28 @@ owner: developer
 
 - The controlled emulator run used a fake API response; the original production session was not captured.
 - Draft persistence remains outside the approved spinner requirement and was not asserted.
-- Independent Verification and CI remain pending.
+- Independent Verification passed AC-001 through AC-004; CI passed on the exact verified revision.
+
+## ISS-1012-002
+
+issue_id: ISS-1012-002
+task_id: debug-1012
+phase: infrastructure
+category: environment
+priority: P2
+title: GitHub CI evidence unavailable for the verified commit
+status: resolved
+impact: The required CI gate delayed Release until the target branch was published and the workflow completed.
+repro_steps:
+  - Query GitHub combined status and workflow runs for commit 7b5d561756e89b5738251172d7629a9e354e8a1e.
+expected: A CI result for the verified commit is available.
+actual: Initially the branch and commit were absent from GitHub. After explicit user authorization, the branch was pushed successfully and GitHub Actions run 38218586373 completed successfully for the exact SHA. JDK 21 setup, Android SDK 36 setup, JVM task tests, and debug APK assembly passed.
+evidence:
+  - docs/tasks/debug-1012/verification.md
+  - .github/workflows/android-ci.yml
+  - docs/tasks/debug-1012/infrastructure.md
+next_action: release
+owner: verifier
 
 
 ## Investigation Addendum

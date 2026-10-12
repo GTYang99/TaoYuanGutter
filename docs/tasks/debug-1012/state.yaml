@@ -2,8 +2,8 @@ task:
   id: debug-1012
   type: debug
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_passed
 
 knowledge_resolution:
   status: not_required
@@ -34,22 +34,22 @@ validation:
 
 git:
   branch: codex/debug-1012
-  commit: 5714f53
+  commit: 7b5d561756e89b5738251172d7629a9e354e8a1e
   status: committed
 
 verification:
-  result: pending
+  result: pass
   category: null
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria: []
 
 ci:
-  build: not_verified
-  test: not_verified
+  build: pass
+  test: pass
 
 release:
   status: pending
 
 blocking: []
 
-next_action: verification
+next_action: release
