@@ -24,8 +24,8 @@ validation:
 
 git:
   branch: codex/feat-1013-app-version-check-implementation
-  commit: ""
-  status: pending
+  commit: 30ac2b7
+  status: committed
 
 verification:
   result: pending

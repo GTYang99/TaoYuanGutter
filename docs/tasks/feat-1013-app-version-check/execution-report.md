@@ -4,6 +4,7 @@
 
 - Task: `feat-1013-app-version-check`
 - Branch: `codex/feat-1013-app-version-check-implementation`
+- Implementation commit: `30ac2b7` (`feat(feat-1013-app-version-check): add optional APK updater`)
 - Package: `com.example.taoyuangutter`
 - Test API: fixed test environment endpoint from the approved requirement; live response was sanitized and contained one Android record at version `1.0.0` with an HTTPS APK URL.
 - Device: Android emulator `emulator-5554`, Medium_Phone (AVD), Android 16 / API 36. No physical device was used.
