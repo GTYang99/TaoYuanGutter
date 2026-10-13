@@ -43,7 +43,9 @@ jobs:
           ./gradlew --no-daemon :app:testDebugUnitTest \
             --tests 'com.example.taoyuangutter.common.PhotoUploadSlotStateTest' \
             --tests 'com.example.taoyuangutter.gutter.PhotoUploadCandidateResolverTest' \
-            --tests 'com.example.taoyuangutter.api.StoreDitchNodeRequestMapperTest'
+            --tests 'com.example.taoyuangutter.api.StoreDitchNodeRequestMapperTest' \
+            --tests 'com.example.taoyuangutter.api.AppVersionModelsTest' \
+            --tests 'com.example.taoyuangutter.api.AppVersionRepositoryTest'
 
       - name: Assemble debug APK
         run: ./gradlew --no-daemon :app:assembleDebug

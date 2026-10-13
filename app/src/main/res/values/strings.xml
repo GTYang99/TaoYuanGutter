@@ -358,4 +358,22 @@
     <string name="api_environment_base">內網 BASE</string>
     <string name="api_environment_taipei">台北</string>
     <string name="api_environment_demo">DEMO</string>
+
+    <string name="update_available_title">發現新版本 %1$s</string>
+    <string name="update_available_message">是否下載並安裝最新版本？</string>
+    <string name="update_go">前往更新</string>
+    <string name="update_continue">繼續使用</string>
+    <string name="update_download_title">下載更新</string>
+    <string name="update_download_starting">準備下載…</string>
+    <string name="update_download_progress">下載中 %1$d%%</string>
+    <string name="update_download_bytes">已下載 %1$d bytes</string>
+    <string name="update_cancel">取消下載</string>
+    <string name="update_download_failed_title">下載失敗</string>
+    <string name="update_download_failed_message">無法下載更新。請檢查網路後重試，或繼續使用目前版本。</string>
+    <string name="update_retry">重試</string>
+    <string name="update_install_permission_title">允許安裝更新</string>
+    <string name="update_install_permission_message">請在系統設定中允許此 App 安裝未知來源應用程式，返回後會繼續安裝。</string>
+    <string name="update_open_settings">開啟設定</string>
+    <string name="update_install_permission_not_granted">尚未允許安裝未知來源應用程式，可稍後再更新。</string>
+
 </resources>
