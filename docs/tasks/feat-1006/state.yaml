@@ -2,8 +2,8 @@ task:
   id: FEAT-1006
   type: feature
 
-phase: infrastructure
-status: infrastructure_in_progress
+phase: verification
+status: verification_in_progress
 
 knowledge_resolution:
   status: resolved
@@ -31,12 +31,11 @@ verification:
   failed_acceptance_criteria: []
 
 ci:
-  build: pending
-  test: pending
+  build: pass
+  test: pass
 
 release:
   status: pending
 
-blocking:
-  - ISS-FEAT-1006-008
-next_action: infrastructure
+blocking: []
+next_action: verification

@@ -24,7 +24,7 @@
 | Current app-process OkHttp capture | PASS | During the successful four-host run, 113 GET requests all received HTTP 200; 109 were unrelated `map_ditch_nodes_labels`. There were 0 requests for `regions`, `legacyDitch`, or `roadServey`, and no `UnknownHostException`. See `evidence/AC-001-emulator-offline-region-capture.md`. |
 | Physical Android phone testing | NOT RUN | Explicitly excluded by user direction. ADB commands selected `emulator-5554`; no command targeted the attached physical device. |
 | WMTS tile-style baseline parity | PASS | Offline local z13 tile has transparent background, exact `#762E77` pixels, 2 px opaque-core median and 4 px alpha≥64 footprint median; all four host tests completed with live unrelated basemap tiles. |
-| Remote CI / independent verification | NOT VERIFIED | No push or CI run was requested for this FEAT-1006 branch; independent Verification has not started. |
+| Remote CI | PASS | Authorized push of `fd0d7f0b195605ffd0e0888bfaf2a10491730e3c` triggered [GitHub Actions run #14](https://github.com/GTYang99/TaoYuanGutter/actions/runs/38525700938). Task-scoped JVM tests and debug APK assembly passed. Independent Verification has not started. |
 
 The emulator was online for this run and successfully returned HTTP 200 for the unrelated WMS basemap overlay requests. The earlier DNS timeout was environmental and is resolved; the merged app-version check is stubbed only inside the map-host instrumentation fixture so the test remains deterministic. `local.properties` contains the local Maps configuration and is not tracked.
 
@@ -47,7 +47,7 @@ The emulator was online for this run and successfully returned HTTP 200 for the 
 - Latest validated implementation/test revision: `630936735d859f8d4364956b0a6602030cdb0cf9` (`test(FEAT-1006): make map host checks deterministic`).
 - Application ID: `com.example.taoyuangutter`
 - Runtime test environment: Android emulator `emulator-5554` only; no physical-phone test.
-- CI: NOT VERIFIED. GitHub reports the configured upstream at `b5254c76d22b9eed77805b8d32601e2572358f9d`; there is no workflow run/status for it or local HEAD `cc97a559aa6b4bc6bc98d3f2e1dbe0a3b0e0bb83`, and no matching FEAT-1006 pull request. The local branch is 51 commits ahead. Independent Verification and Release have not started. Pushing to the upstream would expose those commits and trigger CI; that write is awaiting user authorization.
+- CI: PASS on pushed revision `fd0d7f0b195605ffd0e0888bfaf2a10491730e3c`, [GitHub Actions run #14](https://github.com/GTYang99/TaoYuanGutter/actions/runs/38525700938). The task-scoped JVM tests and debug APK assembly both passed. Independent Verification and Release have not started.
 
 ## Historical Reimplementation — Two GPKG Overlays, WMTS Regions (2026-10-08; superseded scope)
 

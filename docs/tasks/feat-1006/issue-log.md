@@ -86,9 +86,9 @@
 - Phase: infrastructure
 - Category: environment
 - Priority: P1
-- Status: open
-- Impact: The local implementation and emulator evidence are complete, but the task cannot pass its CI gate without a remote CI result for the current committed revision.
-- Evidence: Local unit tests, Android test compilation, debug packaging, data-store instrumentation (`OK (6 tests)`), and map-host instrumentation (`OK (3 tests)`) passed. GitHub reports `origin/feat/FEAT-1006-wmts-offline-data` at `b5254c76d22b9eed77805b8d32601e2572358f9d`, while local validated code revision `630936735d859f8d4364956b0a6602030cdb0cf9` is 51 commits ahead. GitHub returned no combined statuses or workflow runs for either `b5254c` or local HEAD `cc97a55`, and no matching FEAT-1006 pull request was found. Read-only `git ls-remote --heads gitlab-http` also returned no FEAT-1006 branch.
+- Status: closed
+- Impact: Before the authorized push, the task could not pass its CI gate without a remote result for the committed FEAT-1006 revision.
+- Evidence: The user authorized pushing to `origin/feat/FEAT-1006-wmts-offline-data`. Push `fd0d7f0b195605ffd0e0888bfaf2a10491730e3c` triggered [GitHub Actions run #14](https://github.com/GTYang99/TaoYuanGutter/actions/runs/38525700938), which completed successfully. The task-scoped JVM tests and debug APK assembly both passed.
 - Classification: environment / CI evidence unavailable.
-- Next action: infrastructure
-- Resolution: pending. Local shell Git could not resolve `github.com`, and the GitHub read-only connector confirms no CI run exists for the local revision. A push to the configured upstream would publish the 51 local commits and trigger the repository's `push` workflow, but authorization for FEAT-1006 has not been given.
+- Next action: verification
+- Resolution: Resolved after the authorized push and successful remote CI run. Independent acceptance-criteria verification remains pending.
