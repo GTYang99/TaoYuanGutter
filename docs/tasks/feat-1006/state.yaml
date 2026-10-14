@@ -22,8 +22,8 @@ validation:
 
 git:
   branch: feat/feat-1006-wmts-offline-data
-  commit: pending
-  status: pending
+  commit: e60a805661d079bc60458b9cced284013aed8063
+  status: committed
 
 verification:
   result: pending

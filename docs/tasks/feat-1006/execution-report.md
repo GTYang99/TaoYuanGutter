@@ -43,7 +43,7 @@ The MainActivity test was repeated with the project's ignored local Maps configu
 
 - Branch: `feat/feat-1006-wmts-offline-data`
 - Merge commit: `555dea4fd6d5c72c101935ad6020223255687b09`
-- Implementation commit: pending
+- Implementation commit: `e60a805661d079bc60458b9cced284013aed8063` (`feat(FEAT-1006): render Taoyuan boundary offline`).
 - Application ID: `com.example.taoyuangutter`
 - Runtime test environment: Android emulator `emulator-5554` only; no physical-phone test.
 - CI: pending; no remote result available. Independent Verification and Release have not started.
