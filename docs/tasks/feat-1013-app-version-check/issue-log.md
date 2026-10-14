@@ -61,7 +61,7 @@
 - Phase: `verification`
 - Category: `implementation_regression`
 - Priority: `P1`
-- Status: open
-- Affected acceptance criteria: AC-011; AC-001 and AC-008 need current-revision Release evidence
-- Evidence: independent verification of exact HEAD `2b7d8ba3f27dbfebc3ee7a9004e0f752f6853fca` found `app/version.properties` changed P0 from 3 to 0. Task evidence records successful Release APKs through versionCode 5. `app/build.gradle.kts` uses `P0 + 1`, so the next Release from this state would reuse a lower code. The same revision's emulator instrumentation passed 3/3, JVM tests and Debug build passed, and GitHub Actions run #12 passed; those checks do not cover Release counter persistence.
-- Next action: debug
+- Status: resolved
+- Affected acceptance criteria: AC-011
+- Evidence: fix commit `c96908a` restored `P0_VERSION_CODE=5`, the highest successfully consumed Release code recorded by this task. On verification target `04500ab743be646951edd4dba7d083198b98dd96`, Debug build passed and produced versionCode 6/versionName 0.0.0 while leaving P0=5 and P1/P2/P3=0/0/0 unchanged. The unchanged Gradle Release logic computes P0+1, so the next Release uses code 6 and persists it only after successful assembly. GitHub Actions [Android CI run #13](https://github.com/GTYang99/TaoYuanGutter/actions/runs/38504607896) completed successfully for the exact verification target. Independent Verification marked AC-011 PASS.
+- Next action: none.

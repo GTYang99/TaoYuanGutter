@@ -1,4 +1,4 @@
-# Independent Verification
+# Historical Independent Verification — `02ad7e5370a9a103182b0cb908e1175e39803248`
 
 ## Revision and Environment
 
@@ -68,8 +68,45 @@
 - Verification issues and their resolution status are recorded in [issue-log.md](issue-log.md).
 - No production code, approved requirements, implementation plan, or committed test source was modified during Verification. Temporary test harnesses were used only in isolated copies under `/private/tmp`; task evidence and state were updated in the checkout.
 
-**Final result: PASS.** Verification is complete; the next phase is Release.
+**Historical result for `02ad7e5370a9a103182b0cb908e1175e39803248`: PASS.** The current branch tip is assessed in the re-verification section below.
 
-## Next Action
+## Historical Next Action for `02ad7e5370a9a103182b0cb908e1175e39803248`
 
 - Proceed to Release for commit `02ad7e5370a9a103182b0cb908e1175e39803248`. GitHub Actions run #11 passed. Merge remains outside this verification phase.
+
+## Current HEAD Re-verification (2026-10-14)
+
+This section supersedes the historical final result above for the current branch tip. The earlier full flow verification was performed on `02ad7e5370a9a103182b0cb908e1175e39803248`; the application and Gradle implementation are unchanged since that verified source revision. The current verification target is:
+
+- Commit: `04500ab743be646951edd4dba7d083198b98dd96`
+- Branch: `codex/feat-1013-app-version-check-implementation`
+- Worktree: clean at verification start; branch is ahead of origin by two commits.
+- Diff from the AC-011 failed revision `2b7d8ba3f27dbfebc3ee7a9004e0f752f6853fca`: `app/version.properties` restores `P0_VERSION_CODE` from 0 to 5. No production source, Gradle logic, or test source changed. `P1/P2/P3` remain manually configured as `0/0/0`.
+- `git diff --check 2b7d8ba..HEAD` — PASS.
+- Current Debug validation recorded in the committed execution report: `:app:testDebugUnitTest` and `:app:assembleDebug` passed; APK metadata is `com.example.taoyuangutter`, versionCode 6, versionName 0.0.0. `app/version.properties` remained P0=5 and P1/P2/P3=0/0/0.
+- Current emulator instrumentation recorded in the committed execution report: `ANDROID_SERIAL=emulator-5554 ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.AppVersionUpdateFlowTest` — PASS; Android 16 Medium Phone AVD, 3 tests, 0 failures, 0 errors, 0 skipped. No physical device was used.
+- The app's cold-start update dialog and Continue behavior were manually observed on `emulator-5554` immediately before the P0-only fix. The fix changed no application source. Earlier full emulator scenarios for the unchanged updater implementation are documented above.
+- AC-011 fix: prior successful Release evidence recorded consumed codes through 5. Current P0 is restored to 5, and the unchanged Gradle configuration computes the next Release code as P0+1 and persists that value only after successful `assembleRelease`. The fix plan deliberately avoided a Release build in the primary checkout so it would not consume code 6. This restores the monotonic counter invariant; next Release is expected to use code 6.
+- CI for this exact revision: **PASS**. GitHub Actions [Android CI run #13](https://github.com/GTYang99/TaoYuanGutter/actions/runs/38504607896) completed successfully for commit `04500ab743be646951edd4dba7d083198b98dd96`.
+
+### Current-HEAD Acceptance Criteria
+
+| AC | Result | Evidence |
+|---|---|---|
+| AC-001 | PASS | The isolated P0=1 failure/debug/successful sequential Release checks and APK metadata were verified on unchanged Gradle implementation in the earlier fixed-source verification. Current-head Debug build independently confirms P0=5 and P1/P2/P3=0/0/0 are unchanged by a non-Release build. No Release build was run from the current primary checkout because it would consume code 6. |
+| AC-002 | PASS | Strict numeric comparator and invalid-input cases passed in the focused JVM suite; implementation/test source unchanged. |
+| AC-003 | PASS | Parameter-free fixed endpoint and BASE routing were verified by repository tests and sanitized live endpoint evidence; implementation/test source unchanged. |
+| AC-004 | PASS | Emulator lifecycle instrumentation and installer-return checks passed on the unchanged implementation; current-head connected instrumentation also passed 3/3. |
+| AC-005 | PASS | Prior emulator checks covered newer/equal/older responses, dialog actions, and Login/map/form state preservation. Current pre-fix launch on `emulator-5554` showed the 1.0.0 prompt and Continue preserved Login; the P0-only fix changes no app source. |
+| AC-006 | PASS | Emulator cancellation, visible progress, failure, retry, and continue scenarios passed on unchanged updater source; current-head cancellation instrumentation passed. |
+| AC-007 | PASS | Same-emulator Settings permission return, installer handoff, confirmation, and cancellation scenarios passed on unchanged updater source. |
+| AC-008 | PASS | Same-JKS code-4 to code-5 in-place update and signer fingerprint checks passed in the previous full verification. Signing configuration is unchanged; current P0=5 makes the next Release code 6. No new Release artifact was generated. |
+| AC-009 | PASS | JVM invalid-response/URL tests, offline emulator usability, failing-download recovery, and HTTPS-to-HTTP redirect rejection passed on unchanged implementation. |
+| AC-010 | PASS | Fixed test endpoint independence from selected debug target was covered by repository and live endpoint evidence; implementation source unchanged. |
+| AC-011 | PASS | The failed revision reset P0 below consumed code 5. Current HEAD restores P0=5; Gradle's unchanged `P0+1` calculation yields next code 6. Current-head Debug validation confirms no decrement/mutation of P0. |
+
+### Current Result
+
+**PASS** — all acceptance criteria have PASS evidence, including CI run #13 for this exact revision. Release may proceed under the existing release rules; no merge or deployment is authorized by this verification.
+
+CI build and test: PASS (GitHub Actions run #13). The historical CI limitation above has been resolved for this exact HEAD.
