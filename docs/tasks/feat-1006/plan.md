@@ -2,117 +2,126 @@
 
 ## Goal
 
-- Replace the legacy `legacyDitch` and possible-gutter `roadServey` feature overlays with locally rendered, app-packaged polygon data in every existing map context, for this exploratory dataset pairing.
+- Load all three confirmed GPKGs offline, including the Taoyuan administrative-area layer that currently uses WMTS, while preserving existing layer behavior and the approved tunable outline profile for the two thematic overlays.
 
 ## Scope
 
-- Include only the two explicitly linked files, their offline parse/index/tile-render path, wiring in `MainActivity`, `MapWorkspaceFragment`, form, and point-picker map hosts, tests, and task evidence.
-- Change only the two layer-option titles to append `.gpkg` and `.geojson`; keep layout, all other labels, and other online base/region/no-ditch/deleted-area layers unchanged.
-- Add a configurable same-color boundary outline to both offline polygon layers, default 2.0 tile pixels; preserve existing fill colors and holes, with screen-space thickness stable across zoom levels.
-- Treat current file-to-layer pairing as trial-only; definitive data mapping remains a follow-up before later releases.
+- Keep the existing offline architecture; use the confirmed GPKGs for the legacy, possible-gutter, and Taoyuan administrative-area layers. Replace the `regions` WMTS in all four map hosts while preserving layer controls, z-order, thematic fills/holes, and unrelated layers.
+- Add the default outline profile of 2.5 tile pixels at zoom 16 and below, linear interpolation to 1.5 at zoom 20 and above, with 2.0 at zoom 18; expose endpoints/reference zooms as tunable parameters.
+- Preserve the existing visible style of the Taoyuan administrative-area layer; the solid green/red fill requirement applies to the two thematic layers. Run App/runtime checks only on Android emulator. Physical-phone testing is not in scope.
 
 ## Affected Files
 
-- `app/src/main/assets/20260824_水務局既有側溝更新v3_線轉面.gpkg` and `app/src/main/assets/20261006_0601版可能側溝位置.geojson` — proposed bundled source data.
-- `app/src/main/res/values/strings.xml` — append the corresponding file suffixes to the two layer-option titles only.
-- `app/src/main/java/com/example/taoyuangutter/map/MapOverlayController.kt` — local providers for main map layer toggles.
-- `app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt` — shared local overlay wiring.
-- `app/src/main/java/com/example/taoyuangutter/gutter/MapPointPickerActivity.kt` — shared local overlay wiring.
-- New map data/parser/index and offline tile provider classes — isolate IO, projection, geometry conversion, filled raster-tile generation, cache bounds and lifecycle.
-- New `app/src/test/java/com/example/taoyuangutter/map/` tests for parsing, projection, geometry conversion, tile bounds, fill colors, and provider/toggle behavior.
-- Focused `app/src/androidTest/` coverage for main/form/point-picker overlays and toggle/lifecycle behavior, subject to existing test harness support.
-- `app/build.gradle.kts` and `gradle/libs.versions.toml` only if the implementation spike establishes a necessary compatible GeoPackage reader dependency.
-- `docs/tasks/feat-1006/` execution and validation evidence as work advances.
+- `app/src/main/assets/20260601_水務局未調查側溝_v5.gpkg` — bundle the confirmed possible-gutter GPKG.
+- `app/src/main/assets/桃園市行政區.gpkg` — bundle the Taoyuan administrative-area source; table `桃園市行政區`, SRS id 100000, MultiPolygon, 13 features.
+- `app/src/main/assets/20261006_0601版可能側溝位置.geojson` — remove obsolete possible-layer GeoJSON.
+- `app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt` — use table `refactored`; normalize the SRS 100000 region geometry to EPSG:3826 before spatial indexing; safely invalidate obsolete task-owned GeoJSON cache.
+- `app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt` — decode both sources as GeoPackage geometry and calculate outline width per tile zoom.
+- `app/src/main/java/com/example/taoyuangutter/map/OfflineGeometry.kt` — validate GPKG MultiPolygon decoding and geographic-to-EPSG:3826 coordinate conversion.
+- `app/src/main/res/values/strings.xml` — remove the file-extension suffixes from both thematic-layer titles; preserve the existing administrative-area label.
+- `app/src/main/java/com/example/taoyuangutter/map/MapOverlayController.kt`, `GutterFormActivity.kt`, and `MapPointPickerActivity.kt` — replace region WMTS providers in the shared and standalone hosts.
+- `docs/tasks/feat-1006/evidence/regions-wmts-z13-x6856-y3508.png` and `regions-wmts-baseline.md` — retain the HTTP 200 current-WMTS style reference for parity checks.
+- Related unit/instrumentation tests under `app/src/test/` and `app/src/androidTest/` — cover region GPKG metadata, geographic CRS-to-tile coordinates, multipolygon rendering, toggles, request absence, and lifecycle.
+- `docs/tasks/feat-1006/asset-manifest.md`, `execution-report.md`, and `verification.md` as implementation and validation proceed.
 
 ## Implementation Steps
 
-1. Add the two specified source files as app assets and record their checksums, source names, true formats, declared CRS, feature counts, and size in an asset manifest/task evidence; do not substitute the extra GeoJSON file.
-2. Spike GPKG feature iteration and GeoJSON streaming decode with the existing stack first; select a compatible GPKG reader only if the actual file cannot be decoded safely with available APIs, and record APK-size implications.
-3. Define a shared local data source that parses on a background dispatcher, stages the GPKG to app-private storage if required by the reader, validates EPSG:3826, preserves polygon rings/holes and GeoJSON MultiPolygon members, and spatially indexes features without retaining every geometry as a Google Maps object.
-4. Implement EPSG:3826 tile/query bounds and coordinate conversion using a tested projection path; expose or reuse projection math without changing existing WMTS request behavior.
-5. Implement an offline `TileProvider` (or equivalent bounded viewport renderer) that generates 256px tiles with opaque `#156D1D` / `#FA0000` polygon fills and preserved holes, uses bounded/releasable cache state, and never performs feature-data network requests.
-6. Update the two layer-option strings to `水務局舊資料（.gpkg）` and `可能側溝位置（.geojson）`; preserve the rest of the UI unchanged.
-7. Route `MapOverlayController`, `GutterFormActivity`, and `MapPointPickerActivity` through the shared offline renderer while preserving existing toggles, z-order, state restore, and unrelated WMTS layers.
-8. Add unit tests for both real file formats, CRS/projection known points, Polygon/MultiPolygon rings and holes, tile intersection/fill output, empty/out-of-range requests, and visibility/resource lifecycle; add a UI assertion for the two option titles.
-9. Run targeted unit tests, assemble the configured APK/AAB, record packaged size and asset compression, then perform focused physical-device checks for AC-001–AC-006 across all four map hosts; record any unavailable check as `NOT VERIFIED`.
-10. Draw each queried polygon path using the existing fill, then its same-color outline using `OfflinePolygonStyle.OFFLINE_POLYGON_STROKE_WIDTH_PX` (default `2.0f`). Allow the provider to receive an alternate width for tests, and verify at broad and close zooms that width variation changes only the outline.
+1. Add the confirmed possible-gutter and Taoyuan administrative-area GPKGs byte-for-byte, remove the prior GeoJSON asset, and record all three source hashes, metadata, feature counts, raw sizes, and resulting package size. Keep derived normalized data in app-private storage only.
+2. Configure legacy to read `line_buffer_polygon` and possible-gutter to read `refactored`; add the region table `桃園市行政區` with `MULTIPOLYGON` and SRS id 100000. Validate each source’s CRS and geometry metadata.
+3. On the background staging executor, parse region GPKG coordinates in declared axis order (x=longitude, y=latitude) and decode each feature and write a normalized geometry/WKB plus projected bounds into a versioned app-private derived SQLite table, transforming every coordinate into EPSG:3826 using the existing GRS80 Transverse Mercator zone 121 operation: semi-major axis 6,378,137 m; inverse flattening 298.257222101; central meridian 121°; scale 0.9999; false easting 250,000 m; false northing 0 m. The source WKT identifies GCS_TWD97[2020], Taiwan_Datum_1997 (EPSG datum authority 1026), and GRS80; use that declared datum/ellipsoid and the app’s existing projection code, with no ad hoc axis swap, grid shift, or degree-as-meter interpretation.
+4. Build the region source’s portable ordinary-table cell index in the normalized EPSG:3826 coordinate space using the existing 512 m grid. Query it using `WebMercatorTileMath.bounds3826`; exact-filter candidate feature bounds, then rasterize through `WebMercatorTileMath.tilePixel`. Keep the original packaged GPKG unchanged; discard/rebuild only the task-owned derived cache when its source hash or transform version changes.
+5. Route all three layers through the GeoPackage geometry decoder and preserve polygon members, rings/holes, thematic fills, bounded cache behavior, and provider lifecycle. Render region polygons as the existing WMTS does: transparent interior/background, `#762E77` boundary stroke with antialiased edges, no labels, z-index `-0.5f`, zero transparency.
+6. Remove the file-extension suffixes from the two thematic layer titles per the 1014 decision; preserve the existing administrative-area title and all other UI labels.
+7. Add a tunable style profile function with broad/close reference zooms and widths, defaulting to (zoom 16, 2.5 px) and (zoom 20, 1.5 px); linearly interpolate between them and pass each tile request's zoom into outline rendering.
+8. Extend tests to verify all real GPKGs, metadata, feature queries, MultiPolygon members/holes, exact thematic fill colors, source labels, no obsolete asset, and no feature-data requests; add profile tests for clamps, zoom-18 midpoint, custom parameters, and edge/interior pixels.
+9. Add projection control-point tests. For source coordinate (121.000000°, 25.000000°), expect EPSG:3826 (250000.000 m, 2765777.564 m), then z16 tile (54795, 28065), pixel (96.711111, 51.128269). For (121.301100°, 24.992900°), expect (280394.869 m, 2765024.899 m), then z16 tile (54850, 28066), pixel (48.988160, 160.207802). Assert projected coordinates within 0.01 m and tile pixels within 0.01 px. Also query/render a populated source tile and verify indexed candidates against exact feature bounds.
+10. Compare the local region tile to the recorded z13/x6856/y3508 WMTS baseline in `evidence/regions-wmts-z13-x6856-y3508.png`: transparent interior/background, `#762E77` opaque stroke core (2 px median) and antialiased footprint (4 px median at alpha ≥64 in the reference transect), and no labels in the sampled tile. Compare style metrics along local boundary transects; use the GPKG as geometry truth rather than requiring WMTS-generalized boundary locations to match pixel-for-pixel. Verify z-index `-0.5f` and zero transparency in all four hosts.
+11. Add four-host instrumentation for region visibility state, z-order/transparency, teardown/re-enable deduplication, and absence of `regions` WMTS requests; retain unrelated base-map requests.
+12. Run scoped JVM tests, instrumentation, debug/release packaging and all host/network/lifecycle/responsiveness scenarios on Android emulator only; record commands, emulator details, observations, and each unavailable result as `NOT VERIFIED`.
 
 ## Test Plan
 
-- Unit: actual GPKG metadata and feature parsing, GeoJSON FeatureCollection/MultiPolygon streaming parse, EPSG:3826 conversion, ring/hole preservation, spatial filtering, and tile rendering colors (`#156D1D` / `#FA0000`) and coordinates.
-- Unit/instrumentation: existing overlay state/toggle restoration and provider lifecycle (disable/remove/re-enable without duplicated overlays or retained cache).
-- Build/package: assemble release artifact and inspect that both assets are packaged; record APK/AAB size and whether packaging compresses either file.
-- UI: verify the two option titles show the correct current source suffixes and that no other labels/layout changed.
-- Rendering: verify the default and alternate outline widths for both real data layers at broad and close zooms, while checking fill colors and holes remain correct.
-- Network: verify no feature-data requests go to WMTS `legacyDitch` or `roadServey`; verify unrelated base map and other overlays retain their current requests.
-- Physical device: Android 9+ device, feature-source network requests blocked; use `MainActivity`, `MapWorkspaceFragment`, gutter form, and point-picker map hosts to inspect alignment, opaque fill, toggles, pan/zoom, and return/reopen lifecycle.
+- Source/package: verify all three GPKG metadata, CRS, feature counts, source hashes and APK entry hashes; verify the obsolete GeoJSON asset is absent.
+- Geometry/render: query actual features and verify Polygon/MultiPolygon members, rings/holes, exact opaque thematic fill colors, and local tile coverage.
+- Region coordinate path: assert source axis order and GRS80/TWD97 TM2 zone 121 normalization with the two recorded control points; query the z13 baseline tile after conversion, compare indexed candidates to exact feature bounds, and verify a populated output tile.
+- Outline profile: assert 2.5 px at zoom 16 and below, 2.0 px at zoom 18, 1.5 px at zoom 20 and above, continuous linear interpolation, and alternate endpoint/reference values. Render both real GPKGs and compare edge, interior, and hole pixels.
+- Region style/hosts: compare local z13/x6856/y3508 output to the saved WMTS baseline for transparent fill, `#762E77` stroke, antialiasing, and no labels; verify z-index and transparency in all hosts. Exercise all layer toggles and capture requests to ensure `regions` is not requested.
+- UI/hosts/network: assert extension-free titles per the 1014 decision; exercise all three layer toggles in all four map hosts; capture app feature requests to ensure `legacyDitch` and `roadServey` are not requested while unrelated map traffic remains.
+- Lifecycle/performance: repeat enable/disable and host teardown/reopen; pan/zoom populated and sparse extents; record load time, responsiveness, and available memory. Acceptance remains no crash, no ANR, and no UI-blocking parse/render.
+- Run all App/runtime checks on Android emulator only. No physical phone testing. Mark anything unavailable `NOT VERIFIED` with the reason and next best evidence.
 
 ### Physical Device Test Scope
 
-- Requires physical device: Yes
-- Device/environment: Android 9+ physical device, preferring the lowest-memory available supported device; record model, OS build, and available memory in the execution report. If no suitable device is available, mark device-only checks `NOT VERIFIED`.
-- In-scope Acceptance Criteria: AC-001, AC-002, AC-003, AC-004, AC-005
-- Regression risk: map rendering responsiveness, app memory use, overlay state persistence, and unaffected neighboring WMTS overlays.
+- Requires physical device: No
+- Device/environment: Android emulator `emulator-5554` only; record emulator model, Android version, and available-memory observation. Do not use a physical phone.
+- In-scope Acceptance Criteria: AC-001 through AC-008
+- Regression risk: three-source GPKG dispatch, geographic CRS and MultiPolygon rendering, outline changes by zoom, host toggles/lifecycle, and UI responsiveness.
 - Full regression required: No
 - Full regression trigger: A failure affecting general map navigation, multiple unrelated layers, or broader application startup.
-- Stop condition: All listed scenarios complete in the four map hosts, or sufficient failure evidence identifies a blocker.
+- Stop condition: Complete all listed emulator scenarios or collect sufficient evidence for a classified blocker; do not substitute physical-device testing.
 
 | AC | Environment | Steps | Expected | Evidence |
 |---|---|---|---|---|
-| AC-001 | APK inspection and Android device with feature-data network unavailable | Inspect package contents; launch each map context and enable both layers | Both bundled files load locally, with no `legacyDitch`/`roadServey` feature-data request | Package listing/size, HTTP request log, result; screenshot on failure |
-| AC-002 | Android device, representative dataset extents | Enable each layer and compare geometry against basemap | Legacy polygons use opaque `#156D1D`; possible polygons use opaque `#FA0000`; holes and alignment are correct | Device run notes and screenshot on failure |
-| AC-003 | Android device | Repeat layer on/off in MainActivity, MapWorkspaceFragment, gutter form, and point-picker maps | Existing controls reveal/hide the correct local overlays in all four hosts | Instrumentation result or device run record |
-| AC-004 | Android device | With each/both layers enabled, pan and zoom through populated and sparse coverage in all four hosts | No crash, ANR, or blocking parse/render operation; map remains interactive; record load/memory observations | Instrumentation/device result; record observed loading behavior |
-| AC-005 | Android device, memory/resource inspection where available | Toggle both layers off/on repeatedly and leave/reopen all four map hosts | Removed layer is absent; re-enable restores one copy with provider-owned cache released/bounded and no duplicate overlay | Instrumentation result or device run record |
-| AC-006 | Android UI test | Open the layer sheet and inspect the two overlay option titles | Titles exactly identify `.gpkg` and `.geojson`; other labels/layout are unchanged | UI assertion/result; screenshot on failure |
-| AC-007 | Unit/instrumented tile-render test | Render both real polygon layers at broad and close zoom levels using default and alternate widths | Same-color outline is visible at 2.0 tile pixels by default, remains stable in screen space across zoom levels, alternate widths are honored, and fills/holes remain correct | Pixel assertions for fill, outline, and hole regions |
+| AC-001 | APK inspection and Android emulator | Verify packaged hashes/assets; activate all three layers in all hosts and capture app feature requests | All three exact GPKGs are packaged/loaded locally; no obsolete GeoJSON and no `legacyDitch`/`roadServey`/`regions` feature request | APK listing/hash output, emulator request capture, runtime results |
+| AC-002 | Android emulator | Inspect populated extents in both layers against the base map | Correct colors, alignment, holes, and MultiPolygon members | Instrumentation and emulator screenshots/notes |
+| AC-003 | Android emulator | Toggle all three layers in MainActivity, MapWorkspaceFragment, gutter form, and point picker | Existing controls/state show and hide the correct local layer | Host-by-host instrumentation results |
+| AC-004 | Android emulator | Pan/zoom populated and sparse extents in all four hosts with any combination of the three layers enabled | No crash, ANR, or UI-blocking parse/render; responsiveness/load observations recorded | Emulator logs and timing observations |
+| AC-005 | Android emulator | Repeat hide/show and teardown/reopen for each host | Provider resources are released/bounded and re-enable shows one correct overlay | Lifecycle assertions and emulator results |
+| AC-006 | Android UI instrumentation | Open the layer sheet | The two thematic titles have no file-extension suffix; the administrative-area title and all other UI remain unchanged | UI assertions and diff review |
+| AC-007 | JVM unit tests plus Android emulator instrumentation | Evaluate/render at zooms 15, 16, 18, 20, and 21, with default and alternate profiles | Width clamps/interpolates to 2.5/2.0/1.5 px as specified; edge pixels reflect outline, interior fill and holes remain unchanged | Style function assertions and decoded tile pixel comparisons |
+| AC-008 | Android emulator, all four map hosts | Enable the Taoyuan administrative-area layer, inspect populated boundaries, toggle off/on, and capture network requests | Packaged `桃園市行政區.gpkg` renders aligned MultiPolygons using the baseline transparent fill and `#762E77` outline with matching 2 px opaque core / 4 px antialiased footprint (no labels in the representative tile), and keeps existing controls, z-index, and transparency; no `regions` request occurs | APK/hash/metadata checks, host screenshots, request capture, and lifecycle observations |
 
 ## Regression Plan
 
-- Confirm base map tile layer, regions, no-ditch points, deleted-area overlay, measurement labels, user gutter lines, and layer state restoration remain unchanged.
-- Confirm form and point-picker gestures/camera navigation still work with offline overlays enabled.
-- Confirm app startup and map teardown release offline provider/cache resources.
+- Verify unrelated base-map/overlay requests, projection behavior, layer title layout, colors, holes, region style, and source extents remain unchanged.
+- Verify all four hosts keep their existing visibility state, pan/zoom, teardown, and re-enable deduplication on emulator.
+- Confirm `legacyDitch`, `roadServey`, and `regions` feature-data requests disappear; unrelated map requests remain.
 
 ## Risks
 
-- The assets total about 112 MiB uncompressed; the release artifact may be substantially larger.
-- The GPKG contains 36,970 Polygon records and the GeoJSON contains 61,435 MultiPolygon features; eagerly materializing all geometries in map objects is out of scope for the renderer design.
-- Both inputs use EPSG:3826; conversion and polygon fill/hole semantics need explicit tests.
-- Android 9 support and available memory constrain GeoPackage and tile-cache choices.
-- The selected data-to-layer pairing is trial-only and may change after the test. No APK/AAB size cap applies to this trial; record artifact size. Use qualitative performance criteria and record device observations.
+- The possible-layer MultiPolygon metadata may not pass the current Polygon-only GPKG validation path.
+- The GPKG-declared geographic CRS must be transformed before using the EPSG:3826 cell index; the plan now fixes axis order, operation parameters, index units, query bounds, and known-point outputs.
+- Stale GeoJSON cache invalidation must not remove unrelated app data.
+- Incorrect zoom interpolation could invert or jump at zoom boundaries; verify clamps and midpoint.
+- Outline rasterization could affect fill/hole pixels; assert independent pixel samples.
+- Emulator-only evidence cannot be generalized to physical-phone performance; report its scope honestly.
 
 ## Rollback Plan
 
-- Revert the feature commit to restore the previous WMTS providers and remove the packaged data assets.
+- Revert the source and outline feature changes to restore the previous WMTS providers, fixed-width behavior, and remove the bundled offline assets.
 
 ## Current Behavior
 
-- The main maps load legacy data from `legacyDitch` WMTS and the possible-gutter toggle from `roadServey`; the form and point-picker maps duplicate these online loads.
+- At the checked-out baseline, the legacy overlay reads GPKG, the possible-gutter overlay still imports GeoJSON, and the administrative-area overlay still uses the `regions` WMTS.
+- The tile renderer uses a fixed 2.0 px outline irrespective of zoom.
 
 ## Expected Behavior
 
-- The existing map hosts load two app-packaged polygon sources and render opaque `#156D1D` / `#FA0000` local tiles while preserving polygon holes, existing controls, and unrelated online layers.
+- All three layers read their packaged GPKGs across all four hosts; the region WMTS is removed, and thematic titles have no extension suffix.
+- Outline width varies continuously from 2.5 px at zoom 16 to 1.5 px at zoom 20, with a 2.0 px midpoint at zoom 18 and tunable parameters.
+- App/runtime validation is performed only on Android emulator.
 
 ## Acceptance Criteria Traceability
 
 | AC | Implementation Step | Validation |
 |---|---|---|
-| AC-001 | 1, 2, 5, 6 | APK content/size check; network request log with feature endpoints unavailable |
-| AC-002 | 3, 4, 5 | Geometry/projection/tile-render unit tests and device alignment/color check |
-| AC-003 | 7 | Controller/provider tests and device toggle check in all four map hosts |
-| AC-004 | 2, 3, 5, 9 | Background parsing tests and physical pan/zoom/no-ANR scenarios in all four map hosts |
-| AC-005 | 5, 7, 8 | Cache/provider lifecycle tests and repeated device toggling/teardown |
-| AC-006 | 6, 8 | UI assertion for exact layer option labels; review other labels/layout for no changes |
-| AC-007 | 10 | Unit/instrumented tile-pixel assertions for outline configuration, zoom stability, fill colors, and holes |
+| AC-001 | 1–4, 7–9 | APK source/hash inspection and emulator feature-request checks |
+| AC-002 | 2–4, 7–8 | Real-file geometry/fill/hole tests and emulator alignment evidence |
+| AC-003 | 4, 7–8 | Four-host emulator toggle checks |
+| AC-004 | 3, 7–8 | Emulator pan/zoom/no-crash/no-ANR and responsiveness observations |
+| AC-005 | 3–4, 7–8 | Cache/provider lifecycle assertions and host reopen checks |
+| AC-006 | 5, 7 | Extension-free thematic title assertions and unchanged UI review |
+| AC-007 | 6–8 | Profile function and real-tile pixel assertions at endpoint/midpoint zooms |
+| AC-008 | 1–5, 9–11 | Packaged source/hash; CRS and control points; populated-tile query; WMTS baseline style parity; all-host toggle and no-WMTS-request evidence |
 
 ## Failure Behavior
 
-- If an asset is missing, unreadable, has an unsupported CRS/geometry, or fails parsing, do not crash the map; leave the affected overlay unavailable, release partial resources, and emit actionable diagnostic evidence. Do not silently fall back to the online feature source.
+- Missing/unreadable assets, unsupported CRS/geometry, or parse failures leave the affected layer unavailable, release partial resources, and emit actionable diagnostics without crashing or silently falling back to WMTS. Invalid style parameters must be bounded and logged; they must not corrupt tile rendering.
 
 ## Security and Privacy
 
-- The bundled data is static map geometry; it adds no user information, credentials, or new permissions. Preserve existing data handling and network behavior for unrelated services.
+- The GPKGs contain static map geometry. This work adds no user data or permissions; preserve existing network/data handling for unrelated services.
 
 ## Open Questions
 
-- OQ-001: After this test, confirm the definitive production source files and permanent file-to-layer mapping. The trial uses the two linked files and labels the options by their current file suffixes.
+- 無。Sources, layer roles, title behavior, visual-preservation requirement, outline profile, and emulator-only test scope are specified.

@@ -1,15 +1,15 @@
 # FEAT-1006 Issue Log
 
-## ISS-FEAT-1006-001 — Physical Android device unavailable for planned host scenarios
+## ISS-FEAT-1006-001 — Physical Android device unavailable for planned host scenarios (superseded)
 
 - Phase: implementation
 - Category: environment
 - Priority: P1
-- Status: open
-- Impact: Planned physical-device checks for AC-001 through AC-005 remain outstanding. A local Android 14 AVD and a connected Android 12 device provide partial runtime coverage.
+- Status: closed
+- Impact: The earlier plan required physical-device checks for AC-001 through AC-005. The updated user constraint now limits App/runtime tests to Android emulator and excludes physical-phone testing.
 - Evidence: On 2026-10-07, targeted AC-007 instrumentation passed on `XQ-AU52` Android 12. The planned four-host network, alignment, toggle, pan/zoom, and repeated-lifecycle scenarios for AC-001 through AC-005 have not been run. See execution report for exact coverage.
-- Next action: verification
-- Remediation: run the remaining plan-scoped scenarios on the available Android 9+ device; record any unavailable case as `NOT VERIFIED`.
+- Next action: none
+- Resolution: Superseded by the user-approved emulator-only test scope. This closure does not claim that any emulator test passed; emulator results must be recorded separately in execution/verification evidence.
 
 ## ISS-FEAT-1006-002 — Android SQLite lacks the RTree module
 
@@ -46,3 +46,24 @@
 - Root cause: The test used a feature bounding-box center as if it were guaranteed to lie inside the polygon. Geometry inspection disproved that assumption: the first GeoJSON feature's outer-ring centroid is outside its shell, and the first GPKG feature intersecting the test extent also has an outer-ring centroid outside its shell. A bounding box can overlap a tile while the polygon itself does not.
 - Resolution evidence: The test now finds a point inside an exterior ring and outside all holes, requests a zoom-20 tile containing that point, decodes the returned PNG, and verifies the exact opaque layer color. The complete focused Android 14 AVD class passed (3 tests, 0 failures) for both layers.
 - Remediation: Replaced bounding-box-center sampling with verified polygon interior sampling. No production rendering change was needed.
+
+## ISS-FEAT-1006-005 — Region geographic coordinate path is underspecified
+
+- Phase: plan_review
+- Category: planning_gap
+- Priority: P1
+- Status: closed
+- Impact: AC-008 could render blank or misaligned if geographic degree coordinates were treated as EPSG:3826 meters.
+- Evidence: `analysis.md` and Plan Steps 3, 4, and 9 now define GPKG axis order, the GPKG-declared GCS_TWD97[2020]/Taiwan_Datum_1997/GRS80 source, TM2 zone 121 operation parameters, normalized EPSG:3826 coordinate/index units, tile-bound query path, and two expected source-to-map control-point results. The tests also query a populated region tile and exact-filter cell-index candidates.
+- Resolution: Planning gap resolved and re-reviewed. No production code was changed in Planning.
+- Next action: none
+## ISS-FEAT-1006-006 — Region style parity has no verifiable baseline
+
+- Phase: plan_review
+- Category: planning_gap
+- Priority: P1
+- Status: closed
+- Impact: AC-008's approved visual-preservation requirement was not objectively testable without a WMTS reference.
+- Evidence: The user confirmed “沿用現有 WMTS 外觀”. The 2026-10-14 WMTS request returned HTTP 200 for z13/x6856/y3508; its image, request metadata, response properties, and SHA-256 are recorded in `evidence/regions-wmts-baseline.md` and `evidence/regions-wmts-z13-x6856-y3508.png`. The reference shows transparent fill/background, an opaque `#762E77` stroke core (2 px median) with antialiased footprint (4 px median at alpha ≥64 in the recorded transect), and no labels in that tile. Plan Steps 5 and 10 and AC-008 now require matching those style metrics while using the GPKG as geometry truth, and preserving z-index/transparency in all hosts.
+- Resolution: Planning gap resolved and re-reviewed. No production code was changed in Planning.
+- Next action: none

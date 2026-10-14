@@ -1,5 +1,7 @@
 # FEAT-1006 Developer Execution Report
 
+> Historical evidence for the superseded GPKG/GeoJSON source pair. The amended Planning scope now uses GPKG for both overlays; prior results do not verify the new source and must be repeated where applicable.
+
 ## Implementation
 
 - Bundled the two exact user-linked source files in `app/src/main/assets/` and recorded source metadata and checksums in `asset-manifest.md`.

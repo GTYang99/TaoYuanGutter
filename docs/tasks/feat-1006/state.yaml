@@ -2,8 +2,8 @@ task:
   id: FEAT-1006
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: plan_review
+status: approved
 
 knowledge_resolution:
   status: resolved
@@ -15,39 +15,15 @@ plan_review:
   status: approved
 
 implementation:
-  status: completed
-  mode: approved_visual_refinement
-  build: passed
-  unit_tests: passed
-  android_test_compile: passed
-  android_runtime_tests: passed
-  android_test_count: 3
-  release_build: passed
+  status: pending
 
 validation:
-  status: completed
-  passed:
-    - git diff --check
-    - Gradle :app:testDebugUnitTest
-    - Gradle :app:compileDebugAndroidTestKotlin
-    - Gradle :app:assembleDebug
-    - focused Android 12 XQ-AU52 instrumentation of both data sources at zoom 16 and 20 (3/3 tests)
-    - AC-007 alternate stroke width pixel comparison and unchanged interior fill assertion
-    - AC-006 exact layer labels asserted from the inflated layer-sheet layout
-    - ./gradlew :app:assembleRelease
-    - repository Android CI commands reproduced locally (scoped JVM tests and :app:assembleDebug)
-    - release APK asset readback and SHA-256 comparison
-  not_verified:
-    - AC-001 feature-network request capture and runtime activation through each map host
-    - AC-002 geographic alignment against the base map on device
-    - AC-003 runtime toggles in all four map hosts
-    - AC-004 pan/zoom responsiveness and no-ANR behavior in all four map hosts
-    - AC-005 repeated host toggles, teardown, and re-enable scenarios
+  status: pending
 
 git:
-  branch: feature/FEAT-1006-wmts-offline-data
-  commit: 0d58ada
-  status: committed
+  branch: feat/feat-1006-wmts-offline-data
+  commit: b5254c7
+  status: pending
 
 verification:
   result: pending
@@ -57,11 +33,9 @@ verification:
 ci:
   build: pending
   test: pending
-  local_workflow_equivalent: passed
 
 release:
   status: pending
 
-blocking:
-  - ISS-FEAT-1006-001
-next_action: verification
+blocking: []
+next_action: implementation
