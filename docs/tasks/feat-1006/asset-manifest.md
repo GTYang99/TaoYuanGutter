@@ -15,3 +15,10 @@ The source files were read and verified during Planning. Combined raw input size
 The earlier implementation packaged `20260824_水務局既有側溝更新v3_線轉面.gpkg` and `20261006_0601版可能側溝位置.geojson`. Its recorded release artifact was `app/build/outputs/apk/release/app-release-unsigned.apk`, 46,745,127 bytes (44.6 MiB); the old GPKG and GeoJSON APK entries were DEFLATE-compressed to 7,668,975 and 25,342,525 bytes and matched the then-current source hashes.
 
 That artifact and its measurements are historical only. They do not verify packaging of the newly confirmed possible-gutter GPKG and must not be used as AC-001 evidence for the amended FEAT-1006 scope. Rebuild and inspect the APK after implementation.
+
+
+## Current Debug APK Packaging Evidence (2026-10-14)
+
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk` — 49,534,430 bytes.
+- Android instrumentation readback passed for all three packaged GPKGs, including the Taoyuan region source size and SHA-256 above.
+- This is a debug build artifact, not a release package.

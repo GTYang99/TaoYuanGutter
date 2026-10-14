@@ -27,7 +27,7 @@ class OfflinePolygonDataStoreInstrumentedTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val assetNames = context.assets.list("")?.toSet().orEmpty()
 
-        listOf(OfflinePolygonLayer.LEGACY, OfflinePolygonLayer.POSSIBLE).forEach { layer ->
+        listOf(OfflinePolygonLayer.LEGACY, OfflinePolygonLayer.POSSIBLE, OfflinePolygonLayer.REGION).forEach { layer ->
             assertTrue("${layer.assetName} must be packaged", layer.assetName in assetNames)
             val digest = MessageDigest.getInstance("SHA-256")
             var sizeBytes = 0L
@@ -46,6 +46,43 @@ class OfflinePolygonDataStoreInstrumentedTest {
             })
         }
         assertFalse("The superseded GeoJSON asset must not be packaged", "20261006_0601版可能側溝位置.geojson" in assetNames)
+    }
+
+    @Test
+    fun taoyuanAdministrativeGpkgRendersTransparentPurpleBoundaryOffline() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val layer = OfflinePolygonLayer.REGION
+        val tileX = 6856
+        val tileY = 3508
+        val zoom = 13
+        val source = OfflinePolygonDataStore.load(context, layer).get()
+        val geometries = source.query(WebMercatorTileMath.bounds3826(tileX, tileY, zoom))
+        assertTrue("The recorded WMTS reference tile should intersect local administrative geometry", geometries.isNotEmpty())
+        val decoded = geometries.map(OfflineGeometryCodec::fromWkb)
+        assertTrue(decoded.sumOf { it.polygons.size } > 1)
+
+        val provider = OfflinePolygonTileProvider(context, layer)
+        try {
+            val tile = provider.getTile(tileX, tileY, zoom)
+            assertNotNull("The packaged administrative GPKG should render the reference tile", tile)
+            assertNotSame(TileProvider.NO_TILE, tile)
+            val png = tile!!.data ?: throw AssertionError("Region tile should contain PNG data")
+            val bitmap = BitmapFactory.decodeByteArray(png, 0, png.size)
+            assertNotNull(bitmap)
+            bitmap!!.let { image ->
+                val pixels = IntArray(image.width * image.height)
+                image.getPixels(pixels, 0, image.width, 0, 0, image.width, image.height)
+                assertTrue("Boundary uses the existing WMTS purple stroke", pixels.any { it == layer.color })
+                assertTrue("Administrative overlay keeps a transparent interior/background", pixels.any { it ushr 24 == 0 })
+                val opaqueWidths = horizontalRunWidths(image) { it == layer.color }
+                val antialiasedWidths = horizontalRunWidths(image) { it ushr 24 >= 64 }
+                assertEquals("Opaque boundary core run widths=${opaqueWidths.groupingBy { it }.eachCount()}", 2, median(opaqueWidths))
+                assertEquals("Antialiased boundary run widths=${antialiasedWidths.groupingBy { it }.eachCount()}", 4, median(antialiasedWidths))
+                image.recycle()
+            }
+        } finally {
+            provider.release()
+        }
     }
 
     @Test
@@ -158,8 +195,9 @@ class OfflinePolygonDataStoreInstrumentedTest {
         val themedContext = ContextThemeWrapper(context, R.style.Theme_TaoYuanGutter)
         val view = LayoutInflater.from(themedContext).inflate(R.layout.sheet_layers, null, false)
 
-        assertEquals("水務局舊資料（.gpkg）", view.findViewById<MaterialCheckBox>(R.id.cbWaterOld).text.toString())
-        assertEquals("可能側溝位置（.gpkg）", view.findViewById<MaterialCheckBox>(R.id.cbPossible).text.toString())
+        assertEquals("水務局舊資料", view.findViewById<MaterialCheckBox>(R.id.cbWaterOld).text.toString())
+        assertEquals("可能側溝位置", view.findViewById<MaterialCheckBox>(R.id.cbPossible).text.toString())
+        assertEquals("桃園行政區", view.findViewById<MaterialCheckBox>(R.id.cbRegion).text.toString())
     }
 
     private fun tileCoordinate(longitude: Double, latitude: Double, zoom: Int): Triple<Int, Int, Int> {
@@ -169,6 +207,27 @@ class OfflinePolygonDataStoreInstrumentedTest {
             (1.0 - ln(tan(Math.toRadians(latitude)) + 1.0 / kotlin.math.cos(Math.toRadians(latitude))) / Math.PI) / 2.0 * tileCount
         ).toInt()
         return Triple(x, y, zoom)
+    }
+
+    private fun horizontalRunWidths(bitmap: android.graphics.Bitmap, matches: (Int) -> Boolean): List<Int> = buildList {
+        for (y in 0 until bitmap.height) {
+            var run = 0
+            for (x in 0 until bitmap.width) {
+                if (matches(bitmap.getPixel(x, y))) {
+                    run++
+                } else if (run > 0) {
+                    add(run)
+                    run = 0
+                }
+            }
+            if (run > 0) add(run)
+        }
+    }
+
+    private fun median(values: List<Int>): Int {
+        assertTrue("Tile should contain enough boundary transects to measure stroke width", values.size >= 10)
+        val sorted = values.sorted()
+        return sorted[sorted.size / 2]
     }
 
     private fun findInteriorPoint(geometry: OfflineGeometry): OfflineCoordinate? {

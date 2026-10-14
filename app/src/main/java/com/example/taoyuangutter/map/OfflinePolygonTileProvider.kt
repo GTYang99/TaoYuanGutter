@@ -50,7 +50,8 @@ internal class OfflinePolygonTileProvider(
                 x,
                 y,
                 zoom,
-                outlineWidthPx ?: OfflinePolygonStyle.outlineWidthPxAtZoom(zoom)
+                outlineWidthPx ?: if (layer == OfflinePolygonLayer.REGION) OfflinePolygonStyle.REGION_STROKE_WIDTH_PX
+                else OfflinePolygonStyle.outlineWidthPxAtZoom(zoom)
             )
             synchronized(cacheLock) {
                 if (released) return NO_TILE
@@ -90,7 +91,8 @@ internal class OfflinePolygonTileProvider(
         }
         features.forEach { blob ->
             val geometry = try {
-                OfflineGeometryCodec.fromGeoPackage(blob)
+                if (layer.normalizeGeographicCoordinates) OfflineGeometryCodec.fromWkb(blob)
+                else OfflineGeometryCodec.fromGeoPackage(blob)
             } catch (failure: Exception) {
                 if (geometryFailureLogged.compareAndSet(false, true)) {
                     Log.e(TAG, "Skipping an unreadable ${layer.name} polygon geometry", failure)
@@ -109,7 +111,7 @@ internal class OfflinePolygonTileProvider(
                     }
                     path.close()
                 }
-                canvas.drawPath(path, paint)
+                if (layer != OfflinePolygonLayer.REGION) canvas.drawPath(path, paint)
                 if (outlineWidthPx > 0f) canvas.drawPath(path, outlinePaint)
             }
         }
@@ -128,6 +130,7 @@ internal class OfflinePolygonTileProvider(
 }
 
 internal object OfflinePolygonStyle {
+    const val REGION_STROKE_WIDTH_PX = 2.5f
     const val BROAD_SCALE_REFERENCE_ZOOM = 16
     const val CLOSE_SCALE_REFERENCE_ZOOM = 20
     const val BROAD_SCALE_STROKE_WIDTH_PX = 2.5f
@@ -155,17 +158,21 @@ internal class OfflinePolygonOverlayManager(
     private val appContext = context.applicationContext
     private var legacyProvider: OfflinePolygonTileProvider? = null
     private var possibleProvider: OfflinePolygonTileProvider? = null
+    private var regionProvider: OfflinePolygonTileProvider? = null
     private var legacyOverlay: TileOverlay? = null
     private var possibleOverlay: TileOverlay? = null
+    private var regionOverlay: TileOverlay? = null
 
-    fun setVisibility(showLegacy: Boolean, showPossible: Boolean) {
+    fun setVisibility(showLegacy: Boolean, showPossible: Boolean, showRegion: Boolean = false) {
         setLegacyVisible(showLegacy)
         setPossibleVisible(showPossible)
+        setRegionVisible(showRegion)
     }
 
     fun release() {
         setLegacyVisible(false)
         setPossibleVisible(false)
+        setRegionVisible(false)
     }
 
     private fun setLegacyVisible(visible: Boolean) {
@@ -207,6 +214,27 @@ internal class OfflinePolygonOverlayManager(
             possibleOverlay = null
             possibleProvider?.release()
             possibleProvider = null
+        }
+    }
+
+    private fun setRegionVisible(visible: Boolean) {
+        if (visible) {
+            if (regionOverlay == null) {
+                val provider = OfflinePolygonTileProvider(appContext, OfflinePolygonLayer.REGION)
+                regionProvider = provider
+                regionOverlay = mapProvider()?.addTileOverlay(
+                    TileOverlayOptions().tileProvider(provider).zIndex(-0.5f).transparency(0f)
+                )
+                if (regionOverlay == null) {
+                    provider.release()
+                    regionProvider = null
+                }
+            }
+        } else {
+            regionOverlay?.remove()
+            regionOverlay = null
+            regionProvider?.release()
+            regionProvider = null
         }
     }
 }

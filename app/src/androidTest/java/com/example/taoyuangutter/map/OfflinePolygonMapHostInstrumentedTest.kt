@@ -56,7 +56,20 @@ class OfflinePolygonMapHostInstrumentedTest {
                     offlineManager = offlineProviderManager(activity)
                     assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = true)
                 }
+                onView(withId(R.id.btnLayers)).perform(click())
+                assertLayerToggle(R.id.cbWaterOld, "水務局舊資料") { visible ->
+                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = visible, possibleVisible = true) }
+                }
+                assertLayerToggle(R.id.cbPossible, "可能側溝位置") { visible ->
+                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = visible) }
+                }
+                assertLayerToggle(R.id.cbRegion, "桃園行政區") { visible ->
+                    scenario.onActivity { assertProviderVisibility(offlineManager!!, true, true, visible) }
+                }
+                if (reopenIndex == 0) assertRegionTileInHost(offlineManager!!)
+                exerciseVisibilityLifecycle(offlineManager!!)
                 if (reopenIndex == 0) {
+                    setProviderVisibilityOnMain(offlineManager!!, legacyVisible = true, possibleVisible = true, regionVisible = true)
                     val legacySample = findInteriorSample(OfflinePolygonLayer.LEGACY)
                     assertProviderTileAtInterior(offlineManager!!, OfflinePolygonLayer.LEGACY, legacySample)
                     assertProviderReturnsNoTileAtSparseExtent(offlineManager!!, OfflinePolygonLayer.LEGACY)
@@ -66,14 +79,6 @@ class OfflinePolygonMapHostInstrumentedTest {
                     assertProviderReturnsNoTileAtSparseExtent(offlineManager!!, OfflinePolygonLayer.POSSIBLE)
                     assertMapShowsLayerInteriorColor(map, offlineManager!!, OfflinePolygonLayer.POSSIBLE, possibleSample, true, true, "feat1006-main-possible.png")
                 }
-                onView(withId(R.id.btnLayers)).perform(click())
-                assertLayerToggle(R.id.cbWaterOld, "水務局舊資料（.gpkg）") { visible ->
-                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = visible, possibleVisible = true) }
-                }
-                assertLayerToggle(R.id.cbPossible, "可能側溝位置（.gpkg）") { visible ->
-                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = visible) }
-                }
-                exerciseVisibilityLifecycle(offlineManager!!)
             } finally {
                 scenario.close()
             }
@@ -109,6 +114,7 @@ class OfflinePolygonMapHostInstrumentedTest {
                     assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = true)
                 }
                 if (reopenIndex == 0) {
+                    assertRegionTileInHost(offlineManager!!)
                     assertProviderTileAtInterior(offlineManager!!, OfflinePolygonLayer.LEGACY, findInteriorSample(OfflinePolygonLayer.LEGACY))
                     assertProviderReturnsNoTileAtSparseExtent(offlineManager!!, OfflinePolygonLayer.LEGACY)
                     assertProviderTileAtInterior(offlineManager!!, OfflinePolygonLayer.POSSIBLE, findInteriorSample(OfflinePolygonLayer.POSSIBLE))
@@ -116,11 +122,14 @@ class OfflinePolygonMapHostInstrumentedTest {
                 }
 
                 onView(withId(R.id.btnLayers)).perform(click())
-                assertLayerToggle(R.id.cbWaterOld, "水務局舊資料（.gpkg）") { visible ->
+                assertLayerToggle(R.id.cbWaterOld, "水務局舊資料") { visible ->
                     scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = visible, possibleVisible = true) }
                 }
-                assertLayerToggle(R.id.cbPossible, "可能側溝位置（.gpkg）") { visible ->
+                assertLayerToggle(R.id.cbPossible, "可能側溝位置") { visible ->
                     scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = visible) }
+                }
+                assertLayerToggle(R.id.cbRegion, "桃園行政區") { visible ->
+                    scenario.onActivity { assertProviderVisibility(offlineManager!!, true, true, visible) }
                 }
                 exerciseVisibilityLifecycle(offlineManager!!)
             } finally {
@@ -165,6 +174,7 @@ class OfflinePolygonMapHostInstrumentedTest {
                     assertProviderVisibility(formManager!!, legacyVisible = false, possibleVisible = true)
                 }
                 if (reopenIndex == 0) {
+                    assertRegionTileInHost(formManager!!)
                     assertProviderTileAtInterior(formManager!!, OfflinePolygonLayer.POSSIBLE, findInteriorSample(OfflinePolygonLayer.POSSIBLE))
                     assertProviderReturnsNoTileAtSparseExtent(formManager!!, OfflinePolygonLayer.POSSIBLE)
                 }
@@ -203,6 +213,7 @@ class OfflinePolygonMapHostInstrumentedTest {
                     assertProviderVisibility(pickerManager!!, legacyVisible = true, possibleVisible = false)
                 }
                 if (reopenIndex == 0) {
+                    assertRegionTileInHost(pickerManager!!)
                     assertProviderTileAtInterior(pickerManager!!, OfflinePolygonLayer.LEGACY, findInteriorSample(OfflinePolygonLayer.LEGACY))
                     assertProviderReturnsNoTileAtSparseExtent(pickerManager!!, OfflinePolygonLayer.LEGACY)
                 }
@@ -286,6 +297,23 @@ class OfflinePolygonMapHostInstrumentedTest {
         try {
             val pixel = WebMercatorTileMath.tilePixel(interior.x, interior.y, x, y, zoom)
             assertEquals(layer.color, bitmap.getPixel(pixel.x.toInt().coerceIn(0, bitmap.width - 1), pixel.y.toInt().coerceIn(0, bitmap.height - 1)))
+        } finally {
+            bitmap.recycle()
+        }
+    }
+
+    private fun assertRegionTileInHost(manager: Any) {
+        val provider = privateProperty(manager, "regionProvider") as? OfflinePolygonTileProvider
+            ?: throw AssertionError("Administrative region provider should be active in this map host")
+        val tile = provider.getTile(6856, 3508, 13)
+        assertNotSame("Administrative region provider should render locally", com.google.android.gms.maps.model.TileProvider.NO_TILE, tile)
+        val png = tile?.data ?: throw AssertionError("Administrative region tile should contain PNG bytes")
+        val bitmap = BitmapFactory.decodeByteArray(png, 0, png.size)
+            ?: throw AssertionError("Administrative region tile should decode as PNG")
+        try {
+            val pixels = IntArray(bitmap.width * bitmap.height)
+            bitmap.getPixels(pixels, 0, bitmap.width, 0, 0, bitmap.width, bitmap.height)
+            assertTrue("Administrative region host tile should contain the existing purple boundary", pixels.any { it == OfflinePolygonColors.REGION_ARGB.toInt() })
         } finally {
             bitmap.recycle()
         }
@@ -432,47 +460,56 @@ class OfflinePolygonMapHostInstrumentedTest {
     }
 
     private fun exerciseVisibilityLifecycle(manager: Any) {
-        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = false)
+        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = false, regionVisible = false)
         assertProvidersReleased(manager)
 
-        setProviderVisibilityOnMain(manager, legacyVisible = true, possibleVisible = false)
+        setProviderVisibilityOnMain(manager, legacyVisible = true, possibleVisible = false, regionVisible = false)
         val legacyProvider = privateProperty(manager, "legacyProvider")
         assertNotNull(legacyProvider)
-        setProviderVisibilityOnMain(manager, legacyVisible = true, possibleVisible = false)
+        setProviderVisibilityOnMain(manager, legacyVisible = true, possibleVisible = false, regionVisible = false)
         assertSame("Repeated enable must not create a duplicate legacy provider", legacyProvider, privateProperty(manager, "legacyProvider"))
 
-        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = true)
+        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = true, regionVisible = false)
         val possibleProvider = privateProperty(manager, "possibleProvider")
         assertNotNull(possibleProvider)
-        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = true)
+        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = true, regionVisible = false)
         assertSame("Repeated enable must not create a duplicate possible provider", possibleProvider, privateProperty(manager, "possibleProvider"))
 
-        setProviderVisibilityOnMain(manager, legacyVisible = true, possibleVisible = true)
+        setProviderVisibilityOnMain(manager, legacyVisible = true, possibleVisible = true, regionVisible = false)
         val restoredLegacyProvider = privateProperty(manager, "legacyProvider")
         val restoredPossibleProvider = privateProperty(manager, "possibleProvider")
-        setProviderVisibilityOnMain(manager, legacyVisible = true, possibleVisible = true)
+        setProviderVisibilityOnMain(manager, legacyVisible = true, possibleVisible = true, regionVisible = false)
         assertSame(restoredLegacyProvider, privateProperty(manager, "legacyProvider"))
         assertSame(restoredPossibleProvider, privateProperty(manager, "possibleProvider"))
 
-        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = false)
+        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = false, regionVisible = false)
+        assertProvidersReleased(manager)
+
+        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = false, regionVisible = true)
+        val regionProvider = privateProperty(manager, "regionProvider")
+        assertNotNull("Administrative boundary provider should be created when enabled", regionProvider)
+        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = false, regionVisible = true)
+        assertSame("Repeated region enable must not create duplicates", regionProvider, privateProperty(manager, "regionProvider"))
+        setProviderVisibilityOnMain(manager, legacyVisible = false, possibleVisible = false, regionVisible = false)
         assertProvidersReleased(manager)
     }
 
-    private fun setProviderVisibilityOnMain(manager: Any, legacyVisible: Boolean, possibleVisible: Boolean) {
+    private fun setProviderVisibilityOnMain(manager: Any, legacyVisible: Boolean, possibleVisible: Boolean, regionVisible: Boolean = true) {
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            setProviderVisibility(manager, legacyVisible, possibleVisible)
+            setProviderVisibility(manager, legacyVisible, possibleVisible, regionVisible)
         }
     }
 
-    private fun setProviderVisibility(manager: Any, legacyVisible: Boolean, possibleVisible: Boolean) {
+    private fun setProviderVisibility(manager: Any, legacyVisible: Boolean, possibleVisible: Boolean, regionVisible: Boolean = true) {
         val method = manager.javaClass.getDeclaredMethod(
             "setVisibility",
+            Boolean::class.javaPrimitiveType,
             Boolean::class.javaPrimitiveType,
             Boolean::class.javaPrimitiveType
         )
         method.isAccessible = true
-        method.invoke(manager, legacyVisible, possibleVisible)
-        assertProviderVisibility(manager, legacyVisible, possibleVisible)
+        method.invoke(manager, legacyVisible, possibleVisible, regionVisible)
+        assertProviderVisibility(manager, legacyVisible, possibleVisible, regionVisible)
     }
 
     private fun assertLayerToggle(viewId: Int, label: String, assertProviderVisibility: (Boolean) -> Unit) {
@@ -497,15 +534,17 @@ class OfflinePolygonMapHostInstrumentedTest {
         return privateProperty(controller, "offlinePolygonOverlays")!!
     }
 
-    private fun assertProviderVisibility(manager: Any, legacyVisible: Boolean, possibleVisible: Boolean) {
+    private fun assertProviderVisibility(manager: Any, legacyVisible: Boolean, possibleVisible: Boolean, regionVisible: Boolean = true) {
         assertEquals(legacyVisible, privateProperty(manager, "legacyProvider") != null)
         assertEquals(possibleVisible, privateProperty(manager, "possibleProvider") != null)
+        assertEquals(regionVisible, privateProperty(manager, "regionProvider") != null)
     }
 
     private fun assertProvidersReleased(manager: Any) {
-        assertProviderVisibility(manager, legacyVisible = false, possibleVisible = false)
+        assertProviderVisibility(manager, legacyVisible = false, possibleVisible = false, regionVisible = false)
         assertEquals(null, privateProperty(manager, "legacyOverlay"))
         assertEquals(null, privateProperty(manager, "possibleOverlay"))
+        assertEquals(null, privateProperty(manager, "regionOverlay"))
     }
 
     private fun privateProperty(owner: Any, name: String): Any? {

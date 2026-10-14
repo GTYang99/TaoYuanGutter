@@ -67,3 +67,16 @@
 - Evidence: The user confirmed “沿用現有 WMTS 外觀”. The 2026-10-14 WMTS request returned HTTP 200 for z13/x6856/y3508; its image, request metadata, response properties, and SHA-256 are recorded in `evidence/regions-wmts-baseline.md` and `evidence/regions-wmts-z13-x6856-y3508.png`. The reference shows transparent fill/background, an opaque `#762E77` stroke core (2 px median) with antialiased footprint (4 px median at alpha ≥64 in the recorded transect), and no labels in that tile. Plan Steps 5 and 10 and AC-008 now require matching those style metrics while using the GPKG as geometry truth, and preserving z-index/transparency in all hosts.
 - Resolution: Planning gap resolved and re-reviewed. No production code was changed in Planning.
 - Next action: none
+
+
+## ISS-FEAT-1006-007 — MainActivity emulator map-loaded callback timed out
+
+- Phase: implementation
+- Category: environment
+- Priority: P2
+- Status: open
+- Impact: MainActivity's full map snapshot over a live basemap could not complete in the current emulator run. UI toggles, region tile generation, and provider lifecycle checks did complete before the snapshot wait.
+- Evidence: Final-source MapWorkspaceFragment and form/point-picker host test methods each passed on `emulator-5554`. MainActivity verified the three layer checkboxes, region tile, and provider lifecycle, then timed out after 60 seconds waiting for `onMapLoaded`. Logcat reports `UnknownHostException` for `taipei.srgeo.com.tw`. The current app-process request capture records 0 `regions`, `legacyDitch`, or `roadServey` GET attempts; see `evidence/AC-001-emulator-offline-region-capture.md`.
+- Classification: the offline region data-store and provider tests pass; the remaining failure is unavailable emulator DNS and the resulting base-map callback, not a failed local GPKG query/render assertion.
+- Next action: infrastructure
+- Resolution: pending. Keep MainActivity's host-level visual and toggle acceptance evidence `NOT VERIFIED` until the emulator reports a loaded map.

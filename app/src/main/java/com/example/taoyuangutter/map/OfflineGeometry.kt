@@ -17,6 +17,7 @@ internal data class OfflineGeometry(val polygons: List<OfflinePolygon>)
 internal object OfflinePolygonColors {
     const val LEGACY_ARGB: Long = 0xff156d1dL
     const val POSSIBLE_ARGB: Long = 0xfffa0000L
+    const val REGION_ARGB: Long = 0xff762e77L
 }
 
 internal object OfflineGeometryCodec {
@@ -96,6 +97,14 @@ internal object OfflineGeometryCodec {
             coordinates.maxOf { it.x }, coordinates.maxOf { it.y }
         )
     }
+
+    fun transformToTwd97(geometry: OfflineGeometry): OfflineGeometry = OfflineGeometry(
+        geometry.polygons.map { polygon ->
+            OfflinePolygon(polygon.rings.map { ring ->
+                ring.map { coordinate -> Twd97Projection.longitudeLatitudeToTwd97(coordinate.x, coordinate.y) }
+            })
+        }
+    )
 
     fun fromWkb(blob: ByteArray): OfflineGeometry = readGeometry(ByteBuffer.wrap(blob))
 

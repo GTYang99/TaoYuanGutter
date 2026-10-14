@@ -47,6 +47,31 @@ class OfflineGeometryTest {
     }
 
     @Test
+    fun `administrative GPKG coordinates normalize from GCS TWD97 2020 to EPSG 3826`() {
+        val firstControlPoint = Twd97Projection.longitudeLatitudeToTwd97(121.0, 25.0)
+        assertEquals(250000.0, firstControlPoint.x, 0.01)
+        assertEquals(2765777.564, firstControlPoint.y, 0.01)
+        val firstTilePixel = WebMercatorTileMath.tilePixel(firstControlPoint.x, firstControlPoint.y, 54795, 28065, 16)
+        assertEquals(96.711111, firstTilePixel.x, 0.01)
+        assertEquals(51.128269, firstTilePixel.y, 0.01)
+
+        val projected = Twd97Projection.longitudeLatitudeToTwd97(121.3011, 24.9929)
+        assertEquals(280394.869, projected.x, 0.01)
+        assertEquals(2765024.899, projected.y, 0.01)
+        val tilePixel = WebMercatorTileMath.tilePixel(projected.x, projected.y, 54850, 28066, 16)
+        assertEquals(48.988160, tilePixel.x, 0.01)
+        assertEquals(160.207802, tilePixel.y, 0.01)
+
+        val source = OfflineGeometry(
+            listOf(OfflinePolygon(listOf(listOf(OfflineCoordinate(121.0, 25.0)))))
+        )
+        val normalized = OfflineGeometryCodec.transformToTwd97(source)
+        assertEquals(firstControlPoint, normalized.polygons.single().rings.single().single())
+        assertEquals(0xff762e77L, OfflinePolygonColors.REGION_ARGB)
+        assertEquals(2.5f, OfflinePolygonStyle.REGION_STROKE_WIDTH_PX, 0f)
+    }
+
+    @Test
     fun `GeoPackage geometry header and WKB preserve polygon exterior and hole rings`() {
         val polygon = polygonWkb(
             listOf(

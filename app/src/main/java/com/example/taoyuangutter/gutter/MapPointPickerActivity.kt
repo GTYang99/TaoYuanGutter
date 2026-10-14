@@ -56,7 +56,6 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private val offlinePolygonOverlays by lazy {
         com.example.taoyuangutter.map.OfflinePolygonOverlayManager(this) { googleMap }
     }
-    private var regionWmsOverlay: TileOverlay? = null
 
     // ── 現在位置 ──────────────────────────────────────────────────────────
     private val fusedLocationClient by lazy { LocationServices.getFusedLocationProviderClient(this) }
@@ -243,21 +242,10 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private fun applyBackgroundWmsOverlays() {
         val map = googleMap ?: return
 
-        offlinePolygonOverlays.setVisibility(showWaterOldOverlay, showPossibleOverlay)
+        offlinePolygonOverlays.setVisibility(showWaterOldOverlay, showPossibleOverlay, showRegionOverlay)
 
         // The legacy and possible-gutter overlays use local GeoPackage tile providers.
 
-        // 桃園行政區 (regions)
-        if (showRegionOverlay) {
-            if (regionWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
-                    com.example.taoyuangutter.map.BackgroundWmtsLayer.REGIONS
-                )
-                regionWmsOverlay = map.addTileOverlay(
-                    TileOverlayOptions().tileProvider(provider).zIndex(-0.5f)
-                )
-            }
-        }
     }
 
     private val markers = mutableListOf<Marker>()

@@ -2,6 +2,52 @@
 
 > Historical implementation and emulator evidence for the former two-GPKG scope is retained below. The latest approved FEAT-1006 plan adds the Taoyuan administrative-boundary GPKG and replaces the `regions` WMTS request; these prior results do not verify that additional source or offline region behavior and must not be treated as current acceptance evidence.
 
+## Current Implementation — Offline Taoyuan Administrative Boundary (2026-10-14)
+
+### Changes
+
+- Merged `a86dc3d` into `feat/feat-1006-wmts-offline-data` as merge commit `555dea4`. Kept the approved FEAT-1006 three-GPKG requirement and marked the merge's previous two-source verification as historical.
+- Added `桃園市行政區.gpkg` unchanged (1,081,344 bytes; SHA-256 `aeed88ae15bc53956bbea3e7ebd9a3faf1bf29fc45a6bfaa4188b5333458c1bc`).
+- Added the region source (`桃園市行政區`, SRS id 100000, MultiPolygon) to the shared offline GeoPackage loader. During background index creation, geographic x/y coordinates are projected with the existing GRS80 TWD97 TM2 zone 121 transform and indexed in EPSG:3826 meters. The normalized geometries are cached in the versioned app-private index; the original packaged source is unchanged.
+- Routed the existing region toggle in all four map hosts through the offline tile manager. Region tiles use a transparent background, antialiased `#762E77` outline, no fill, z-index `-0.5f`, and zero transparency. A 2.5 tile-pixel stroke produces measured local-tile medians of 2 px opaque core and 4 px footprint at alpha ≥64. Disable and host teardown release the provider overlay and bounded tile cache. No application call site constructs `Wmts3857TileProvider(REGIONS)`.
+- Removed `.gpkg` suffixes from the two thematic layer titles, keeping `桃園行政區` and all other layer-sheet content unchanged.
+
+### Validation
+
+| Command/check | Result | Evidence / limitation |
+|---|---|---|
+| `:app:testDebugUnitTest` | PASS | Includes the region projection control point and existing outline/geometry tests. |
+| `:app:compileDebugAndroidTestKotlin :app:assembleDebugAndroidTest` | PASS | Instrumentation sources compiled and emulator test APK packaged. |
+| `:app:assembleDebug` | PASS | Debug APK packaged at 49,534,430 bytes; the instrumentation asset test verified all three packaged source sizes and SHA-256 hashes. |
+| `OfflinePolygonDataStoreInstrumentedTest` on `emulator-5554` | PASS | Android emulator; `OK (6 tests)`. The administrative GPKG loaded, queried the recorded z13 reference extent, and rendered exact purple boundary pixels over transparent background. |
+| `OfflinePolygonMapHostInstrumentedTest` on `emulator-5554` | PARTIAL | The MapWorkspaceFragment and combined gutter-form/point-picker methods each passed (`OK (1 test)`). MainActivity verified its three actual layer checkboxes, local region tile, and provider lifecycle before its base-map snapshot timed out waiting for Google's `onMapLoaded` callback. The emulator reported DNS failures for `taipei.srgeo.com.tw`. |
+| Current app-process OkHttp capture | NOT VERIFIED for successful network outcomes | During the passing MapWorkspace test, logcat recorded 96 outgoing GET entries: 0 for `regions`, `legacyDitch`, or `roadServey`, and 91 attempted requests for unrelated `map_ditch_nodes_labels`. DNS failures mean server responses were unavailable. Summary: `evidence/AC-001-emulator-offline-region-capture.md`. |
+| Physical Android phone testing | NOT RUN | Explicitly excluded by user direction. ADB commands selected `emulator-5554`; no command targeted the attached physical device. |
+| WMTS tile-style baseline parity | PASS for generated tile; host snapshot NOT VERIFIED | The local z13 tile has transparent background, exact `#762E77` pixels, 2 px opaque-core median and 4 px alpha≥64 footprint median. MainActivity snapshot over the live basemap could not complete because of emulator DNS failure. |
+| Remote CI / independent verification | NOT VERIFIED | No push or CI run was requested for this FEAT-1006 branch; independent Verification has not started. |
+
+The MainActivity test was repeated with the project's ignored local Maps configuration; layer checkbox, local tile, and lifecycle assertions completed, then the live map snapshot timed out. Emulator logcat reported `UnknownHostException` for `taipei.srgeo.com.tw`. The temporary worktree `local.properties` copy was removed after validation.
+
+### Acceptance-Criteria Status
+
+- AC-001: NOT VERIFIED end-to-end. All three packaged hashes pass and the region tile renders locally. The app-process capture observed no `regions`, `legacyDitch`, or `roadServey` GET attempt, but emulator DNS was unavailable so the capture cannot establish successful network behavior.
+- AC-002: NOT VERIFIED for geographic alignment over a live base map. The two thematic layers retain their tested colors and rendering path; the projection control point passes.
+- AC-003: PARTIAL. Region visibility is routed through the common manager in all four hosts. MainActivity and MapWorkspaceFragment region checkbox toggles were exercised; form and picker rendered the enabled region tile. The MainActivity live map presentation could not be inspected after the base-map callback timeout.
+- AC-004: PARTIAL. Focused camera/navigation assertions passed in the three successful host-test paths; MainActivity's full host scenario could not finish after its base map did not report loaded.
+- AC-005: PASS. All four host test paths completed provider release/re-enable/deduplication checks before the MainActivity snapshot wait.
+- AC-006: PASS. Instrumentation asserts the extension-free thematic titles and existing administrative label; no other layer-sheet text/layout was changed.
+- AC-007: PASS. Existing zoom-dependent thematic outline profile tests pass and the renderer behavior is unchanged for those layers.
+- AC-008: NOT VERIFIED end-to-end. The source hash, local indexing/query, normalized region geometry, z13 offline tile, alpha behavior, and measured stroke-width parity are verified. The emulator's failed DNS resolution leaves successful request and MainActivity live-map presentation evidence unavailable.
+
+### Handoff
+
+- Branch: `feat/feat-1006-wmts-offline-data`
+- Merge commit: `555dea4fd6d5c72c101935ad6020223255687b09`
+- Implementation commit: pending
+- Application ID: `com.example.taoyuangutter`
+- Runtime test environment: Android emulator `emulator-5554` only; no physical-phone test.
+- CI: pending; no remote result available. Independent Verification and Release have not started.
+
 ## Historical Reimplementation — Two GPKG Overlays, WMTS Regions (2026-10-08; superseded scope)
 
 ### Implementation

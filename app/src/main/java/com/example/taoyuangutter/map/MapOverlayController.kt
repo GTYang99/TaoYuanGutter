@@ -25,7 +25,6 @@ class MapOverlayController(
     )
 
     private var currentTileOverlay: TileOverlay? = null
-    private var regionWmsOverlay: TileOverlay? = null
     private var noDitchPointsWmsOverlay: TileOverlay? = null
     private var deletedAreaWmsOverlay: TileOverlay? = null
     private var measureLabelsWmsOverlay: TileOverlay? = null
@@ -119,7 +118,7 @@ class MapOverlayController(
         val offlineOverlays = offlinePolygonOverlays ?: context?.let {
             OfflinePolygonOverlayManager(it, mapProvider).also { manager -> offlinePolygonOverlays = manager }
         }
-        offlineOverlays?.setVisibility(showWaterOldOverlay, showPossibleOverlay)
+        offlineOverlays?.setVisibility(showWaterOldOverlay, showPossibleOverlay, showRegionOverlay)
 
         if (showDeletedAreaOverlay) {
             if (deletedAreaWmsOverlay == null) {
@@ -130,18 +129,6 @@ class MapOverlayController(
         } else {
             deletedAreaWmsOverlay?.remove()
             deletedAreaWmsOverlay = null
-        }
-
-        if (showRegionOverlay) {
-            if (regionWmsOverlay == null) {
-                val provider = Wmts3857TileProvider(BackgroundWmtsLayer.REGIONS)
-                regionWmsOverlay = map.addTileOverlay(
-                    TileOverlayOptions().tileProvider(provider).zIndex(-0.5f).transparency(0f)
-                )
-            }
-        } else {
-            regionWmsOverlay?.remove()
-            regionWmsOverlay = null
         }
 
         if (showNoDitchPointsOverlay) {

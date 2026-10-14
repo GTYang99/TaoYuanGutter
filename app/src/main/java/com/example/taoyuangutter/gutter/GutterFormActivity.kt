@@ -519,7 +519,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
     private val offlinePolygonOverlays by lazy {
         com.example.taoyuangutter.map.OfflinePolygonOverlayManager(this) { formMap }
     }
-    private var regionWmsOverlay: TileOverlay? = null
 
     private val sessionMarkers = mutableListOf<Marker>()
     private val importCandidateMarkers = mutableListOf<Marker>() // 候選點標記列表
@@ -1814,21 +1813,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
     private fun applyBackgroundWmsOverlays() {
         val map = formMap ?: return
 
-        offlinePolygonOverlays.setVisibility(showWaterOldOverlay, showPossibleOverlay)
+        offlinePolygonOverlays.setVisibility(showWaterOldOverlay, showPossibleOverlay, showRegionOverlay)
 
         // The legacy and possible-gutter overlays use local GeoPackage tile providers.
 
-        // 桃園行政區 (regions)
-        if (showRegionOverlay) {
-            if (regionWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
-                    com.example.taoyuangutter.map.BackgroundWmtsLayer.REGIONS
-                )
-                regionWmsOverlay = map.addTileOverlay(
-                    com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(-0.5f)
-                )
-            }
-        }
     }
 
     private fun updateFormMapViewportPadding() {
