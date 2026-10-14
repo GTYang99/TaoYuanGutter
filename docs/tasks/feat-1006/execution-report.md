@@ -47,7 +47,7 @@ The emulator was online for this run and successfully returned HTTP 200 for the 
 - Latest validated implementation/test revision: `630936735d859f8d4364956b0a6602030cdb0cf9` (`test(FEAT-1006): make map host checks deterministic`).
 - Application ID: `com.example.taoyuangutter`
 - Runtime test environment: Android emulator `emulator-5554` only; no physical-phone test.
-- CI: pending; no remote result available. Independent Verification and Release have not started. The task is ready for CI/independent verification once the implementation evidence commit is created.
+- CI: NOT VERIFIED. GitHub reports the configured upstream at `b5254c76d22b9eed77805b8d32601e2572358f9d`; there is no workflow run/status for it or local HEAD `cc97a559aa6b4bc6bc98d3f2e1dbe0a3b0e0bb83`, and no matching FEAT-1006 pull request. The local branch is 51 commits ahead. Independent Verification and Release have not started. Pushing to the upstream would expose those commits and trigger CI; that write is awaiting user authorization.
 
 ## Historical Reimplementation — Two GPKG Overlays, WMTS Regions (2026-10-08; superseded scope)
 

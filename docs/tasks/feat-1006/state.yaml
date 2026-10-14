@@ -2,8 +2,8 @@ task:
   id: FEAT-1006
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: infrastructure
+status: infrastructure_in_progress
 
 knowledge_resolution:
   status: resolved
