@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="1" failures="1" errors="0" skipped="0" time="0.000" timestamp="2026-10-08T01:40:37" hostname="localhost">
+  <testsuite name="com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest" tests="1" failures="1" errors="0" skipped="0" time="0.009" timestamp="2026-10-08T01:40:37" hostname="localhost">
+    <properties>
+      <property name="device" value="emulator-5554" />
+    </properties>
+    <testcase name="manualPanBeforeFusedCallbackKeepsUserCameraPosition" classname="com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest" time="0.009">
+      <failure>java.util.concurrent.ExecutionException: com.google.android.gms.common.GooglePlayServicesMissingManifestValueException: A required meta-data tag in your app's AndroidManifest.xml does not exist.  You must have the following declaration within the &lt;application&gt; element:     &lt;meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" /&gt;
+	at com.google.android.gms.tasks.Tasks.zza(com.google.android.gms:play-services-tasks@@18.1.0:5)
+	at com.google.android.gms.tasks.Tasks.await(com.google.android.gms:play-services-tasks@@18.1.0:20)
+	at com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest.manualPanBeforeFusedCallbackKeepsUserCameraPosition(EditMapInitialLocationInstrumentedTest.kt:122)
+	... 32 trimmed
+Caused by: com.google.android.gms.common.GooglePlayServicesMissingManifestValueException: A required meta-data tag in your app's AndroidManifest.xml does not exist.  You must have the following declaration within the &lt;application&gt; element:     &lt;meta-data android:name="com.google.android.gms.version" android:value="@integer/google_play_services_version" /&gt;
+	at com.google.android.gms.common.GooglePlayServicesUtilLight.isGooglePlayServicesAvailable(com.google.android.gms:play-services-basement@@18.3.0:8)
+	at com.google.android.gms.common.GoogleApiAvailabilityLight.isGooglePlayServicesAvailable(com.google.android.gms:play-services-basement@@18.3.0:2)
+	at com.google.android.gms.common.GoogleApiAvailability.isGooglePlayServicesAvailable(com.google.android.gms:play-services-base@@18.4.0:2)
+	at com.google.android.gms.common.internal.zal.zab(com.google.android.gms:play-services-base@@18.4.0:9)
+	at com.google.android.gms.common.api.internal.zabq.zao(com.google.android.gms:play-services-base@@18.4.0:3)
+	at com.google.android.gms.common.api.internal.zabq.zap(com.google.android.gms:play-services-base@@18.4.0:8)
+	at com.google.android.gms.common.api.internal.GoogleApiManager.handleMessage(com.google.android.gms:play-services-base@@18.4.0:64)
+	at android.os.Handler.dispatchMessage(Handler.java:102)
+	at android.os.Looper.loopOnce(Looper.java:205)
+	at android.os.Looper.loop(Looper.java:294)
+	at android.os.HandlerThread.run(HandlerThread.java:67)
+</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

@@ -111,7 +111,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
          * 新增模式下 storeDitch 失敗時回呼（供 MainActivity 存為待上傳草稿）。
          */
         fun onGutterSaveFailed(waypoints: List<Waypoint>)
-        /** 新增模式下 storeDitch 失敗時，先關閉主畫面的 blocking loading。 */
+        /** storeDitch 提交失敗並顯示決策對話框前，關閉主畫面的 blocking loading。 */
         fun onGutterSubmitFailed()
         /**
          * 使用者確認新增流程的失敗 Alert 後，讓 multi-gutter host 保存草稿並回到目前清單。
@@ -171,7 +171,12 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     private var routeToActivity = false
 
     // ── Repository（storeDitch API） ──────────────────────────────────────
-    private val repository by lazy { GutterRepository() }
+    internal var repositoryFactoryForTests: (() -> GutterRepository)? = null
+    @Volatile
+    internal var onFailureDialogShownForTests: ((androidx.appcompat.app.AlertDialog) -> Unit)? = null
+    private val repository by lazy {
+        repositoryFactoryForTests?.invoke() ?: GutterRepository()
+    }
     private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(requireActivity()) }
 
     // ── 資料 ─────────────────────────────────────────────────────────────
@@ -1298,6 +1303,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                             "StoreDitch",
                             "edit failed: message=${result.message}, code=${result.code}"
                         )
+                        locationPickerHost()?.onGutterSubmitFailed()
                         showSelf()
                         updateSubmitButtonState()
                         if (result.code == 401) {
@@ -1353,6 +1359,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                 throw e
             } catch (e: Exception) {
                 android.util.Log.e("StoreDitch", "edit exception: ${e.message}", e)
+                locationPickerHost()?.onGutterSubmitFailed()
                 showSelf()
                 updateSubmitButtonState()
                 if (UploadFailureClassifier.isNetworkFailureMessage(e.localizedMessage)) {
@@ -1554,13 +1561,14 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
         onSaveDraft: () -> Unit
     ) {
         if (activity.isFinishing || activity.isDestroyed) return
-        MaterialAlertDialogBuilder(activity)
+        val dialog = MaterialAlertDialogBuilder(activity)
             .setTitle("上傳失敗")
             .setMessage(message)
             .setNegativeButton("存入草稿") { _, _ -> onSaveDraft() }
             .setPositiveButton("重傳") { _, _ -> onRetry() }
             .setCancelable(false)
             .show()
+        onFailureDialogShownForTests?.invoke(dialog)
     }
 
     private fun showStoreDitchNetworkTimeoutDialog(

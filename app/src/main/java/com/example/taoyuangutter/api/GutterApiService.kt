@@ -23,6 +23,11 @@ import retrofit2.http.Query
 
 interface GutterApiService {
 
+    /** Parameter-free version check; caller selects the fixed BASE Retrofit service. */
+    @GET("api/appVersion")
+    suspend fun getAppVersion(): Response<AppVersionResponse>
+
+
     /**
      * 使用者登入。
      *
@@ -317,6 +322,15 @@ object GutterApiClient {
                 .build()
                 .create(GutterApiService::class.java)
         }
+
+    /** Test-environment service pinned independently from the user-selectable backend target. */
+    internal fun versionCheckService(): GutterApiService =
+        Retrofit.Builder()
+            .baseUrl(BackendEndpoints.VERSION_CHECK_TEST_BASE_URL)
+            .client(BackendHttpClient.instance)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(GutterApiService::class.java)
 
     internal fun resetTargetForTests() {
         selectedTarget = ApiBackendTarget.TAIPEI

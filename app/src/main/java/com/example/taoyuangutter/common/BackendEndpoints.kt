@@ -7,6 +7,7 @@ package com.example.taoyuangutter.common
 object BackendEndpoints {
     const val ACTIVE_HOST = "taipei.srgeo.com.tw"
     const val BASE_API_URL = "http://192.168.10.84/TY_RSGDBIP/"
+    const val VERSION_CHECK_TEST_BASE_URL = "http://192.168.10.84/TY_RSGDBIP/"
     const val TAIPEI_API_URL = "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/"
     const val DEMO_API_URL = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/"
     //const val ACTIVE_API_BASE_URL = "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/"

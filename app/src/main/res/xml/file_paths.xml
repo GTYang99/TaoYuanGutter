@@ -4,4 +4,6 @@
     <external-files-path name="gutter_images_external" path="Pictures/" />
     <!-- 內部儲存（模擬器或外部儲存不可用時的 fallback） -->
     <files-path name="gutter_images_internal" path="." />
+    <!-- Only the downloaded update APK cache is shared with Android Package Installer. -->
+    <cache-path name="app_update_cache" path="app-update/" />
 </paths>

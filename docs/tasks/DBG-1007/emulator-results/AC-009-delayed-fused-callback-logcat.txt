@@ -1,0 +1,5 @@
+10-08 10:09:17.233 25218 25246 I TestRunner: started: manualPanBeforeFusedMockCallbackKeepsManualCameraTarget(com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest)
+10-08 10:09:17.496 25257 25257 I DBG1007MockLocation: Mock provider action completed: disable
+10-08 10:09:21.076 25257 25257 I DBG1007MockLocation: Mock provider action completed: enable
+10-08 10:09:22.602 25257 25257 I DBG1007MockLocation: Mock provider action completed: disable
+10-08 10:09:23.582 25218 25246 I TestRunner: finished: manualPanBeforeFusedMockCallbackKeepsManualCameraTarget(com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest)

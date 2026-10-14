@@ -11,6 +11,30 @@ import kotlin.math.tan
 
 class OfflineGeometryTest {
     @Test
+    fun `offline polygon outline gets thicker at broad scale and thinner at close scale`() {
+        assertEquals(2.5f, OfflinePolygonStyle.outlineWidthPxAtZoom(15), 0f)
+        assertEquals(2.5f, OfflinePolygonStyle.outlineWidthPxAtZoom(16), 0f)
+        assertEquals(2f, OfflinePolygonStyle.outlineWidthPxAtZoom(18), 0f)
+        assertEquals(1.5f, OfflinePolygonStyle.outlineWidthPxAtZoom(20), 0f)
+        assertEquals(1.5f, OfflinePolygonStyle.outlineWidthPxAtZoom(21), 0f)
+    }
+
+    @Test
+    fun `offline polygon outline profile values are adjustable`() {
+        assertEquals(
+            3f,
+            OfflinePolygonStyle.outlineWidthPxAtZoom(
+                zoom = 14,
+                broadScaleWidthPx = 4f,
+                closeScaleWidthPx = 2f,
+                broadScaleZoom = 12,
+                closeScaleZoom = 16
+            ),
+            0f
+        )
+    }
+
+    @Test
     fun `projection maps central meridian and round trips Taoyuan coordinates`() {
         val centralMeridian = Twd97Projection.longitudeLatitudeToTwd97(121.0, 0.0)
         assertEquals(250000.0, centralMeridian.x, 0.001)
@@ -54,6 +78,26 @@ class OfflineGeometryTest {
         assertEquals(2, decoded.polygons.size)
         assertEquals(2, decoded.polygons[0].rings.size)
         assertEquals(2, decoded.polygons[1].rings.size)
+    }
+
+    @Test
+    fun `GeoPackage MultiPolygon decoding keeps all polygon members and holes`() {
+        val polygon = OfflinePolygon(
+            listOf(
+                listOf(OfflineCoordinate(1.0, 2.0), OfflineCoordinate(3.0, 2.0), OfflineCoordinate(1.0, 2.0)),
+                listOf(OfflineCoordinate(1.5, 2.1), OfflineCoordinate(1.7, 2.1), OfflineCoordinate(1.5, 2.1))
+            )
+        )
+        val wkb = OfflineGeometryCodec.fromGeoJsonMultiPolygon(listOf(polygon, polygon))
+        val geoPackage = ByteBuffer.allocate(8 + wkb.size).order(ByteOrder.LITTLE_ENDIAN)
+            .put('G'.code.toByte()).put('P'.code.toByte()).put(0).put(1)
+            .putInt(3826).put(wkb).array()
+
+        val decoded = OfflineGeometryCodec.fromGeoPackage(geoPackage)
+        assertEquals(2, decoded.polygons.size)
+        assertEquals(2, decoded.polygons[0].rings.size)
+        assertEquals(2, decoded.polygons[1].rings.size)
+        assertEquals(1.5, decoded.polygons[1].rings.last().first().x, 0.0)
     }
 
     @Test

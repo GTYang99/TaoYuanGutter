@@ -19,7 +19,7 @@ import java.util.concurrent.ExecutionException
 internal class OfflinePolygonTileProvider(
     context: Context,
     private val layer: OfflinePolygonLayer,
-    private val outlineWidthPx: Float = OfflinePolygonStyle.OFFLINE_POLYGON_STROKE_WIDTH_PX
+    private val outlineWidthPx: Float? = null
 ) : TileProvider {
     private data class TileKey(val x: Int, val y: Int, val zoom: Int)
 
@@ -45,7 +45,13 @@ internal class OfflinePolygonTileProvider(
             if (released) return NO_TILE
             val features = source.query(bounds)
             if (features.isEmpty()) return NO_TILE
-            val rendered = render(features, x, y, zoom)
+            val rendered = render(
+                features,
+                x,
+                y,
+                zoom,
+                outlineWidthPx ?: OfflinePolygonStyle.outlineWidthPxAtZoom(zoom)
+            )
             synchronized(cacheLock) {
                 if (released) return NO_TILE
                 tileCache.put(key, rendered)
@@ -70,7 +76,7 @@ internal class OfflinePolygonTileProvider(
         }
     }
 
-    private fun render(features: List<ByteArray>, x: Int, y: Int, zoom: Int): Tile {
+    private fun render(features: List<ByteArray>, x: Int, y: Int, zoom: Int, outlineWidthPx: Float): Tile {
         val bitmap = Bitmap.createBitmap(TILE_SIZE, TILE_SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -84,8 +90,7 @@ internal class OfflinePolygonTileProvider(
         }
         features.forEach { blob ->
             val geometry = try {
-                if (layer == OfflinePolygonLayer.LEGACY) OfflineGeometryCodec.fromGeoPackage(blob)
-                else OfflineGeometryCodec.fromWkb(blob)
+                OfflineGeometryCodec.fromGeoPackage(blob)
             } catch (failure: Exception) {
                 if (geometryFailureLogged.compareAndSet(false, true)) {
                     Log.e(TAG, "Skipping an unreadable ${layer.name} polygon geometry", failure)
@@ -123,7 +128,24 @@ internal class OfflinePolygonTileProvider(
 }
 
 internal object OfflinePolygonStyle {
-    const val OFFLINE_POLYGON_STROKE_WIDTH_PX = 2f
+    const val BROAD_SCALE_REFERENCE_ZOOM = 16
+    const val CLOSE_SCALE_REFERENCE_ZOOM = 20
+    const val BROAD_SCALE_STROKE_WIDTH_PX = 2.5f
+    const val CLOSE_SCALE_STROKE_WIDTH_PX = 1.5f
+
+    fun outlineWidthPxAtZoom(
+        zoom: Int,
+        broadScaleWidthPx: Float = BROAD_SCALE_STROKE_WIDTH_PX,
+        closeScaleWidthPx: Float = CLOSE_SCALE_STROKE_WIDTH_PX,
+        broadScaleZoom: Int = BROAD_SCALE_REFERENCE_ZOOM,
+        closeScaleZoom: Int = CLOSE_SCALE_REFERENCE_ZOOM
+    ): Float {
+        require(closeScaleZoom > broadScaleZoom) { "Close-scale zoom must be greater than broad-scale zoom" }
+        if (zoom <= broadScaleZoom) return broadScaleWidthPx
+        if (zoom >= closeScaleZoom) return closeScaleWidthPx
+        val progress = (zoom - broadScaleZoom).toFloat() / (closeScaleZoom - broadScaleZoom)
+        return broadScaleWidthPx + (closeScaleWidthPx - broadScaleWidthPx) * progress
+    }
 }
 
 internal class OfflinePolygonOverlayManager(

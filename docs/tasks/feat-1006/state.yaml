@@ -2,8 +2,8 @@ task:
   id: FEAT-1006
   type: feature
 
-phase: plan_review
-status: approved
+phase: implementation
+status: implementation_in_progress
 
 knowledge_resolution:
   status: resolved
@@ -15,14 +15,14 @@ plan_review:
   status: approved
 
 implementation:
-  status: pending
+  status: in_progress
 
 validation:
   status: pending
 
 git:
   branch: feat/feat-1006-wmts-offline-data
-  commit: b5254c7
+  commit: pending
   status: pending
 
 verification:

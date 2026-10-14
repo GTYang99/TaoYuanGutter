@@ -1,4 +1,7 @@
+import java.io.File
 import java.io.FileInputStream
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.Properties
 import kotlin.toString
 
@@ -10,7 +13,7 @@ plugins {
     id("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
 }
 
-fun getVersionCode(): Int {
+fun getConfiguredVersionCode(): Int {
     val propertiesFile = project.file("version.properties")
     if (!propertiesFile.canRead()) {
         throw GradleException("Could not read ${propertiesFile.name}")
@@ -31,6 +34,23 @@ fun getVersionName(): String {
     return "${properties["P1_VERSION_NAME_MAJOR"]}.${properties["P2_VERSION_NAME_MINOR"]}.${properties["P3_VERSION_NAME_BUILD"]}"
 }
 
+val versionPropertiesFile = project.file("version.properties")
+val currentVersionCode = getConfiguredVersionCode()
+require(currentVersionCode < Int.MAX_VALUE) { "P0_VERSION_CODE has reached the Android versionCode limit" }
+val releaseVersionCode = currentVersionCode + 1
+val localSigningProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.isFile) file.inputStream().use(::load)
+}
+fun signingValue(property: String, environment: String): String? =
+    System.getenv(environment)?.takeIf(String::isNotBlank)
+        ?: localSigningProperties.getProperty(property)?.takeIf(String::isNotBlank)
+val updateKeystorePath = signingValue("UPDATE_KEYSTORE_FILE", "UPDATE_KEYSTORE_FILE")
+val updateKeyAlias = signingValue("UPDATE_KEY_ALIAS", "UPDATE_KEY_ALIAS")
+val updateKeyPassword = signingValue("UPDATE_KEY_PASSWORD", "UPDATE_KEY_PASSWORD")
+val updateStorePassword = signingValue("UPDATE_STORE_PASSWORD", "UPDATE_STORE_PASSWORD")
+val updateSigningConfigured = listOf(updateKeystorePath, updateKeyAlias, updateKeyPassword, updateStorePassword).all { it != null }
+
 android {
     namespace = "com.example.taoyuangutter"
     compileSdk = 36
@@ -39,14 +59,26 @@ android {
         applicationId = "com.example.taoyuangutter"
         minSdk = 24
         targetSdk = 36
-        versionCode = getVersionCode()
+        versionCode = releaseVersionCode
         versionName = getVersionName()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("updateRelease") {
+            if (updateSigningConfigured) {
+                val configuredFile = File(updateKeystorePath!!).let { if (it.isAbsolute) it else rootProject.file(it) }
+                storeFile = configuredFile
+                keyAlias = updateKeyAlias
+                keyPassword = updateKeyPassword
+                storePassword = updateStorePassword
+            }
+        }
+    }
     buildTypes {
         release {
+            if (updateSigningConfigured) signingConfig = signingConfigs.getByName("updateRelease")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -119,4 +151,34 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+}
+
+
+// The lifecycle task has no outputs, so this action runs after its dependencies on every invocation.
+// A dependency failure prevents the action from running; a successful assembly consumes the code.
+tasks.configureEach {
+    if (name == "assembleRelease") {
+        doFirst {
+        if (!updateSigningConfigured) {
+            throw GradleException("Release APK signing is required. Configure UPDATE_KEYSTORE_FILE, UPDATE_KEY_ALIAS, UPDATE_KEY_PASSWORD, and UPDATE_STORE_PASSWORD in ignored local.properties or protected environment variables.")
+        }
+        if (updateKeystorePath != null) {
+            val signingFile = File(updateKeystorePath).let { if (it.isAbsolute) it else rootProject.file(it) }
+            if (!signingFile.isFile) throw GradleException("Configured release keystore file is unavailable.")
+        }
+    }
+        doLast {
+            val oldText = versionPropertiesFile.readText()
+            val codeLine = Regex("(?m)^P0_VERSION_CODE=[^\r\n]*$")
+            check(codeLine.containsMatchIn(oldText)) { "P0_VERSION_CODE is missing from version.properties" }
+            val updatedText = codeLine.replace(oldText, "P0_VERSION_CODE=$releaseVersionCode")
+            val temporary = File(versionPropertiesFile.parentFile, versionPropertiesFile.name + ".tmp")
+            temporary.writeText(updatedText)
+            try {
+                Files.move(temporary.toPath(), versionPropertiesFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING)
+            } catch (_: Exception) {
+                Files.move(temporary.toPath(), versionPropertiesFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+        }
+    }
 }

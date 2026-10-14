@@ -90,7 +90,7 @@
     <string name="layers_sheet_basemap">底圖切換</string>
     <string name="layers_sheet_plan">本次計畫調查</string>
     <string name="layers_sheet_water_old">水務局舊資料（.gpkg）</string>
-    <string name="layers_sheet_possible">可能側溝位置（.geojson）</string>
+    <string name="layers_sheet_possible">可能側溝位置（.gpkg）</string>
     <string name="layers_sheet_region">桃園行政區</string>
     <string name="layers_sheet_no_ditch_points">無側溝點位</string>
     <string name="layers_sheet_deleted_area">0910刪除資料</string>
@@ -230,6 +230,14 @@
     <string name="msg_location_permission_required">需要定位權限才能使用「現在位置」功能</string>
     <string name="msg_location_not_available">尚未取得定位，請稍後再試</string>
     <string name="msg_location_failed">定位失敗：%1$s</string>
+    <string name="edit_map_location_permission_title">需要定位權限</string>
+    <string name="edit_map_location_permission_retry">編輯點位缺少座標，無法將地圖移到目前位置。是否再次詢問定位權限？</string>
+    <string name="edit_map_location_retry">再試一次</string>
+    <string name="edit_map_location_unavailable_title">目前無法取得定位資訊</string>
+    <string name="edit_map_location_unavailable_message">地圖會維持在預設位置，您仍可手動移動地圖繼續編輯。</string>
+    <string name="edit_map_location_settings_message">請到系統設定開啟定位權限；返回後會再嘗試一次。您也可以繼續使用預設地圖位置。</string>
+    <string name="edit_map_location_open_settings">前往設定</string>
+    <string name="edit_map_location_continue">繼續編輯</string>
 
     <!-- 表單欄位標籤 -->
     <string name="field_gutter_material">側溝材質</string>
@@ -350,4 +358,22 @@
     <string name="api_environment_base">內網 BASE</string>
     <string name="api_environment_taipei">台北</string>
     <string name="api_environment_demo">DEMO</string>
+
+    <string name="update_available_title">發現新版本 %1$s</string>
+    <string name="update_available_message">是否下載並安裝最新版本？</string>
+    <string name="update_go">前往更新</string>
+    <string name="update_continue">繼續使用</string>
+    <string name="update_download_title">下載更新</string>
+    <string name="update_download_starting">準備下載…</string>
+    <string name="update_download_progress">下載中 %1$d%%</string>
+    <string name="update_download_bytes">已下載 %1$d bytes</string>
+    <string name="update_cancel">取消下載</string>
+    <string name="update_download_failed_title">下載失敗</string>
+    <string name="update_download_failed_message">無法下載更新。請檢查網路後重試，或繼續使用目前版本。</string>
+    <string name="update_retry">重試</string>
+    <string name="update_install_permission_title">允許安裝更新</string>
+    <string name="update_install_permission_message">請在系統設定中允許此 App 安裝未知來源應用程式，返回後會繼續安裝。</string>
+    <string name="update_open_settings">開啟設定</string>
+    <string name="update_install_permission_not_granted">尚未允許安裝未知來源應用程式，可稍後再更新。</string>
+
 </resources>
