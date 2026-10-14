@@ -1,4 +1,4 @@
-# FEAT-1006 Independent Verification
+# Historical FEAT-1006 Verification — Two-GPKG Scope
 
 ## Target Revision and Initial State
 
@@ -59,3 +59,35 @@ Reviewed `AGENTS.md`, `ai/verification-rules.md`, `ai/testing-rules.md`, `ai/iss
 - `phase`: `verification`
 - `status`: `verification_not_verified`
 - `next_action`: `infrastructure`
+
+## Current Independent Verification — Three GPKG Scope
+
+### Revision and Evidence Basis
+
+- Task: `FEAT-1006`.
+- Target: `ede6d5b79d26a9bceb8b36fdcfd53791c7736efb`, branch `feat/feat-1006-wmts-offline-data`.
+- Initial worktree was clean. The diff from latest emulator-validated implementation/test commit `630936735d859f8d4364956b0a6602030cdb0cf9` to this target contains documentation updates only; no application or test source changed after the recorded emulator run.
+- Independently checked the three app source asset hashes against the approved manifest and read back the current Debug APK `app/build/outputs/apk/debug/app-debug.apk`. Its three GPKG entries each match the source byte-for-byte and SHA-256; the superseded GeoJSON entry is absent. APK size is 49,303,843 bytes.
+- Reviewed the current source, unit and instrumentation assertions, `execution-report.md`, the emulator request capture, screenshots, style baseline evidence, plan, and prior implementation diff. Runtime evidence reused from the committed Android 16 emulator run on `emulator-5554` (`sdk_gphone16k_arm64`); no new App/runtime command was run during this independent review, and no physical device was used.
+- GitHub Actions [Android CI run #15](https://github.com/GTYang99/TaoYuanGutter/actions/runs/38526214063) was independently fetched. It has `head_sha=ede6d5b79d26a9bceb8b36fdcfd53791c7736efb`, status `completed`, conclusion `success`; its `Unit tests and debug build` job passed the task-scoped JVM tests and Debug APK assembly.
+- `git diff --check 6309367..HEAD` — PASS. No Release build, merge, or deployment was performed as part of Verification.
+
+### Acceptance Criteria
+
+| AC | Result | Evidence |
+|---|---|---|
+| AC-001 | PASS | Instrumentation checks the three packaged GPKGs against recorded size and SHA-256; direct APK readback independently confirms all three current Debug APK entries match source bytes exactly and no GeoJSON is packaged. The emulator OkHttp capture recorded 0 `legacyDitch`, `roadServey`, or `regions` requests among 113 successful GETs while unrelated map traffic remained active. All four host providers were exercised by the emulator host suite. |
+| AC-002 | PASS | JVM and emulator tile assertions cover exact opaque `#156D1D`/`#FA0000` fills, Polygon holes, MultiPolygon members, and EPSG:3826 projection control points. Saved MainActivity screenshots show the two thematic layers over the loaded basemap; region projection is normalized from its GPKG-declared geographic CRS before indexing. |
+| AC-003 | PASS | The committed emulator host test covers MainActivity and MapWorkspaceFragment toggles and the gutter-form and point-picker hosts with requested overlay visibility. It queries local thematic/region providers in each host and checks provider visibility. The test source and implementation remain unchanged at the target. |
+| AC-004 | PASS | The Android 16 emulator host suite completed 3 tests in 75.925 seconds, exercised pan/zoom through populated and sparse areas across the four hosts, and reported no crash, ANR, or failed map-ready callback. Camera changes returned in under one second; recorded MainActivity PSS was 164,785 KiB. These are focused scenario observations, not a broad performance profile. |
+| AC-005 | PASS | Instrumentation asserts provider/overlay cleanup on disable and host teardown, bounded tile cache (48 entries), no duplicate provider on repeated enable, one provider after re-enable, and `NO_TILE` after release. The same checks ran in the committed emulator suite. |
+| AC-006 | PASS | Source and instrumentation assert exact titles `水務局舊資料`, `可能側溝位置`, and preserved `桃園行政區`; the two thematic suffixes are absent. Review of the layer-sheet change found no other label/layout change in scope. |
+| AC-007 | PASS | `OfflinePolygonStyle` exposes endpoint widths/reference zooms and interpolates continuously; JVM assertions cover 2.5 at/below zoom 16, 2.0 at zoom 18, 1.5 at/above zoom 20, and alternate parameters. Emulator tests render both real thematic GPKGs at zooms 16/18/20 and show edge changes under alternate widths while preserving interior fill and holes. |
+| AC-008 | PASS | The packaged source and instrumentation verify table `桃園市行政區`, SRS 100000, MultiPolygon metadata, and 13 features. Projection control-point tests and the emulator's populated z13 tile validate coordinate normalization. The local style matches the saved WMTS baseline (transparent background, `#762E77` stroke, 2 px opaque core / 4 px antialiased footprint); all four hosts exercise the region provider and visibility. The live emulator capture observed 0 `regions` requests; controls/order/z-index/transparency are checked by tests/source. |
+
+### Regression Review and Result
+
+- No unrelated feature-data requests replaced the local data path; the request capture includes 109 successful unrelated `map_ditch_nodes_labels` requests and no prohibited feature requests.
+- Four-host instrumentation, real-data tile assertions, asset readback, projection/style tests, and CI all pass. Physical-device evidence is intentionally out of scope under the approved emulator-only constraint.
+- All AC-001 through AC-008: **PASS**. CI build and test: **PASS** for the exact target SHA. Overall Verification: **PASS**.
+- Current state: `phase: verification`, `status: verification_passed`, `next_action: release`. Release signoff remains a separate phase; this Verification did not build or publish a Release artifact.

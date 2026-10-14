@@ -88,7 +88,7 @@
 - Priority: P1
 - Status: closed
 - Impact: Before the authorized push, the task could not pass its CI gate without a remote result for the committed FEAT-1006 revision.
-- Evidence: The user authorized pushing to `origin/feat/FEAT-1006-wmts-offline-data`. Push `fd0d7f0b195605ffd0e0888bfaf2a10491730e3c` triggered [GitHub Actions run #14](https://github.com/GTYang99/TaoYuanGutter/actions/runs/38525700938), which completed successfully. The task-scoped JVM tests and debug APK assembly both passed.
-- Classification: environment / CI evidence unavailable.
-- Next action: verification
-- Resolution: Resolved after the authorized push and successful remote CI run. Independent acceptance-criteria verification remains pending.
+- Evidence: Push `ede6d5b79d26a9bceb8b36fdcfd53791c7736efb` triggered [GitHub Actions run #15](https://github.com/GTYang99/TaoYuanGutter/actions/runs/38526214063), whose API record confirms `head_sha=ede6d5b79d26a9bceb8b36fdcfd53791c7736efb`, `status=completed`, and `conclusion=success`. The `Unit tests and debug build` job passed both task-scoped JVM tests and Debug APK assembly. Independent Verification now passes on this exact revision.
+- Classification: environment / CI evidence unavailable (resolved).
+- Next action: release
+- Resolution: Resolved after CI run #15 and independent Verification passed for the exact current revision. No merge or release was performed by Verification.
