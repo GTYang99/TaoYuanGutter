@@ -19,6 +19,6 @@ That artifact and its measurements are historical only. They do not verify packa
 
 ## Current Debug APK Packaging Evidence (2026-10-14)
 
-- Debug APK: `app/build/outputs/apk/debug/app-debug.apk` — 49,534,430 bytes.
-- Android instrumentation readback passed for all three packaged GPKGs, including the Taoyuan region source size and SHA-256 above.
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk` — 49,303,843 bytes.
+- Direct APK ZIP-entry readback and Android instrumentation both passed for all three packaged GPKGs; byte lengths and SHA-256 values match the source table above.
 - This is a debug build artifact, not a release package.

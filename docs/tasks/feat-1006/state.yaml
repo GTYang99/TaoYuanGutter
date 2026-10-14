@@ -22,7 +22,7 @@ validation:
 
 git:
   branch: feat/feat-1006-wmts-offline-data
-  commit: e60a805661d079bc60458b9cced284013aed8063
+  commit: 630936735d859f8d4364956b0a6602030cdb0cf9
   status: committed
 
 verification:
