@@ -2,8 +2,8 @@ task:
   id: feat-1013-app-version-check
   type: feature
 
-phase: verification
-status: verification_passed
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: resolved
@@ -18,20 +18,28 @@ plan_review:
 
 implementation:
   status: completed
+  mode: debug_fix
 
 validation:
   status: completed
 
 git:
   branch: codex/feat-1013-app-version-check-implementation
-  commit: 02ad7e5370a9a103182b0cb908e1175e39803248
-  status: committed
+  commit: 2b7d8ba3f27dbfebc3ee7a9004e0f752f6853fca
+  status: pending
 
 verification:
-  result: pass
-  category: null
-  failed_acceptance_criteria: []
-  not_verified_acceptance_criteria: []
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-011
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-008
+
+debug:
+  status: completed
+  root_cause: identified
 
 ci:
   build: pass
@@ -41,4 +49,4 @@ release:
   status: pending
 
 blocking: []
-next_action: release
+next_action: verification

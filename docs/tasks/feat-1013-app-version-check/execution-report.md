@@ -56,3 +56,24 @@
 - Signing configuration is supplied via ignored `local.properties`; the JKS remains outside the repository.
 - No credential values were printed or committed.
 - The implementation branch was isolated from the unrelated primary checkout.
+
+## Current HEAD Revalidation (2026-10-14)
+
+- Revision inspected: `2b7d8ba3f27dbfebc3ee7a9004e0f752f6853fca` on `codex/feat-1013-app-version-check-implementation`.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ANDROID_SERIAL=emulator-5554 ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.AppVersionUpdateFlowTest` — PASS; Medium Phone AVD / Android 16, 3 tests, 0 failures, 0 errors, 0 skipped. No physical device was targeted.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug` — PASS.
+- Android Studio Run configuration installed and launched the Debug app on `emulator-5554`. Cold launch displayed「發現新版本 1.0.0」over Login; tapping「繼續使用」dismissed the dialog and left the same Login screen visible.
+- `git diff --check` — PASS. The Debug build and instrumentation run left `app/version.properties` unchanged.
+- GitHub Actions Android CI run #12 for exact HEAD `2b7d8ba3f27dbfebc3ee7a9004e0f752f6853fca` — PASS.
+- Independent verification of this HEAD found a separate release-counter regression: P0 was reset from 3 to 0 while prior task evidence records Release artifacts through versionCode 5. This fails AC-011; AC-001 and AC-008 remain NOT VERIFIED for this exact version configuration. See `root-cause.md` and `fix-plan.md`. Do not use the preceding PASS evidence on commit `02ad7e5` as verification of the current HEAD.
+
+## AC-011 Debug Fix Validation (2026-10-14)
+
+- Restored `P0_VERSION_CODE=5`, retaining the highest successful Release APK code recorded in the task evidence. The three manual version-name components remain `0/0/0`.
+- `git diff --check` — PASS.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug` — PASS.
+- `aapt dump badging app/build/outputs/apk/debug/app-debug.apk` — package `com.example.taoyuangutter`, Debug APK `versionCode=6`, `versionName=0.0.0`.
+- Re-read `app/version.properties` after Debug build — P0 remained 5 and P1/P2/P3 remained 0/0/0.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ANDROID_SERIAL=emulator-5554 ./gradlew --no-daemon :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.AppVersionUpdateFlowTest` — PASS; Android 16 Medium Phone AVD, 3 tests, 0 failures, 0 errors, 0 skipped. No physical device was targeted.
+- No Release build was run because a successful Release assembly consumes its version code and updates P0; the next Release must be intentionally built from P0=5 and will use code 6.
+- CI and independent Verification are pending for the resulting fix commit.

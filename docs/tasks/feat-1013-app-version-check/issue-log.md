@@ -54,3 +54,14 @@
 - Affected acceptance criteria: AC-004
 - Evidence: a temporary instrumentation case in an isolated copy of the fixed revision set the same persisted flags written before installer handoff. Returning immediately made 0 repository calls; after an ordinary background/foreground transition the count became exactly 1. The actual settings/installer/cancel path was separately observed under AC-007.
 - Next action: none for AC-004.
+
+## ISS-006 — Release version counter reset below consumed code
+
+- Task: `feat-1013-app-version-check`
+- Phase: `verification`
+- Category: `implementation_regression`
+- Priority: `P1`
+- Status: open
+- Affected acceptance criteria: AC-011; AC-001 and AC-008 need current-revision Release evidence
+- Evidence: independent verification of exact HEAD `2b7d8ba3f27dbfebc3ee7a9004e0f752f6853fca` found `app/version.properties` changed P0 from 3 to 0. Task evidence records successful Release APKs through versionCode 5. `app/build.gradle.kts` uses `P0 + 1`, so the next Release from this state would reuse a lower code. The same revision's emulator instrumentation passed 3/3, JVM tests and Debug build passed, and GitHub Actions run #12 passed; those checks do not cover Release counter persistence.
+- Next action: debug
