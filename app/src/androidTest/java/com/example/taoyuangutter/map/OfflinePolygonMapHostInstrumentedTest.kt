@@ -16,9 +16,17 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.example.taoyuangutter.AppVersionUpdateTestHooks
+import com.example.taoyuangutter.BuildConfig
 import com.example.taoyuangutter.MainActivity
 import com.example.taoyuangutter.MainShellActivity
 import com.example.taoyuangutter.R
+import com.example.taoyuangutter.api.AppVersionRecord
+import com.example.taoyuangutter.api.AppVersionRepository
+import com.example.taoyuangutter.api.AppVersionResponse
+import com.example.taoyuangutter.api.GutterApiClient
+import com.example.taoyuangutter.api.GutterApiService
+import com.example.taoyuangutter.common.ApiBackendTarget
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import com.example.taoyuangutter.gutter.MapPointPickerActivity
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -30,6 +38,8 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.FileOutputStream
@@ -41,6 +51,25 @@ import java.util.concurrent.atomic.AtomicReference
 class OfflinePolygonMapHostInstrumentedTest {
     private val context: Context
         get() = ApplicationProvider.getApplicationContext()
+
+    @Before
+    fun suppressUpdatePromptForMapHostScenarios() {
+        val baseService = GutterApiClient.serviceFor(ApiBackendTarget.BASE)
+        val versionService = object : GutterApiService by baseService {
+            override suspend fun getAppVersion() = retrofit2.Response.success(
+                AppVersionResponse(
+                    success = true,
+                    data = listOf(AppVersionRecord("android", BuildConfig.VERSION_NAME, "https://example.test/app.apk"))
+                )
+            )
+        }
+        AppVersionUpdateTestHooks.repositoryFactory = { AppVersionRepository { versionService } }
+    }
+
+    @After
+    fun resetUpdatePromptHook() {
+        AppVersionUpdateTestHooks.repositoryFactory = null
+    }
 
     @Test
     fun mainActivityOfflineMapShowsAndTogglesBothGeoPackageLayers() {

@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: implementation
-status: implementation_in_progress
+status: implementation_complete
 
 knowledge_resolution:
   status: resolved
@@ -15,10 +15,10 @@ plan_review:
   status: approved
 
 implementation:
-  status: in_progress
+  status: completed
 
 validation:
-  status: pending
+  status: completed
 
 git:
   branch: feat/feat-1006-wmts-offline-data
@@ -38,5 +38,5 @@ release:
   status: pending
 
 blocking:
-  - ISS-FEAT-1006-007
+  - ISS-FEAT-1006-008
 next_action: infrastructure

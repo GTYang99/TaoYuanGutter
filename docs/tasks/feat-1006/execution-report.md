@@ -17,27 +17,27 @@
 | Command/check | Result | Evidence / limitation |
 |---|---|---|
 | `:app:testDebugUnitTest` | PASS | Includes the region projection control point and existing outline/geometry tests. |
-| `:app:compileDebugAndroidTestKotlin :app:assembleDebugAndroidTest` | PASS | Instrumentation sources compiled and emulator test APK packaged. |
-| `:app:assembleDebug` | PASS | Debug APK packaged at 49,534,430 bytes; the instrumentation asset test verified all three packaged source sizes and SHA-256 hashes. |
+| `:app:testDebugUnitTest :app:compileDebugAndroidTestKotlin :app:assembleDebug :app:assembleDebugAndroidTest` | PASS | Re-run on the requested branch after adding an instrumentation fixture that returns the installed version to the merged FEAT-1013 update check. Android Studio JBR; all tasks passed. |
+| `:app:assembleDebug` | PASS | Debug APK packaged; the instrumentation asset test verified all three packaged source sizes and SHA-256 hashes. |
 | `OfflinePolygonDataStoreInstrumentedTest` on `emulator-5554` | PASS | Android emulator; `OK (6 tests)`. The administrative GPKG loaded, queried the recorded z13 reference extent, and rendered exact purple boundary pixels over transparent background. |
-| `OfflinePolygonMapHostInstrumentedTest` on `emulator-5554` | PARTIAL | The MapWorkspaceFragment and combined gutter-form/point-picker methods each passed (`OK (1 test)`). MainActivity verified its three actual layer checkboxes, local region tile, and provider lifecycle before its base-map snapshot timed out waiting for Google's `onMapLoaded` callback. The emulator reported DNS failures for `taipei.srgeo.com.tw`. |
-| Current app-process OkHttp capture | NOT VERIFIED for successful network outcomes | During the passing MapWorkspace test, logcat recorded 96 outgoing GET entries: 0 for `regions`, `legacyDitch`, or `roadServey`, and 91 attempted requests for unrelated `map_ditch_nodes_labels`. DNS failures mean server responses were unavailable. Summary: `evidence/AC-001-emulator-offline-region-capture.md`. |
+| `OfflinePolygonMapHostInstrumentedTest` on `emulator-5554` | PASS | `OK (3 tests)`, 75.925 seconds. MainActivity and MapWorkspace toggles, four-host local region tiles, map snapshots, pan/zoom, re-enable and provider lifecycle assertions all completed. A test-only repository fixture prevents the independent FEAT-1013 update prompt from covering the map UI. |
+| Current app-process OkHttp capture | PASS | During the successful four-host run, 113 GET requests all received HTTP 200; 109 were unrelated `map_ditch_nodes_labels`. There were 0 requests for `regions`, `legacyDitch`, or `roadServey`, and no `UnknownHostException`. See `evidence/AC-001-emulator-offline-region-capture.md`. |
 | Physical Android phone testing | NOT RUN | Explicitly excluded by user direction. ADB commands selected `emulator-5554`; no command targeted the attached physical device. |
-| WMTS tile-style baseline parity | PASS for generated tile; host snapshot NOT VERIFIED | The local z13 tile has transparent background, exact `#762E77` pixels, 2 px opaque-core median and 4 px alpha≥64 footprint median. MainActivity snapshot over the live basemap could not complete because of emulator DNS failure. |
+| WMTS tile-style baseline parity | PASS | Offline local z13 tile has transparent background, exact `#762E77` pixels, 2 px opaque-core median and 4 px alpha≥64 footprint median; all four host tests completed with live unrelated basemap tiles. |
 | Remote CI / independent verification | NOT VERIFIED | No push or CI run was requested for this FEAT-1006 branch; independent Verification has not started. |
 
-The MainActivity test was repeated with the project's ignored local Maps configuration; layer checkbox, local tile, and lifecycle assertions completed, then the live map snapshot timed out. Emulator logcat reported `UnknownHostException` for `taipei.srgeo.com.tw`. The temporary worktree `local.properties` copy was removed after validation.
+The emulator was online for this run and successfully returned HTTP 200 for the unrelated WMS basemap overlay requests. The earlier DNS timeout was environmental and is resolved; the merged app-version check is stubbed only inside the map-host instrumentation fixture so the test remains deterministic. `local.properties` contains the local Maps configuration and is not tracked.
 
 ### Acceptance-Criteria Status
 
-- AC-001: NOT VERIFIED end-to-end. All three packaged hashes pass and the region tile renders locally. The app-process capture observed no `regions`, `legacyDitch`, or `roadServey` GET attempt, but emulator DNS was unavailable so the capture cannot establish successful network behavior.
-- AC-002: NOT VERIFIED for geographic alignment over a live base map. The two thematic layers retain their tested colors and rendering path; the projection control point passes.
-- AC-003: PARTIAL. Region visibility is routed through the common manager in all four hosts. MainActivity and MapWorkspaceFragment region checkbox toggles were exercised; form and picker rendered the enabled region tile. The MainActivity live map presentation could not be inspected after the base-map callback timeout.
-- AC-004: PARTIAL. Focused camera/navigation assertions passed in the three successful host-test paths; MainActivity's full host scenario could not finish after its base map did not report loaded.
-- AC-005: PASS. All four host test paths completed provider release/re-enable/deduplication checks before the MainActivity snapshot wait.
+- AC-001: PASS. All three packaged hashes pass; the local providers render in all four map hosts. The successful app-process capture contains 113 HTTP 200 GET responses and zero `legacyDitch`, `roadServey`, or `regions` requests while unrelated map traffic remains active.
+- AC-002: PASS. The two thematic layers retain their tested exact colors and geometry behavior, including holes and MultiPolygon members. Projection control points pass and MainActivity snapshots verify the real layer colors over the now-loaded basemap.
+- AC-003: PASS. The four host test paths verify local region/thematic providers, existing MainActivity and MapWorkspace toggles, and the passed visibility states for the form and point-picker maps.
+- AC-004: PASS for the approved focused scenarios. All four hosts complete zoom/pan and populated/sparse tile checks without crash, ANR, or failed map-ready callback; synchronous camera updates remain under one second.
+- AC-005: PASS. All four host test paths verify provider release, re-enable, and deduplication.
 - AC-006: PASS. Instrumentation asserts the extension-free thematic titles and existing administrative label; no other layer-sheet text/layout was changed.
 - AC-007: PASS. Existing zoom-dependent thematic outline profile tests pass and the renderer behavior is unchanged for those layers.
-- AC-008: NOT VERIFIED end-to-end. The source hash, local indexing/query, normalized region geometry, z13 offline tile, alpha behavior, and measured stroke-width parity are verified. The emulator's failed DNS resolution leaves successful request and MainActivity live-map presentation evidence unavailable.
+- AC-008: PASS. The packaged 13-feature Taoyuan GPKG is indexed and rendered in all four hosts with the expected transparent background and `#762E77` outline; region toggles, ordering, and layer z-index are preserved. No `regions` request was observed, and MainActivity's live map snapshot now completes.
 
 ### Handoff
 
@@ -46,7 +46,7 @@ The MainActivity test was repeated with the project's ignored local Maps configu
 - Implementation commit: `e60a805661d079bc60458b9cced284013aed8063` (`feat(FEAT-1006): render Taoyuan boundary offline`).
 - Application ID: `com.example.taoyuangutter`
 - Runtime test environment: Android emulator `emulator-5554` only; no physical-phone test.
-- CI: pending; no remote result available. Independent Verification and Release have not started.
+- CI: pending; no remote result available. Independent Verification and Release have not started. The task is ready for CI/independent verification once the implementation evidence commit is created.
 
 ## Historical Reimplementation — Two GPKG Overlays, WMTS Regions (2026-10-08; superseded scope)
 

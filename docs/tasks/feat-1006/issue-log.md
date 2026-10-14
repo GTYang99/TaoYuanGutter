@@ -74,9 +74,21 @@
 - Phase: implementation
 - Category: environment
 - Priority: P2
+- Status: closed
+- Impact: MainActivity's full map snapshot over a live basemap initially could not complete while emulator DNS was unavailable.
+- Evidence: After restoring emulator Wi-Fi, the current-branch `OfflinePolygonMapHostInstrumentedTest` passed `OK (3 tests)` on Android 16/API 36. The fresh request capture observed 113 HTTP 200 responses, no `UnknownHostException`, and no `regions`, `legacyDitch`, or `roadServey` requests. MainActivity snapshots and all host assertions completed; see `evidence/AC-001-emulator-offline-region-capture.md`.
+- Classification: resolved environment issue.
+- Next action: none
+- Resolution: verified on `emulator-5554`; AC-001 through AC-008 implementation evidence is complete, subject to the remote CI and independent verification gates.
+
+## ISS-FEAT-1006-008 — Remote CI result unavailable for current branch
+
+- Phase: implementation
+- Category: environment
+- Priority: P1
 - Status: open
-- Impact: MainActivity's full map snapshot over a live basemap could not complete in the current emulator run. UI toggles, region tile generation, and provider lifecycle checks did complete before the snapshot wait.
-- Evidence: Final-source MapWorkspaceFragment and form/point-picker host test methods each passed on `emulator-5554`. MainActivity verified the three layer checkboxes, region tile, and provider lifecycle, then timed out after 60 seconds waiting for `onMapLoaded`. Logcat reports `UnknownHostException` for `taipei.srgeo.com.tw`. The current app-process request capture records 0 `regions`, `legacyDitch`, or `roadServey` GET attempts; see `evidence/AC-001-emulator-offline-region-capture.md`.
-- Classification: the offline region data-store and provider tests pass; the remaining failure is unavailable emulator DNS and the resulting base-map callback, not a failed local GPKG query/render assertion.
+- Impact: The local implementation and emulator evidence are complete, but the task cannot pass its CI gate without a remote CI result for the current committed revision.
+- Evidence: Local unit tests, Android test compilation, debug packaging, data-store instrumentation (`OK (6 tests)`), and map-host instrumentation (`OK (3 tests)`) passed. This FEAT-1006 branch has no recorded remote CI result.
+- Classification: environment / CI evidence unavailable.
 - Next action: infrastructure
-- Resolution: pending. Keep MainActivity's host-level visual and toggle acceptance evidence `NOT VERIFIED` until the emulator reports a loaded map.
+- Resolution: pending. Push/CI has not been authorized for this branch.
