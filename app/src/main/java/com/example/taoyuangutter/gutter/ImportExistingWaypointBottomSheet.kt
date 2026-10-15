@@ -74,18 +74,21 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     private lateinit var adapter: ImportWaypointAdapter
 
     private var selected: NodeDetails? = null
-    // Keep two pages' list content independent.
-    private var nearbyRows: List<ImportWaypointAdapter.Row> =
+    // Keep each page's list content independent while switching tabs.
+    private var recentRows: List<ImportWaypointAdapter.Row> =
         listOf(ImportWaypointAdapter.Row.State("載入最近存檔點位中…"))
+    private var nearbyRows: List<ImportWaypointAdapter.Row> =
+        listOf(ImportWaypointAdapter.Row.State("使用目前位置查詢附近點位"))
     private var searchRows: List<ImportWaypointAdapter.Row> =
         listOf(ImportWaypointAdapter.Row.State("請輸入座標編號 (XY_NUM) 後按搜尋"))
     private var searchJob: Job? = null
     private var closestJob: Job? = null
     private var searchSeq: Int = 0
     private var closestSeq: Int = 0
+    private var lastSubmittedSearch: String? = null
 
-    private enum class Page { NEARBY, SEARCH }
-    private var currentPage: Page = Page.NEARBY
+    private enum class Page { RECENT, NEARBY, SEARCH }
+    private var currentPage: Page = Page.RECENT
 
     private var routeToActivity: Boolean = false
     private var pendingAutoNearbyLatLng: LatLng? = null
@@ -118,10 +121,9 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         setupSearch()
         setupButtons()
 
-        // Default: Nearby
-        renderPage(Page.NEARBY)
-        pendingAutoNearbyLatLng = null
-        startNearbyAutoSearch()
+        // Default: Recent Access / recent-saved points.
+        renderPage(Page.RECENT)
+        performRecentSavedSearch()
         pendingAutoNearbyError?.let { msg ->
             pendingAutoNearbyError = null
             showNearbyAutoError(msg)
@@ -260,7 +262,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         if (currentPage != Page.NEARBY) return
         binding.tvNearbyHint.isVisible = false
         clearSelection()
-        performClosestSearch()
+        if (latLng != null) performNearbySearch(latLng)
     }
 
     /** Nearby page: show a locating state (no API call). */
@@ -275,11 +277,8 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         }
         if (currentPage != Page.NEARBY) return
         clearSelection()
-        binding.tvNearbyHint.isVisible = true
-        binding.tvNearbyHint.text = message
-        // Only affect Nearby page list.
-        nearbyRows = listOf(ImportWaypointAdapter.Row.State(message))
-        adapter.updateRows(nearbyRows)
+        // Keep existing nearby rows beneath the loading overlay.
+        binding.tvNearbyHint.isVisible = false
         setLoading(true, message)
     }
 
@@ -300,15 +299,14 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
             return
         }
         if (currentPage != Page.NEARBY) return
-        binding.tvNearbyHint.isVisible = true
-        binding.tvNearbyHint.text = message
+        binding.tvNearbyHint.isVisible = false
         showErrorState(message)
         setLoading(false)
     }
 
     private fun setupRecycler() {
         adapter = ImportWaypointAdapter(
-            rows = nearbyRows,
+            rows = recentRows,
             onItemSelected = { item -> onSelected(item) }
         )
         binding.rvWaypoints.layoutManager = LinearLayoutManager(requireContext())
@@ -317,11 +315,16 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
     private fun setupTabs() {
         binding.tabLayout.removeAllTabs()
-        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("最近存檔點位"), true)
+        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("最近存取節點"), true)
+        binding.tabLayout.addTab(binding.tabLayout.newTab().setText("附近點位"), false)
         binding.tabLayout.addTab(binding.tabLayout.newTab().setText("搜尋點位"), false)
         binding.tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
-                val page = if (tab?.position == 1) Page.SEARCH else Page.NEARBY
+                val page = when (tab?.position) {
+                    1 -> Page.NEARBY
+                    2 -> Page.SEARCH
+                    else -> Page.RECENT
+                }
                 renderPage(page)
             }
             override fun onTabUnselected(tab: TabLayout.Tab?) = Unit
@@ -330,33 +333,45 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun renderPage(page: Page) {
-        if (currentPage == Page.SEARCH && page == Page.NEARBY) {
-            // Leaving search: cancel in-flight request to avoid late UI override
-            searchJob?.cancel()
-        }
-        if (currentPage == Page.NEARBY && page == Page.SEARCH) {
-            // Leaving nearby: cancel in-flight closest request
-            closestJob?.cancel()
+        if (currentPage != page) {
+            when (currentPage) {
+                Page.SEARCH -> {
+                    searchJob?.cancel()
+                    searchSeq++
+                }
+                Page.RECENT, Page.NEARBY -> {
+                    closestJob?.cancel()
+                    closestSeq++
+                }
+            }
         }
         currentPage = page
+        setLoading(false)
         clearSelection()
         callbacks?.onPageSwitched()
         when (page) {
+            Page.RECENT -> {
+                binding.searchBar.isVisible = false
+                binding.tvNearbyHint.isVisible = false
+                binding.btnMyLocation.visibility = View.INVISIBLE
+                callbacks?.onMapPickModeChanged(false)
+                adapter.updateRows(recentRows)
+                performRecentSavedSearch()
+            }
             Page.NEARBY -> {
                 binding.searchBar.isVisible = false
-                binding.tvNearbyHint.isVisible = true
-                binding.tvNearbyHint.text = ""
+                binding.tvNearbyHint.isVisible = false
                 // Use VISIBLE/INVISIBLE (not GONE) to prevent the centered title from "jumping".
-                binding.btnMyLocation.visibility = View.GONE
+                binding.btnMyLocation.visibility = View.VISIBLE
                 callbacks?.onMapPickModeChanged(false)
                 adapter.updateRows(nearbyRows)
-                
-                // 切換回來時，若已有搜尋結果，則自動重新投放到地圖上
-                val list = nearbyRows.mapNotNull { (it as? ImportWaypointAdapter.Row.Waypoint)?.item }
-                if (list.isNotEmpty()) {
-                    callbacks?.onCandidateWaypointsChanged(list)
+                val pendingLocation = pendingAutoNearbyLatLng
+                if (pendingLocation != null) {
+                    pendingAutoNearbyLatLng = null
+                    startNearbyAutoSearch(pendingLocation)
+                } else {
+                    callbacks?.onRequestMyLocation()
                 }
-                // 不清列表；只清選取與地圖 marker
             }
             Page.SEARCH -> {
                 binding.searchBar.isVisible = true
@@ -364,7 +379,12 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                 binding.btnMyLocation.visibility = View.INVISIBLE
                 callbacks?.onMapPickModeChanged(false)
                 adapter.updateRows(searchRows)
-                // 不清列表；只清選取與地圖 marker
+                val query = lastSubmittedSearch
+                if (query.isNullOrBlank()) {
+                    setRowsFor(Page.SEARCH, listOf(ImportWaypointAdapter.Row.State("請輸入座標編號 (XY_NUM) 後按搜尋")))
+                } else {
+                    performSearch(query, recordSubmission = false)
+                }
             }
         }
     }
@@ -382,8 +402,9 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
     private fun setupButtons() {
         binding.btnClose.setOnClickListener { dismissAllowingStateLoss() }
-        binding.btnMyLocation.isVisible = false
-        binding.btnMyLocation.setOnClickListener(null)
+        binding.btnMyLocation.setOnClickListener {
+            if (currentPage == Page.NEARBY) callbacks?.onRequestMyLocation()
+        }
 
         binding.btnImport.isEnabled = false
         binding.btnImport.backgroundTintList =
@@ -407,12 +428,12 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         setRowsFor(currentPage, listOf(ImportWaypointAdapter.Row.State(message)))
     }
 
-    private fun updateResultRows(results: List<NodeDetails>) {
-        setRowsFor(currentPage, results.map { ImportWaypointAdapter.Row.Waypoint(it) })
-    }
-
     private fun setRowsFor(page: Page, rows: List<ImportWaypointAdapter.Row>) {
-        if (page == Page.NEARBY) nearbyRows = rows else searchRows = rows
+        when (page) {
+            Page.RECENT -> recentRows = rows
+            Page.NEARBY -> nearbyRows = rows
+            Page.SEARCH -> searchRows = rows
+        }
         if (_binding == null) return
         if (currentPage == page) adapter.updateRows(rows)
     }
@@ -439,7 +460,54 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         if (!message.isNullOrBlank()) binding.tvLoading.text = message
     }
 
-    private fun performClosestSearch(latLng: LatLng? = null) {
+    private fun performRecentSavedSearch() {
+        val ctx = requireContext()
+        val token = LoginActivity.getSavedToken(ctx)
+        if (token.isNullOrEmpty()) {
+            Toast.makeText(ctx, getString(R.string.msg_login_first), Toast.LENGTH_SHORT).show()
+            dismissAllowingStateLoss()
+            return
+        }
+
+        closestJob?.cancel()
+        setLoading(true, "載入中…")
+        val seq = ++closestSeq
+        val targetPage = Page.RECENT
+
+        closestJob = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val result = gutterRepository.getClosestNodeDetails(
+                    token = token
+                )
+                if (seq != closestSeq || currentPage != targetPage) return@launch
+                when (result) {
+                    is ApiResult.Success -> {
+                        val list = result.data.data ?: emptyList()
+                        setRowsFor(targetPage, resultRows(list))
+                        callbacks?.onCandidateWaypointsChanged(list)
+                    }
+                    is ApiResult.Error -> {
+                        if (authExpiredHandler.handleIfAuthExpired(
+                                error = result,
+                                onSaveDraft = { callbacks?.onAuthExpiredBeforeImportLogout() }
+                            )
+                        ) return@launch
+                        Toast.makeText(ctx, "載入失敗：${result.message}", Toast.LENGTH_SHORT).show()
+                        setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("載入失敗：${result.message}")))
+                    }
+                }
+            } catch (e: CancellationException) {
+                // Ignore.
+            } catch (e: Exception) {
+                Toast.makeText(ctx, "發生錯誤：${e.message}", Toast.LENGTH_SHORT).show()
+                if (currentPage == targetPage) setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("發生錯誤：${e.message ?: "未知錯誤"}")))
+            } finally {
+                if (seq == closestSeq) setLoading(false)
+            }
+        }
+    }
+
+    private fun performNearbySearch(latLng: LatLng) {
         val ctx = requireContext()
         val token = LoginActivity.getSavedToken(ctx)
         if (token.isNullOrEmpty()) {
@@ -456,20 +524,16 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         closestJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val result = gutterRepository.getClosestNodeDetails(
+                    lng = latLng.longitude,
+                    lat = latLng.latitude,
                     token = token
                 )
-                if (seq != closestSeq) return@launch
+                if (seq != closestSeq || currentPage != targetPage) return@launch
                 when (result) {
                     is ApiResult.Success -> {
                         val list = result.data.data ?: emptyList()
-                        if (list.isEmpty()) {
-                            setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("無資料")))
-                            callbacks?.onCandidateWaypointsChanged(emptyList())
-                        } else {
-                            setRowsFor(targetPage, list.map { ImportWaypointAdapter.Row.Waypoint(it) })
-                            // 觸發地圖批次投放
-                            callbacks?.onCandidateWaypointsChanged(list)
-                        }
+                        setRowsFor(targetPage, resultRows(list))
+                        callbacks?.onCandidateWaypointsChanged(list)
                     }
                     is ApiResult.Error -> {
                         if (authExpiredHandler.handleIfAuthExpired(
@@ -485,20 +549,25 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                 // Ignore.
             } catch (e: Exception) {
                 Toast.makeText(ctx, "發生錯誤：${e.message}", Toast.LENGTH_SHORT).show()
-                setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("發生錯誤：${e.message ?: "未知錯誤"}")))
+                if (currentPage == targetPage) setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("發生錯誤：${e.message ?: "未知錯誤"}")))
             } finally {
                 if (seq == closestSeq) setLoading(false)
             }
         }
     }
 
-    private fun performSearch(rawQuery: String) {
+    private fun resultRows(items: List<NodeDetails>): List<ImportWaypointAdapter.Row> =
+        if (items.isEmpty()) listOf(ImportWaypointAdapter.Row.State("無資料"))
+        else items.map { ImportWaypointAdapter.Row.Waypoint(it) }
+
+    private fun performSearch(rawQuery: String, recordSubmission: Boolean = true) {
         if (currentPage != Page.SEARCH) return
         val query = rawQuery.trim()
         if (query.isEmpty()) {
             setRowsFor(Page.SEARCH, listOf(ImportWaypointAdapter.Row.State("請輸入座標編號 (XY_NUM) 後按搜尋")))
             return
         }
+        if (recordSubmission) lastSubmittedSearch = query
 
         val ctx = requireContext()
         val token = LoginActivity.getSavedToken(ctx)
@@ -517,14 +586,12 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
         searchJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
                 val result = gutterRepository.getNodeDetailsByXyNum(query, token)
-                if (seq != searchSeq) return@launch
+                if (seq != searchSeq || currentPage != targetPage) return@launch
                 when (result) {
                     is ApiResult.Success -> {
                         val list = result.data.data ?: emptyList()
-                        if (list.isEmpty())
-                            setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("無資料")))
-                        else
-                            setRowsFor(targetPage, list.map { ImportWaypointAdapter.Row.Waypoint(it) })
+                        setRowsFor(targetPage, resultRows(list))
+                        callbacks?.onCandidateWaypointsChanged(list)
                     }
                     is ApiResult.Error -> {
                         if (authExpiredHandler.handleIfAuthExpired(
@@ -540,7 +607,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
                 // Ignore.
             } catch (e: Exception) {
                 Toast.makeText(ctx, "發生錯誤：${e.message}", Toast.LENGTH_SHORT).show()
-                setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("發生錯誤：${e.message ?: "未知錯誤"}")))
+                if (currentPage == targetPage) setRowsFor(targetPage, listOf(ImportWaypointAdapter.Row.State("發生錯誤：${e.message ?: "未知錯誤"}")))
             } finally {
                 if (seq == searchSeq) setLoading(false)
             }

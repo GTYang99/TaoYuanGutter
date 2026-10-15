@@ -157,6 +157,18 @@ interface GutterApiService {
     ): Response<NodeDetailsResponse>
 
     /**
+     * 依目前位置查詢附近點位。與無 query 的最近存檔點位查詢共用路徑。
+     * GET /api/v1/node/closestNodeDetails?lng=...&lat=...
+     * Authorization: Bearer {token}
+     */
+    @GET("api/v1/node/closestNodeDetails")
+    suspend fun getClosestNodeDetails(
+        @Query("lng") lng: Double,
+        @Query("lat") lat: Double,
+        @Header("Authorization") authorization: String
+    ): Response<NodeDetailsResponse>
+
+    /**
      * 上傳單張點位照片（multipart/form-data）。
      * 同一 node_id + fileCategory 只保留一張，舊圖會被覆蓋。
      *

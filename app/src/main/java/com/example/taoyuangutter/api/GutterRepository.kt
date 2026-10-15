@@ -559,6 +559,53 @@ class GutterRepository(
     }
 
     /**
+     * 依目前位置查詢附近點位；保留與最近存檔點位共用 API 路徑的 query mode。
+     */
+    suspend fun getClosestNodeDetails(
+        lng: Double,
+        lat: Double,
+        token: String
+    ): ApiResult<NodeDetailsResponse> {
+        return try {
+            val response = api.getClosestNodeDetails(
+                lng = lng,
+                lat = lat,
+                authorization = "Bearer $token"
+            )
+            val body = response.body()
+            when {
+                response.isSuccessful && body?.success == true -> ApiResult.Success(body)
+                response.code() == 401 -> ApiResult.Error(
+                    message = "尚未登入，請重新登入",
+                    code = 401
+                )
+                body != null -> {
+                    val detail = body.errors?.values?.firstOrNull()?.firstOrNull()
+                    android.util.Log.e(
+                        "GutterRepository",
+                        "getNearbyNodeDetails failed: code=${response.code()}, message=${body.message}, detail=$detail"
+                    )
+                    ApiResult.Error(
+                        message = detail ?: body.message ?: "查詢失敗",
+                        code = response.code()
+                    )
+                }
+                else -> ApiResult.Error(
+                    message = "查詢失敗（${response.code()}）",
+                    code = response.code()
+                )
+            }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: JsonSyntaxException) {
+            android.util.Log.e("GutterRepository", "getNearbyNodeDetails json parse failed", e)
+            ApiResult.Error(message = "資料解析失敗")
+        } catch (e: Exception) {
+            ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")
+        }
+    }
+
+    /**
      * 下載遠端圖片到本機，並回傳 FileProvider content URI（供照片頁視為已拍攝照片）。
      * 下載失敗回傳 null。
      */

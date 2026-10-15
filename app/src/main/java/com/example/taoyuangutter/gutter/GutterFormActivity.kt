@@ -791,6 +791,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
 		                override fun onPageSwitched() {
 		                    stopImportLocationUpdates()
+	                    pendingImportSheetForLocation = null
 		                    // Switching tabs cancels selection and clears all map markers.
 		                    clearImportMarkers()
 		                }
@@ -811,8 +812,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
 	        importSheet = sheet
 	        sheet.show(supportFragmentManager, "ImportExistingWaypointBottomSheet")
-	        // The import sheet loads recent stored points directly; this flow has no
-	        // GPS permission, location callback, map marker, or coordinate query.
+	        // The sheet opens on recent-saved points; Nearby starts the legacy GPS flow on entry.
 		    }
 
 		    private fun updateImportMapClickListener() {

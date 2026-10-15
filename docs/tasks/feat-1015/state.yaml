@@ -1,0 +1,41 @@
+task:
+  id: feat-1015
+  type: feature
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: resolved
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+
+git:
+  branch: feat/feat-1015-restore-nearby-waypoints
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: implementation
