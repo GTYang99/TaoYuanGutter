@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_in_progress
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -41,6 +41,7 @@ release:
   status: pending
 
 blocking:
-  - Physical GPS and map-marker verification remains NOT VERIFIED per user direction; the connected device was not used.
+  - AC-003 physical GPS, permission/error, current-location marker/camera, and backend behavior remain NOT VERIFIED per user direction; the connected device was not used.
+  - AC-005 visual map rendering, integrated page-switch/map callback behavior, and loading-row retention are not fully evidenced by emulator tests.
   - CI build and test results for the fixed revision are unavailable; no CI configuration is checked in.
 next_action: verification
