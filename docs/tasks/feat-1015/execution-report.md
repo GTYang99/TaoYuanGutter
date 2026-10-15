@@ -51,4 +51,11 @@
 - `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportWaypointMapMarkerTest` — PASS on `Feat1015_Test_API36` (`emulator-5558`, Android 16/API 36). Gradle reported `BUILD SUCCESSFUL`; the targeted map-marker test passed.
 - `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` — NOT VERIFIED on the dedicated AVDs. First invocation on `Feat1015_Test` failed at the first tab-label assertion (`ImportExistingWaypointUiTest.kt:146`) with `RootViewWithoutFocusException`; a screenshot showed a Pixel Launcher ANR dialog. The one permitted retry on `Feat1015_Test_API36` failed at the same assertion with the same Espresso focus exception; the launcher retained focus and no unrelated instrumentation suite was running. The retry limit is exhausted for this evidence cycle.
 - Neither dedicated AVD test changes the physical-device scope: GPS permission/current-location behavior and authenticated backend behavior remain NOT VERIFIED per the user's instruction not to use XQ-AU52.
-- The pre-existing `gradle/libs.versions.toml` change remains untouched and excluded.
+- During the original feat-1015 implementation, the working-tree change in `gradle/libs.versions.toml` was preserved and excluded from those commits. The later, separately approved branch integration includes the source branch's committed AGP `9.4.1` value.
+
+## Branch Integration (2026-10-15)
+
+- Merged `feat/feat-1006-wmts-offline-data` at `0c10708037449e18c98093f07c32216a6610bd4a` into `feat/feat-1015-restore-nearby-waypoints` with merge commit `eb536d4d077f6157a048d69f36d9735fdad237c5`.
+- Resolved the `GutterApiService.kt` conflict by retaining both nearby query overloads and the source branch's selectable backend service. Kept location-coordinate redaction active in the shared `BackendHttpClient` logging interceptor.
+- Included the source branch's AGP `9.4.1` version as explicitly approved by the user.
+- No build or test was run against the combined revision. It remains pending independent verification and CI; the source branch's CI result applies only to its verified revision.

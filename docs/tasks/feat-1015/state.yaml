@@ -22,7 +22,7 @@ validation:
 
 git:
   branch: feat/feat-1015-restore-nearby-waypoints
-  commit: 399b37d
+  commit: eb536d4
   status: committed
 
 verification:

@@ -49,4 +49,4 @@ Keep `next_action: verification`: the remaining evidence can be gathered in a fu
 
 ## Integration Note (2026-10-15)
 
-This verification record predates the requested integration of `feat/feat-1006-wmts-offline-data` at `0c10708`. It evaluates the earlier feat-1015 implementation revision only and does not verify the combined branch. The combined revision requires independent verification and a CI run before release.
+This verification record predates the integration of `feat/feat-1006-wmts-offline-data` at `0c10708`, committed as merge `eb536d4d077f6157a048d69f36d9735fdad237c5`. It evaluates the earlier feat-1015 implementation revision only and does not verify the combined branch. The combined revision requires independent verification and a CI run before release.
