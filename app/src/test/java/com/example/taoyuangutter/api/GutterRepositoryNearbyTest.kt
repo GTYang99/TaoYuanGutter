@@ -8,6 +8,16 @@ import java.lang.reflect.Proxy
 
 class GutterRepositoryNearbyTest {
     @Test
+    fun locationCoordinatesAreRedactedFromHttpLogLines() {
+        val message = "--> GET /api/v1/node/closestNodeDetails?lng=121.1234&lat=24.5678 http/1.1"
+
+        assertEquals(
+            "--> GET /api/v1/node/closestNodeDetails?lng=[REDACTED]&lat=[REDACTED] http/1.1",
+            redactLocationCoordinatesForLogging(message)
+        )
+    }
+
+    @Test
     fun nearbyLookupUsesCoordinatesAndBearerTokenOnSharedEndpoint() = runBlocking {
         var capturedMethod: String? = null
         var capturedArgs: Array<out Any?>? = null

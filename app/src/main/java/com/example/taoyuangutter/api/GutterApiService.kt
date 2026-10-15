@@ -20,6 +20,11 @@ import retrofit2.http.Part
 import retrofit2.http.Query
 import java.util.concurrent.TimeUnit
 
+internal fun redactLocationCoordinatesForLogging(message: String): String =
+    message.replace(Regex("([?&](?:lng|lat)=)[^&\\s]+", RegexOption.IGNORE_CASE)) { match ->
+        "${match.groupValues[1]}[REDACTED]"
+    }
+
 // ════════════════════════════════════════════════════════════════
 //  Retrofit 服務接口
 // ════════════════════════════════════════════════════════════════
@@ -313,7 +318,7 @@ object GutterApiClient {
     private const val DEMO_URL = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/"
 
     private val loggingInterceptor = HttpLoggingInterceptor { message ->
-        Log.d("OkHttp", message)
+        Log.d("OkHttp", redactLocationCoordinatesForLogging(message))
     }.apply {
         // 只在 debug 模式印完整 request/response，release 模式關閉 log
         level = if (!BuildConfig.DEBUG) {

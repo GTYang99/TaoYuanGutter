@@ -69,7 +69,7 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
     private var _binding: BottomSheetImportExistingWaypointBinding? = null
     private val binding get() = _binding!!
 
-    private val gutterRepository = GutterRepository()
+    internal var gutterRepository: GutterRepository = GutterRepository()
     private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(requireActivity()) }
     private lateinit var adapter: ImportWaypointAdapter
 
@@ -123,7 +123,6 @@ class ImportExistingWaypointBottomSheet : BottomSheetDialogFragment() {
 
         // Default: Recent Access / recent-saved points.
         renderPage(Page.RECENT)
-        performRecentSavedSearch()
         pendingAutoNearbyError?.let { msg ->
             pendingAutoNearbyError = null
             showNearbyAutoError(msg)

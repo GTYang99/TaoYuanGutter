@@ -7,17 +7,19 @@
 - Restored Nearby GPS lookup and the top-right current-location button using the shared `closestNodeDetails` endpoint with `lng`/`lat`.
 - Re-query each tab on entry; Search re-runs only its last submitted XY_NUM value.
 - Routed successful results from all tabs to the shared candidate-map callbacks and kept prior rows while refresh overlays are visible.
-- Did not restore historical logs that included GPS coordinates.
+- Redacted `lng` and `lat` values from HTTP debug log lines; did not restore historical repository logs containing GPS coordinates.
+- Added an instrumentation test for tab order/default, nearby entry and location-button refresh, blank search prompt, and search re-query on return. It caught and fixed a duplicate initial recent-saved request.
 
 ## Validation
 
 | Check | Result | Evidence |
 |---|---|---|
-| `:app:testDebugUnitTest` | PASS | 97 tests completed, no failures |
+| `:app:testDebugUnitTest` | PASS | 98 tests completed, no failures |
 | `:app:assembleDebug` | PASS | Debug APK built at `app/build/outputs/apk/debug/app-debug.apk` |
 | `:app:compileDebugAndroidTestKotlin` | PASS | Android instrumentation test sources compiled |
+| `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` | PASS | 1 targeted instrumentation test passed on emulator `emulator-5554` (Android 16) |
 | `git diff --check` | PASS | No whitespace errors |
-| Nearby UI, location permission, map marker/camera, and import handoff on device | NOT VERIFIED | No scoped device run performed; these checks require an authenticated app session and observation of the live map flow |
+| Physical GPS permission, current-location marker/camera, and map import handoff | NOT VERIFIED | Emulator UI test uses a fake location callback; live GPS and authenticated backend flow were not exercised |
 
 ## Environment and Scope Notes
 
