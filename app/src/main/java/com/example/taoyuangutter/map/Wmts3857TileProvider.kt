@@ -1,7 +1,7 @@
 package com.example.taoyuangutter.map
 
-import com.google.android.gms.maps.model.UrlTileProvider
-import java.net.URL
+import com.example.taoyuangutter.common.BackendEndpoints
+import com.example.taoyuangutter.common.HttpTileProvider
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -13,7 +13,7 @@ enum class BackgroundWmtsLayer(val layerName: String, val format: String) {
 
 /** Builds WebMercatorQuad WMTS GetTile requests for the supported background layers. */
 object Wmts3857RequestBuilder {
-    const val BASE_URL = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/gwc/service/wmts"
+    const val BASE_URL = BackendEndpoints.ACTIVE_WMTS_URL
     private const val MAX_ZOOM = 24
 
     fun buildTileUrl(layer: BackgroundWmtsLayer, x: Int, y: Int, zoom: Int): String {
@@ -44,12 +44,4 @@ object Wmts3857RequestBuilder {
 
 class Wmts3857TileProvider(
     private val layer: BackgroundWmtsLayer
-) : UrlTileProvider(TILE_SIZE, TILE_SIZE) {
-    override fun getTileUrl(x: Int, y: Int, zoom: Int): URL? = runCatching {
-        URL(Wmts3857RequestBuilder.buildTileUrl(layer, x, y, zoom))
-    }.getOrNull()
-
-    private companion object {
-        const val TILE_SIZE = 256
-    }
-}
+) : HttpTileProvider({ x, y, zoom -> Wmts3857RequestBuilder.buildTileUrl(layer, x, y, zoom) })

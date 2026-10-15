@@ -104,7 +104,7 @@
     <string name="msg_loading_gutters">載入側溝線段中…</string>
     <string name="msg_loading_gutters_done">側溝線段載入完成</string>
     <string name="msg_loading_gutters_failed">側溝線段載入失敗</string>
-    <string name="msg_main_map_low_zoom">放大至16.0級以加載側溝圖層（目前：%1$s）</string>
+    <string name="msg_main_map_low_zoom">放大至13.0級以加載側溝圖層（目前：%1$s）</string>
     <string name="msg_main_map_loading">側溝圖層載入中（%1$s）</string>
     <string name="msg_main_map_failed">側溝圖層載入失敗（%1$s）</string>
     <string name="msg_zoom_suffix">級</string>
@@ -173,6 +173,7 @@
     <!-- 新增/修改按鈕文字 -->
     <string name="btn_update_gutter">更新側溝</string>
     <string name="btn_delete_gutter">刪除側溝</string>
+    <string name="btn_reupload_gutter">重新上傳</string>
     <string name="btn_reverse_gutter">調轉</string>
 
     <!-- Toast 和提示消息 -->
@@ -196,6 +197,9 @@
     <string name="msg_offline_draft_title">離線草稿</string>
     <string name="msg_offline_mode_unavailable">目前是離線模式，暫時無法使用此功能。</string>
     <string name="msg_curve_draft_title">弧線草稿</string>
+    <string name="pending_draft_tag_submitted">曾提交過上傳</string>
+    <string name="pending_draft_tag_unsubmitted">未提交上傳</string>
+    <string name="pending_draft_tag_existing_gutter">既有側溝編輯中</string>
     <string name="msg_data_filled">已填寫資料</string>
     <string name="msg_no_data">暫無資料</string>
     <string name="msg_no_position_data">---</string>
@@ -216,6 +220,7 @@
     <string name="msg_fill_required">請填寫「%1$s」</string>
     <string name="msg_take_photo_required">請拍攝「%1$s」照片</string>
     <string name="msg_draft_saved">草稿已儲存至本機</string>
+    <string name="msg_draft_not_found">找不到草稿內容，無法重新上傳</string>
     <string name="msg_start_point_required">請先設定起點座標</string>
     <string name="msg_end_point_required">請先設定終點座標</string>
     <string name="msg_upload_failed_saved_draft">上傳失敗，已儲存為待上傳草稿</string>
@@ -225,6 +230,14 @@
     <string name="msg_location_permission_required">需要定位權限才能使用「現在位置」功能</string>
     <string name="msg_location_not_available">尚未取得定位，請稍後再試</string>
     <string name="msg_location_failed">定位失敗：%1$s</string>
+    <string name="edit_map_location_permission_title">需要定位權限</string>
+    <string name="edit_map_location_permission_retry">編輯點位缺少座標，無法將地圖移到目前位置。是否再次詢問定位權限？</string>
+    <string name="edit_map_location_retry">再試一次</string>
+    <string name="edit_map_location_unavailable_title">目前無法取得定位資訊</string>
+    <string name="edit_map_location_unavailable_message">地圖會維持在預設位置，您仍可手動移動地圖繼續編輯。</string>
+    <string name="edit_map_location_settings_message">請到系統設定開啟定位權限；返回後會再嘗試一次。您也可以繼續使用預設地圖位置。</string>
+    <string name="edit_map_location_open_settings">前往設定</string>
+    <string name="edit_map_location_continue">繼續編輯</string>
 
     <!-- 表單欄位標籤 -->
     <string name="field_gutter_material">側溝材質</string>
@@ -233,7 +246,7 @@
     <string name="field_width_cm">側溝頂寬度（公分）</string>
     <string name="field_cannot_open">無法開蓋</string>
     <string name="field_connect_point">銜接點</string>
-    <string name="field_connect_pipe">連結管</string>
+    <string name="field_connect_pipe">連接管</string>
     <string name="field_gutter_xy_num">側溝座標編號</string>
 
     <!-- 側溝材質選項 -->
@@ -338,5 +351,29 @@
     <string name="msg_not_logged_in">尚未登入</string>
     <string name="msg_submit_success">送出成功</string>
     <string name="measure_crosshair_desc">測距準星</string>
+
+    <string name="api_environment_button_format">API：%1$s</string>
+    <string name="api_environment_button_desc">選擇測試 API 環境</string>
+    <string name="api_environment_title">切換 API 環境</string>
+    <string name="api_environment_base">內網 BASE</string>
+    <string name="api_environment_taipei">台北</string>
+    <string name="api_environment_demo">DEMO</string>
+
+    <string name="update_available_title">發現新版本 %1$s</string>
+    <string name="update_available_message">是否下載並安裝最新版本？</string>
+    <string name="update_go">前往更新</string>
+    <string name="update_continue">繼續使用</string>
+    <string name="update_download_title">下載更新</string>
+    <string name="update_download_starting">準備下載…</string>
+    <string name="update_download_progress">下載中 %1$d%%</string>
+    <string name="update_download_bytes">已下載 %1$d bytes</string>
+    <string name="update_cancel">取消下載</string>
+    <string name="update_download_failed_title">下載失敗</string>
+    <string name="update_download_failed_message">無法下載更新。請檢查網路後重試，或繼續使用目前版本。</string>
+    <string name="update_retry">重試</string>
+    <string name="update_install_permission_title">允許安裝更新</string>
+    <string name="update_install_permission_message">請在系統設定中允許此 App 安裝未知來源應用程式，返回後會繼續安裝。</string>
+    <string name="update_open_settings">開啟設定</string>
+    <string name="update_install_permission_not_granted">尚未允許安裝未知來源應用程式，可稍後再更新。</string>
 
 </resources>

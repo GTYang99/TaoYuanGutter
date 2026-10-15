@@ -2,7 +2,9 @@ package com.example.taoyuangutter.pending
 
 import com.example.taoyuangutter.R
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.example.taoyuangutter.databinding.ItemPendingDraftBinding
 import java.text.SimpleDateFormat
@@ -41,9 +43,7 @@ class PendingDraftAdapter(
             } else if (draft.isOffline) {
                 tvPendingDraftTitle.text = holder.itemView.context.getString(R.string.msg_offline_draft_title)
             } else {
-                val startWp = draft.waypoints.firstOrNull { it.type == "START" }
-                val gutterId = startWp?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() }
-                tvPendingDraftTitle.text = gutterId ?: "側溝草稿"
+                tvPendingDraftTitle.text = PendingDraftTagPolicy.spiNumFor(draft) ?: "側溝草稿"
             }
 
             // 副標題1：建立時間（精確到分）
@@ -57,6 +57,42 @@ class PendingDraftAdapter(
                 hasLatLng || hasAnyBasic
             }
             tvPendingDraftNodes.text = "已存節點數量：$nonEmptyCount 個"
+
+            when (PendingDraftTagPolicy.kindFor(draft)) {
+                PendingDraftTagKind.EXISTING_GUTTER -> {
+                    tvPendingDraftSubmissionTag.visibility = View.VISIBLE
+                    tvPendingDraftSubmissionTag.text = holder.itemView.context
+                        .getString(R.string.pending_draft_tag_existing_gutter)
+                    tvPendingDraftSubmissionTag.setBackgroundResource(
+                        R.drawable.bg_pending_draft_unsubmitted_tag
+                    )
+                    tvPendingDraftSubmissionTag.setTextColor(
+                        ContextCompat.getColor(holder.itemView.context, R.color.colorPrimary)
+                    )
+                }
+                PendingDraftTagKind.SUBMITTED -> {
+                    tvPendingDraftSubmissionTag.visibility = View.VISIBLE
+                    tvPendingDraftSubmissionTag.text = holder.itemView.context
+                        .getString(R.string.pending_draft_tag_submitted)
+                    tvPendingDraftSubmissionTag.setBackgroundColor(
+                        ContextCompat.getColor(holder.itemView.context, R.color.colorPrimary)
+                    )
+                    tvPendingDraftSubmissionTag.setTextColor(
+                        ContextCompat.getColor(holder.itemView.context, R.color.white)
+                    )
+                }
+                PendingDraftTagKind.UNSUBMITTED -> {
+                    tvPendingDraftSubmissionTag.visibility = View.VISIBLE
+                    tvPendingDraftSubmissionTag.text = holder.itemView.context
+                        .getString(R.string.pending_draft_tag_unsubmitted)
+                    tvPendingDraftSubmissionTag.setBackgroundResource(
+                        R.drawable.bg_pending_draft_unsubmitted_tag
+                    )
+                    tvPendingDraftSubmissionTag.setTextColor(
+                        ContextCompat.getColor(holder.itemView.context, R.color.colorPrimary)
+                    )
+                }
+            }
 
             root.setOnClickListener { onItemClick(draft) }
             root.setOnLongClickListener {

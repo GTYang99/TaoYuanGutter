@@ -71,7 +71,6 @@
         android:orientation="vertical"
         app:layout_constraintTop_toBottomOf="@id/btnLogout"
         app:layout_constraintEnd_toEndOf="parent">
-
         <!-- 測距模式按鈕（面板開啟時唯一保留的主地圖入口） -->
         <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/btnMeasureDistance"

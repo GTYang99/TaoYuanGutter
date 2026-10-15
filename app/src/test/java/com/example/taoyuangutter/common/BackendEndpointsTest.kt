@@ -1,0 +1,49 @@
+package com.example.taoyuangutter.common
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class BackendEndpointsTest {
+    @Test
+    fun formalEndpointsUseTaipeiAndLegacyValuesRemainSeparate() {
+        assertEquals("taipei.srgeo.com.tw", BackendEndpoints.ACTIVE_HOST)
+        assertEquals(
+            "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/",
+            BackendEndpoints.ACTIVE_API_TAPIEI_URL
+        )
+        assertEquals(
+            "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms",
+            BackendEndpoints.ACTIVE_WMS_URL
+        )
+        assertEquals(
+            "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/geoserver",
+            BackendEndpoints.ACTIVE_GEOSERVER_BASE_URL
+        )
+        assertEquals(
+            "https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/gwc/service/wmts",
+            BackendEndpoints.ACTIVE_WMTS_URL
+        )
+        assertNotEquals(BackendEndpoints.ACTIVE_API_TAPIEI_URL, BackendEndpoints.LEGACY_DEMO_API_BASE_URL)
+        assertNotEquals(
+            BackendEndpoints.ACTIVE_GEOSERVER_BASE_URL,
+            BackendEndpoints.LEGACY_DEMO_GEOSERVER_BASE_URL
+        )
+        assertNotEquals(BackendEndpoints.ACTIVE_WMS_URL, BackendEndpoints.LEGACY_DEMO_WMS_URL)
+        assertNotEquals(BackendEndpoints.ACTIVE_WMTS_URL, BackendEndpoints.LEGACY_DEMO_WMTS_URL)
+        assertTrue(BackendHttpClient.TEMPORARY_ALLOW_TAIPEI_HOSTNAME_MISMATCH)
+        assertTrue(BackendHttpClient.isTemporaryTaipeiHost("taipei.srgeo.com.tw"))
+        assertTrue(BackendHttpClient.isTemporaryTaipeiHost("TAIPEI.SRGEO.COM.TW."))
+        assertFalse(BackendHttpClient.isTemporaryTaipeiHost("www.srgeo.com.tw"))
+    }
+
+    @Test
+    fun apiBackendTargetsMapToApprovedUrls() {
+        assertEquals("http://192.168.10.84/TY_RSGDBIP/", BackendEndpoints.apiBaseUrl(ApiBackendTarget.BASE))
+        assertEquals("https://taipei.srgeo.com.tw/TY_RSGDBIP_BK/", BackendEndpoints.apiBaseUrl(ApiBackendTarget.TAIPEI))
+        assertEquals("https://demo.srgeo.com.tw/TY_RSGDBIP_BK/", BackendEndpoints.apiBaseUrl(ApiBackendTarget.DEMO))
+    }
+
+}

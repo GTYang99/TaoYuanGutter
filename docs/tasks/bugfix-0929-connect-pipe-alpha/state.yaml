@@ -1,0 +1,48 @@
+task:
+  id: bugfix-0929-connect-pipe-alpha
+  type: bugfix
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+debug:
+  status: completed
+  root_cause: duplicated_parent_and_child_alpha_on_connect_pipe
+
+implementation:
+  status: completed
+  commit: 49dbe67
+  branch: codex/debug-0929-photo-upload-count
+
+validation:
+  status: completed
+  unit_tests: passed
+  debug_build: passed
+  focused_instrumentation: passed
+  device: emulator-5554
+
+git:
+  status: committed
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+next_action: verification

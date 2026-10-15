@@ -215,7 +215,6 @@ class GutterPhotosFragment : Fragment() {
             val slot = bundle.getInt(CameraOverlayFragment.RESULT_SLOT, 0)
             val path = bundle.getString(CameraOverlayFragment.RESULT_PATH) ?: pendingOutputPath
             if (code == Activity.RESULT_OK && !path.isNullOrBlank() && slot in 1..3) {
-                (activity as? PhotoLoadingHost)?.setPhotoLoading(true)
                 val file = File(path)
                 setCapturedAtForSlot(
                     slot = slot,
@@ -460,7 +459,6 @@ class GutterPhotosFragment : Fragment() {
                     val delayMs = (250L - elapsed).coerceAtLeast(0L)
                     loading.postDelayed({ if (_binding != null) loading.visibility = View.GONE }, delayMs)
                 }
-                (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
                 if (isRemote) {
                     photoView.visibility = View.GONE
                     placeholder.visibility = View.VISIBLE
@@ -488,7 +486,6 @@ class GutterPhotosFragment : Fragment() {
                     val delayMs = (250L - elapsed).coerceAtLeast(0L)
                     loading.postDelayed({ if (_binding != null) loading.visibility = View.GONE }, delayMs)
                 }
-                (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
                 return false
             }
         })
@@ -527,7 +524,6 @@ class GutterPhotosFragment : Fragment() {
                         showPhoto(3, binding.ivPhotoSlot3, binding.placeholderSlot3, binding.pbPhotoLoading3, null)
                     }
                 }
-                (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
             }
             return
         }
@@ -576,7 +572,6 @@ class GutterPhotosFragment : Fragment() {
             }
         }
         renderCapturedAtLabels()
-        (activity as? PhotoLoadingHost)?.setPhotoLoading(false)
         if (!suppressDraftChangeCallback) {
             draftChangeHost?.onPhotoCapturedAtDraftChanged(slot, null)
         }

@@ -6,10 +6,10 @@ import android.os.Build
 import com.example.taoyuangutter.gutter.Waypoint
 import com.example.taoyuangutter.gutter.WaypointType
 import com.example.taoyuangutter.common.PhotoCapturedAtResolver
+import com.example.taoyuangutter.common.BackendHttpClient
 import com.google.android.gms.maps.model.LatLng
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.asRequestBody
@@ -40,6 +40,23 @@ internal fun buildNodeImageMultipartBody(
     param("captured_at", capturedAt)
 }
 
+internal const val NODE_IMAGE_MISSING_ID_MESSAGE = "照片上傳成功但未取得有效圖片編號，請重試"
+
+/**
+ * A successful node-image response must carry the server ID that the later
+ * storeDitch request uses to associate the photo with its slot.
+ */
+internal fun validateNodeImageUploadSuccess(
+    body: NodeImageUploadResponse
+): ApiResult<NodeImageUploadResponse> {
+    val imageId = body.data?.imgId
+    return if (body.success && imageId != null && imageId > 0) {
+        ApiResult.Success(body)
+    } else {
+        ApiResult.Error(NODE_IMAGE_MISSING_ID_MESSAGE)
+    }
+}
+
 /**
  * GutterRepository
  *
@@ -50,12 +67,13 @@ internal fun buildNodeImageMultipartBody(
  * 所有公開方法皆為 suspend function，請在 CoroutineScope 內呼叫。
  */
 class GutterRepository(
-    private val api: GutterApiService = GutterApiClient.instance
+    private val apiProvider: () -> GutterApiService = { GutterApiClient.instance }
 ) {
-    private val rawHttp = OkHttpClient.Builder()
-        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .build()
+    constructor(api: GutterApiService) : this({ api })
+
+    private val api: GutterApiService
+        get() = apiProvider()
+    private val rawHttp = BackendHttpClient.instance
 
     private data class ApiErrorEnvelope(
         val success: Boolean? = null,
@@ -699,7 +717,7 @@ class GutterRepository(
                 
                 val body = response.body()
                 if (response.isSuccessful && body?.success == true) {
-                    ApiResult.Success(body)
+                    validateNodeImageUploadSuccess(body)
                 } else {
                     val errorBody = runCatching { response.errorBody()?.string() }.getOrNull()
                     val apiMsg = parseApiErrorMessage(errorBody)
@@ -996,15 +1014,18 @@ class GutterRepository(
      */
     suspend fun storeDitch(
         request: StoreDitchRequest,
-        token: String
+        token: String,
+        onRequestEntered: () -> Unit = {}
     ): ApiResult<StoreDitchResponse> {
         return try {
-            // 使用 INFO 等級，避免部分裝置 / 篩選條件看不到 DEBUG log
-            android.util.Log.i("StoreDitch", "request(json)=${Gson().toJson(request)}")
-            val response = api.storeDitch(
-                request       = request,
-                authorization = "Bearer $token"
-            )
+            val response = executeStoreDitchSubmissionBoundary(onRequestEntered) {
+                // 使用 INFO 等級，避免部分裝置 / 篩選條件看不到 DEBUG log
+                android.util.Log.i("StoreDitch", "request(json)=${Gson().toJson(request)}")
+                api.storeDitch(
+                    request       = request,
+                    authorization = "Bearer $token"
+                )
+            }
             val rawReq = response.raw().request
             android.util.Log.i("StoreDitch", "http ${rawReq.method} ${rawReq.url}")
             val body = response.body()
@@ -1034,6 +1055,8 @@ class GutterRepository(
             }
         } catch (e: CancellationException) {
             throw e
+        } catch (e: StoreDitchSubmissionBoundaryException) {
+            ApiResult.Error(message = "本機草稿提交狀態儲存失敗")
         } catch (e: Exception) {
             android.util.Log.e("StoreDitch", "exception: ${e.message}", e)
             ApiResult.Error(message = e.localizedMessage ?: "網路連線失敗")

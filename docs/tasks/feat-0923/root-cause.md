@@ -1,0 +1,251 @@
+# Root Cause Analysis
+
+## Classification
+
+- Task type remains `feature`.
+- This document records the planning root cause identified by Plan Critic; it does not reclassify the task as `debug` and does not authorize production-code changes during planning.
+
+## Problem
+
+The plan could mark a draft as `hasSubmittedStoreDitch=true` from a UI Host callback before the actual `GutterRepository.storeDitch(...)` method was entered. That did not precisely implement the requirement that only a request that truly enters the `storeDitch` call is considered submitted.
+
+## Evidence
+
+- `AddGutterBottomSheet` invokes `onGutterSubmitted(...)` immediately before `submitNewGutterRequest(...)` in the add path.
+- `AddGutterBottomSheet.performEditSubmit()` invokes `onGutterSubmitting()` before calling `repository.storeDitch(...)` in the edit path.
+- The current `GutterRepository.storeDitch(...)` method is the shared owner of the actual API call, but the original plan did not include it as an affected file or define a callback at its method-entry boundary.
+- Draft persistence is owned by `GutterDraftCoordinator`／`GutterSessionRepository`; the original plan did not define the behavior when the Host has no current draft id or when the expected Room row is missing.
+- `GutterDraftDatabase` uses `exportSchema = false`, and current test dependencies do not provide a Room migration helper; the original plan named a migration test without specifying a reproducible fixture.
+- Existing tests cover Gson draft serialization but do not bind `PendingDraftAdapter` or assert the pending-list tag layout.
+
+## Causal Chain
+
+1. The submission marker was assigned to a UI callback rather than the shared repository call boundary.
+2. Add and edit flows therefore had two semantically similar but independently ordered paths.
+3. A process stop between the Host callback and `GutterRepository.storeDitch` entry could make an unentered request appear submitted.
+4. Without a defined missing-draft policy, the marker could also be silently lost or create an untracked state.
+5. Without explicit migration and adapter test seams, the plan could not produce deterministic evidence for AC-003 to AC-005.
+
+## Planning Correction
+
+- Define `GutterRepository.storeDitch(...)` method entry as the single shared submission boundary for both add and edit calls.
+- Invoke a `suspend onRequestEntered` callback at the beginning of that repository method, before the Retrofit service call; the callback resolves the current draft id and persists the marker.
+- For an existing add/resumed draft id, ensure the Room row exists before marking. For direct inspect-edit with no pending draft id, keep the existing API flow and do not create a tagged pending draft; there is no list item to classify.
+- Preserve `hasSubmittedStoreDitch=true` in every later auto-save and retry path.
+- Add a repository ordering test with a fake API, an explicit Room 3→4 instrumentation migration fixture, and a pending-adapter instrumentation test with exact tag assertions.
+
+## Residual Limitation
+
+No persistence-plus-network operation can make a local database write and a remote HTTP request physically atomic. The corrected contract defines the observable boundary as entry into `GutterRepository.storeDitch`; the marker is persisted synchronously at that method boundary before the Retrofit request is issued, and all remaining outcomes (success, error, timeout, cancellation after entry) retain the submitted state.
+
+## Scope Update for Re-Planning
+
+The requirement was subsequently clarified: a general draft with `hasSubmittedStoreDitch=true` may be resumed for inspection, but its saved content must be read-only. The user may only return, delete it from the pending-list long-press flow, or submit the entire original draft again through the existing upload flow. `SPI_NUM` inspect/edit items remain outside this policy, and legacy drafts default to unsubmitted/editable.
+
+This adds a second boundary beyond the submission marker: the submitted read-only state must propagate from the pending-draft resume path through `GutterSessionFlowCoordinator`／`GutterFormNavigator` into both `AddGutterBottomSheet` and `GutterFormActivity`. The lock must cover all editable controls and the existing overlay visual, while leaving only the outer return and full re-upload actions available. The re-plan adds explicit propagation, UI-lock, overlay, retry, success-cleanup, and interruption evidence before implementation resumes.
+
+## Scope Update for Existing-gutter Draft Tag
+
+The requirement was subsequently clarified again: a draft with a valid `SPI_NUM` must display the single tag「既有側溝編輯中」, using the existing unsubmitted tag visual (transparent background, primary border and primary text). This tag takes precedence over `hasSubmittedStoreDitch`; it must never be combined with「曾提交過上傳」or「未提交上傳」.
+
+This is a list-state and test-scope change only for existing-gutter drafts. Their existing inspect/edit／storeDitch-with-`SPI_NUM` behavior remains editable and retryable. A draft that has not entered the API, fails, times out or is interrupted keeps the tag and editable content; successful update keeps the existing draft cleanup flow, and long-press deletion keeps the existing confirmation/local cleanup flow. General submitted drafts remain subject to the separate read-only/full re-upload policy.
+
+## Debug Finding: Verification Revision and Evidence Gap
+
+### Classification
+
+- Verification finding: evidence/revision mismatch, not an implementation regression.
+- Related issue: `ISS-feat-0923-004`.
+- Affected acceptance criteria: AC-006 and AC-007 are `NOT VERIFIED`; no implementation `FAIL` is established.
+
+### Evidence
+
+- `docs/tasks/feat-0923/verification.md` records `692991ca361b7fec07e117fde01a3659e337a4b5` as the revision under test.
+- `692991c` is the baseline before the submitted-draft read-only and re-upload implementation in `9524e03`.
+- The connected test evidence listed in that report covers the submitted/unsubmitted tag UI and Room migration, but contains no execution evidence for the new read-only overlay, Activity result return, Room reread, or re-upload retry behavior.
+- The current implementation and task state identify `9524e03` as the implementation revision, so the existing verification result cannot be used to pass or fail AC-006/AC-007.
+
+### Root Cause
+
+Verification was recorded against the prior baseline revision and was not rerun after the new implementation commit. Because the targeted instrumentation cases described in the approved plan were not present in the verification evidence, the feedback is an evidence gap rather than proof of a product defect.
+
+### Minimum Resolution
+
+1. Keep production code unchanged until the implementation revision is independently tested.
+2. Run verification against fixed commit `9524e03` (or a new commit only after any test-only changes are committed).
+3. Add or run targeted evidence for AC-006 and AC-007: read-only controls/overlay, Activity recreation and return, Room-authoritative snapshot re-read, success cleanup, and failure/timeout/interruption retry preservation.
+4. If those tests show a behavior contradiction, create a new implementation-regression issue with the concrete trace and re-enter debug; otherwise update verification with PASS/NOT VERIFIED per criterion.
+
+## Debug Evidence Update: Fixed-Revision Baseline
+
+- An isolated checkout was created at `9524e03752f286bd19949cb5a10a7cbf504d8f40` (`9524e03`); no production or test changes were added to that checkout.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:testDebugUnitTest` passed on the fixed revision.
+- `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew :app:connectedDebugAndroidTest` passed on the fixed revision using the Android 14 `Medium_Phone(AVD)` emulator: 51 tests, 0 failures, 0 errors, 0 skipped.
+- The generated fixed-revision report still contains only the existing baseline suites. It has no `SubmittedDraftReadOnlyUiTest`, `SubmittedDraftRetryFlowTest`, or equivalent AC-006/AC-007 runtime case.
+- Static control-flow review confirms the intended guards and Room reread paths exist in `AddGutterBottomSheet`, `GutterFormActivity`, `GutterFormNavigator`, and both Host implementations, but static review cannot prove touch blocking, lifecycle race behavior, request completeness, or success/failure cleanup.
+
+### Confidence
+
+- Root-cause classification (`verification_revision_and_evidence_gap`): **99%**. The old report revision, implementation commit, clean fixed-revision checkout, and test inventory are independently consistent.
+- Fixed-revision build and existing-regression baseline: **98%** for the covered 51 cases.
+- AC-006/AC-007 product behavior: **not above 95%**; it remains `NOT VERIFIED` because the required targeted runtime evidence is absent.
+- Release readiness: **not ready** until targeted AC-006/AC-007 verification and CI evidence are recorded.
+
+## Debug Finding: Submitted Read-Only Lock Misses Pager-Created Fragment
+
+### Classification
+
+- Verification category: `implementation_regression`.
+- Related issue: `ISS-feat-0923-005`.
+- Failed acceptance criterion: AC-006.
+- The earlier revision/evidence mismatch remains valid as historical context, but a fixed-revision runtime repro now establishes a concrete implementation defect.
+
+### Reproduction Evidence
+
+- Fixed revision: `9524e03`.
+- Device: Android 14 `Medium_Phone(AVD)` (`emulator-5554`).
+- Targeted test: `SubmittedDraftReadOnlyUiTest.submittedDraftDisablesFormControlsAfterPagerCreation`.
+- Result: `1` test, `1` failure, `0` errors, `0` skipped.
+- Failure: `GutterFormActivity`'s `etRemarks` remained `enabled=true`, while AC-006 requires the submitted draft's editable controls to be locked.
+
+### Causal Chain
+
+1. `GutterFormActivity.onCreate` calls `setupViewPager(...)` and then `applySubmittedDraftReadOnlyUi()`.
+2. `applySubmittedDraftReadOnlyUi()` attempts `pagerAdapter.getBasicInfoFragment()?.setEditable(false)`.
+3. At that point `ViewPager2` may not have created the basic-info child fragment, so the lookup returns `null` and no control lock is applied.
+4. `GutterBasicInfoFragment` is later created with its normal editable default, leaving controls enabled beneath the overlay.
+
+### Minimum Fix Scope
+
+- Propagate the submitted read-only flag through `GutterFormPagerAdapter` into `GutterBasicInfoFragment` creation.
+- Make the fragment initialize itself non-editable whenever that flag is present, independent of pager timing or recreation.
+- Retain the Activity-level lock as a defensive re-application after pager synchronization.
+- Add the targeted instrumentation test to the task's committed test scope and cover the key controls required by AC-006.
+- Do not change Room authority, submission-marker semantics, retry preservation, or unrelated working-tree changes.
+
+### Confidence
+
+- Root-cause identification: **98%**; the failure is reproduced on the fixed implementation revision and matches the observed lifecycle ordering.
+- Proposed lifecycle fix: **98% after targeted runtime validation**; the new test passes after the read-only flag is propagated into fragment creation and the Activity post-lock is retained.
+- AC-007: **not yet verified**; this defect does not by itself establish the re-upload flow result.
+
+### Fix Validation
+
+- Fix commit: `452915a` (`fix(feat-0923): enforce submitted draft read-only state`).
+- Targeted instrumentation test: PASS on Android 14 `Medium_Phone(AVD)`.
+- Full connected suite: PASS, 52 tests, 0 failures, 0 errors, 0 skipped.
+- JVM unit tests: PASS, 124 tests.
+- Independent verification and CI remain separate gates; this evidence closes the implementation-debug loop but does not mark Release ready.
+
+## Debug Finding: Submitted Re-upload Uses Mutable Auto-Save State
+
+### Classification
+
+- Verification category: `implementation_regression`.
+- Related issue: `ISS-feat-0923-006`.
+- Failed acceptance criterion: AC-007.
+- This is a separate regression from the resolved pager-created-fragment lock issue above.
+
+### Reproduction Evidence
+
+- Fixed revision: `452915a` (`452915ad22d135b87ef1705bc11808dbeccaee28`).
+- `AddGutterBottomSheet.performSubmittedReupload()` rereads the Room row, restores it into the mutable `waypoints` list, and passes that list into the retry flow (`AddGutterBottomSheet.kt:1111-1138`).
+- `ensureWaypointPhotosUploadedBeforeSubmit()` mutates the retry list and invokes `onWaypointsChanged` on photo success, photo error, and after the final projection (`AddGutterBottomSheet.kt:2034-2186`).
+- `GutterSheetSessionBinder` unconditionally maps `onWaypointsChanged` to `onAutoSaveRequested` (`GutterSheetSessionBinder.kt:27-38`), which reaches the session draft auto-save path in the map workspace host.
+- The approved contract requires an immutable Room-authoritative submitted snapshot and no draft writes during submitted retry (`analysis.md:43-55`, `plan.md:46-48`).
+
+### Causal Chain
+
+1. Submitted retry rereads Room but restores the data into the same mutable form state used by editable drafts.
+2. Photo upload preparation mutates that state and uses the normal `onWaypointsChanged` callback for progress/error propagation.
+3. The shared session binder treats every such callback as an auto-save request, including submitted retry callbacks.
+4. A photo failure, timeout, cancellation, or partial retry can therefore write mutable retry state back to the submitted draft, violating Room snapshot authority and retry preservation.
+
+### Minimum Fix Scope
+
+- Introduce a submitted-retry snapshot/projection boundary that keeps the Room snapshot immutable and separate from editable `waypoints` state.
+- Build request and photo-upload projections from that snapshot without invoking the submitted form's mutable `onWaypointsChanged` or auto-save callback.
+- Preserve the existing success cleanup behavior and ensure failure, timeout, cancellation, and interruption do not delete or overwrite the submitted draft.
+- Add targeted tests for full Room-sourced payload completeness, no-write behavior, and retry preservation across failure/timeout/interruption before returning to Verification.
+- Do not change submission-marker semantics, existing `SPI_NUM` edit／retry behavior, or unrelated working-tree changes; only the pending-list tag classification for valid `SPI_NUM` drafts changes.
+
+### Debug Exit Criteria
+
+- Root cause is mapped to `AC-007` and `ISS-feat-0923-006`.
+- The minimum fix scope above is implemented on a new committed revision.
+- Developer validation and independent Verification rerun against that new revision, including the targeted retry/no-write cases.
+
+## Fix Validation: Submitted Re-upload No-Write Boundary
+
+- Fix commit: `ee55f08` (`fix(feat-0923): isolate submitted re-upload retry state`).
+- `SubmittedRetrySnapshot` now deep-copies the Room draft into an immutable retry source and creates transport-only waypoint projections.
+- Submitted retry photo preparation no longer writes through the mutable form state or `onWaypointsChanged`; the request still receives the updated transport projection when a photo upload succeeds.
+- `GutterSheetSessionBinder` suppresses submitted-draft mutable waypoint callbacks, preventing the auto-save path during retry.
+- Minimum developer validation: JVM unit tests 126/126 PASS; `SubmittedDraftReadOnlyUiTest` PASS; `MainShellActivityTest` retry PASS 12/12.
+- The first full connected-suite run had one unrelated `RootViewWithoutFocusException` in `MainShellActivityTest`; the class-only retry passed. Full CI and independent AC-007 runtime retry evidence remain pending.
+
+## Debug Finding: Pending Draft Title/Subtitle Overlap
+
+### Root Cause
+
+- `bottom_sheet_pending_drafts.xml` only hosts the `RecyclerView`; each row is inflated from `item_pending_draft.xml` by `PendingDraftAdapter`.
+- The title was wrapped in the direct-child `LinearLayout` `layoutPendingDraftTitle`, but `tvPendingDraftTime` still constrained its top to the nested `tvPendingDraftTitle`.
+- A nested child is not a reliable `ConstraintLayout` anchor for the parent-level subtitle, so the vertical chain was not anchored to the complete title row and the subtitle could render over the title.
+
+### Fix Validation
+
+- Fix commit: `e595311` (`fix(feat-0923): prevent pending draft subtitle overlap`).
+- `tvPendingDraftTime` now anchors below `layoutPendingDraftTitle`.
+- Added a layout regression assertion for the measured vertical ordering of title row, time subtitle, and node-count subtitle.
+- Targeted `PendingDraftAdapterUiTest`: 3/3 PASS on Android 14 `Medium_Phone(AVD)`.
+
+## Implementation Validation: Existing-Gutter Tag Policy
+
+- Implementation commit: `f8f40fe`.
+- The approved policy correction is implemented: valid START `SPI_NUM` takes precedence over `hasSubmittedStoreDitch` and produces exactly one `EXISTING_GUTTER` tag.
+- `SubmittedDraftResumePolicy`, pending-list title, and delete confirmation all consume the shared normalized predicate.
+- JVM suite: 130/130 PASS; targeted `PendingDraftAdapterUiTest`: 3/3 PASS on Android 14 `Medium_Phone(AVD)`.
+- Runtime existing-gutter restore/edit/resubmit/failure/interruption evidence and CI remain pending independent Verification.
+
+## Planning Root Cause: Existing-gutter Identity Policy Is Split
+
+### Classification
+
+- Issue type: `planning_gap`
+- Related review: Plan Critic Review Iteration 7, Findings 1–2
+- Affected acceptance criteria: AC-003、AC-004、AC-008
+- This is a planning defect, not an implementation regression; production code must remain unchanged until the revised plan is reviewed and approved.
+
+### Problem
+
+The new requirement says a valid `SPI_NUM` draft must display the single「既有側溝編輯中」tag and remain editable. The plan described this behavior at a high level but did not identify the two existing policy owners that must agree on the same identity rule: `PendingDraftTagPolicy` decides the list tag, while `SubmittedDraftResumePolicy` decides whether the restored form enters submitted read-only mode. The current tag policy has only `SUBMITTED`／`UNSUBMITTED` and returns `null` for a valid START `SPI_NUM`; the resume policy parses `SPI_NUM` independently. Therefore changing only the adapter cannot produce the new tag, and changing the two policies independently can make the list and restored form disagree.
+
+### Evidence
+
+- `app/src/main/java/com/example/taoyuangutter/pending/PendingDraftTagPolicy.kt` defines only `PendingDraftTagKind.SUBMITTED` and `UNSUBMITTED`.
+- The same policy reads `SPI_NUM` from the START waypoint, trims it, and returns `null` when the value is non-empty; no existing-gutter tag kind exists.
+- `SubmittedDraftResumePolicy.kt` separately determines whether a draft is submitted/read-only instead of consuming a shared identity predicate.
+- `PendingDraftsBottomSheet.kt` and `PendingDraftAdapter.kt` use untrimmed `isNotEmpty()` checks for title／delete identity, so whitespace can produce a different result from the tag policy.
+- The current plan affected `PendingDraftAdapter.kt` but omitted `PendingDraftTagPolicy.kt` and `SubmittedDraftResumePolicy.kt`; its tests did not fix whitespace, missing START, or non-START `SPI_NUM` behavior.
+
+### Causal Chain
+
+1. The product change was expressed as an adapter/tag requirement instead of a shared draft-identity policy change.
+2. The existing tag policy intentionally returned no tag for `SPI_NUM`, while the restore policy independently parsed the same field to exclude read-only mode.
+3. Because no common `hasValidSpiNum` predicate or `EXISTING_GUTTER` kind was specified, implementation could show the wrong tag, show no tag, or show an existing-gutter tag while still opening the form in read-only mode.
+4. Inconsistent normalization (`trim().isNotEmpty()` versus raw `isNotEmpty()`) could further make the list tag, title, delete confirmation and restore behavior disagree for whitespace or malformed waypoint layouts.
+
+### Minimum Planning Correction
+
+- Add `PendingDraftTagPolicy.kt` and `SubmittedDraftResumePolicy.kt` to the affected files and define one shared, pure `hasValidSpiNum`／existing-gutter identity predicate.
+- Define the predicate as the START waypoint's `SPI_NUM`, normalized with `trim()`, and non-empty after normalization; a missing START waypoint or a `SPI_NUM` on a non-START waypoint is not valid. No additional format validation is introduced unless the product requirement later specifies one.
+- Add `PendingDraftTagKind.EXISTING_GUTTER` and require `kindFor` precedence: valid `SPI_NUM` → existing-gutter kind; otherwise `hasSubmittedStoreDitch` → submitted/unsubmitted kind. The adapter renders exactly one tag.
+- Require `SubmittedDraftResumePolicy` to consume the same predicate: valid `SPI_NUM` returns `submittedDraftReadOnly=false`; only a draft without valid `SPI_NUM` and with `hasSubmittedStoreDitch=true` returns true.
+- Reuse the same predicate for pending-draft title／delete identity where the existing-gutter identity is shown or confirmed, eliminating whitespace divergence.
+- Add JVM policy tests for valid START `SPI_NUM`, empty string, whitespace-only value, missing START, non-START-only value, and `hasSubmittedStoreDitch=true` with valid `SPI_NUM`; add instrumentation assertions for the rendered single tag and editable recovery flow.
+
+### Exit Criteria
+
+- `plan.md` lists both policy files, the shared predicate, precedence, recovery behavior and boundary tests.
+- `analysis.md` records the policy ownership and normalization contract.
+- The next Plan Critic review confirms AC-003／AC-004／AC-008 are implementable without modifying production code during planning.

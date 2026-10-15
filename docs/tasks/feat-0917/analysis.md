@@ -15,13 +15,13 @@
 
 - 非虛擬點以 Boolean 固定送出大寫 key；讀取時將 String `"0"`／`"1"` 及缺值安全正規化為 Boolean。
 - 表單採互斥、灰化而非只取消勾選的 UX；虛擬點依規則清除、隱藏並省略欄位，草稿一致。
-- 檢視下拉以點位名稱附加銜接點與最後的待架站標記；虛擬點不顯示連結管。
+- 檢視下拉以點位名稱附加銜接點與最後的待架站標記；虛擬點不顯示連接管。
 
 ## Affected Modules and Dependencies
 
 - `GutterApiModels.kt`、`StoreDitchNodeRequestMapper.kt`：大寫 JSON key、Boolean request、String response 與 omission 行為。
 - `GutterInspectActivity.kt`、`GutterBasicInfoFragment.kt`、`WaypointAdapter.kt`：readback 正規化、表單／草稿交接、互斥灰化、檢視名稱與欄位可見性。
-- `fragment_gutter_basic_info.xml`、`strings.xml`：控制項位置與「連結管」文案。
+- `fragment_gutter_basic_info.xml`、`strings.xml`：控制項位置與「連接管」文案。
 - `StoreDitchNodeRequestMapperTest.kt`、`GutterBasicInfoUiTest.kt` 及新增的 DTO／檢視格式測試：新版契約資料覆蓋。
 - 既有 XY_NUM 與最近存檔點位匯入相關檔案仍在任務範圍，但其已完成證據需在新 revision 重新回歸。
 

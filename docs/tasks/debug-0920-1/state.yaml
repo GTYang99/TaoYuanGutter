@@ -1,0 +1,57 @@
+task:
+  id: debug-0920-1
+  type: debug
+
+phase: verification
+status: verification_passed
+
+knowledge_resolution:
+  status: not_required
+
+debug:
+  status: completed
+  root_cause: identified_from_static_code_evidence
+  issues:
+    - ISS-DBG-0920-001
+    - ISS-DBG-0920-002
+    - ISS-DBG-0920-003
+    - ISS-DBG-0920-004
+    - ISS-DBG-0920-005
+    - ISS-DBG-0920-006
+    - ISS-DBG-0920-007
+    - ISS-DBG-0920-008
+    - ISS-DBG-0920-009
+    - ISS-DBG-0920-010
+    - ISS-DBG-0920-011
+
+implementation:
+  status: completed
+  scope: preserve_empty_connection_value_across_edit_preload_and_form_contract
+
+validation:
+  status: completed
+  static_source_review: completed
+  targeted_unit_tests: pass
+  runtime_device: pass
+
+git:
+  branch: "fix/debug-0920-1-表單問題"
+  commit: "3833484"
+  status: committed
+
+verification:
+  result: pass
+  category: functional
+  failed_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - CI/release gates have not been run in this local validation session.
+
+next_action: release

@@ -241,6 +241,7 @@ class MainActivity : AppCompatActivity(),
     }
     private val mapOverlayController by lazy {
         MapOverlayController(
+            context = this,
             mapProvider = { googleMap },
             onNoDitchPointsLayerChanged = { enabled ->
                 if (!enabled) clearNoDitchPointsMarkers()
@@ -434,6 +435,11 @@ class MainActivity : AppCompatActivity(),
                         ?: activeSheet
                     activeSheet = liveSheet
                     when (result.resultCode) {
+                        GutterFormActivity.RESULT_SUBMITTED_READ_ONLY_RETURN -> {
+                            resetHighlightedMarker()
+                            pendingWaypointFormIndex = -1
+                            liveSheet?.showSelf()
+                        }
                         Activity.RESULT_OK -> if (pendingWaypointFormIndex >= 0) {
 	                            val data = result.data
                             val returnedDraftId = data?.getLongExtra(GutterFormActivity.EXTRA_SESSION_DRAFT_ID, 0L) ?: 0L
@@ -682,6 +688,7 @@ class MainActivity : AppCompatActivity(),
 
     override fun onDestroy() {
         myLocationController.cancelPendingLocationRequest()
+        if (googleMap != null) mapOverlayController.releaseOfflineOverlays()
         runCatching { unregisterReceiver(waypointLocationChangedReceiver) }
         authExpiredHandler.reset()
         super.onDestroy()
@@ -968,6 +975,18 @@ class MainActivity : AppCompatActivity(),
         // 隱藏 BottomSheet 並開始上傳動畫
         activeSheet?.hideSelf()
         mainBlockingUiController.setInspectLoading(true, getString(R.string.msg_gutter_submitting))
+    }
+
+    override fun onStoreDitchRequestEntered(waypoints: List<Waypoint>) {
+        currentSessionDraftId?.let { draftId ->
+            draftCoordinator.ensureAndMarkStoreDitchSubmitted(
+                draftId = draftId,
+                waypoints = waypoints,
+                spiTyp = resolveCurrentSessionSpiTyp(waypoints),
+                isOffline = currentSessionIsOffline,
+                isCurve = activeSheet?.isCurveMode() == true
+            )
+        }
     }
 
     override fun onPendingPhotoUploadStarted(totalCount: Int) {
@@ -1573,7 +1592,11 @@ class MainActivity : AppCompatActivity(),
         mapCameraController.setPersistentBottomInset(0)
     }
 
-    override fun openWaypointForEdit(sheet: AddGutterBottomSheet, waypointIndex: Int) {
+    override fun openWaypointForEdit(
+        sheet: AddGutterBottomSheet,
+        waypointIndex: Int,
+        submittedDraftReadOnly: Boolean
+    ) {
         currentWaypoints = sheet.getWaypoints()
         val wp = currentWaypoints.getOrNull(waypointIndex) ?: return
 
@@ -1585,7 +1608,13 @@ class MainActivity : AppCompatActivity(),
         highlightMarker(waypointIndex)
         sheet.hideSelf()
         binding.btnAddGutter.visibility = View.GONE
-        openAddForm(waypointIndex, wp, initialLatLng, isEditMode = sheet.isEditMode())
+        openAddForm(
+            waypointIndex,
+            wp,
+            initialLatLng,
+            isEditMode = sheet.isEditMode(),
+            submittedDraftReadOnly = submittedDraftReadOnly
+        )
     }
 
     override fun openWaypointForInspect(sheet: AddGutterBottomSheet, waypointIndex: Int) {
@@ -1623,7 +1652,8 @@ class MainActivity : AppCompatActivity(),
         currentIndex: Int,
         wp: Waypoint,
         latLng: LatLng,
-        isEditMode: Boolean = false
+        isEditMode: Boolean = false,
+        submittedDraftReadOnly: Boolean = false
     ) {
         mapCameraController.moveCameraToLatLngOffset(
             latLng,
@@ -1638,6 +1668,7 @@ class MainActivity : AppCompatActivity(),
             waypoint = wp,
             isEditMode = isEditMode,
             currentSessionDraftId = sessionDraftId,
+            submittedDraftReadOnly = submittedDraftReadOnly,
             wmtsLayer = currentWmtsLayer(),
             sessionIsOffline = currentSessionIsOffline,
             hostLastLocation = lastKnownLocation,

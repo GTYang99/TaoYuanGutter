@@ -21,6 +21,7 @@ class GutterSessionFlowCoordinator {
             val draftId: Long,
             val isOffline: Boolean,
             val initialWaypointCount: Int,
+            val submittedDraftReadOnly: Boolean,
             val sheet: AddGutterBottomSheet,
             val waypoints: List<Waypoint>
         ) : ResumeAction
@@ -59,9 +60,11 @@ class GutterSessionFlowCoordinator {
             draftId = draft.id,
             isOffline = isOfflineMainMode,
             initialWaypointCount = draft.waypoints.size,
+            submittedDraftReadOnly = SubmittedDraftResumePolicy.isReadOnly(draft),
             sheet = AddGutterBottomSheet.newInstanceFromDraft(
                 draft = draft,
-                forceOffline = isOfflineMainMode
+                forceOffline = isOfflineMainMode,
+                submittedDraftReadOnly = SubmittedDraftResumePolicy.isReadOnly(draft)
             ),
             waypoints = restoreDraftWaypoints(draft)
         )

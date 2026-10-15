@@ -1,0 +1,56 @@
+task:
+  id: feat-0923
+  type: feature
+
+phase: verification
+status: verification_not_verified
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+  commit: f8f40fe
+
+validation:
+  status: completed
+
+git:
+  branch: feat/草稿tag
+  commit: f8f40fe
+  status: committed
+
+ci:
+  build: not_verified
+  test: not_verified
+
+debug:
+  status: completed
+  root_cause: submitted_reupload_mutable_state_auto_save
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-004
+    - AC-005
+    - AC-006
+    - AC-007
+    - AC-008
+
+release:
+  status: pending
+
+blocking:
+  - No tracked CI workflow or accessible pipeline result exists for the fixed implementation revision
+  - Targeted runtime evidence for the remaining acceptance criteria is not present in the committed test suite
+next_action: verification

@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [DraftEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class GutterDraftDatabase : RoomDatabase() {
@@ -28,6 +28,7 @@ abstract class GutterDraftDatabase : RoomDatabase() {
                 )
                     .addMigrations(MIGRATION_1_2)
                     .addMigrations(MIGRATION_2_3)
+                    .addMigrations(MIGRATION_3_4)
                     // Keep the existing synchronous repository API stable first.
                     .allowMainThreadQueries()
                     .build()
@@ -46,6 +47,15 @@ abstract class GutterDraftDatabase : RoomDatabase() {
                 db.execSQL("ALTER TABLE gutter_session_drafts ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0")
                 db.execSQL("ALTER TABLE gutter_session_drafts ADD COLUMN workflow_ownership TEXT NOT NULL DEFAULT 'LEGACY_SINGLE'")
                 db.execSQL("UPDATE gutter_session_drafts SET created_at = saved_at WHERE created_at = 0")
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE gutter_session_drafts " +
+                        "ADD COLUMN has_submitted_store_ditch INTEGER NOT NULL DEFAULT 0"
+                )
             }
         }
     }

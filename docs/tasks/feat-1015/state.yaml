@@ -43,6 +43,7 @@ release:
 blocking:
   - AC-003 physical GPS, permission/error, current-location marker/camera, and backend behavior remain NOT VERIFIED per user direction; the connected device was not used.
   - AC-005 visual map rendering, integrated page-switch/map callback behavior, and loading-row retention are not fully evidenced by emulator tests.
-  - CI build and test results for the fixed revision are unavailable; no CI configuration is checked in.
+  - The source branch adds .github/workflows/android-ci.yml, but there is no CI result for the combined feat-1015 revision; the source-branch CI pass does not cover this merge result.
+  - The combined feat-1006 and feat-1015 revision has not been independently verified; all acceptance criteria and regression risks must be rechecked before release.
   - The original emulator-5554 concurrency issue is resolved by provisioning dedicated AVDs. Fresh ImportExistingWaypointUiTest evidence remains unavailable: on the dedicated AVDs it failed twice at the initial Espresso assertion with RootViewWithoutFocusException; the replacement AVD retry was used, and no further retry is permitted in this evidence cycle.
 next_action: verification

@@ -1,0 +1,53 @@
+task:
+  id: debug-0919-2
+  type: debug
+
+phase: verification
+status: verification_not_verified
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: missing_inputs
+
+debug:
+  status: completed
+  root_cause: completed_photo_state_lost_at_form_sheet_and_reorder_autosave_boundary
+  issues:
+    - ISS-debug-0919-2-001
+    - ISS-debug-0919-2-002
+    - ISS-debug-0919-2-003
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+
+git:
+  branch: "fix/debug-0919-2-照片上傳流程"
+  commit: "HEAD"
+  status: committed
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-001
+    - AC-002
+
+ci:
+  build: not_started
+  test: not_started
+
+release:
+  status: pending
+
+blocking:
+  - Live new-photo request boundary was observed, but storeDitch returned HTTP 404 and no confirmed existing-photo replacement persistence exists.
+  - The live reversal-submit flow remains unexecuted.
+  - CI build and test evidence was not produced in the focused verification scope.
+
+next_action: infrastructure

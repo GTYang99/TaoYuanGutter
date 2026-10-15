@@ -11,6 +11,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import androidx.core.graphics.ColorUtils
 import com.example.taoyuangutter.databinding.ItemWaypointBinding
+import com.example.taoyuangutter.common.PhotoUploadValidator
 import com.google.android.material.color.MaterialColors
 
 class WaypointAdapter(
@@ -25,6 +26,9 @@ class WaypointAdapter(
 
     /** false = 隱藏拖曳把手（檢視模式） */
     var showDragHandle: Boolean = true
+
+    /** Existing-point edit mode requires the backend-issued measurement id. */
+    var requiresMeasureId: Boolean = false
 
     inner class ViewHolder(val binding: ItemWaypointBinding) :
         RecyclerView.ViewHolder(binding.root) {
@@ -54,15 +58,18 @@ class WaypointAdapter(
         val statusView = holder.binding.tvWaypointStatus
         val xyNum = item.basicData["XY_NUM"]?.trim()?.takeIf { it.isNotEmpty() }
             ?: item.basicData["xyNum"]?.trim()?.takeIf { it.isNotEmpty() }
-        val hasFilledFormData = listOf(
-            "NODE_TYP", "NODE_X", "NODE_Y", "NODE_LE", "MAT_TYP",
-            "COVER_DEP", "NODE_DEP", "NODE_WID", "IS_BROKEN",
-            "IS_HANGING", "IS_SILT", "IS_CANTOPEN", "IS_TIEINPOINT",
-            "IS_CONNECTING", "NODE_NOTE", "photo1", "photo2", "photo3"
-        ).any { !item.basicData[it].isNullOrBlank() }
+        val isComplete = GutterCompletionPolicy.isComplete(
+            data = item.basicData,
+            isVirtual = item.isVirtual,
+            requiresMeasureId = requiresMeasureId,
+            hasCoordinates = item.latLng != null,
+            photoUsable = { slot ->
+                PhotoUploadValidator.isUsableForUpload(ctx, item.basicData["photo$slot"])
+            }
+        )
 
-        // 修改顯示邏輯：只要有編號，就一定要顯示標籤
-        if (xyNum != null) {
+        // 只有完整符合送出／上傳條件時，才顯示編號或「已填寫資料」。
+        if (isComplete && xyNum != null) {
             statusView.text = xyNum
             
             // 統一顏色：只要有資料（通過上一頁檢查），就顯示紫色標籤
@@ -75,7 +82,7 @@ class WaypointAdapter(
             val fg = primary
             statusView.backgroundTintList = android.content.res.ColorStateList.valueOf(bg)
             statusView.setTextColor(fg)
-        } else if (hasFilledFormData) {
+        } else if (isComplete) {
             statusView.text = ctx.getString(R.string.msg_data_filled)
             val primary = MaterialColors.getColor(
                 holder.itemView,

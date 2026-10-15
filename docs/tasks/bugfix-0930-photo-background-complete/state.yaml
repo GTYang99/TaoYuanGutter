@@ -1,0 +1,57 @@
+task:
+  id: bugfix-0930-photo-background-complete
+  type: bugfix
+
+phase: infrastructure
+status: blocked
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+  focused_unit_tests: passed
+  debug_build: passed
+  static_review: passed
+  physical_device: not_required_by_plan
+
+git:
+  branch: codex/bugfix-0930-photo-background-complete
+  commit: d865b499ce867ebc4563df49a95e5ad584e6ff9d
+  status: committed
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
+  evidence:
+    fixed_revision: bc4f2ab4f0f0a40e2093aea6006bf8b396d67553
+    worktree_at_start: clean
+    focused_unit_tests: pass_20_of_20
+    debug_build: pass
+    source_review: pass
+    diff_check: pass
+    device: ac002_inflight_photo_return_and_draft_handoff_pass
+    ci: not_verified
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - Automatic approval review rejected pushing the CI workflow branch to origin; explicit user authorization is required.
+  - The device's effective API route is not independently confirmed as the test station.
+next_action: infrastructure

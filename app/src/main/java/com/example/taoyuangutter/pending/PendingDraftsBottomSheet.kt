@@ -141,8 +141,7 @@ class PendingDraftsBottomSheet : BottomSheetDialogFragment() {
             draft.kind == KIND_CURVE -> getString(R.string.msg_curve_draft_title)
             draft.isOffline -> "離線草稿"
             else -> {
-                val startWp = draft.waypoints.firstOrNull { it.type == "START" }
-                startWp?.basicData?.get("SPI_NUM")?.takeIf { it.isNotEmpty() } ?: "側溝草稿"
+                PendingDraftTagPolicy.spiNumFor(draft) ?: "側溝草稿"
             }
         }
         AlertDialog.Builder(requireContext())

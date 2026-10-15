@@ -1,0 +1,64 @@
+task:
+  id: debug-0919-3
+  type: debug
+
+phase: verification
+status: verification_not_verified
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+debug:
+  status: completed
+  root_cause: identified_from_static_code_evidence_shared_main_layout
+  issues:
+    - ISS-debug-0919-3-001
+    - ISS-debug-0919-3-002
+
+implementation:
+  status: completed
+  mode: debug_fix
+  build:
+    status: passed
+    command: ./gradlew :app:testDebugUnitTest :app:assembleDebug
+  unit_test:
+    status: passed
+    command: ./gradlew :app:testDebugUnitTest :app:assembleDebug
+
+validation:
+  status: completed
+  limitations:
+    - The planned NoDitchModeUiController instrumentation test is absent at the fixed revision.
+    - AC-003 PASS evidence was collected from a user-requested derived BASE_URL build with an uncommitted endpoint-only source override; it is not fixed-revision evidence.
+    - CI result is unavailable.
+
+git:
+  branch: "detached-worktree: debug-0919-3-verification"
+  commit: 9ed2c7cf46288702829d528e95835897b0a88534
+  status: working_tree_modified_for_derived_base_url_test
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
+
+ci:
+  build: NOT_VERIFIED
+  test: NOT_VERIFIED
+
+release:
+  status: pending
+
+blocking:
+  - AC-003 runtime PASS was obtained on the derived BASE_URL test build, not the untouched fixed revision.
+  - The planned NoDitchModeUiController instrumentation test is absent at the fixed revision.
+  - CI result is unavailable.
+
+next_action: infrastructure

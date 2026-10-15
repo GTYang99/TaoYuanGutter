@@ -31,11 +31,9 @@ class NoDitchModeUiController(
         }
         ViewCompat.setOnApplyWindowInsetsListener(panel) { _, insets ->
             val navBottom = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
-            val imeBottom = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom
-            val bottomInset = maxOf(navBottom, imeBottom)
             val base = panelBaseBottomMarginPx ?: 0
             panel.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = base + bottomInset
+                bottomMargin = NoDitchPanelInsetPolicy.bottomMargin(base, navBottom)
             }
             insets
         }

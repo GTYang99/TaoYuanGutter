@@ -1,0 +1,55 @@
+task:
+  id: debug-1012
+  type: debug
+
+phase: verification
+status: verification_passed
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+debug:
+  status: completed
+  root_cause: identified_from_static_code_evidence
+  issues:
+    - ISS-1012-001
+
+implementation:
+  status: completed
+  mode: debug_fix
+
+validation:
+  status: completed
+  static_source_review: completed
+  runtime_device: passed
+  connected_test: passed
+  unit_test: passed
+  debug_build: passed
+
+git:
+  branch: codex/debug-1012
+  commit: 7b5d561756e89b5738251172d7629a9e354e8a1e
+  status: committed
+
+verification:
+  result: pass
+  category: null
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
+
+ci:
+  build: pass
+  test: pass
+
+release:
+  status: pending
+
+blocking: []
+
+next_action: release

@@ -1,0 +1,57 @@
+task:
+  id: debug-0919-1
+  type: debug
+
+phase: verification
+status: verification_passed
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+debug:
+  status: completed
+  root_cause: identified_from_static_code_evidence
+
+plan_review:
+  status: pending
+
+implementation:
+  status: completed
+  build: passed
+  unit_tests: passed
+
+validation:
+  status: completed
+  unit_tests: passed
+  debug_build: passed
+  physical_device: passed
+
+git:
+  branch: "fix/debug-0919-1-UI流程"
+  commit: 4b2cc00
+  status: committed
+
+verification:
+  result: pass
+  category: functional
+  failed_acceptance_criteria: []
+  passed_acceptance_criteria:
+    - AC-001
+    - AC-002
+    - AC-003
+    - AC-004
+  not_verified_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - CI build and test results are not available in this workspace.
+next_action: release

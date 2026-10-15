@@ -160,7 +160,6 @@ class GutterInspectPhotosFragment : Fragment() {
 
     private fun renderFields(point: PointViewData, isVirtual: Boolean) {
         val details = point.details
-        val isCantOpen = details?.isCantOpenAsBoolean == true
         binding.layoutFields.removeAllViews()
         binding.layoutFields.addView(createFieldRow("待架站", normalizeDisplayValue(mapBooleanCode(details?.isPendingDeploy))))
         if (!isVirtual) {
@@ -179,7 +178,7 @@ class GutterInspectPhotosFragment : Fragment() {
                 )
             )
         }
-        if (!isVirtual && !isCantOpen) {
+        if (shouldShowInspectionDetailFields(details, isVirtual)) {
             binding.layoutFields.addView(createFieldRow("溝蓋板厚度(公分)", normalizeDisplayValue(details?.coverDepAsString)))
             binding.layoutFields.addView(
                 createPhotoSection(
@@ -204,7 +203,7 @@ class GutterInspectPhotosFragment : Fragment() {
                 "溝體結構受損" to normalizeDisplayValue(mapBoolean01(details?.isBroken == "1")),
                 "附掛或過路管線" to normalizeDisplayValue(inspectionPresenceValue(details?.isHanging == "1")),
                 "淤積程度" to normalizeDisplayValue(mapSilt(details?.isSilt)),
-                "連結管" to normalizeDisplayValue(inspectionPresenceValue(details?.isConnectingAsBoolean))
+                "連接管" to normalizeDisplayValue(inspectionPresenceValue(details?.isConnectingAsBoolean))
             )
             inspectionDetailFieldOrder().forEach { label ->
                 binding.layoutFields.addView(createFieldRow(label, detailValues.getValue(label)))
@@ -482,13 +481,7 @@ class GutterInspectPhotosFragment : Fragment() {
         else -> ""
     }
 
-    private fun mapSilt(code: String?): String = when (code) {
-        "0" -> "無"
-        "1" -> "輕度"
-        "2" -> "中度"
-        "3" -> "嚴重"
-        else -> code.orEmpty()
-    }
+    private fun mapSilt(code: String?): String = inspectionSiltValue(code)
 
     private fun normalizeDisplayValue(value: String?): String {
         val normalized = value?.trim().orEmpty()
@@ -516,12 +509,24 @@ internal fun inspectionDetailFieldOrder(): List<String> = listOf(
     "溝體結構受損",
     "附掛或過路管線",
     "淤積程度",
-    "連結管"
+    "連接管"
 )
+
+/** Detail measurements, attributes, and photo slots 2/3 do not apply to exempt modes. */
+internal fun shouldShowInspectionDetailFields(details: NodeDetails?, isVirtual: Boolean): Boolean =
+    !isVirtual && details?.isCantOpenAsBoolean != true && details?.isTieInPointAsBoolean != true
 
 /** Uses the approved presence wording for inspection attributes that represent an attached item. */
 internal fun inspectionPresenceValue(value: Boolean?): String = when (value) {
     true -> "有"
     false -> "無"
     null -> ""
+}
+
+/** Maps the current severe code and the legacy severe code to the same label. */
+internal fun inspectionSiltValue(code: String?): String = when (code) {
+    "0" -> "無"
+    "1" -> "輕度"
+    "2", "3" -> "嚴重"
+    else -> code.orEmpty()
 }

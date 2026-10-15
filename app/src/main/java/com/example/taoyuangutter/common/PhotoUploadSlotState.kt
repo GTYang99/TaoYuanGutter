@@ -10,12 +10,27 @@ object PhotoUploadSlotState {
     const val STATE_SUCCESS = "success"
     const val STATE_FAILED = "failed"
 
+    data class UploadOutcome(
+        val state: String,
+        val imgId: Int?,
+        val error: String?
+    )
+
+    const val ERROR_MISSING_IMG_ID = "上傳回應缺少有效照片 ID"
+
     fun imgIdKey(slot: Int): String = "photo${slot}$IMG_ID_SUFFIX"
     fun stateKey(slot: Int): String = "photo${slot}$STATE_SUFFIX"
     fun errorKey(slot: Int): String = "photo${slot}$ERROR_SUFFIX"
 
     fun readImgId(data: Map<String, String>, slot: Int): Int? =
-        data[imgIdKey(slot)]?.trim()?.toIntOrNull()
+        data[imgIdKey(slot)]?.trim()?.toIntOrNull()?.takeIf { it > 0 }
+
+    fun outcomeForUploadResponse(imgId: Int?): UploadOutcome =
+        if (imgId != null && imgId > 0) {
+            UploadOutcome(state = STATE_SUCCESS, imgId = imgId, error = null)
+        } else {
+            UploadOutcome(state = STATE_FAILED, imgId = null, error = ERROR_MISSING_IMG_ID)
+        }
 
     fun readState(data: Map<String, String>, slot: Int): String =
         data[stateKey(slot)]?.trim()?.takeIf { it.isNotEmpty() } ?: STATE_IDLE

@@ -2,6 +2,7 @@ package com.example.taoyuangutter.gutter
 
 import com.example.taoyuangutter.R
 import android.app.Activity
+import android.annotation.SuppressLint
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -33,6 +34,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import com.example.taoyuangutter.map.LocationFixQualityPolicy
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -84,7 +86,7 @@ import kotlinx.coroutines.delay
 import java.net.MalformedURLException
 import java.net.URL
 
-class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadingHost,
+class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
     GutterBasicInfoFragment.DraftChangeHost,
     GutterPhotosFragment.DraftChangeHost {
 
@@ -102,11 +104,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private lateinit var binding: ActivityGutterFormBinding
     private lateinit var pagerAdapter: GutterFormPagerAdapter
-    private var photoLoadingCount: Int = 0
     private var restoredCurrentFormData: HashMap<String, String>? = null
     private var restoredIsVirtual: Boolean? = null
     private var photoDraftBatchDepth: Int = 0
     private var pendingPhotoDraftSync: Boolean = false
+    private var resultDispatchInProgress: Boolean = false
     private var mapInitQueued: Boolean = false
     private val photoUploadListeners = mutableMapOf<Int, (PhotoSlotUploadCoordinator.Snapshot) -> Unit>()
     private val authExpiredHandler by lazy(LazyThreadSafetyMode.NONE) { AuthExpiredHandler(this) }
@@ -128,33 +130,32 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         pagerAdapter.getBasicInfoFragment()?.restoreCantOpenSessionState(data)
     }
 
-    override fun setPhotoLoading(visible: Boolean) {
-        if (!::binding.isInitialized) return
-        if (visible) photoLoadingCount++ else photoLoadingCount = (photoLoadingCount - 1).coerceAtLeast(0)
-        binding.photoLoadingOverlay.visibility = if (photoLoadingCount > 0) View.VISIBLE else View.GONE
-    }
-
     override fun onBasicInfoDraftChanged(data: Map<String, String>) {
+        if (submittedDraftReadOnly) return
         mergeCurrentFormData(data)
         queueSessionDraftSync()
     }
 
     override fun onPhotosDraftChanged(photo1: String?, photo2: String?, photo3: String?) {
+        if (submittedDraftReadOnly) return
         updateCurrentFormPhotos(photo1, photo2, photo3)
         queuePhotoDraftSync()
     }
 
     override fun onPhotoCapturedAtDraftChanged(slot: Int, capturedAt: String?) {
+        if (submittedDraftReadOnly) return
         updateCurrentPhotoCapturedAt(slot, capturedAt)
         queuePhotoDraftSync()
     }
 
     override fun onPendingPhotoDraftChanged(slot: Int, pendingOutputPath: String?) {
+        if (submittedDraftReadOnly) return
         updateCurrentPendingPhoto(slot, pendingOutputPath)
         queuePhotoDraftSync()
     }
 
     override fun onPhotoSlotReplaced(slot: Int) {
+        if (submittedDraftReadOnly) return
         if (slot !in 1..3) return
         PhotoUploadSlotState.clear(currentFormData, slot)
         // View-mode launches do not carry a session draft.  Clear the same
@@ -177,6 +178,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     override fun onPhotoSlotReadyForUpload(slot: Int, photoPath: String?) {
+        if (submittedDraftReadOnly) return
         if (slot !in 1..3) return
         // Deletion must always clear the authoritative state, including old server metadata.
         if (photoPath.isNullOrBlank()) {
@@ -262,6 +264,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         const val EXTRA_VIEW_MODE        = "view_mode"
         const val EXTRA_WAYPOINT_INDEX   = "waypoint_index"
         const val EXTRA_IS_EDIT_MODE     = "is_edit_mode" // 新增：是否為編輯模式
+	        const val EXTRA_SUBMITTED_DRAFT_READ_ONLY = "submitted_draft_read_only"
 	        const val EXTRA_SESSION_DRAFT_ID = "session_draft_id"
 	        const val EXTRA_SESSION_WAYPOINTS_JSON = "session_waypoints_json"
 	        /** 表單內即時存草稿時，用來保留草稿的 isOffline 屬性（避免被覆蓋回 false）。 */
@@ -323,6 +326,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         // 自訂 Result Code：使用者放棄填寫，要求刪除點位座標與資料
         const val RESULT_DELETE = Activity.RESULT_FIRST_USER
+        const val RESULT_SUBMITTED_READ_ONLY_RETURN = Activity.RESULT_FIRST_USER + 1
 
         // 回傳 Key（Result Intent）
         const val RESULT_LATITUDE        = "result_lat"
@@ -379,8 +383,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		            index: Int = 0,
 		            basicData: HashMap<String, String>? = null,
 		            isEditMode: Boolean = false,
-		            sessionDraftId: Long = 0L,
-		            sessionWaypointsJson: String? = null,
+	            sessionDraftId: Long = 0L,
+	            submittedDraftReadOnly: Boolean = false,
+	            sessionWaypointsJson: String? = null,
 		            wmtsLayer: String? = null,
 		            sessionIsOffline: Boolean = false,
                     referenceLats: DoubleArray = doubleArrayOf(),
@@ -397,7 +402,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            putExtra(EXTRA_WAYPOINT_INDEX, index)   // 與 currentIndex 一致，確保 buildAndFinishWithResult 回傳正確索引
 		            putExtra(EXTRA_VIEW_MODE, false)
 		            putExtra(EXTRA_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
-		            putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
+	            putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
+	            putExtra(EXTRA_SUBMITTED_DRAFT_READ_ONLY, submittedDraftReadOnly)
 		            putExtra(EXTRA_OFFLINE_MODE, sessionIsOffline)
 		            putExtra(EXTRA_SESSION_IS_OFFLINE, sessionIsOffline)
 		            if (!sessionWaypointsJson.isNullOrEmpty()) {
@@ -489,6 +495,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     private var importedWaypointLocked = false
     /** 地圖流程中的 session 草稿 ID；0 表示尚未建立。 */
     private var sessionDraftId = 0L
+    /** Submitted pending drafts are read-only; Room remains the source of truth. */
+    private var submittedDraftReadOnly = false
+    private var submittedDraftMissing = false
     /** 整條側溝目前的 waypoint 快照，供表單編輯中即時覆寫草稿。 */
     private val sessionWaypoints = mutableListOf<WaypointSnapshot>()
     /** 表單唯一正式資料來源：畫面顯示、草稿保存、送出上傳都以這份資料為準。 */
@@ -507,9 +516,9 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     // ── 背景地圖 ──────────────────────────────────────────────────────────
     private var formMap: GoogleMap? = null
     private var formMapTileOverlay: TileOverlay? = null
-    private var planWmsOverlay: TileOverlay? = null
-    private var waterOldWmsOverlay: TileOverlay? = null
-    private var regionWmsOverlay: TileOverlay? = null
+    private val offlinePolygonOverlays by lazy {
+        com.example.taoyuangutter.map.OfflinePolygonOverlayManager(this) { formMap }
+    }
 
     private val sessionMarkers = mutableListOf<Marker>()
     private val importCandidateMarkers = mutableListOf<Marker>() // 候選點標記列表
@@ -567,9 +576,44 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 		    private var importLocationTimeoutJob: Job? = null
 		    private var importBestLocation: Location? = null
 
+            private var editMapLocationFlowActive = false
+            private var editMapLocationPermissionRetryUsed = false
+            private var editMapLocationSettingsLaunched = false
+            private var editMapLocationUserMoved = false
+            private var editMapLocationAttempt = 0
+            private var editMapLocationMaxAttempts = 2
+            private var editMapLocationCancellation: CancellationTokenSource? = null
+            private var editMapLocationTimeoutJob: Job? = null
+
 		    private val importLocationStaleMs: Long = 30_000L
 		    private val importLocationAccuracyM: Float = 30f
 		    private val importLocationTimeoutMs: Long = 25_000L
+
+            private val editMapLocationPermissionLauncher = registerForActivityResult(
+                ActivityResultContracts.RequestMultiplePermissions()
+            ) { grants ->
+                if (!editMapLocationFlowActive || isFinishing || isDestroyed) return@registerForActivityResult
+                if (EditMapLocationPolicy.hasForegroundLocationPermission(
+                        grants[Manifest.permission.ACCESS_FINE_LOCATION] == true,
+                        grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                    )
+                ) {
+                    beginEditMapLocationAttempts()
+                } else {
+                    val canAskAgain = ActivityCompat.shouldShowRequestPermissionRationale(
+                        this,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    ) || ActivityCompat.shouldShowRequestPermissionRationale(
+                        this,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                    if (EditMapLocationPolicy.shouldRetryPermission(canAskAgain, editMapLocationPermissionRetryUsed)) {
+                        showEditMapLocationPermissionRetryDialog()
+                    } else {
+                        showEditMapLocationUnavailableDialog(showSettingsAction = !canAskAgain)
+                    }
+                }
+            }
 
 		    // 由主地圖帶入的最後定位（避免再次等待 GPS fix）
 		    private var hostLastLatLng: LatLng? = null
@@ -709,21 +753,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 )
                 showUploadLoading(false)
 
-                val missing = mutableListOf<String>()
-                if (p1.isNullOrEmpty()) {
-                    missing.add("第1張")
-                }
-                if (!isCantOpen) {
-                    if (p2.isNullOrEmpty()) missing.add("第2張")
-                    if (p3.isNullOrEmpty()) missing.add("第3張")
-                }
-                if (missing.isNotEmpty()) {
-                    Toast.makeText(
-                        this@GutterFormActivity,
-                        "匯入完成，但${missing.joinToString("、")}照片未取得，請至照片頁補拍",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
             } catch (e: CancellationException) {
                 showUploadLoading(false)
             } catch (e: Exception) {
@@ -746,7 +775,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun showImportExistingWaypointSheet() {
-        if (isOfflineMode) return
+        if (isOfflineMode || submittedDraftReadOnly) return
         if (importSheet?.isAdded == true) return
 
 	        // 讓上半部地圖可見（半屏 sheet 覆蓋下半部）
@@ -1247,6 +1276,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             currentLng = savedInstanceState.getDouble("saved_current_lng")
             hasShownEditPolyline = savedInstanceState.getBoolean("saved_has_shown_edit_polyline")
             sessionDraftId = savedInstanceState.getLong("saved_session_draft_id")
+            submittedDraftReadOnly = savedInstanceState.getBoolean(
+                "saved_submitted_draft_read_only",
+                intent.getBooleanExtra(EXTRA_SUBMITTED_DRAFT_READ_ONLY, false)
+            )
             restoredCurrentFormData = savedInstanceState.getString("saved_current_form_data_json")?.let { json ->
                 try {
                     val type = object : TypeToken<HashMap<String, String>>() {}.type
@@ -1263,6 +1296,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             isViewMode    = intent.getBooleanExtra(EXTRA_VIEW_MODE, false)
             isEditMode    = intent.getBooleanExtra(EXTRA_IS_EDIT_MODE, false) // 取得編輯模式旗標
             sessionDraftId = intent.getLongExtra(EXTRA_SESSION_DRAFT_ID, 0L)
+            submittedDraftReadOnly = intent.getBooleanExtra(EXTRA_SUBMITTED_DRAFT_READ_ONLY, false)
 
             val lat   = latitudes.getOrElse(currentIndex)  { 0.0 }
             val lng   = longitudes.getOrElse(currentIndex) { 0.0 }
@@ -1278,7 +1312,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         showRegionOverlay = intent.getBooleanExtra(EXTRA_SHOW_REGION, true)
 
         nodeId        = intent.getStringExtra(EXTRA_DATA_NODE_ID)?.toIntOrNull()
-        restoreSessionWaypoints(savedInstanceState)
+        if (submittedDraftReadOnly) restoreSubmittedSessionFromRoom()
+        else restoreSessionWaypoints(savedInstanceState)
 
         // 灰色參考線（弧線展開點列）：由 MainActivity 傳入，供表單期間對照
         val refLats = intent.getDoubleArrayExtra(EXTRA_REF_LATITUDES) ?: doubleArrayOf()
@@ -1311,9 +1346,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         hasShownEditPolyline = false
 
         // 修正：如果是由系統重建，優先使用恢復後的 sessionWaypoints 作為目前點位的資料基底
-        val existingData: HashMap<String, String> = if (savedInstanceState != null && currentIndex in sessionWaypoints.indices) {
+        val existingData: HashMap<String, String> = if (
+            (submittedDraftReadOnly || savedInstanceState != null) &&
+            currentIndex in sessionWaypoints.indices
+        ) {
             HashMap(sessionWaypoints[currentIndex].basicData).apply {
-                restoredCurrentFormData?.let { putAll(it) }
+                if (!submittedDraftReadOnly) {
+                    restoredCurrentFormData?.let { putAll(it) }
+                }
             }
         } else if (isOfflineMode && sessionDraftId > 0L) {
             val draft = GutterSessionRepository(this).getById(sessionDraftId)
@@ -1385,9 +1425,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
                 photo3 = currentFormData["photo3"]?.takeIf { it.isNotBlank() }
             )
             refreshCurrentFormDataFromFragments()
+            if (submittedDraftReadOnly) applySubmittedDraftReadOnlyUi()
         }
         pagerAdapter.getBasicInfoFragment()?.onRequestLocationPick = { launchLocationPicker() }
         binding.viewPager.post { applyImportedWaypointLock() }
+        applySubmittedDraftReadOnlyUi()
     }
 
     override fun onPostResume() {
@@ -1457,16 +1499,32 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     override fun onPause() {
         // 編輯中只要不是已經準備結束，就先把最新狀態直接寫回草稿，
         // 讓背景切走、系統回收、短暫閃退時都能盡量保住內容。
-        if (!isFinishing && !isViewMode) {
+        if (!isFinishing && !isViewMode && !submittedDraftReadOnly) {
             syncSessionDraftNowBlocking()
         }
         super.onPause()
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (!editMapLocationSettingsLaunched) return
+        editMapLocationSettingsLaunched = false
+        if (!editMapLocationFlowActive || isFinishing || isDestroyed) return
+        if (hasEditMapLocationPermission()) {
+            // Returning from Settings resumes with one acquisition attempt, as agreed.
+            beginEditMapLocationAttempts(maxAttempts = 1)
+        } else {
+            editMapLocationFlowActive = false
+        }
+    }
+
     override fun onDestroy() {
         stopImportLocationUpdates()
+        stopEditMapLocationAttempt()
+        editMapLocationFlowActive = false
         unregisterPhotoUploadListeners()
         authExpiredHandler.reset()
+        offlinePolygonOverlays.release()
         if (isFinishing) discardCantOpenSnapshot()
         super.onDestroy()
     }
@@ -1596,6 +1654,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
         renderSessionPreview(map)
         updateFormMapViewportPadding()
+        map.setOnCameraMoveStartedListener { reason ->
+            if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE && editMapLocationFlowActive) {
+                editMapLocationUserMoved = true
+            }
+        }
 
         val currentWaypoint = sessionWaypoints.getOrNull(currentIndex)
         val currentTarget = currentWaypoint?.latitude?.let { wpLat ->
@@ -1608,48 +1671,152 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             val lat = if (currentLat != 0.0) currentLat else 24.9929
             val lng = if (currentLng != 0.0) currentLng else 121.3011
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
+            if (EditMapLocationPolicy.shouldLocateForInitialCamera(
+                    isEditMode = isEditMode,
+                    isViewMode = isViewMode,
+                    isOfflineMode = isOfflineMode,
+                    submittedDraftReadOnly = submittedDraftReadOnly,
+                    hasSavedCoordinates = false
+                )
+            ) {
+                editMapLocationFlowActive = true
+                editMapLocationUserMoved = false
+                beginEditMapLocationPermissionFlow()
+            }
         }
         updateImportMapClickListener()
+    }
+
+    private fun hasEditMapLocationPermission(): Boolean = EditMapLocationPolicy.hasForegroundLocationPermission(
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED,
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+    )
+
+    private fun beginEditMapLocationPermissionFlow() {
+        if (!editMapLocationFlowActive || isFinishing || isDestroyed) return
+        if (hasEditMapLocationPermission()) {
+            beginEditMapLocationAttempts()
+        } else {
+            editMapLocationPermissionLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun beginEditMapLocationAttempts(maxAttempts: Int = 2) {
+        if (!editMapLocationFlowActive || isFinishing || isDestroyed) return
+        editMapLocationMaxAttempts = maxAttempts
+        editMapLocationAttempt = 0
+        startEditMapLocationAttempt()
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun startEditMapLocationAttempt() {
+        if (!editMapLocationFlowActive || isFinishing || isDestroyed || !hasEditMapLocationPermission()) return
+        editMapLocationAttempt++
+        stopEditMapLocationAttempt()
+        val cancellation = CancellationTokenSource()
+        editMapLocationCancellation = cancellation
+        val timeoutJob = lifecycleScope.launch {
+            delay(importLocationTimeoutMs)
+            if (editMapLocationCancellation !== cancellation) return@launch
+            stopEditMapLocationAttempt()
+            onEditMapLocationAttemptFailed()
+        }
+        editMapLocationTimeoutJob = timeoutJob
+
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cancellation.token)
+            .addOnSuccessListener { location ->
+                if (editMapLocationCancellation !== cancellation) return@addOnSuccessListener
+                stopEditMapLocationAttempt()
+                val validLocation = location?.takeIf {
+                    it.latitude.isFinite() && it.longitude.isFinite() &&
+                        it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0
+                }
+                if (validLocation == null) {
+                    onEditMapLocationAttemptFailed()
+                    return@addOnSuccessListener
+                }
+                if (EditMapLocationPolicy.shouldApplyLocation(editMapLocationUserMoved, editMapLocationFlowActive)) {
+                    formMap?.animateCamera(
+                        CameraUpdateFactory.newLatLng(LatLng(validLocation.latitude, validLocation.longitude))
+                    )
+                }
+                editMapLocationFlowActive = false
+            }
+            .addOnFailureListener {
+                if (editMapLocationCancellation !== cancellation) return@addOnFailureListener
+                stopEditMapLocationAttempt()
+                onEditMapLocationAttemptFailed()
+            }
+    }
+
+    private fun onEditMapLocationAttemptFailed() {
+        if (!editMapLocationFlowActive || isFinishing || isDestroyed) return
+        if (EditMapLocationPolicy.shouldRetryLocation(editMapLocationAttempt) &&
+            editMapLocationAttempt < editMapLocationMaxAttempts
+        ) {
+            startEditMapLocationAttempt()
+        } else {
+            editMapLocationFlowActive = false
+            showEditMapLocationUnavailableDialog(showSettingsAction = false)
+        }
+    }
+
+    private fun stopEditMapLocationAttempt() {
+        editMapLocationTimeoutJob?.cancel()
+        editMapLocationTimeoutJob = null
+        editMapLocationCancellation?.cancel()
+        editMapLocationCancellation = null
+    }
+
+    private fun showEditMapLocationPermissionRetryDialog() {
+        if (isFinishing || isDestroyed) return
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.edit_map_location_permission_title)
+            .setMessage(R.string.edit_map_location_permission_retry)
+            .setNegativeButton(R.string.edit_map_location_continue) { _, _ ->
+                editMapLocationFlowActive = false
+                binding.root.post { showEditMapLocationUnavailableDialog(showSettingsAction = false) }
+            }
+            .setPositiveButton(R.string.edit_map_location_retry) { _, _ ->
+                editMapLocationPermissionRetryUsed = true
+                editMapLocationPermissionLauncher.launch(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+                )
+            }
+            .show()
+    }
+
+    private fun showEditMapLocationUnavailableDialog(showSettingsAction: Boolean) {
+        if (isFinishing || isDestroyed) return
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.edit_map_location_unavailable_title)
+            .setMessage(
+                if (showSettingsAction) R.string.edit_map_location_settings_message
+                else R.string.edit_map_location_unavailable_message
+            )
+            .setNegativeButton(R.string.edit_map_location_continue) { _, _ ->
+                editMapLocationFlowActive = false
+            }
+        if (showSettingsAction) {
+            dialog.setPositiveButton(R.string.edit_map_location_open_settings) { _, _ ->
+                editMapLocationFlowActive = true
+                editMapLocationSettingsLaunched = true
+                openAppSettings()
+            }
+        }
+        dialog.show()
     }
 
     private fun applyBackgroundWmsOverlays() {
         val map = formMap ?: return
 
-        // 本次計畫調查 (roadServey) - 這裡由 showPossibleOverlay 控制，與 MainActivity 邏輯一致
-        if (showPossibleOverlay) {
-            if (planWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
-                    com.example.taoyuangutter.map.BackgroundWmtsLayer.ROAD_SURVEY
-                )
-                planWmsOverlay = map.addTileOverlay(
-                    com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(0f)
-                )
-            }
-        }
+        offlinePolygonOverlays.setVisibility(showWaterOldOverlay, showPossibleOverlay, showRegionOverlay)
 
-        // 水務局舊資料 (legacyDitch)
-        if (showWaterOldOverlay) {
-            if (waterOldWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
-                    com.example.taoyuangutter.map.BackgroundWmtsLayer.LEGACY_DITCH
-                )
-                waterOldWmsOverlay = map.addTileOverlay(
-                    com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(0.1f)
-                )
-            }
-        }
+        // The legacy and possible-gutter overlays use local GeoPackage tile providers.
 
-        // 桃園行政區 (regions)
-        if (showRegionOverlay) {
-            if (regionWmsOverlay == null) {
-                val provider = com.example.taoyuangutter.map.Wmts3857TileProvider(
-                    com.example.taoyuangutter.map.BackgroundWmtsLayer.REGIONS
-                )
-                regionWmsOverlay = map.addTileOverlay(
-                    com.google.android.gms.maps.model.TileOverlayOptions().tileProvider(provider).zIndex(-0.5f)
-                )
-            }
-        }
     }
 
     private fun updateFormMapViewportPadding() {
@@ -1791,6 +1958,12 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 	            binding.btnBack.setOnClickListener { handleNavigateBack() }
 	        }
 
+        if (submittedDraftReadOnly) {
+            binding.btnEdit.visibility = View.GONE
+            binding.btnDone.visibility = View.GONE
+            binding.fabSubmit.visibility = View.GONE
+            return
+        }
         if (isViewMode) {
             binding.btnEdit.visibility   = View.VISIBLE
             binding.btnDone.visibility   = View.GONE
@@ -1804,6 +1977,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun enterEditMode() {
+        if (submittedDraftReadOnly) return
         logPhotoImgIdTrace("enterEditMode.before", currentFormData)
         isViewMode = false
         isEditMode = true // 進入編輯模式
@@ -1813,7 +1987,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.fabSubmit.visibility = View.GONE
         binding.btnDone.setOnClickListener { saveAndFinish() }
         pagerAdapter.getBasicInfoFragment()?.setEditable(true)
-        binding.cbIsVirtual.isEnabled = true
+        applyVirtualToggleEnabled()
         logPhotoImgIdTrace("enterEditMode.after", currentFormData)
     }
 
@@ -1846,13 +2020,37 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     private fun setImportedWaypointLocked(locked: Boolean) {
         importedWaypointLocked = locked
+        applyVirtualToggleEnabled()
         applyImportedWaypointLock()
+    }
+
+    private fun applyVirtualToggleEnabled() {
+        if (!::binding.isInitialized) return
+        binding.cbIsVirtual.isEnabled = !isViewMode && !submittedDraftReadOnly && !importedWaypointLocked
     }
 
     private fun applyImportedWaypointLock() {
         if (!::pagerAdapter.isInitialized) return
         binding.viewPager.post {
             pagerAdapter.getBasicInfoFragment()?.setImportLocked(importedWaypointLocked)
+        }
+    }
+
+    private fun applySubmittedDraftReadOnlyUi() {
+        if (!submittedDraftReadOnly || !::binding.isInitialized) return
+        binding.submittedReadOnlyOverlay.visibility = View.VISIBLE
+        binding.cbIsVirtual.isEnabled = false
+        binding.importWaypointBar.visibility = View.GONE
+        binding.viewPager.isUserInputEnabled = false
+        binding.btnEdit.visibility = View.GONE
+        binding.btnDone.visibility = View.GONE
+        binding.fabSubmit.visibility = View.GONE
+        if (::pagerAdapter.isInitialized) {
+            pagerAdapter.getBasicInfoFragment()?.setEditable(false)
+        }
+        if (submittedDraftMissing) {
+            binding.btnBack.isEnabled = true
+            Toast.makeText(this, getString(R.string.msg_draft_not_found), Toast.LENGTH_LONG).show()
         }
     }
 
@@ -1863,7 +2061,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         binding.fabSubmit.visibility = View.GONE
         binding.btnEdit.setOnClickListener { enterEditMode() }
         pagerAdapter.getBasicInfoFragment()?.setEditable(false)
-        binding.cbIsVirtual.isEnabled = false
+        applyVirtualToggleEnabled()
     }
 
     private fun initializeCurrentFormData(initialData: Map<String, String>) {
@@ -1987,9 +2185,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             target.remove("IS_CONNECTING")
             target.remove("IS_CANTOPEN")
         } else {
-            target["IS_TIEINPOINT"] = if (parseLooseBoolean(target["IS_TIEINPOINT"])) "1" else "0"
-            target["IS_CONNECTING"] = if (parseLooseBoolean(target["IS_CONNECTING"])) "1" else "0"
-            if (parseLooseBoolean(target["IS_CANTOPEN"])) target["IS_TIEINPOINT"] = "0"
+            val isCantOpen = parseLooseBoolean(target["IS_CANTOPEN"])
+            val isTieInPoint = parseLooseBoolean(target["IS_TIEINPOINT"])
+            target["IS_TIEINPOINT"] = if (isTieInPoint && !isCantOpen) "1" else "0"
+            if (isCantOpen || isTieInPoint) {
+                // Exempt modes have no connecting-pipe attribute. Keep it absent
+                // so an omitted API value does not become a false selection.
+                target.remove("IS_CONNECTING")
+            } else {
+                target["IS_CONNECTING"] = if (parseLooseBoolean(target["IS_CONNECTING"])) "1" else "0"
+            }
         }
     }
 
@@ -2128,11 +2333,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun saveAndFinish() {
-        syncSessionDraftNowBlocking()
-        val data = currentFormSnapshot()
-        logPhotoImgIdTrace("saveAndFinish.snapshot", data)
-        val (photo1, photo2, photo3) = currentFormPhotos()
-        dispatchEditResult(data, photo1, photo2, photo3)
+        if (submittedDraftReadOnly) {
+            finishSubmittedDraftReadOnly()
+            return
+        }
+        dispatchResultAfterPhotoDraftSync {
+            val data = currentFormSnapshot()
+            logPhotoImgIdTrace("saveAndFinish.snapshot", data)
+            val (photo1, photo2, photo3) = currentFormPhotos()
+            dispatchEditResult(data, photo1, photo2, photo3)
+        }
     }
 
     /** 組裝 inspect→edit 模式的 Result Intent 並 finish。 */
@@ -2157,7 +2367,16 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun setupViewPager(lat: Double, lng: Double, basicData: HashMap<String, String>) {
-        pagerAdapter = GutterFormPagerAdapter(this, lat, lng, isViewMode, basicData, isOfflineMode, isEditMode)
+        pagerAdapter = GutterFormPagerAdapter(
+            this,
+            lat,
+            lng,
+            isViewMode,
+            basicData,
+            isOfflineMode,
+            isEditMode,
+            submittedDraftReadOnly
+        )
         binding.viewPager.adapter = pagerAdapter
         binding.viewPager.isUserInputEnabled = false
         binding.viewPager.offscreenPageLimit = 1
@@ -2178,7 +2397,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun launchLocationPicker() {
-        if (isViewMode) return
+        if (isViewMode || submittedDraftReadOnly) return
         val initialLat = currentFormData["NODE_Y"]?.toDoubleOrNull() ?: currentLat
         val initialLng = currentFormData["NODE_X"]?.toDoubleOrNull() ?: currentLng
         val wmtsLayer = intent.getStringExtra(EXTRA_WMTS_LAYER)
@@ -2202,7 +2421,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun setupImportWaypointButton() {
-        if (isOfflineMode) {
+        if (isOfflineMode || submittedDraftReadOnly) {
             // 離線模式不打 API，隱藏匯入功能
             binding.importWaypointBar.visibility = View.GONE
             return
@@ -2256,6 +2475,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
     }
 
     private fun handleNavigateBack() {
+        if (submittedDraftReadOnly) {
+            finishSubmittedDraftReadOnly()
+            return
+        }
         if (launchedInViewMode && isEditMode && !isViewMode) {
             // 檢視→編輯→返回：先把目前編輯結果寫回草稿，再回到預覽
             syncSessionDraftNowBlocking()
@@ -2285,14 +2508,40 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         )
     }
 
-    private fun buildAndFinishWithResult() {
-        syncSessionDraftNowBlocking()
-        val basicData = currentFormSnapshot()
-        logPhotoImgIdTrace("buildAndFinishWithResult.snapshot", basicData)
-        val (photo1, photo2, photo3) = currentFormPhotos()
-        val (effectiveLat, effectiveLng) = resolveEffectiveCoordinates(basicData)
+    /**
+     * Persist the current form before returning it. Single-photo upload is
+     * process-scoped and continues independently; the parent submit gate
+     * reconciles its final ID before calling storeDitch.
+     */
+    private fun dispatchResultAfterPhotoDraftSync(dispatch: () -> Unit) {
+        if (submittedDraftReadOnly) return
+        if (resultDispatchInProgress) return
+        resultDispatchInProgress = true
+        lifecycleScope.launch {
+            try {
+                syncSessionDraftNow()
+                dispatch()
+            } finally {
+                resultDispatchInProgress = false
+            }
+        }
+    }
 
-        fun dispatchResult() {
+    private fun finishSubmittedDraftReadOnly() {
+        setResult(RESULT_SUBMITTED_READ_ONLY_RETURN)
+        finish()
+    }
+
+    private fun buildAndFinishWithResult() {
+        if (submittedDraftReadOnly) {
+            finishSubmittedDraftReadOnly()
+            return
+        }
+        dispatchResultAfterPhotoDraftSync {
+            val basicData = currentFormSnapshot()
+            logPhotoImgIdTrace("buildAndFinishWithResult.snapshot", basicData)
+            val (photo1, photo2, photo3) = currentFormPhotos()
+            val (effectiveLat, effectiveLng) = resolveEffectiveCoordinates(basicData)
             val resultIntent = Intent().apply {
                 GutterFormContract.putResultData(
                     intent = this,
@@ -2313,8 +2562,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
             setResult(Activity.RESULT_OK, resultIntent)
             finish()
         }
-
-        dispatchResult()
     }
 
     private fun restoreSessionWaypoints(savedInstanceState: Bundle?) {
@@ -2351,8 +2598,27 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         }
     }
 
+    /** Rebuilds submitted form state from Room after every Activity recreation. */
+    private fun restoreSubmittedSessionFromRoom() {
+        val draft = sessionDraftId.takeIf { it > 0L }
+            ?.let { GutterSessionRepository(this).getById(it) }
+        if (draft == null) {
+            submittedDraftMissing = true
+            sessionWaypoints.clear()
+            return
+        }
+        sessionWaypoints.clear()
+        sessionWaypoints.addAll(
+            draft.waypoints.map { snapshot ->
+                snapshot.copy(basicData = HashMap(snapshot.basicData))
+            }
+        )
+        if (currentIndex !in sessionWaypoints.indices) currentIndex = 0
+        if (waypointIndex !in sessionWaypoints.indices) waypointIndex = currentIndex
+    }
+
     private fun queueSessionDraftSync() {
-        if (isViewMode) return
+        if (isViewMode || submittedDraftReadOnly) return
         if (currentIndex !in sessionWaypoints.indices) return
         syncSessionDraftNowBlocking()
     }
@@ -2367,14 +2633,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     /** 立即將目前表單狀態同步寫入草稿。 */
     private fun syncSessionDraftNowBlocking() {
-        if (isViewMode) return
+        if (isViewMode || submittedDraftReadOnly) return
         runBlocking {
             syncSessionDraftNow()
         }
     }
 
     private suspend fun syncSessionDraftNow() {
-        if (isViewMode) return
+        if (isViewMode || submittedDraftReadOnly) return
         if (currentIndex !in sessionWaypoints.indices) return
 
         ensureCurrentFormCoordinates()
@@ -2569,8 +2835,6 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putString("saved_waypoints_json", Gson().toJson(sessionWaypoints))
-        outState.putString("saved_current_form_data_json", Gson().toJson(currentFormData))
         outState.putBoolean("saved_is_view_mode", isViewMode)
         outState.putBoolean("saved_is_edit_mode", isEditMode)
         outState.putBoolean("saved_imported_waypoint_locked", importedWaypointLocked)
@@ -2579,6 +2843,10 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         outState.putDouble("saved_current_lng", currentLng)
         outState.putBoolean("saved_has_shown_edit_polyline", hasShownEditPolyline)
         outState.putLong("saved_session_draft_id", sessionDraftId)
+        outState.putBoolean("saved_submitted_draft_read_only", submittedDraftReadOnly)
+        if (submittedDraftReadOnly) return
+        outState.putString("saved_waypoints_json", Gson().toJson(sessionWaypoints))
+        outState.putString("saved_current_form_data_json", Gson().toJson(currentFormData))
         if (originalSessionWaypoint != null) {
             outState.putString("saved_original_waypoint_json", Gson().toJson(originalSessionWaypoint))
         }
@@ -2589,7 +2857,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback, PhotoLoadin
         // 先對 Activity 自有的 UI 進行立即反應
         applyVirtualModeUi(isVirtualInitial)
 
-        binding.cbIsVirtual.isEnabled = !isViewMode
+        applyVirtualToggleEnabled()
         binding.cbIsVirtual.setOnCheckedChangeListener { _, isChecked ->
             // 通知 Fragment
             pagerAdapter.getBasicInfoFragment()?.setVirtualMode(isChecked)

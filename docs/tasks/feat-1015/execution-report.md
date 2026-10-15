@@ -26,7 +26,7 @@
 ## Environment and Scope Notes
 
 - Gradle initially could not access the wrapper lock in `~/.gradle` under the workspace sandbox. The planned build/test checks were then run successfully with the Android Studio bundled JDK and approved Gradle cache access.
-- No CI configuration or CI run is available in the repository. Independent Verification for the committed production/test revision is recorded in `verification.md`; the map-marker test added afterward is additional developer evidence, not an independent verification result.
+- At the time of the original feat-1015 validation, no CI configuration or CI run was available. The incoming feat-1006 branch adds `.github/workflows/android-ci.yml`; its recorded CI run does not cover the combined branch. Independent Verification for the earlier committed production/test revision is recorded in `verification.md`; the map-marker test added afterward is additional developer evidence, not an independent verification result.
 - Existing user change `gradle/libs.versions.toml` (`agp = "9.4.1"`) was preserved and is excluded from this task's commit.
 
 ## Build Artifact

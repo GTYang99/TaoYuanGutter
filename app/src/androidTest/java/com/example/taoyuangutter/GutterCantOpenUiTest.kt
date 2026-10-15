@@ -27,6 +27,7 @@ class GutterCantOpenUiTest {
             onView(withText("取消")).perform(click())
             onView(withId(R.id.cbCantOpen)).check(matches(androidx.test.espresso.matcher.ViewMatchers.isNotChecked()))
             onView(withId(R.id.etDepth)).check(matches(withText("10")))
+            onView(withId(R.id.rbConnectPipe1)).check(matches(androidx.test.espresso.matcher.ViewMatchers.isChecked()))
         }
     }
 
@@ -37,6 +38,7 @@ class GutterCantOpenUiTest {
             onView(withText("確認")).perform(click())
             onView(withId(R.id.cbCantOpen)).check(matches(androidx.test.espresso.matcher.ViewMatchers.isChecked()))
             onView(withId(R.id.etDepth)).check(matches(withText("")))
+            scenarioCheckNoConnectingPipe()
         }
     }
 
@@ -83,13 +85,14 @@ class GutterCantOpenUiTest {
             it.recreate()
             onView(withId(R.id.cbCantOpen)).perform(click())
             onView(withId(R.id.etDepth)).check(matches(withText("10")))
+            onView(withId(R.id.rbConnectPipe1)).check(matches(androidx.test.espresso.matcher.ViewMatchers.isChecked()))
         }
     }
 
     private fun launchForm(): ActivityScenario<GutterFormActivity> {
         val data = hashMapOf(
             "NODE_TYP" to "1", "NODE_DEP" to "10", "NODE_WID" to "20",
-            "COVER_DEP" to "3", "MAT_TYP" to "1", "IS_CANTOPEN" to ""
+            "COVER_DEP" to "3", "MAT_TYP" to "1", "IS_CANTOPEN" to "", "IS_CONNECTING" to "1"
         )
         val intent = GutterFormActivity.newIntent(
             ApplicationProvider.getApplicationContext(),
@@ -97,6 +100,11 @@ class GutterCantOpenUiTest {
             basicData = data, sessionDraftId = 0L, sessionIsOffline = true
         )
         return ActivityScenario.launch(intent)
+    }
+
+    private fun scenarioCheckNoConnectingPipe() {
+        onView(withId(R.id.rbConnectPipe0)).check(matches(not(androidx.test.espresso.matcher.ViewMatchers.isChecked())))
+        onView(withId(R.id.rbConnectPipe1)).check(matches(not(androidx.test.espresso.matcher.ViewMatchers.isChecked())))
     }
 
     private fun launchEmptyForm(): ActivityScenario<GutterFormActivity> {

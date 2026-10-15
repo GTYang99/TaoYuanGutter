@@ -9,12 +9,14 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isChecked
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
 import androidx.test.espresso.matcher.ViewMatchers.isEnabled
+import androidx.test.espresso.matcher.ViewMatchers.isNotEnabled
 import androidx.test.espresso.matcher.ViewMatchers.isNotChecked
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.example.taoyuangutter.gutter.GutterFormActivity
 import org.hamcrest.Matchers
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -67,6 +69,124 @@ class GutterBasicInfoUiTest {
         launchForm(hashMapOf("IS_BROKEN" to "1", "IS_SILT" to "2")).use {
             onView(withId(R.id.rbIsBroken1)).check(matches(isChecked()))
             onView(withId(R.id.rbIsSilt2)).check(matches(isChecked()))
+        }
+    }
+
+    @Test
+    fun existingTieInWithMissingConnectionLeavesPipeUnselected() {
+        launchForm(hashMapOf("NODE_TYP" to "1", "IS_TIEINPOINT" to "1")).use {
+            onView(withId(R.id.cbConnectPoint)).check(matches(isChecked()))
+            onView(withId(R.id.rbConnectPipe0)).check(matches(isNotChecked()))
+            onView(withId(R.id.rbConnectPipe1)).check(matches(isNotChecked()))
+        }
+    }
+
+    @Test
+    fun existingCantOpenWithMissingConnectionLeavesPipeUnselected() {
+        launchForm(hashMapOf("NODE_TYP" to "1", "IS_CANTOPEN" to "1")).use {
+            onView(withId(R.id.cbCantOpen)).check(matches(isChecked()))
+            onView(withId(R.id.rbConnectPipe0)).check(matches(isNotChecked()))
+            onView(withId(R.id.rbConnectPipe1)).check(matches(isNotChecked()))
+        }
+    }
+
+    @Test
+    fun detailExemptionKeepsConnectPipeOpacityAlignedWithOtherDisabledFields() {
+        listOf(
+            hashMapOf("NODE_TYP" to "1", "IS_TIEINPOINT" to "1"),
+            hashMapOf("NODE_TYP" to "1", "IS_CANTOPEN" to "1")
+        ).forEach { data ->
+            launchForm(data).use { scenario ->
+                scenario.onActivity { activity ->
+                    assertEquals(
+                        "connect pipe container must not apply a second alpha layer",
+                        1f,
+                        activity.findViewById<android.view.View>(R.id.layoutConnectPipe).alpha,
+                        0f
+                    )
+                    assertEquals(
+                        "connect pipe options must use the same disabled alpha as other groups",
+                        0.5f,
+                        activity.findViewById<android.view.View>(R.id.rgConnectPipe).alpha,
+                        0f
+                    )
+                    assertEquals(
+                        "connect pipe title must remain fully opaque",
+                        1f,
+                        activity.findViewById<android.view.View>(R.id.tvConnectPipeTitle).alpha,
+                        0f
+                    )
+                }
+            }
+        }
+    }
+
+    @Test
+    fun inspectionEditKeepsBackendMeasureIdVisibleButReadOnly() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val data = hashMapOf(
+            "NODE_TYP" to "1",
+            "NODE_X" to "121.000000",
+            "NODE_Y" to "24.000000",
+            "XY_NUM" to "A-0920"
+        )
+
+        ActivityScenario.launch<GutterFormActivity>(
+            GutterFormActivity.newViewIntent(context, "起點", 24.0, 121.0, 0, data)
+        ).use {
+            onView(withId(R.id.tvMeasureIdTitle)).check(matches(isDisplayed()))
+            onView(withId(R.id.etMeasureId)).check(matches(withText("A-0920")))
+            onView(withId(R.id.etMeasureId)).check(matches(isNotEnabled()))
+            onView(withId(R.id.tvMeasureIdRequired)).check(matches(Matchers.not(isDisplayed())))
+
+            onView(withId(R.id.btnEdit)).perform(ViewActions.click())
+            onView(withId(R.id.etMeasureId)).check(matches(isNotEnabled()))
+            onView(withId(R.id.tvMeasureIdRequired)).check(matches(Matchers.not(isDisplayed())))
+        }
+    }
+
+    @Test
+    fun tieInPointExemptsDetailFieldsAndSecondaryPhotos() {
+        launchForm(hashMapOf("NODE_TYP" to "1", "IS_TIEINPOINT" to "0")).use {
+            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
+            onView(withId(R.id.etDepth)).check(matches(isNotEnabled()))
+            onView(withId(R.id.etTopWidth)).check(matches(isNotEnabled()))
+            onView(withId(R.id.btnTakePhotoSlot2)).check(matches(isNotEnabled()))
+            onView(withId(R.id.btnTakePhotoSlot3)).check(matches(isNotEnabled()))
+            onView(withId(R.id.tvDepthRequired)).check(matches(Matchers.not(isDisplayed())))
+            onView(withId(R.id.tvTopWidthRequired)).check(matches(Matchers.not(isDisplayed())))
+            onView(withId(R.id.tvSiltRequired)).check(matches(Matchers.not(isDisplayed())))
+        }
+    }
+
+    @Test
+    fun tieInPointWarnsBeforeClearingAndCancelPreservesData() {
+        launchForm(
+            hashMapOf(
+                "NODE_TYP" to "1",
+                "NODE_DEP" to "10",
+                "NODE_WID" to "30",
+                "COVER_DEP" to "3",
+                "MAT_TYP" to "1",
+                "IS_BROKEN" to "1",
+                "IS_HANGING" to "1",
+                "IS_SILT" to "2",
+                "IS_CONNECTING" to "1",
+                "IS_TIEINPOINT" to "0"
+            )
+        ).use {
+            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
+            onView(withText("切換成「銜接點」後將清除已填寫資訊與照片，是否確認切換?")).check(matches(isDisplayed()))
+            onView(withText("取消")).perform(ViewActions.click())
+            onView(withId(R.id.cbConnectPoint)).check(matches(isNotChecked()))
+            onView(withId(R.id.etDepth)).check(matches(withText("10")))
+            onView(withId(R.id.rbConnectPipe1)).check(matches(isChecked()))
+            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
+            onView(withText("確認")).perform(ViewActions.click())
+            onView(withId(R.id.cbConnectPoint)).check(matches(isChecked()))
+            onView(withId(R.id.etDepth)).check(matches(withText("")))
+            onView(withId(R.id.rbConnectPipe0)).check(matches(Matchers.not(isChecked())))
+            onView(withId(R.id.rbConnectPipe1)).check(matches(Matchers.not(isChecked())))
         }
     }
 

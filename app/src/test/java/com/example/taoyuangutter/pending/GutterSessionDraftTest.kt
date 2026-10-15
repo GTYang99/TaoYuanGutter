@@ -4,6 +4,7 @@ import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -49,5 +50,19 @@ class GutterSessionDraftTest {
         )
         assertEquals(PhotoUploadSlotState.STATE_FAILED, restoredBasicData[PhotoUploadSlotState.stateKey(1)])
         assertEquals("Unauthorized", restoredBasicData[PhotoUploadSlotState.errorKey(1)])
+    }
+
+    @Test
+    fun legacyJsonWithoutSubmissionFieldDefaultsToUnsubmitted() {
+        val legacyJson = """
+            [{"id":905,"createdAt":1000,"savedAt":2000,"workflowOwnership":"LEGACY_SINGLE",
+              "spiTyp":"1","kind":"gutter","isOffline":false,"isSinglePoint":false,
+              "waypoints":[]}]
+        """.trimIndent()
+        val type = object : TypeToken<List<GutterSessionDraft>>() {}.type
+
+        val restored = Gson().fromJson<List<GutterSessionDraft>>(legacyJson, type).single()
+
+        assertFalse(restored.hasSubmittedStoreDitch)
     }
 }

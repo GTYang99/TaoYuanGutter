@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.map
 
+import com.example.taoyuangutter.common.BackendEndpoints
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.util.Locale
@@ -12,7 +13,7 @@ import kotlin.math.tan
 
 /** Builds GeoServer WMS requests for Google Maps Web Mercator tiles in EPSG:3826. */
 object Wms3826RequestBuilder {
-    const val DEFAULT_BASE_URL = "https://demo.srgeo.com.tw/TY_RSGDBIP_BK/geoserver/wms"
+    const val DEFAULT_BASE_URL = BackendEndpoints.ACTIVE_WMS_URL
     private const val TILE_SIZE = 256
     private const val HALF_WORLD_METERS = 20037508.342789244
     private const val A = 6378137.0

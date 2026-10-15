@@ -1,0 +1,41 @@
+task:
+  id: FEAT-1006
+  type: feature
+
+phase: release
+status: release_ready
+
+knowledge_resolution:
+  status: resolved
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+
+git:
+  branch: feat/feat-1006-wmts-offline-data
+  commit: ede6d5b79d26a9bceb8b36fdcfd53791c7736efb
+  status: committed
+
+verification:
+  result: pass
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pass
+  test: pass
+
+release:
+  status: approved
+
+blocking: []
+next_action: human_release

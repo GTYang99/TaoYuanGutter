@@ -28,7 +28,7 @@ These focused emulator commands were run against the fixed committed revision wi
 | `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` | PASS after one permitted retry | First run failed before showing the sheet at the test fixture's `ActivityScenario` RESUMED assertion (`ImportExistingWaypointUiTest.kt:140`); it did not reach feature assertions. The one retry passed. This is recorded as test initialization intermittency, not as evidence of a product behavior failure. |
 | Existing developer validation: `:app:testDebugUnitTest` | PASS (recorded) | Execution report records 98 passing unit tests, including shared-route request arguments, Bearer auth, no-query recent request, and location-coordinate log redaction. |
 | Existing developer validation: `:app:assembleDebug`, `:app:compileDebugAndroidTestKotlin`, `git diff --check` | PASS (recorded) | Results are recorded in `execution-report.md`; no CI result is inferred from local runs. |
-| CI for fixed revision | NOT VERIFIED | No checked-in CI configuration or CI result is available in this repository. |
+| CI for the verified revision | NOT VERIFIED | The FEAT-1006 branch now contributes `.github/workflows/android-ci.yml`; its recorded CI pass is for the FEAT-1006 revision only. No CI result covers the combined FEAT-1006 + feat-1015 revision. |
 
 ## Implementation and Regression Review
 
@@ -43,6 +43,10 @@ These focused emulator commands were run against the fixed committed revision wi
 
 **NOT VERIFIED**
 
-AC-003 remains unverified for physical location and backend behavior per the user's instruction. AC-005 remains unverified for integrated page-switch/map rendering and loading-row retention. CI evidence is unavailable. No unexecuted behavior is represented as PASS.
+AC-003 remains unverified for physical location and backend behavior per the user's instruction. AC-005 remains unverified for integrated page-switch/map rendering and loading-row retention. CI evidence for the combined revision is unavailable. No unexecuted behavior is represented as PASS.
 
 Keep `next_action: verification`: the remaining evidence can be gathered in a future verification pass when map/refresh coverage and acceptable GPS evidence are available. This pass found no implementation failure requiring Debug.
+
+## Integration Note (2026-10-15)
+
+This verification record predates the requested integration of `feat/feat-1006-wmts-offline-data` at `0c10708`. It evaluates the earlier feat-1015 implementation revision only and does not verify the combined branch. The combined revision requires independent verification and a CI run before release.

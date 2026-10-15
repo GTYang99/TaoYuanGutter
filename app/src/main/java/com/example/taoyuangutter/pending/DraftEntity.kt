@@ -19,6 +19,8 @@ data class DraftEntity(
     val kind: String,
     @ColumnInfo(name = "is_offline")
     val isOffline: Boolean,
+    @ColumnInfo(name = "has_submitted_store_ditch")
+    val hasSubmittedStoreDitch: Boolean,
     @ColumnInfo(name = "is_single_point")
     // Legacy compatibility column. New saves always persist false.
     val isSinglePoint: Boolean,

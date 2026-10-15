@@ -34,7 +34,7 @@ validation:
   physical_device: not_verified
 
 git:
-  branch: "feat/銜接點連結管自帶節點名"
+  branch: "feat/銜接點連接管自帶節點名"
   commit: a8c9520
   status: committed
 

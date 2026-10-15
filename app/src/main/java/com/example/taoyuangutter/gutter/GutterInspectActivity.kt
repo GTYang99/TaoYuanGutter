@@ -8,10 +8,8 @@ import android.text.SpannableStringBuilder
 import android.text.style.AbsoluteSizeSpan
 import android.util.Log
 import android.view.Gravity
-import android.view.LayoutInflater
 import android.view.View
 import android.view.WindowManager
-import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.taoyuangutter.R
 import androidx.lifecycle.lifecycleScope
@@ -30,7 +28,6 @@ import com.example.taoyuangutter.common.PhotoUploadSlotState
 import com.example.taoyuangutter.databinding.ActivityGutterInspectBinding
 import com.example.taoyuangutter.login.AuthExpiredHandler
 import com.example.taoyuangutter.login.LoginActivity
-import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.gson.Gson
 import com.google.android.material.tabs.TabLayoutMediator
@@ -298,19 +295,7 @@ class GutterInspectActivity : AppCompatActivity() {
             return
         }
 
-        // 檢查伺服器端是否完全沒有照片資料
-        val noPhotosOnServer = d.nodes.all { it.url.isEmpty() }
-
-        if (noPhotosOnServer) {
-            showEditEntryConfirmation(
-                message = "伺服器上目前無此側溝的照片資料。若您本機存有此側溝的草稿（含照片），進入編輯模式後將會被覆蓋。確定要進入編輯嗎？",
-                continueText = "確定編輯"
-            ) {
-                    startPreload(d, token)
-            }
-        } else {
-            startPreload(d, token)
-        }
+        startPreload(d, token)
     }
 
     private fun startPreload(d: DitchDetails, token: String) {
@@ -323,11 +308,6 @@ class GutterInspectActivity : AppCompatActivity() {
                 val preloadResult = preloadEditableWaypoints(d, token)
                 if (preloadResult.hasDetailFailure) {
                     showEditPreloadRetryDialog(d, token)
-                } else if (preloadResult.photoIssues.isNotEmpty()) {
-                    showEditPreloadWarning(
-                        photoIssues = preloadResult.photoIssues,
-                        onContinue = { openEditForm(preloadResult.waypoints) }
-                    )
                 } else {
                     openEditForm(preloadResult.waypoints)
                 }
@@ -400,6 +380,7 @@ class GutterInspectActivity : AppCompatActivity() {
             val preloadedPhotos = preloadedPhotosByNodeId[node.nodeId]
             val isVirtualNode = parseLooseBoolean(nodeDetails.isVirtual)
             val isCantOpenNode = nodeDetails.isCantOpenAsBoolean
+            val isDetailExemptNode = isCantOpenNode || nodeDetails.isTieInPointAsBoolean
 
             suspend fun resolvePhoto(category: String, prefix: String): String {
                 val cachedPhoto = preloadedPhotos.photoForCategory(category)
@@ -410,8 +391,8 @@ class GutterInspectActivity : AppCompatActivity() {
                     Log.d(TAG, "edit preload photo skipped for virtual nodeId=${node.nodeId} category=$category")
                     return ""
                 }
-                if (isCantOpenNode && category in listOf("2", "3")) {
-                    Log.d(TAG, "edit preload photo skipped for cant-open nodeId=${node.nodeId} category=$category")
+                if (isDetailExemptNode && category in listOf("2", "3")) {
+                    Log.d(TAG, "edit preload photo skipped for exempt nodeId=${node.nodeId} category=$category")
                     return ""
                 }
                 val url = node.url.firstOrNull { it.fileCategory == category }?.url
@@ -443,6 +424,14 @@ class GutterInspectActivity : AppCompatActivity() {
             val photo2 = resolvePhoto("2", "EDIT_${node.nodeId}_2_")
             val photo3 = resolvePhoto("3", "EDIT_${node.nodeId}_3_")
 
+            val normalizedConnecting = nodeDetails.isConnecting?.trim()?.lowercase()?.let { raw ->
+                when (raw) {
+                    "1", "true", "yes", "y", "on" -> "1"
+                    "0", "false", "no", "n", "off" -> "0"
+                    else -> null
+                }
+            }
+
             val basicData = hashMapOf(
                 "_nodeId" to node.nodeId.toString(),
                 "SPI_NUM" to ditch.spiNum,
@@ -460,7 +449,6 @@ class GutterInspectActivity : AppCompatActivity() {
                 "NODE_WID" to nodeDetails.nodeWidAsString,
                 "IS_CANTOPEN" to (if (nodeDetails.isCantOpenAsBoolean) "1" else "0"),
                 "IS_TIEINPOINT" to (if (nodeDetails.isTieInPointAsBoolean) "1" else "0"),
-                "IS_CONNECTING" to (if (nodeDetails.isConnectingAsBoolean && !isVirtualNode) "1" else "0"),
                 "IS_PENDING_DEPLOY" to (if (parseLooseBoolean(node.isPendingDeploy)) "1" else "0"),
                 "is_virtual" to (if (parseLooseBoolean(nodeDetails.isVirtual)) "1" else "0"),
                 "IS_BROKEN" to (nodeDetails.isBroken ?: ""),
@@ -482,7 +470,9 @@ class GutterInspectActivity : AppCompatActivity() {
                 "photo1UploadState" to (if (photo1.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE),
                 "photo2UploadState" to (if (photo2.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE),
                 "photo3UploadState" to (if (photo3.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE)
-            )
+            ).apply {
+                if (!isVirtualNode) normalizedConnecting?.let { put("IS_CONNECTING", it) }
+            }
             logPhotoImgIdTrace("preloadEditableWaypoints.mapped", basicData, target.label)
             PhotoCapturedAtResolver.writeBasicData(
                 basicData,
@@ -574,47 +564,13 @@ class GutterInspectActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun showEditPreloadWarning(photoIssues: List<String>, onContinue: () -> Unit) {
-        val message = if (photoIssues.isNotEmpty()) {
-            "照片數量不滿足，以下節點照片缺失或下載失敗：\n${photoIssues.joinToString("\n")}\n\n無法開蓋點位需有概況照 1 張，其餘點位需有 3 張。\n會覆蓋草稿資料\n仍要繼續進入編輯嗎？"
-        } else {
-            "部分照片下載失敗，進入編輯後可能需要補齊。"
-        }
-        showEditEntryConfirmation(message = message, onContinue = onContinue)
-    }
-
     private fun showEditPreloadRetryDialog(ditch: DitchDetails, token: String) {
         MaterialAlertDialogBuilder(this)
             .setTitle("無法進入編輯")
-            .setMessage("部分點位詳細資料載入失敗。為避免覆蓋伺服器上的銜接點或連結管狀態，請重新載入後再編輯。")
+            .setMessage("部分點位詳細資料載入失敗。為避免覆蓋伺服器上的銜接點或連接管狀態，請重新載入後再編輯。")
             .setNegativeButton("取消", null)
             .setPositiveButton("重試") { _, _ -> startPreload(ditch, token) }
             .show()
-    }
-
-    private fun showEditEntryConfirmation(
-        message: String,
-        continueText: String = "繼續進入",
-        onContinue: () -> Unit
-    ) {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_preload_warning, null, false)
-        dialogView.findViewById<TextView>(R.id.tvDialogTitle).text = "進入編輯確認"
-        dialogView.findViewById<TextView>(R.id.tvDialogMessage).text = message
-        dialogView.findViewById<MaterialButton>(R.id.btnContinue).text = continueText
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setView(dialogView)
-            .create()
-
-        dialogView.findViewById<MaterialButton>(R.id.btnCancel).setOnClickListener {
-            dialog.dismiss()
-        }
-        dialogView.findViewById<MaterialButton>(R.id.btnContinue).setOnClickListener {
-            dialog.dismiss()
-            onContinue()
-        }
-
-        dialog.show()
     }
 
     /**
@@ -642,7 +598,6 @@ class GutterInspectActivity : AppCompatActivity() {
                 "SPI_NUM" to d.spiNum,
                 "is_virtual" to (d.isVirtual ?: "0"),
                 "IS_TIEINPOINT" to "0",
-                "IS_CONNECTING" to "0",
                 "IS_PENDING_DEPLOY" to (if (node.isPendingDeploy?.trim() == "1") "1" else "0"),
                 "photo1ImgId" to (node.url.firstOrNull { it.fileCategory == "1" }?.id?.toString() ?: ""),
                 "photo2ImgId" to (node.url.firstOrNull { it.fileCategory == "2" }?.id?.toString() ?: ""),

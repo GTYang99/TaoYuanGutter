@@ -3,7 +3,7 @@
 ## Revision and Worktree
 
 - Production revision under test: `d988f8d9cf5d575af64579f1c9c146962ee14a10` (`feat(feat-0917): update tie-in and connecting pipe contract`).
-- Verification started from branch `feat/銜接點連結管自帶節點名`; the later `63c41a2` commit contains task documentation only.
+- Verification started from branch `feat/銜接點連接管自帶節點名`; the later `63c41a2` commit contains task documentation only.
 - The only pre-existing worktree item was untracked `.worktrees/`; it was not changed or included in validation.
 
 ## Automated Evidence

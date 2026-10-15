@@ -4,6 +4,7 @@
 
     <!-- Required for network operations -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Camera for photo capture -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
@@ -22,6 +23,7 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 
     <application
+        android:name=".AppVersionUpdateApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -37,6 +39,11 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="${MAPS_API_KEY}" />
+
+        <!-- Remote photos use the shared Taipei certificate workaround. -->
+        <meta-data
+            android:name="com.example.taoyuangutter.common.BackendGlideModule"
+            android:value="GlideModule" />
 
         <!-- Login Activity -->
         <activity

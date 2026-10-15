@@ -29,6 +29,9 @@ class GutterSheetSessionBinder {
                 hooks.onWaypointsCleared()
                 return@waypointChanges
             }
+            if (!shouldForwardWaypointUpdate(sheet.isSubmittedDraftReadOnlyMode())) {
+                return@waypointChanges
+            }
 
             val shouldRefit = config.refitOnGrowth && waypoints.size > lastWaypointsSize
             lastWaypointsSize = waypoints.size
@@ -38,5 +41,10 @@ class GutterSheetSessionBinder {
                 hooks.onRefitRequested(waypoints)
             }
         }
+    }
+
+    companion object {
+        internal fun shouldForwardWaypointUpdate(submittedDraftReadOnly: Boolean): Boolean =
+            !submittedDraftReadOnly
     }
 }
