@@ -2,8 +2,8 @@ task:
   id: feat-1015
   type: feature
 
-phase: verification
-status: verification_not_verified
+phase: infrastructure
+status: infrastructure_in_progress
 
 knowledge_resolution:
   status: resolved
@@ -44,4 +44,5 @@ blocking:
   - AC-003 physical GPS, permission/error, current-location marker/camera, and backend behavior remain NOT VERIFIED per user direction; the connected device was not used.
   - AC-005 visual map rendering, integrated page-switch/map callback behavior, and loading-row retention are not fully evidenced by emulator tests.
   - CI build and test results for the fixed revision are unavailable; no CI configuration is checked in.
-next_action: verification
+  - emulator-5554 was concurrently running an unrelated instrumentation suite during the follow-up UI test, which failed with NoActivityResumedException; do not rerun until an exclusive emulator is available.
+next_action: infrastructure

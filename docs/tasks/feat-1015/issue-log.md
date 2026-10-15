@@ -38,3 +38,16 @@
 - Route: `debug` → `implementation_debug`
 - Resolution: The test now moves `ActivityScenario` to `RESUMED` and asserts the activity and FragmentManager state before showing the sheet. The final focused emulator test passed.
 - Next action: verification
+
+## ISS-feat-1015-006 — Shared emulator was running another instrumentation suite
+
+- Task: `feat-1015`
+- Phase found: `infrastructure`
+- Category: `environment`
+- Priority: `P2`
+- Status: `open`
+- Impact: The follow-up emulator UI run lost its resumed activity before completing assertions, so that run cannot validate the import sheet.
+- Evidence: The targeted `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` run on `emulator-5554` failed with `NoActivityResumedException` at the row-selection assertion. The same emulator log shows `com.example.tp_ncolso_android.test/...EmptyActivity` displayed at `10-15 10:28:04.133` and its instrumentation test executing concurrently.
+- Route: `infrastructure`
+- Remediation: Rerun the blocked emulator check only when `emulator-5554` is exclusively available, or use a dedicated emulator. Do not use the physical XQ-AU52; the user declined that test.
+- Next action: infrastructure
