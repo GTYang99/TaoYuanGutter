@@ -46,6 +46,7 @@
 
 ## Infrastructure Follow-up (2026-10-15)
 
+- Both follow-up test commands ran at `b0eb11adab6f1e57914877f5081b9b8ade8dc0cc`; the implementation and Android test sources match the committed feature/test revision `399b37d`.
 - Created dedicated Pixel 7 AVDs `Feat1015_Test` and `Feat1015_Test_API36`, both Android 16 / API 36 and isolated from the shared `Medium_Phone` AVD. The second uses the installed `google_apis_playstore` image and ran as `emulator-5558`; the first was stopped after its launcher became unresponsive during first boot. The AVD configurations remain available for this task.
 - `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportWaypointMapMarkerTest` — PASS on `Feat1015_Test_API36` (`emulator-5558`, Android 16/API 36). Gradle reported `BUILD SUCCESSFUL`; the targeted map-marker test passed.
 - `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` — NOT VERIFIED on the dedicated AVDs. First invocation on `Feat1015_Test` failed at the first tab-label assertion (`ImportExistingWaypointUiTest.kt:146`) with `RootViewWithoutFocusException`; a screenshot showed a Pixel Launcher ANR dialog. The one permitted retry on `Feat1015_Test_API36` failed at the same assertion with the same Espresso focus exception; the launcher retained focus and no unrelated instrumentation suite was running. The retry limit is exhausted for this evidence cycle.
