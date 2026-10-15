@@ -22,8 +22,8 @@ validation:
 
 git:
   branch: feat/feat-1015-restore-nearby-waypoints
-  commit: ""
-  status: pending
+  commit: 3b38be9d1de909b65fd24a6c702a487f6e9430f2
+  status: committed
 
 verification:
   result: pending
@@ -38,4 +38,4 @@ release:
   status: pending
 
 blocking: []
-next_action: implementation
+next_action: verification

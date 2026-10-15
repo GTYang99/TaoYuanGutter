@@ -27,6 +27,7 @@
 
 ## Build Artifact
 
+- Commit: `3b38be9d1de909b65fd24a6c702a487f6e9430f2`
 - Variant: `debug`
 - Package: `com.example.taoyuangutter`
 - APK: `app/build/outputs/apk/debug/app-debug.apk`
