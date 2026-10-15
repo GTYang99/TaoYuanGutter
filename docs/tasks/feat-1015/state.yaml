@@ -2,8 +2,8 @@ task:
   id: feat-1015
   type: feature
 
-phase: infrastructure
-status: infrastructure_in_progress
+phase: verification
+status: verification_in_progress
 
 knowledge_resolution:
   status: resolved
@@ -44,5 +44,5 @@ blocking:
   - AC-003 physical GPS, permission/error, current-location marker/camera, and backend behavior remain NOT VERIFIED per user direction; the connected device was not used.
   - AC-005 visual map rendering, integrated page-switch/map callback behavior, and loading-row retention are not fully evidenced by emulator tests.
   - CI build and test results for the fixed revision are unavailable; no CI configuration is checked in.
-  - emulator-5554 was concurrently running an unrelated instrumentation suite during the follow-up UI test, which failed with NoActivityResumedException. The only configured AVD is locked by that non-read-only instance; a separate read-only launch was rejected. Rerun when the shared emulator is exclusive or a separate AVD is provisioned.
-next_action: infrastructure
+  - The original emulator-5554 concurrency issue is resolved by provisioning dedicated AVDs. Fresh ImportExistingWaypointUiTest evidence remains unavailable: on the dedicated AVDs it failed twice at the initial Espresso assertion with RootViewWithoutFocusException; the replacement AVD retry was used, and no further retry is permitted in this evidence cycle.
+next_action: verification

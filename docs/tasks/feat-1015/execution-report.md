@@ -43,3 +43,11 @@
 - On emulator `emulator-5554` (Android 16), the test passed after covering candidate callbacks for all three modes, selection and radio highlight, clearing selection on tab changes, and the selected-item import callback.
 - Physical XQ-AU52 testing is NOT VERIFIED per the user's instruction not to install or operate the test APK on that device.
 - `ImportWaypointMapMarkerTest.candidateMarkersRenderSelectionHighlightsAndCleanupOnMap` passed on `emulator-5554` (Android 16). It checks Google Maps marker objects and selection visibility but does not replace a visual map run or the declined physical GPS test.
+
+## Infrastructure Follow-up (2026-10-15)
+
+- Created dedicated Pixel 7 AVDs `Feat1015_Test` and `Feat1015_Test_API36`, both Android 16 / API 36 and isolated from the shared `Medium_Phone` AVD. The second uses the installed `google_apis_playstore` image and ran as `emulator-5558`; the first was stopped after its launcher became unresponsive during first boot. The AVD configurations remain available for this task.
+- `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportWaypointMapMarkerTest` — PASS on `Feat1015_Test_API36` (`emulator-5558`, Android 16/API 36). Gradle reported `BUILD SUCCESSFUL`; the targeted map-marker test passed.
+- `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` — NOT VERIFIED on the dedicated AVDs. First invocation on `Feat1015_Test` failed at the first tab-label assertion (`ImportExistingWaypointUiTest.kt:146`) with `RootViewWithoutFocusException`; a screenshot showed a Pixel Launcher ANR dialog. The one permitted retry on `Feat1015_Test_API36` failed at the same assertion with the same Espresso focus exception; the launcher retained focus and no unrelated instrumentation suite was running. The retry limit is exhausted for this evidence cycle.
+- Neither dedicated AVD test changes the physical-device scope: GPS permission/current-location behavior and authenticated backend behavior remain NOT VERIFIED per the user's instruction not to use XQ-AU52.
+- The pre-existing `gradle/libs.versions.toml` change remains untouched and excluded.

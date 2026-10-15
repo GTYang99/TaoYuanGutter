@@ -45,10 +45,25 @@
 - Phase found: `infrastructure`
 - Category: `environment`
 - Priority: `P2`
-- Status: `open`
+- Status: `resolved`
 - Impact: The follow-up emulator UI run lost its resumed activity before completing assertions, so that run cannot validate the import sheet.
 - Evidence: The targeted `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` run on `emulator-5554` failed with `NoActivityResumedException` at the row-selection assertion. The same emulator log shows `com.example.tp_ncolso_android.test/...EmptyActivity` displayed at `10-15 10:28:04.133` and its instrumentation test executing concurrently.
 - Route: `infrastructure`
 - Environment check: `emulator -list-avds` reports only `Medium_Phone`. Starting a second read-only instance on port 5556 failed because the existing instance is running without read-only mode (`Another emulator instance is running`).
-- Remediation: Rerun the blocked emulator check only when `emulator-5554` is exclusively available or a separate AVD is provisioned. Do not use the physical XQ-AU52; the user declined that test.
-- Next action: infrastructure
+- Remediation: Provisioned task-specific AVDs `Feat1015_Test` and `Feat1015_Test_API36`. The latter is available on `emulator-5558` (Pixel 7 profile, Android 16/API 36). The original shared-emulator failure is no longer the constraint. The physical XQ-AU52 was not used, per the user's instruction.
+- Resolution evidence: `ImportWaypointMapMarkerTest` passed on `Feat1015_Test_API36`. The UI test was attempted on the isolated AVDs; its remaining focus failure is tracked separately as ISS-feat-1015-007.
+- Next action: verification
+
+## ISS-feat-1015-007 — Headless AVD instrumentation window does not gain focus
+
+- Task: `feat-1015`
+- Phase found: `infrastructure`
+- Category: `environment`
+- Priority: `P2`
+- Status: `open`
+- Impact: The focused import-page UI test cannot reach its first label assertion on the new isolated AVDs because Espresso cannot obtain a focused application window. This prevents fresh emulator evidence for the integrated page-switch UI flow.
+- Evidence: On `Feat1015_Test` (emulator-5556, Android 16/API 36, `google_apis_playstore_ps16k`), `ImportExistingWaypointUiTest.tabsKeepOrderDefaultAndRefreshEachSubmittedModeOnReturn` failed at line 146 with `RootViewWithoutFocusException`; a captured screen showed the Pixel Launcher ANR dialog. Per the one-retry limit, it was retried on a second isolated AVD, `Feat1015_Test_API36` (emulator-5558, Android 16/API 36, `google_apis_playstore`), and failed at the same initial assertion with the same exception. At failure, the launcher remained focused; no unrelated instrumentation suite was running on either dedicated AVD. `ImportWaypointMapMarkerTest` passed on emulator-5558.
+- Route: `infrastructure`
+- Remediation attempted: Created and booted a second isolated AVD using the other installed Android 16 Google Play image, stopped the first task-created AVD to reduce host load, and waited for the replacement launcher to settle before the one permitted retry. No application or test source was changed.
+- Remaining limitation: Both test invocations used `-no-window`; Espresso still did not receive window focus on the retry. Do not retry this test again in this evidence cycle. AC-001/AC-004 retain their earlier passing evidence; fresh UI evidence remains unavailable. A future visible-window AVD run may provide evidence.
+- Next action: verification
