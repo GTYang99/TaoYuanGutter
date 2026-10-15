@@ -30,7 +30,14 @@
 
 ## Build Artifact
 
-- Commit: `231ba769a3bf5bece73422848fbf298119d0901c`
+- Feature implementation commit: `231ba769a3bf5bece73422848fbf298119d0901c`
+- Test coverage commit: `75d1e3f`
 - Variant: `debug`
 - Package: `com.example.taoyuangutter`
 - APK: `app/build/outputs/apk/debug/app-debug.apk`
+
+## Scoped Callback Coverage
+
+- Updated instrumentation test: `ImportExistingWaypointUiTest.tabsKeepOrderDefaultAndRefreshEachSubmittedModeOnReturn`.
+- On emulator `emulator-5554` (Android 16), the test passed after covering candidate callbacks for all three modes, selection and radio highlight, clearing selection on tab changes, and the selected-item import callback.
+- Physical XQ-AU52 testing is NOT VERIFIED per the user's instruction not to install or operate the test APK on that device.
