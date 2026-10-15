@@ -17,7 +17,8 @@
 | `:app:testDebugUnitTest` | PASS | 98 tests completed, no failures |
 | `:app:assembleDebug` | PASS | Debug APK built at `app/build/outputs/apk/debug/app-debug.apk` |
 | `:app:compileDebugAndroidTestKotlin` | PASS | Android instrumentation test sources compiled |
-| `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` | PASS | 1 targeted instrumentation test passed on emulator `emulator-5554` (Android 16) |
+| `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` | PASS | 1 targeted instrumentation test passed on emulator `emulator-5554` (Android 16). It verifies candidate callbacks in all three modes, radio selection and import enablement, selection clearing on tab switch, and import callback handoff. |
+| `:app:compileDebugAndroidTestKotlin` | PASS | Updated instrumentation test sources compiled successfully. |
 | `git diff --check` | PASS | No whitespace errors |
 | Physical GPS permission, current-location marker/camera, and map import handoff | NOT VERIFIED | Emulator UI test uses a fake location callback; live GPS and authenticated backend flow were not exercised |
 

@@ -22,13 +22,16 @@ validation:
 
 git:
   branch: feat/feat-1015-restore-nearby-waypoints
-  commit: 231ba769a3bf5bece73422848fbf298119d0901c
-  status: committed
+  commit: pending
+  status: pending
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-003
+    - AC-005
 
 ci:
   build: pending
@@ -37,5 +40,7 @@ ci:
 release:
   status: pending
 
-blocking: []
+blocking:
+  - Physical GPS and map/import verification remains NOT VERIFIED per user direction; the connected XQ-AU52 was not modified or used.
+  - CI build and test results are unavailable; no CI configuration is checked in.
 next_action: verification
