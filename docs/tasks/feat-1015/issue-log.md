@@ -49,5 +49,6 @@
 - Impact: The follow-up emulator UI run lost its resumed activity before completing assertions, so that run cannot validate the import sheet.
 - Evidence: The targeted `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` run on `emulator-5554` failed with `NoActivityResumedException` at the row-selection assertion. The same emulator log shows `com.example.tp_ncolso_android.test/...EmptyActivity` displayed at `10-15 10:28:04.133` and its instrumentation test executing concurrently.
 - Route: `infrastructure`
-- Remediation: Rerun the blocked emulator check only when `emulator-5554` is exclusively available, or use a dedicated emulator. Do not use the physical XQ-AU52; the user declined that test.
+- Environment check: `emulator -list-avds` reports only `Medium_Phone`. Starting a second read-only instance on port 5556 failed because the existing instance is running without read-only mode (`Another emulator instance is running`).
+- Remediation: Rerun the blocked emulator check only when `emulator-5554` is exclusively available or a separate AVD is provisioned. Do not use the physical XQ-AU52; the user declined that test.
 - Next action: infrastructure

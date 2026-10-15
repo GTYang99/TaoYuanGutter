@@ -44,5 +44,5 @@ blocking:
   - AC-003 physical GPS, permission/error, current-location marker/camera, and backend behavior remain NOT VERIFIED per user direction; the connected device was not used.
   - AC-005 visual map rendering, integrated page-switch/map callback behavior, and loading-row retention are not fully evidenced by emulator tests.
   - CI build and test results for the fixed revision are unavailable; no CI configuration is checked in.
-  - emulator-5554 was concurrently running an unrelated instrumentation suite during the follow-up UI test, which failed with NoActivityResumedException; do not rerun until an exclusive emulator is available.
+  - emulator-5554 was concurrently running an unrelated instrumentation suite during the follow-up UI test, which failed with NoActivityResumedException. The only configured AVD is locked by that non-read-only instance; a separate read-only launch was rejected. Rerun when the shared emulator is exclusive or a separate AVD is provisioned.
 next_action: infrastructure
