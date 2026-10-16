@@ -7,8 +7,9 @@ internal object EditMapLocationPolicy {
         isViewMode: Boolean,
         isOfflineMode: Boolean,
         submittedDraftReadOnly: Boolean,
-        hasSavedCoordinates: Boolean
-    ): Boolean = isEditMode && !isViewMode && !isOfflineMode &&
+        hasSavedCoordinates: Boolean,
+        isNewAddForm: Boolean = false
+    ): Boolean = (isEditMode || isNewAddForm) && !isViewMode && !isOfflineMode &&
         !submittedDraftReadOnly && !hasSavedCoordinates
 
     fun hasForegroundLocationPermission(fineGranted: Boolean, coarseGranted: Boolean): Boolean =

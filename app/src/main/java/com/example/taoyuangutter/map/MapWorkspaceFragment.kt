@@ -776,7 +776,8 @@ class MapWorkspaceFragment : Fragment(),
             wp,
             initialLatLng,
             isEditMode = sheet.isEditMode(),
-            submittedDraftReadOnly = submittedDraftReadOnly
+            submittedDraftReadOnly = submittedDraftReadOnly,
+            useCurrentLocationForInitialMap = sheet.shouldUseCurrentLocationForInitialFormViewport()
         )
     }
 
@@ -1230,7 +1231,8 @@ class MapWorkspaceFragment : Fragment(),
         wp: Waypoint,
         latLng: LatLng,
         isEditMode: Boolean = false,
-        submittedDraftReadOnly: Boolean = false
+        submittedDraftReadOnly: Boolean = false,
+        useCurrentLocationForInitialMap: Boolean = false
     ) {
         mapCameraController.moveCameraToLatLngOffset(latLng, 0.75, mapCameraController.zoomForGutterSize(wp.basicData))
         val state = mapOverlayController.currentState()
@@ -1242,6 +1244,7 @@ class MapWorkspaceFragment : Fragment(),
             isEditMode = isEditMode,
             currentSessionDraftId = sessionDraftId,
             submittedDraftReadOnly = submittedDraftReadOnly,
+            useCurrentLocationForInitialMap = useCurrentLocationForInitialMap,
             wmtsLayer = currentWmtsLayer(),
             sessionIsOffline = currentSessionIsOffline,
             hostLastLocation = lastKnownLocation,

@@ -1218,6 +1218,10 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
     /** true = 正在編輯既有側溝（editSpiNum 非空）。 */
     fun isEditMode(): Boolean = editSpiNum.isNotEmpty()
 
+    /** True only for a fresh, online add sheet that is not a restored or read-only draft. */
+    fun shouldUseCurrentLocationForInitialFormViewport(): Boolean =
+        !isInspectMode && !isOfflineMode && !isEditMode() && draftId <= 0L && !submittedDraftReadOnly
+
     /** 是否為弧線側溝（供地圖畫線顏色等用途）。 */
     fun isCurveMode(): Boolean = isCurve
 

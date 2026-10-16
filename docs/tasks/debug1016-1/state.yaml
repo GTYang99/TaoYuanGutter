@@ -1,0 +1,61 @@
+task:
+  id: debug1016-1
+  type: bugfix
+
+phase: infrastructure
+status: blocked
+
+knowledge_resolution:
+  status: not_required
+
+debug:
+  status: completed
+  root_cause: identified_from_static_code_evidence
+  issues:
+    - ISS-DBG-1016-1-001
+
+planning:
+  status: completed
+  scope_note: User approved current-location centering for a fresh empty add form; offline and restored drafts remain unchanged.
+
+plan_review:
+  status: approved
+  result: APPROVED
+  blocking_issues: []
+
+implementation:
+  status: completed
+
+validation:
+  status: completed_with_limitations
+  environment: emulator_only
+  physical_device: excluded
+  debug_build: passed
+  instrumentation_tests: passed_3_of_3
+  policy_unit_test: passed
+  no_fix_prompt_runtime: not_verified
+  offline_restored_runtime: not_run
+
+git:
+  branch: codex/debug/debug1016-1
+  commit: 990e60888604da1a5917b72a542effa6649f60f1
+  status: committed
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-005
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - AC-005 manual map interaction remains unverified because the emulator Maps SDK rejected the non-real placeholder API key; an authorized test-only Maps SDK key is unavailable.
+  - No remote CI run/status is available for the local task commit.
+next_action: infrastructure

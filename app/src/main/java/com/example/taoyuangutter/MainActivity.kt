@@ -1613,7 +1613,8 @@ class MainActivity : AppCompatActivity(),
             wp,
             initialLatLng,
             isEditMode = sheet.isEditMode(),
-            submittedDraftReadOnly = submittedDraftReadOnly
+            submittedDraftReadOnly = submittedDraftReadOnly,
+            useCurrentLocationForInitialMap = sheet.shouldUseCurrentLocationForInitialFormViewport()
         )
     }
 
@@ -1653,7 +1654,8 @@ class MainActivity : AppCompatActivity(),
         wp: Waypoint,
         latLng: LatLng,
         isEditMode: Boolean = false,
-        submittedDraftReadOnly: Boolean = false
+        submittedDraftReadOnly: Boolean = false,
+        useCurrentLocationForInitialMap: Boolean = false
     ) {
         mapCameraController.moveCameraToLatLngOffset(
             latLng,
@@ -1669,6 +1671,7 @@ class MainActivity : AppCompatActivity(),
             isEditMode = isEditMode,
             currentSessionDraftId = sessionDraftId,
             submittedDraftReadOnly = submittedDraftReadOnly,
+            useCurrentLocationForInitialMap = useCurrentLocationForInitialMap,
             wmtsLayer = currentWmtsLayer(),
             sessionIsOffline = currentSessionIsOffline,
             hostLastLocation = lastKnownLocation,

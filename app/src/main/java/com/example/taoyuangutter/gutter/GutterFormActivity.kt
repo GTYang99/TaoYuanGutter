@@ -264,6 +264,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
         const val EXTRA_VIEW_MODE        = "view_mode"
         const val EXTRA_WAYPOINT_INDEX   = "waypoint_index"
         const val EXTRA_IS_EDIT_MODE     = "is_edit_mode" // 新增：是否為編輯模式
+        const val EXTRA_NEW_ADD_FORM_INITIAL_LOCATION = "new_add_form_initial_location"
 	        const val EXTRA_SUBMITTED_DRAFT_READ_ONLY = "submitted_draft_read_only"
 	        const val EXTRA_SESSION_DRAFT_ID = "session_draft_id"
 	        const val EXTRA_SESSION_WAYPOINTS_JSON = "session_waypoints_json"
@@ -393,7 +394,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
                     showPlan: Boolean = true,
                     showWaterOld: Boolean = true,
                     showPossible: Boolean = true,
-                    showRegion: Boolean = true
+                    showRegion: Boolean = true,
+                    useCurrentLocationForInitialMap: Boolean = false
 		        ): Intent = Intent(context, GutterFormActivity::class.java).apply {
 		            putStringArrayListExtra(EXTRA_WAYPOINT_LABELS, labels)
 		            putExtra(EXTRA_LATITUDES, lats)
@@ -402,6 +404,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
 	            putExtra(EXTRA_WAYPOINT_INDEX, index)   // 與 currentIndex 一致，確保 buildAndFinishWithResult 回傳正確索引
 		            putExtra(EXTRA_VIEW_MODE, false)
 		            putExtra(EXTRA_IS_EDIT_MODE, isEditMode) // 傳入編輯模式旗標
+		            putExtra(EXTRA_NEW_ADD_FORM_INITIAL_LOCATION, useCurrentLocationForInitialMap)
 	            putExtra(EXTRA_SESSION_DRAFT_ID, sessionDraftId)
 	            putExtra(EXTRA_SUBMITTED_DRAFT_READ_ONLY, submittedDraftReadOnly)
 		            putExtra(EXTRA_OFFLINE_MODE, sessionIsOffline)
@@ -1666,6 +1669,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
             }
         }
 
+        val isNewAddForm = intent.getBooleanExtra(EXTRA_NEW_ADD_FORM_INITIAL_LOCATION, false)
         val currentWaypoint = sessionWaypoints.getOrNull(currentIndex)
         val currentTarget = currentWaypoint?.latitude?.let { wpLat ->
             currentWaypoint.longitude?.let { wpLng -> LatLng(wpLat, wpLng) }
@@ -1673,7 +1677,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
         if (currentTarget != null) {
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(currentTarget, 18f))
         } else {
-            // 若沒有既有座標，先以桃園作為初始鏡頭（表單內地圖不做定位跳轉）
+            // 若沒有既有座標，先以桃園作為 fallback；符合條件時再由定位流程更新鏡頭。
             val lat = if (currentLat != 0.0) currentLat else 24.9929
             val lng = if (currentLng != 0.0) currentLng else 121.3011
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
@@ -1682,7 +1686,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
                     isViewMode = isViewMode,
                     isOfflineMode = isOfflineMode,
                     submittedDraftReadOnly = submittedDraftReadOnly,
-                    hasSavedCoordinates = false
+                    hasSavedCoordinates = false,
+                    isNewAddForm = isNewAddForm
                 )
             ) {
                 editMapLocationFlowActive = true
@@ -1745,9 +1750,14 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
                     return@addOnSuccessListener
                 }
                 if (EditMapLocationPolicy.shouldApplyLocation(editMapLocationUserMoved, editMapLocationFlowActive)) {
-                    formMap?.animateCamera(
-                        CameraUpdateFactory.newLatLng(LatLng(validLocation.latitude, validLocation.longitude))
+                    val cameraUpdate = CameraUpdateFactory.newLatLng(
+                        LatLng(validLocation.latitude, validLocation.longitude)
                     )
+                    if (intent.getBooleanExtra(EXTRA_NEW_ADD_FORM_INITIAL_LOCATION, false)) {
+                        formMap?.moveCamera(cameraUpdate)
+                    } else {
+                        formMap?.animateCamera(cameraUpdate)
+                    }
                 }
                 editMapLocationFlowActive = false
             }
