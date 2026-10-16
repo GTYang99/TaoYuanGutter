@@ -28,7 +28,7 @@ validation:
 
 git:
   branch: codex/debug/debug-1017-htc-android14-camera
-  commit: c2cbd29
+  commit: e87e40e
   status: committed
 
 verification:
