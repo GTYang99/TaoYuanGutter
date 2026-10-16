@@ -4,7 +4,9 @@
 
 `NOT VERIFIED`
 
-This debug task has no implementation revision to verify yet. Independent HTC Android 14 runtime verification cannot run because no HTC device or crash trace is available.
+This debug task has no implementation revision to verify yet. The independent API 34 AVD can exercise the in-process CameraX overlay, but it is not HTC hardware and therefore cannot close the HTC-specific root cause.
+
+The current debug evidence is scoped PASS for APK build and CameraX binding on API 34, with `NOT VERIFIED` retained for the actual HTC shutter/capture failure and MediaStore OEM-provider behavior.
 
 ## Required verification cases after a fix
 

@@ -28,8 +28,8 @@ validation:
 
 git:
   branch: codex/debug/debug-1017-htc-android14-camera
-  commit: ""
-  status: pending
+  commit: 285c2e6
+  status: committed
 
 verification:
   result: not_verified
@@ -46,7 +46,6 @@ release:
 blocking:
   - HTC model, Android 14 build/security patch, app version, and exact failing capture phase are missing.
   - No HTC logcat/tombstone/crash report is available to confirm the exception boundary.
-  - Gradle validation is unavailable because the host has no Java runtime.
-  - Physical-device validation is unavailable because ADB cannot start and no device is connected.
+  - Physical HTC-device validation is unavailable; the API 34 AVD is not HTC hardware.
 
 next_action: debug
