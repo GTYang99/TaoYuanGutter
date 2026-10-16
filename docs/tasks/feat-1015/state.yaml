@@ -42,8 +42,8 @@ release:
   status: pending
 
 blocking:
-  - AC-004 UI test captured A0 after typing A001; the permitted retry failed earlier at Nearby tab selection, so root cause remains unclassified.
-  - AC-003 physical GPS, permission/error, current-location marker/camera, and authenticated backend behavior were not exercised under emulator-only scope.
+  - AC-004 UI test captured A0 after typing A001 in earlier evidence; this round and its one retry failed at candidate-row click, so root cause remains unclassified.
+  - AC-003 Nearby behavior was not reached in this round; physical GPS, permission/error, current-location marker/camera, and authenticated backend behavior were not exercised under emulator-only scope.
   - AC-005 integrated sheet-to-map/import behavior, visual rendering, and loading-row retention remain incompletely evidenced.
-  - No CI status or workflow run covers f5e31eff808c9aa3d04df23927bd660978d93931.
+  - No CI status or workflow run covers fixed verification revision c7fa5f71873168187ce0276a28a4aab46f31db28.
 next_action: investigation

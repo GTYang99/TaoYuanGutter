@@ -75,7 +75,7 @@
 - Category: `unknown`
 - Priority: `P2`
 - Status: `open`
-- Impact: The independent UI test does not reliably verify the submitted XY_NUM value or Nearby tab entry on the combined revision.
-- Evidence: On fixed revision `f5e31eff808c9aa3d04df23927bd660978d93931`, the first targeted `ImportExistingWaypointUiTest` attempt on `Medium_Phone` / Android 16 failed at line 188 with expected `[A001]`, actual `[A0]`. The single permitted retry on the same emulator failed earlier at line 165 with expected selected tab index 1, actual 0. The test was not run again in this evidence cycle.
+- Impact: The independent UI test does not reliably verify candidate selection, the submitted XY_NUM value, or Nearby tab entry on the combined revision.
+- Evidence: On source revision `f5e31eff808c9aa3d04df23927bd660978d93931`, an earlier targeted `ImportExistingWaypointUiTest` attempt on `Medium_Phone` / Android 16 failed at line 188 with expected `[A001]`, actual `[A0]`; its one retry failed earlier at line 165 with expected selected tab index 1, actual 0. On verification revision `c7fa5f71873168187ce0276a28a4aab46f31db28` (documentation-only on top of the same source), the first attempt failed at line 155 when Espresso could not click the displayed `UI-CANDIDATE-1` row after three attempts. The one retry on the same emulator, after setting window, transition, and animator animation scales to zero, failed at the same line after three click attempts. The emulator-only retry limit for this round is exhausted.
 - Route: `investigation`
-- Next action: Determine whether the mismatch comes from application behavior or Espresso/IME/tab interaction timing. Do not patch production or tests until the cause is classified.
+- Next action: Determine whether the mismatch comes from application behavior or Espresso/IME/tab interaction timing. Do not patch production or tests until the cause is classified. The emulator animation settings were restored after the retry; no physical device was used.
