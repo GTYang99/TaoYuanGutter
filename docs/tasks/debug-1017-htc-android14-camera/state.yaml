@@ -2,8 +2,8 @@ task:
   id: debug-1017-htc-android14-camera
   type: debug
 
-phase: debug
-status: debug_in_progress
+phase: implementation
+status: implementation_in_progress
 
 knowledge_resolution:
   status: not_required
@@ -15,20 +15,21 @@ plan_review:
   status: pending
 
 debug:
-  status: investigating
-  root_cause: not_confirmed
+  status: completed
+  root_cause: identified
   issues:
     - ISS-DBG-1017-001
 
 implementation:
-  status: pending
+  status: in_progress
+  mode: debug_fix
 
 validation:
   status: pending
 
 git:
   branch: codex/debug/debug-1017-htc-android14-camera
-  commit: db0c16ee
+  commit: 38e398f
   status: committed
 
 verification:
@@ -48,4 +49,4 @@ blocking:
   - No HTC logcat/tombstone/crash report is available to confirm the exception boundary.
   - Physical HTC-device validation is unavailable; the API 34 AVD is not HTC hardware.
 
-next_action: debug
+next_action: implementation

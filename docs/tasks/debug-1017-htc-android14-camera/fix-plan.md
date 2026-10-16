@@ -2,19 +2,18 @@
 
 ## Status
 
-Pending device trace. This is a candidate minimum scope, not an implementation approval.
+Approved for implementation by the user's request on 2026-10-16. Scope is limited to the two P1 failure boundaries reproduced on the API 34 emulator; HTC attribution remains unverified.
 
-## Candidate minimum changes after confirmation
+## Approved minimum changes
 
-1. If the stack is post-shutter, guard the callback's `viewLifecycleOwner`/`requireContext()` access and wrap the complete album-copy operation including `ContentResolver.insert()`, log the exception class/cause, and preserve the form photo even when system-album copy fails.
-2. If the stack is CameraX initialization, wrap the `ProcessCameraProvider` future callback, log the full cause chain, and convert initialization failure into the existing camera-canceled result/toast path.
-3. Add a lifecycle guard before using the overlay binding or `viewLifecycleOwner` from delayed camera callbacks.
-4. Preserve the existing `Preview` + `ImageCapture` behavior; only change lens selection, flash, or CameraX version if the HTC trace isolates that compatibility boundary.
-5. Fix the post-processing bitmap lifecycle defect by reading dimensions before `recycle()` and avoid full-resolution transformation when the EXIF/color settings require no conversion.
-6. If the HTC trace proves memory pressure, use bounds-aware sampling or remove the in-capture full-resolution transform; validate image orientation and upload behavior separately.
+1. CameraX provider initialization: catch synchronous provider-request failures and asynchronous `ProcessCameraProvider` future failures, log the complete cause, and convert the failure into the existing camera-canceled result/toast path.
+2. Camera binding: keep the existing `Preview` + `ImageCapture` configuration, but include candidate construction and lifecycle binding in the recoverable initialization boundary.
+3. Post-capture processing: guard delayed callback access to the fragment view lifecycle and context; catch album-copy failures without losing the form photo.
+4. MediaStore copy: include `ContentResolver.insert()` in the guarded transaction, log the exception, and best-effort delete any partially created item.
+5. Do not change lens selection, flash, CameraX version, bitmap transformation, or memory behavior; those remain outside this P1 scope without HTC-specific evidence.
 
 ## Verification gate
 
-- Do not implement until the failing acceptance check and exception boundary are identified.
-- After implementation, run a debug build, targeted camera/post-processing tests, `git diff --check`, and the affected HTC Android 14 capture flow.
+- Run a debug build, targeted camera/post-processing tests, `git diff --check`, and the equivalent API 34 emulator capture flow.
+- Emulator validation is explicitly the requested substitute for physical-device testing in this phase.
 - Any unavailable physical-device result must remain `NOT VERIFIED` and cannot be reported as pass.
