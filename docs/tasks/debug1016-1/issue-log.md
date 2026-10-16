@@ -31,18 +31,21 @@
 - phase: verification
 - category: environment
 - priority: P2
-- title: No-fix fallback interaction remains unverified after emulator test failures
+- title: Maps SDK test credential blocks no-fix map interaction verification
 - status: open
-- impact: AC-005 runtime evidence is incomplete; the task cannot advance to Release.
+- impact: AC-005 map interaction runtime evidence is incomplete; the task cannot advance to Release.
 - repro_steps:
   - Run `missingCoordinateEditWithoutUsableFixKeepsFallbackAndShowsUnavailablePrompt` on `emulator-5554` with location disabled.
   - Retry once after disabling emulator animations.
   - Run `returningFromSettingsWithoutPermissionKeepsFallbackUsable` on the same emulator.
-- expected: The no-fix prompt can be dismissed and the existing permission-denial fallback case completes.
-- actual: The first no-fix run reached the prompt and fallback assertions but Espresso could not click the button while animations were enabled. The single retry did not find the expected prompt title. The permission-denial test process was killed by Android 16 when its helper revoked runtime permissions; the same permission-denial case passed on an Android 14 emulator. The no-fix continue interaction remains unverified.
+- expected: The no-fix prompt can be dismissed and the fallback map responds to a manual swipe.
+- actual: The initial Continue click failed because the emulator had a stale injected pointer. After reboot, prompt dismissal and fallback assertions passed, but the test failed at the manual-pan assertion. Google Maps SDK logcat reports an `INVALID_ARGUMENT` token request and authorization failure for the deliberately non-real `debug-placeholder-not-a-real-key`. A valid authorized test Maps SDK key is unavailable. The separate permission-denial case was killed by Android 16 when its helper revoked runtime permissions; the same case passed on an Android 14 emulator.
 - evidence:
   - `docs/tasks/debug1016-1/execution-report.md`
   - `docs/tasks/debug1016-1/verification.md`
+  - 2026-10-16 post-reboot Infrastructure rerun: `missingCoordinateEditWithoutUsableFixKeepsFallbackAndShowsUnavailablePrompt` passed Continue/dismissal and fallback assertions but failed the manual-pan assertion at line 128.
+  - Emulator logcat at 2026-10-16 17:11: Maps API token request returned `INVALID_ARGUMENT`; Google Maps Android SDK logged authorization failure for the non-real placeholder key.
+  - The first attempt logged InputDispatcher `Invalid DOWN event - pointers already down`; emulator reboot cleared it and the button click then succeeded.
   - Emulator logcat at 2026-10-16 16:45:02: ActivityManager killed `com.example.taoyuangutter` with reason `permissions revoked`.
 - Android 14 emulator run: `returningFromSettingsWithoutPermissionKeepsFallbackUsable` passed (`OK (1 test)`).
 - next_action: infrastructure
