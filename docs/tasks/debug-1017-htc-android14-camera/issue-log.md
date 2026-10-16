@@ -28,3 +28,26 @@
 - Exact phase is decisive: preview/open points to CameraX future/binding; after shutter points to MediaStore/OEM provider or post-processing.
 - next_action: `verification`
 - owner: `developer`
+
+## ISS-DBG-1017-002
+
+- task_id: `debug-1017-htc-android14-camera`
+- phase: `verification`
+- category: `environment`
+- priority: `P1`
+- title: Verification cannot classify the HTC incident or close CI evidence
+- status: `open`
+- impact: Release and final root-cause attribution remain blocked; this is not evidence of a new production regression.
+- repro_steps:
+  - Run independent verification against committed revision `b92c122`.
+  - Evaluate AC-DBG-001 and AC-DBG-002 using the available evidence.
+  - Check the CI status/workflow result for the tested commit.
+- expected: HTC incident metadata/trace and a CI result are available, or the criteria are explicitly dispositioned according to the task gate.
+- actual: AC-DBG-001 and AC-DBG-002 are `NOT VERIFIED`; no CI status/workflow run is published. A read-only GitHub remote query failed with `Could not resolve hostname` for `github.com`.
+- evidence:
+  - API 34 targeted fault-injection tests and normal capture smoke passed.
+  - No HTC model, build, incident app version, exact failing phase, logcat/tombstone, or crash report was supplied.
+  - `.github/workflows/android-ci.yml` exists, but local build/test output is not CI evidence.
+- classification: `environment` / evidence availability, not `implementation_regression`.
+- next_action: `verification`
+- owner: `verification`

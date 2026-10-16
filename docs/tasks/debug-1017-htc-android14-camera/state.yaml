@@ -2,8 +2,8 @@ task:
   id: debug-1017-htc-android14-camera
   type: debug
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -29,13 +29,16 @@ validation:
 
 git:
   branch: codex/debug/debug-1017-htc-android14-camera
-  commit: 27e24a0
+  commit: b92c122
   status: committed
 
 verification:
   result: not_verified
-  category: unknown
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-DBG-001
+    - AC-DBG-002
 
 ci:
   build: not_verified
@@ -45,8 +48,10 @@ release:
   status: pending
 
 blocking:
-  - HTC model, Android 14 build/security patch, app version, and exact failing capture phase are missing.
-  - No HTC logcat/tombstone/crash report is available to confirm the exception boundary.
-  - Physical HTC-device validation is unavailable; the API 34 AVD is not HTC hardware.
+  - HTC model, Android 14 build/security patch, incident app version, and exact failing capture phase are missing.
+  - No HTC logcat/tombstone/crash report is available to classify the reported exception boundary.
+  - The affected-device capture remains NOT VERIFIED; only the API 34 emulator was tested under the agreed scope.
+  - Commit b92c122 has no published CI status or workflow run in the checked GitHub results.
+  - Read-only GitHub remote inspection failed because this environment could not resolve github.com.
 
 next_action: verification

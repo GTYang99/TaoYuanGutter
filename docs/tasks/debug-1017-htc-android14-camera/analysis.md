@@ -1,5 +1,36 @@
 # Repository Analysis
 
+## Verification failure re-analysis — 2026-10-16
+
+### What actually failed
+
+The independent verification did not observe a product failure. It returned `NOT VERIFIED` because two acceptance checks require incident-specific HTC evidence that is not present:
+
+- AC-DBG-001 requires the HTC model, Android 14 build, installed app version, exact capture step, and `FATAL EXCEPTION` trace.
+- AC-DBG-002 requires classification of the actual incident boundary. Emulator success and injected exceptions demonstrate possible mechanisms, but cannot identify which mechanism occurred on HTC.
+
+AC-DBG-003 and AC-DBG-004 were dispositioned PASS: the minimum fix scope was documented before implementation, and the unavailable HTC retest was explicitly marked `NOT VERIFIED`.
+
+### Evidence separation
+
+| Evidence layer | Result | What it proves | What it cannot prove |
+|---|---|---|---|
+| Static source/diff review | PASS | The two P1 guards are present in the committed revision and stay within the approved scope | That HTC produced either exception |
+| API 34 fault injection | PASS | The provider-future and `MediaStore.insert()` Java failure boundaries recover without app termination | HTC Camera2/HAL or MediaProvider behavior |
+| API 34 normal capture smoke | PASS | Preview, shutter, JPEG normalization, MediaStore publication, and return to form work on AOSP emulator | HTC-specific reproduction |
+| HTC incident artifact | Missing | Nothing about the actual reported crash | Incident boundary, confidence upgrade, or exact fix attribution |
+| CI workflow result | Missing | Local build is not CI | CI gate status for `b92c122` |
+
+The verification non-pass is therefore an evidence-availability problem, not evidence that the implementation contradicts the requirement. The local smoke flow also argues against classifying this as an `implementation_regression`.
+
+### CI-specific finding
+
+The repository has `.github/workflows/android-ci.yml` configured for push, pull request to `main`, and manual dispatch. It runs selected JVM tests and `:app:assembleDebug`; it does not run the new Android instrumentation tests. The verifier found no published status or workflow run for `b92c122`. A read-only `git ls-remote origin ...` attempt failed at DNS resolution for `github.com`, so this environment cannot distinguish “branch/workflow was never triggered” from “remote result is inaccessible.” This is an environment/infrastructure evidence gap, not a reason to alter the app or workflow in this root-cause round.
+
+### Updated conclusion
+
+The current evidence supports the following bounded conclusion: the implementation fixes are locally valid on API 34, but the reported HTC crash remains unclassified. Confidence is high in the recoverability of the two tested mechanisms, while confidence in exact HTC attribution remains conditional on the missing device phase and stack. The next useful evidence is the HTC incident artifact, not another equivalent AOSP pass.
+
 ## Current behavior
 
 - The current photo flow enters `GutterPhotosFragment`, creates a temporary JPEG under the app-specific external Pictures directory, and opens `CameraOverlayFragment` inside `GutterFormActivity`; the current branch does not call `LandscapeCameraActivity` from this flow.

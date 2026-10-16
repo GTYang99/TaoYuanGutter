@@ -1,5 +1,36 @@
 # Root Cause Investigation
 
+## Verification failure re-analysis — 2026-10-16
+
+### Classification
+
+The verification result is `NOT VERIFIED`, not an implementation `FAIL`. The evidence does not show a new regression in `27e24a0`/`b92c122`; it shows two external evidence gaps:
+
+1. The affected HTC incident metadata and crash trace are absent, so AC-DBG-001 and AC-DBG-002 cannot be proven.
+2. CI has no published status or workflow run for `b92c122`. A read-only `git ls-remote` check could not resolve `github.com` (`Could not resolve hostname`), so the remote/CI state cannot be independently queried from this environment.
+
+### Evidence matrix
+
+| Verification item | Current evidence | Classification |
+|---|---|---|
+| CameraX provider failure recovery | API 34 injected UI test passed; form stayed `RESUMED` | PASS, scoped |
+| `MediaStore.insert()` failure recovery | API 34 injected test returned recoverable `null` | PASS, scoped |
+| Normal camera → JPEG normalization → MediaStore → form return | API 34 manual smoke passed; 1280×960 JPEG and 337,438-byte output recorded | PASS, scoped |
+| AC-DBG-001: HTC model/build/app version/step/stack | No HTC incident artifact supplied | NOT VERIFIED, environment/evidence gap |
+| AC-DBG-002: actual incident boundary classification | Emulator evidence is not HTC evidence; failing phase is unknown | NOT VERIFIED, environment/evidence gap |
+| CI result for tested commit | No published run; remote query blocked by DNS | NOT VERIFIED, infrastructure gap |
+
+### Root cause of the verification non-pass
+
+The verification gate requires incident-specific evidence and CI evidence in addition to local emulator behavior. The current test scope can prove that the two guarded Java exception boundaries recover on AOSP API 34, but cannot prove that the reported HTC phone entered either boundary. Therefore the non-pass is caused by missing external evidence, not by a reproduced application crash or a failed regression test.
+
+### Route
+
+- Keep production code unchanged.
+- Keep the task in verification with `category: environment` while HTC incident metadata/trace and CI evidence are unavailable.
+- If CI evidence is required for the release gate, route only that subproblem to Infrastructure after remote access/DNS is restored; do not weaken the acceptance criteria or treat local Gradle output as CI PASS.
+- Do not route to Debug or re-implementation until a verifier produces a concrete implementation contradiction, failed test, or HTC stack mapping to a code boundary.
+
 ## Status
 
 - The exact HTC incident is still not confirmed because the HTC model, firmware/security patch, failing phase, and crash stack are unavailable.
