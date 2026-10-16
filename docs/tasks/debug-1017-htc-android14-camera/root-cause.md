@@ -36,6 +36,7 @@ If the HTC Camera2 service/HAL reports one of those failures, the exception is t
 - The app uses CameraX 1.4.1, target SDK 36, and Camera2 interop/lens filtering.
 - The app's CameraX callback is only partially guarded: the binding `try/catch` begins after the provider future has already been obtained and after lens-candidate construction.
 - The album-copy feature was added on 2026-06-25 and is present in the investigated revision; this is a stronger temporal/code-path lead for a crash that occurs after a photo file is saved.
+- The post-capture asynchronous normalization path was introduced by `6f9bd132` on 2026-04-23, and the system-album copy was added by `fd81f7d6` on 2026-06-25. The latter added the unguarded `insert()` boundary; no later all-branch fix for `PhotoAlbumStore` was found.
 - The camera history includes `uiFix/模擬器拍照閃退` and later photo-normalization diagnostics, showing that camera stability has already required device-oriented fixes.
 
 ## Alternative hypotheses

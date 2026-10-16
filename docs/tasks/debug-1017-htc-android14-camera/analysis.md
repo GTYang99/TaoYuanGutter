@@ -25,6 +25,7 @@
 - `gradle/libs.versions.toml`
 - Camera-related history including `2ce44cf`, `6f9bd13`, `b0b604e`, and `45aadf1`.
 - Regression history: `fd81f7d6` (`feat: 拍照相簿 a copy 功能`, 2026-06-25) introduced `PhotoAlbumStore` and the post-capture album-copy call. It is an ancestor of the investigated revision.
+- History also shows `6f9bd132` introduced asynchronous post-capture normalization and `b0b604e1` later added full-resolution JPEG logging/processing; `45aadf1f` fixed only the recycled-bitmap logging defect on a separate hotfix branch. No later all-branch `PhotoAlbumStore` guard was found.
 
 ## Software-conflict assessment
 
