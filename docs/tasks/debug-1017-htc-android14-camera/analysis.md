@@ -7,6 +7,7 @@
 - CameraX provider initialization is asynchronous. The callback calls `cameraProviderFuture.get()` outside the `try/catch` that surrounds use-case binding. A provider initialization failure can therefore escape as an uncaught callback exception.
 - After a successful `ImageCapture` callback, the current branch performs full-resolution JPEG normalization and then copies the file to the system album from a `lifecycleScope.launch` coroutine. The Android 10+ `MediaStore` path calls `ContentResolver.insert()` before its `try/catch`; an OEM MediaProvider exception at that line propagates out of the coroutine.
 - Controlled API 34 fault injection confirmed the boundary: a temporary `ContentResolver.wrap()` provider that throws from `insert()` caused `PhotoAlbumStore.copyToSystemAlbum()` to throw, while a real AOSP API 34 JPEG copy passed. The temporary test was removed after execution, so this is evidence rather than a production change.
+- A real API 34 CameraX `ImageCapture.takePicture()` test then produced a JPEG and completed the AOSP MediaStore copy. This separates the normal camera capture path from the injected OEM-provider failure path; the AOSP run emitted only an asynchronous quota warning and no app crash.
 
 ## Expected behavior
 
@@ -37,7 +38,7 @@
 - Android 14 storage/privacy behavior is not the leading cause in the observed source: capture writes to an app-specific external-files directory, and Android 10+ album copy uses MediaStore with `IS_PENDING`; `WRITE_EXTERNAL_STORAGE` is only requested below Android 10.
 - The app's `Preview` + `ImageCapture` pair is ordinary, but its extra multi-camera metadata probing and filtered lens selector increase OEM-specific surface area. A HTC log is required to distinguish this from a generic camera-service contention or HAL error.
 
-The strongest current conclusion is conditional: if the user-visible crash occurs after the shutter has produced the photo file, the unguarded MediaStore insert is a code-level root cause with at least 95% confidence as a crash mechanism. The exact HTC attribution remains below 95% until a device log or a reliable phase report is available.
+The strongest current conclusion is conditional: if the user-visible crash occurs after the shutter has produced the photo file, the unguarded MediaStore insert is a code-level root cause with at least 95% confidence as a crash mechanism. The successful AOSP CameraX capture makes a universal Android 14 CameraX capture defect unlikely. The exact HTC attribution remains below 95% until a device log or a reliable phase report is available.
 
 ## Secondary risks
 

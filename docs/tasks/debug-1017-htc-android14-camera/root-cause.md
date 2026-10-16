@@ -20,6 +20,7 @@ This is not yet proven: Android 14 scoped storage normally permits this MediaSto
 - A temporary API 34 instrumentation test replaced the app context's resolver with `ContentResolver.wrap()` around a provider whose `insert()` throws `IllegalStateException`.
 - The test passed with the expected assertion: `PhotoAlbumStore.copyToSystemAlbum()` propagated the injected exception instead of returning `null`.
 - A second test copied a real 2x2 JPEG through the stock AOSP API 34 MediaProvider and passed; logcat showed the pending file being opened and published in `Pictures/TaoYuanGutterDebug`.
+- A separate temporary test ran a real CameraX `ImageCapture.takePicture()` on emulator camera id 10, produced a readable JPEG, then copied it through the same `PhotoAlbumStore`; it returned `OK (1 test)` in 18.44s. AOSP logcat showed the file publish and an asynchronous quota warning, but no app `FATAL EXCEPTION`.
 - The temporary test source and dependency were deleted afterward; no temporary source or build-configuration diff remains. This proves the app's exception boundary, not that HTC actually throws the same exception.
 
 ### B. CameraX provider initialization exception — leading for an open/preview crash
@@ -60,6 +61,7 @@ If the HTC Camera2 service/HAL reports one of those failures, the exception is t
 - `>=95%`: if an OEM `MediaProvider.insert()` exception occurs during the current post-capture path, the current implementation can let it escape because the call is outside the local `try/catch` and the caller coroutine has no local exception handler. This was demonstrated by controlled API 34 fault injection.
 - `~90%`: there is no direct app-to-app conflict with the HTC stock camera; the active flow is an in-process CameraX overlay rather than a stock-camera intent.
 - `~80%`: an OEM-specific CameraX/Camera2/HAL or MediaProvider compatibility boundary is involved, based on the clean AOSP API 34 result and the device-specific report. This is not `>=95%` because the HTC phase and stack are missing.
+- The actual CameraX capture path now has scoped AOSP evidence, so a universal `ImageCapture`/Android 14 failure is less likely; the remaining uncertainty is specifically OEM behavior and the unknown user-visible phase.
 - `~70–80%`: the exact reported HTC crash is the post-capture MediaStore boundary if the user sees the crash immediately after the shutter/photo preview; it drops to `~65%` if the app disappears before preview is visible.
 
 ## Required proof to close debug
