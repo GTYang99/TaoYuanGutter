@@ -24,7 +24,7 @@
 | AC-002: Camera centering does not write form or waypoint coordinates | PASS | The same instrumentation case asserted zero current coordinates, blank `NODE_X`/`NODE_Y`, and null waypoint latitude/longitude. |
 | AC-003: Saved coordinates remain the target | PASS | `savedCoordinateEditKeepsSavedCameraTarget` passed on `emulator-5554`; source retains the saved-coordinate branch before initial location acquisition. |
 | AC-004: Offline and restored drafts do not start the new-add initial-location flow | PASS by source review; runtime not run | The launch predicate excludes offline mode and positive restored `draftId`; `EditMapLocationPolicy` separately rejects offline and read-only forms. `unmarkedNewPointKeepsTaoyuanFallback` passed. No dedicated offline/restored UI case exists in this focused test run. |
-| AC-005: Without a usable location, the existing prompt and Taoyuan fallback remain usable | NOT VERIFIED | With emulator location disabled, the no-fix instrumentation reached the unavailable prompt, fallback, and coordinate assertions, then Espresso failed clicking “Continue” while animations were enabled. The single retry with animations disabled did not find the expected unavailable title. No further retry was made. |
+| AC-005: Without a usable location, the existing prompt and Taoyuan fallback remain usable | NOT VERIFIED | With emulator location disabled, the no-fix instrumentation reached the unavailable prompt, fallback, and coordinate assertions, then Espresso failed clicking “Continue” while animations were enabled. The single retry with animations disabled did not find the expected unavailable title. The separate permission-denial fallback case passed on Android 14, but the no-fix continue interaction remains unverified. |
 
 ## Regression Review
 
@@ -35,6 +35,7 @@
 - Offline/restored draft behavior: source guards reviewed; runtime not run.
 - Manual-pan behavior: existing policy/source guard is unchanged; not rerun in this focused validation.
 - No-fix prompt dismissal: NOT VERIFIED as described for AC-005.
+- Permission-denial fallback case: PASS on `emulator-5556` (Android 14). The same case could not complete on Android 16 because its helper revoked runtime permissions while instrumentation was active; logcat showed `ActivityManager` killing `com.example.taoyuangutter` with reason `permissions revoked`, with no application exception stack trace.
 
 ## CI and Independent Review
 
@@ -43,9 +44,17 @@
 - No remote CI result is available. The configured GitHub workflow also runs JVM unit tests, which were outside the user's emulator-only test scope.
 - A separate independent verifier has not reviewed this revision.
 
+## Environment Classification
+
+- Emulator: `emulator-5554`, Android 16 (`sdk_gphone16k_arm64`).
+- The no-fix interaction failure followed an Espresso click failure with animations enabled; the one retry did not show the expected title.
+- The permission-denial test's helper revokes runtime permissions while instrumentation is active. Android 16 then kills the app process; logcat records the platform kill rather than an application exception.
+- Running the permission-denial case on the available Android 14 AVD with the app's permissions already denied completed successfully.
+- The emulator's original location, mock-location, permission, and animation settings were restored after these attempts.
+
 ## Result
 
-**NOT VERIFIED.** AC-001 through AC-004 have passing runtime or source evidence. AC-005 remains incomplete, CI has no result, and independent Verification is outstanding. Do not advance to Release. Keep `next_action: verification` until the missing evidence is available.
+**NOT VERIFIED.** AC-001 through AC-004 have passing runtime or source evidence. The permission-denial part of AC-005 passes on Android 14, but the no-fix continue interaction remains incomplete. CI has no result and independent Verification is outstanding. Do not advance to Release. Keep the task in Infrastructure until the remaining environment evidence is available, then return to Verification.
 
 ## Environment Cleanup
 

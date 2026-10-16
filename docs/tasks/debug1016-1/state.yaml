@@ -2,8 +2,8 @@ task:
   id: debug1016-1
   type: bugfix
 
-phase: verification
-status: verification_not_verified
+phase: infrastructure
+status: blocked
 
 knowledge_resolution:
   status: not_required
@@ -59,4 +59,4 @@ blocking:
   - AC-005 prompt dismissal did not complete in the emulator test after its single retry.
   - No remote CI run/status is available for the local task commit.
   - Independent Verification has not reviewed the committed revision.
-next_action: verification
+next_action: infrastructure

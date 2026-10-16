@@ -24,3 +24,26 @@
 - Emulator evidence: The location callback ran with a usable fix and the apply guard allowed it, but `animateCamera()` left the map target unchanged. Replacing that update with `moveCamera()` made the focused test pass.
 - next_action: verification
 - owner: developer
+
+## ISS-DBG-1016-1-002
+
+- task_id: debug1016-1
+- phase: verification
+- category: environment
+- priority: P2
+- title: No-fix fallback interaction remains unverified after emulator test failures
+- status: open
+- impact: AC-005 runtime evidence is incomplete; the task cannot advance to Release.
+- repro_steps:
+  - Run `missingCoordinateEditWithoutUsableFixKeepsFallbackAndShowsUnavailablePrompt` on `emulator-5554` with location disabled.
+  - Retry once after disabling emulator animations.
+  - Run `returningFromSettingsWithoutPermissionKeepsFallbackUsable` on the same emulator.
+- expected: The no-fix prompt can be dismissed and the existing permission-denial fallback case completes.
+- actual: The first no-fix run reached the prompt and fallback assertions but Espresso could not click the button while animations were enabled. The single retry did not find the expected prompt title. The permission-denial test process was killed by Android 16 when its helper revoked runtime permissions; the same permission-denial case passed on an Android 14 emulator. The no-fix continue interaction remains unverified.
+- evidence:
+  - `docs/tasks/debug1016-1/execution-report.md`
+  - `docs/tasks/debug1016-1/verification.md`
+  - Emulator logcat at 2026-10-16 16:45:02: ActivityManager killed `com.example.taoyuangutter` with reason `permissions revoked`.
+- Android 14 emulator run: `returningFromSettingsWithoutPermissionKeepsFallbackUsable` passed (`OK (1 test)`).
+- next_action: infrastructure
+- owner: verifier

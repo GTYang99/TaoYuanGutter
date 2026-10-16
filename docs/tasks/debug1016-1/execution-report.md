@@ -19,7 +19,7 @@
 
 ## Validation Environment
 
-- Emulator: `emulator-5554` (`sdk_gphone16k_arm64`, Android 16)
+- Emulators: `emulator-5554` (`sdk_gphone16k_arm64`, Android 16) and temporary `emulator-5556` (`sdk_gphone64_arm64`, Android 14)
 - App package: `com.example.taoyuangutter`
 - Instrumentation package: `com.example.taoyuangutter.test`
 - The connected physical device was not targeted.
@@ -34,7 +34,7 @@
 | AC-002: Location remains camera-only | PASS | The same test asserted `currentLat/currentLng == 0`, blank `NODE_X/NODE_Y`, and null session waypoint latitude/longitude. |
 | AC-003: Saved waypoint coordinates retain precedence | PASS | `savedCoordinateEditKeepsSavedCameraTarget` passed on emulator. |
 | AC-004: Offline/restored drafts remain excluded | PASS by source review; no dedicated runtime case | The bottom-sheet predicate excludes offline mode and positive restored `draftId`; the policy still rejects offline and read-only forms. The unmarked-form emulator regression passed. |
-| AC-005: Unavailable location retains prompt and fallback | NOT VERIFIED | The no-fix case reached the unavailable prompt, fallback, and coordinate assertions on its first run, but Espresso could not click “Continue” while animations were enabled. Its single retry with animations disabled did not find the expected unavailable title. The case was not retried again. |
+| AC-005: Unavailable location retains prompt and fallback | NOT VERIFIED | The no-fix case reached the unavailable prompt, fallback, and coordinate assertions on its first run, but Espresso could not click “Continue” while animations were enabled. Its single retry with animations disabled did not find the expected unavailable title. The separate permission-denial fallback case passed on Android 14, but the no-fix continue interaction remains unverified. |
 
 ### Build
 
@@ -79,6 +79,16 @@ The three focused positive/regression cases were rerun against the committed sou
 
 The no-fix case `missingCoordinateEditWithoutUsableFixKeepsFallbackAndShowsUnavailablePrompt` was run with emulator location disabled. It displayed the unavailable prompt and retained the fallback, and its coordinate assertions passed; Espresso failed to click the continue button with animations enabled. The one permitted retry with animations disabled failed to locate the expected prompt title. AC-005 therefore remains `NOT VERIFIED`; no further retry was made.
 
+A separate attempt to run `returningFromSettingsWithoutPermissionKeepsFallbackUsable` also did not complete: Android 16 killed the app process when the test helper revoked runtime location permissions. Bounded logcat recorded `ActivityManager` killing the target with reason `permissions revoked`, with no application exception stack trace. The test was not retried.
+
+The same permission-denial case then passed on the existing Android 14 AVD, `emulator-5556`, whose baseline location permissions were already denied. Command:
+
+```text
+adb -s emulator-5556 shell am instrument -w -e class 'com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#returningFromSettingsWithoutPermissionKeepsFallbackUsable' com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+Result: PASS (`OK (1 test)`). The AVD was shut down after the focused case.
+
 The repository's GitHub Actions workflow runs a JVM unit-test selection and a debug build. No workflow runs or commit statuses exist for this local commit. The GitHub remote was unreachable from the shell during this task, so CI remains `NOT VERIFIED`.
 
 ## Limitations
@@ -86,7 +96,7 @@ The repository's GitHub Actions workflow runs a JVM unit-test selection and a de
 - The JVM policy test source was updated but not run because the requested validation scope was emulator-only.
 - Offline/restored runtime cases were not run; their exclusions were reviewed in source and policy assertions.
 - Remote CI and independent Verification have not run; these remain downstream gates.
-- Emulator location mode was restored to `3`; secure mock-location setting was restored to `0`; test package `android:mock_location` app-op was restored to `deny`; animation settings were restored to their original values. No physical device was changed.
+- Emulator `emulator-5554` location mode was restored to `3`; secure mock-location setting was restored to `0`; test package `android:mock_location` app-op was restored to `deny`; animation settings were restored to their original values. Android 14 AVD `emulator-5556` was shut down after testing. No physical device was changed.
 
 ## Diff Hygiene
 
