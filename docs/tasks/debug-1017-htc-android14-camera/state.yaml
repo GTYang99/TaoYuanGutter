@@ -51,7 +51,7 @@ release:
 blocking:
   - User confirmed HTC model, Android 14 build/security patch, incident app version, exact failing phase, and crash trace are currently unavailable.
   - The affected HTC capture remains NOT VERIFIED; this round used only the API 34 AVD.
-  - The local task branch is absent from the configured GitLab remote, and no CI result is available for the tested revision.
-  - The task branch is not accessible through the inferred GitHub repository/API lookup.
+  - The branch was pushed to GitLab at 691a534, but the read-only pipelines API lookup returned 404 Project Not Found, so CI remains unverified.
+  - The task is not accessible through the inferred GitHub repository/API lookup.
 
 next_action: verification

@@ -6,7 +6,7 @@ NOT VERIFIED
 
 This round independently re-ran the planned local checks against the current committed revision 190eabe98a7dd341ab64492f37420687defbd4a9 on branch codex/debug/debug-1017-htc-android14-camera. The production fix remains 27e24a03de17cd33124ff9471a6daf864101dcb3. The worktree was clean when verification started. Commits c351922b and 190eabe9 add task documentation only; app/src and app/build.gradle.kts have no source diff against b92c122.
 
-The build, two targeted instrumentation tests, and normal API 34 capture-to-MediaStore smoke flow passed again. No implementation failure was observed. The user confirmed that the HTC model/build/version, exact failure step, and crash trace are currently unavailable, so the reported incident remains unclassified. CI remains NOT VERIFIED: the task branch is absent from the configured GitLab remote, and the inferred GitHub repository is not available through the GitHub API.
+The build, two targeted instrumentation tests, and normal API 34 capture-to-MediaStore smoke flow passed again. No implementation failure was observed. The user confirmed that the HTC model/build/version, exact failure step, and crash trace are currently unavailable, so the reported incident remains unclassified. The branch and verification record were pushed to GitLab at 691a534; a read-only pipelines API query returned 404 Project Not Found, so CI remains NOT VERIFIED.
 
 ## Revision and environment
 
@@ -41,7 +41,7 @@ The build, two targeted instrumentation tests, and normal API 34 capture-to-Medi
 | Saved smoke-flow output | PASS | /storage/emulated/0/Pictures/TaoYuanGutter/GUTTER_1_20261016_142842_8210774900662748772.jpg exists on the test AVD at 62,195 bytes. The app remained in GutterFormActivity and the form's completion control was visible; no camera overlay remained. |
 | App fatal-crash check | PASS (scoped) | Bounded log review after the capture showed the normalization and MediaProvider publication events and no FATAL EXCEPTION line. |
 | Whitespace / patch check | PASS | git diff --check completed without errors after the task-artifact update. |
-| CI for current revision | NOT VERIFIED | git ls-remote --heads gitlab-http codex/debug/debug-1017-htc-android14-camera returned no matching remote branch. The local repo's GitHub API lookup for the inferred project name returned 404, and the GitLab project API lookup also returned 404. The repository contains a GitHub Actions workflow but no .gitlab-ci.yml; local Gradle output is not CI evidence. |
+| CI for pushed revision | NOT VERIFIED | Push to gitlab-http created the task branch at 691a534. The read-only GitLab pipelines API lookup for that branch returned 404 Project Not Found. The GitHub API lookup for the inferred project also returned 404. The repository contains a GitHub Actions workflow but no .gitlab-ci.yml; local Gradle output is not CI evidence. |
 | Physical HTC capture and HTC OEM attribution | NOT VERIFIED | Not exercised under the emulator-only scope; the user confirmed no HTC hardware details or incident trace are currently available. |
 
 The only newly generated capture was left on the isolated test AVD; the offline form was not submitted. The AVD was shut down after testing.

@@ -43,12 +43,12 @@
   - Evaluate AC-DBG-001 and AC-DBG-002 using available evidence.
   - Check the configured remote and CI result for the tested commit.
 - expected: HTC incident metadata/trace and a CI result are available, or affected acceptance checks are explicitly dispositioned according to the task gate.
-- actual: AC-DBG-001 and AC-DBG-002 remain NOT VERIFIED. The local task branch is not listed by the configured GitLab remote. The inferred GitHub repository/API lookup returns 404; no CI result is available for the tested revision.
+- actual: AC-DBG-001 and AC-DBG-002 remain NOT VERIFIED. The task branch was pushed to GitLab at 691a534, but the read-only pipelines API lookup returned 404 Project Not Found; no CI result is available for the pushed revision.
 - evidence:
   - Round 2 was run on commit 190eabe98a7dd341ab64492f37420687defbd4a9; app source has no diff from b92c122.
   - Debug build succeeded; both camera/MediaStore fault-injection tests passed; normal API 34 capture and album publication passed.
-  - git ls-remote --heads gitlab-http codex/debug/debug-1017-htc-android14-camera returned no matching ref.
-  - The configured project remote is GitLab; GitHub status/workflow lookups for the inferred project returned 404. There is no .gitlab-ci.yml in the repository.
+  - Git push gitlab-http HEAD:refs/heads/codex/debug/debug-1017-htc-android14-camera succeeded and created the remote branch at 691a534.
+  - Read-only GitLab pipelines API lookup for the branch returned 404 Project Not Found. GitHub status/workflow lookups for the inferred project also returned 404. There is no .gitlab-ci.yml in the repository.
   - User confirmed during round 2 that no HTC model/build/app version, exact failing phase, logcat/tombstone, or crash report is currently available.
 - classification: environment / evidence availability, not implementation_regression.
 - next_action: verification

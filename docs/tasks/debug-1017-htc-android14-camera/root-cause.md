@@ -7,7 +7,7 @@
 The verification result is `NOT VERIFIED`, not an implementation `FAIL`. The evidence does not show a new regression in `27e24a0`/`b92c122`; it shows two external evidence gaps:
 
 1. The affected HTC incident metadata and crash trace are absent, so AC-DBG-001 and AC-DBG-002 cannot be proven.
-2. CI cannot be confirmed for the current task revision. The configured GitLab remote has no task-branch ref; the inferred GitHub project lookup returned 404. The repository has a GitHub Actions workflow but no GitLab pipeline file, and local Gradle results do not establish CI status.
+2. CI cannot be confirmed for the current task revision. The task branch was pushed to GitLab at 691a534, but the read-only pipelines API lookup returned 404 Project Not Found. The inferred GitHub project lookup also returned 404. The repository has a GitHub Actions workflow but no GitLab pipeline file, and local Gradle results do not establish CI status.
 
 ### Root cause of the verification non-pass
 
