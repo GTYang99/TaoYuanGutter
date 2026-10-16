@@ -1,0 +1,57 @@
+task:
+  id: debug-1017-htc-android14-camera
+  type: debug
+
+phase: verification
+status: verification_not_verified
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+debug:
+  status: completed
+  root_cause: identified
+  issues:
+    - ISS-DBG-1017-001
+    - ISS-DBG-1017-002
+
+implementation:
+  status: completed
+  mode: debug_fix
+
+validation:
+  status: completed
+
+git:
+  branch: codex/debug/debug-1017-htc-android14-camera
+  commit: 190eabe9
+  status: committed
+
+verification:
+  result: not_verified
+  category: environment
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-DBG-001
+    - AC-DBG-002
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - User confirmed HTC model, Android 14 build/security patch, incident app version, exact failing phase, and crash trace are currently unavailable.
+  - The affected HTC capture remains NOT VERIFIED; this round used only the API 34 AVD.
+  - The branch was pushed to GitLab at 691a534, but the read-only pipelines API lookup returned 404 Project Not Found, so CI remains unverified.
+  - The task is not accessible through the inferred GitHub repository/API lookup.
+
+next_action: verification

@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -16,6 +17,7 @@ import kotlinx.coroutines.withContext
 object PhotoAlbumStore {
 
     private const val ALBUM_FOLDER_NAME = "TaoYuanGutter"
+    private const val TAG = "PhotoAlbumStore"
 
     fun requiresLegacyWritePermission(): Boolean {
         return Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
@@ -53,8 +55,10 @@ object PhotoAlbumStore {
             put(MediaStore.Images.Media.IS_PENDING, 1)
         }
 
-        val itemUri = resolver.insert(collection, values) ?: return null
+        var createdUri: Uri? = null
         return try {
+            val itemUri = resolver.insert(collection, values) ?: return null
+            createdUri = itemUri
             FileInputStream(sourceFile).use { input ->
                 val outputStream = resolver.openOutputStream(itemUri) ?: run {
                     runCatching { resolver.delete(itemUri, null, null) }
@@ -71,8 +75,14 @@ object PhotoAlbumStore {
                 resolver.update(itemUri, publishedValues, null, null)
             }
             itemUri
-        } catch (_: Exception) {
-            runCatching { resolver.delete(itemUri, null, null) }
+        } catch (e: Exception) {
+            Log.e(TAG, "MediaStore copy failed for ${sourceFile.name}", e)
+            createdUri?.let { itemUri ->
+                runCatching { resolver.delete(itemUri, null, null) }
+                    .onFailure { cleanupError ->
+                        Log.w(TAG, "Unable to clean up failed MediaStore item", cleanupError)
+                    }
+            }
             null
         }
     }

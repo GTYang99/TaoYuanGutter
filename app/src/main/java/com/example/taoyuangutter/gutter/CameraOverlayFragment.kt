@@ -50,6 +50,7 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -452,42 +453,68 @@ class CameraOverlayFragment : Fragment() {
     }
 
     private fun startCamera() {
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
-        cameraProviderFuture.addListener({
-            val provider = cameraProviderFuture.get()
-            cameraProvider = provider
-            bindUseCases(provider)
-        }, ContextCompat.getMainExecutor(requireContext()))
+        val hostContext = context ?: return
+        try {
+            val cameraProviderFuture = ProcessCameraProvider.getInstance(hostContext)
+            cameraProviderFuture.addListener({
+                try {
+                    val provider = cameraProviderFuture.get()
+                    cameraProvider = provider
+                    bindUseCases(provider)
+                } catch (e: Exception) {
+                    reportCameraFailure("provider initialization", e)
+                }
+            }, ContextCompat.getMainExecutor(hostContext))
+        } catch (e: Exception) {
+            reportCameraFailure("provider request", e)
+        }
+    }
+
+    private fun reportCameraFailure(stage: String, error: Throwable) {
+        Log.e("CameraOverlay", "Camera $stage failed", error)
+        val safeContext = context ?: return
+        if (!isAdded || _binding == null) return
+
+        Toast.makeText(
+            safeContext,
+            getString(R.string.msg_camera_init_failed),
+            Toast.LENGTH_SHORT
+        ).show()
+        runCatching {
+            sendResult(Activity.RESULT_CANCELED, arguments?.getInt(ARG_SLOT, 0) ?: 0, null)
+        }.onFailure { resultError ->
+            Log.w("CameraOverlay", "Unable to return camera failure result", resultError)
+        }
     }
 
     private fun bindUseCases(cameraProvider: ProcessCameraProvider) {
-        val candidates = buildLensCandidates(cameraProvider)
-        val selected = candidates.getOrNull(selectedLensIndex) ?: candidates.firstOrNull()
-        if (selected != null) {
-            selectedLensId = selected.cameraId
-            selectedLensIndex = candidates.indexOfFirst { it.cameraId == selected.cameraId }.takeIf { it >= 0 }
-                ?: selectedLensIndex
-            selectedLensRelativeScale = selected.relativeScale
-        }
-
-        val preview = Preview.Builder()
-            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
-            .build().also {
-                it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
-            }
-        this.preview = preview
-
-        // 以目前 listener 已知的 rotation 作為初始值，避免先拍第一張方向錯誤
-        preview.targetRotation = lastSurfaceRotation
-
-        imageCapture = ImageCapture.Builder()
-            .setTargetAspectRatio(AspectRatio.RATIO_4_3)
-            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-            .setTargetRotation(lastSurfaceRotation)
-            .setFlashMode(if (isFlashOn) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF)
-            .build()
-
         try {
+            val candidates = buildLensCandidates(cameraProvider)
+            val selected = candidates.getOrNull(selectedLensIndex) ?: candidates.firstOrNull()
+            if (selected != null) {
+                selectedLensId = selected.cameraId
+                selectedLensIndex = candidates.indexOfFirst { it.cameraId == selected.cameraId }.takeIf { it >= 0 }
+                    ?: selectedLensIndex
+                selectedLensRelativeScale = selected.relativeScale
+            }
+
+            val preview = Preview.Builder()
+                .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                .build().also {
+                    it.setSurfaceProvider(binding.viewFinder.surfaceProvider)
+                }
+            this.preview = preview
+
+            // 以目前 listener 已知的 rotation 作為初始值，避免先拍第一張方向錯誤
+            preview.targetRotation = lastSurfaceRotation
+
+            imageCapture = ImageCapture.Builder()
+                .setTargetAspectRatio(AspectRatio.RATIO_4_3)
+                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                .setTargetRotation(lastSurfaceRotation)
+                .setFlashMode(if (isFlashOn) ImageCapture.FLASH_MODE_ON else ImageCapture.FLASH_MODE_OFF)
+                .build()
+
             camera?.cameraInfo?.zoomState?.removeObservers(viewLifecycleOwner)
             cameraProvider.unbindAll()
             val cameraSelector = selected?.let { cameraSelectorFor(it.cameraInfo) }
@@ -549,8 +576,7 @@ class CameraOverlayFragment : Fragment() {
             applyColorCorrection()
             // 保持 setupOrientationListener 初始化狀態，等待實際方向事件更新
         } catch (e: Exception) {
-            Toast.makeText(requireContext(), getString(R.string.msg_camera_init_failed), Toast.LENGTH_SHORT).show()
-            sendResult(Activity.RESULT_CANCELED, arguments?.getInt(ARG_SLOT, 0) ?: 0, null)
+            reportCameraFailure("use-case binding", e)
         }
     }
 
@@ -714,37 +740,70 @@ class CameraOverlayFragment : Fragment() {
     private fun capturePhoto(slot: Int) {
         val capture = imageCapture ?: return
         val file = outputFile ?: return
+        val hostContext = context ?: return
 
         binding.btnCapture.isEnabled = false
         val options = ImageCapture.OutputFileOptions.Builder(file).build()
 
         capture.takePicture(
             options,
-            ContextCompat.getMainExecutor(requireContext()),
+            ContextCompat.getMainExecutor(hostContext),
             object : ImageCapture.OnImageSavedCallback {
                 override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                    viewLifecycleOwner.lifecycleScope.launch {
-                        val galleryCopy = withContext(Dispatchers.IO) {
-                            logJpegSpec("normalize-original", file)
-                            normalizeCapturedPhotoOrientation(file)
-                            logJpegSpec("normalize-converted", file)
-                            PhotoAlbumStore.copyToSystemAlbum(requireContext(), file)
+                    val owner = viewLifecycleOwnerLiveData.value
+                    if (owner == null) {
+                        Log.w("CameraOverlay", "Capture completed after camera view was destroyed")
+                        return
+                    }
+                    owner.lifecycleScope.launch {
+                        try {
+                            val galleryCopy = withContext(Dispatchers.IO) {
+                                logJpegSpec("normalize-original", file)
+                                normalizeCapturedPhotoOrientation(file)
+                                logJpegSpec("normalize-converted", file)
+                                PhotoAlbumStore.copyToSystemAlbum(hostContext, file)
+                            }
+                            if (galleryCopy == null && isAdded) {
+                                Toast.makeText(
+                                    hostContext,
+                                    "照片已存入表單，但無法寫入系統相簿",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                            if (isAdded) {
+                                sendResult(Activity.RESULT_OK, slot, file.absolutePath)
+                            } else {
+                                Log.w("CameraOverlay", "Capture result dropped after camera view was detached")
+                            }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            Log.e("CameraOverlay", "Post-capture processing failed", e)
+                            if (isAdded) {
+                                Toast.makeText(
+                                    hostContext,
+                                    "照片已存入表單，但後續處理失敗",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                sendResult(Activity.RESULT_OK, slot, file.absolutePath)
+                            }
                         }
-                        if (galleryCopy == null) {
-                            Toast.makeText(
-                                requireContext(),
-                                "照片已存入表單，但無法寫入系統相簿",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                        sendResult(Activity.RESULT_OK, slot, file.absolutePath)
                     }
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    binding.btnCapture.isEnabled = deviceIsLandscape
-                    binding.btnCapture.alpha = if (deviceIsLandscape) 1f else 0.4f
-                    Toast.makeText(requireContext(), getString(R.string.msg_camera_capture_failed), Toast.LENGTH_SHORT).show()
+                    Log.e("CameraOverlay", "Image capture failed", exception)
+                    _binding?.let { currentBinding ->
+                        currentBinding.btnCapture.isEnabled = deviceIsLandscape
+                        currentBinding.btnCapture.alpha = if (deviceIsLandscape) 1f else 0.4f
+                    }
+                    context?.let { safeContext ->
+                        Toast.makeText(
+                            safeContext,
+                            getString(R.string.msg_camera_capture_failed),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             }
         )
