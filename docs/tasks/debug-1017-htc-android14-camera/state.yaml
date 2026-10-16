@@ -1,0 +1,52 @@
+task:
+  id: debug-1017-htc-android14-camera
+  type: debug
+
+phase: debug
+status: debug_in_progress
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: pending
+
+debug:
+  status: investigating
+  root_cause: not_confirmed
+  issues:
+    - ISS-DBG-1017-001
+
+implementation:
+  status: pending
+
+validation:
+  status: pending
+
+git:
+  branch: codex/debug/debug-1017-htc-android14-camera
+  commit: ""
+  status: pending
+
+verification:
+  result: not_verified
+  category: unknown
+  failed_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking:
+  - HTC model, Android 14 build/security patch, app version, and exact failing capture phase are missing.
+  - No HTC logcat/tombstone/crash report is available to confirm the exception boundary.
+  - Gradle validation is unavailable because the host has no Java runtime.
+  - Physical-device validation is unavailable because ADB cannot start and no device is connected.
+
+next_action: debug
