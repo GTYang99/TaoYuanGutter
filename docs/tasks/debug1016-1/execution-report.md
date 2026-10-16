@@ -4,6 +4,7 @@
 
 - Task: `debug1016-1` (`bugfix`)
 - Branch: `codex/debug/debug1016-1`
+- Implementation commit: `990e60888604da1a5917b72a542effa6649f60f1`
 - Worktree: `/Users/a10362/.codex/worktrees/debug-1016-1/TaoYuanGutter`
 - Scope: Center the mini-map of a fresh, online add form on the user's current location when the waypoint has no saved coordinates. Keep location camera-only.
 

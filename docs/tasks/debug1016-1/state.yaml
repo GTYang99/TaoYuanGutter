@@ -38,8 +38,8 @@ validation:
 
 git:
   branch: codex/debug/debug1016-1
-  commit: ""
-  status: pending
+  commit: 990e60888604da1a5917b72a542effa6649f60f1
+  status: committed
 
 verification:
   result: pending
