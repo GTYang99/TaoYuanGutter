@@ -19,6 +19,7 @@ debug:
   root_cause: identified
   issues:
     - ISS-DBG-1017-001
+    - ISS-DBG-1017-002
 
 implementation:
   status: completed
