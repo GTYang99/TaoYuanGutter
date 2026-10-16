@@ -2,8 +2,8 @@ task:
   id: debug1016-1
   type: bugfix
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -42,9 +42,11 @@ git:
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-005
 
 ci:
   build: not_verified
@@ -53,5 +55,8 @@ ci:
 release:
   status: pending
 
-blocking: []
+blocking:
+  - AC-005 prompt dismissal did not complete in the emulator test after its single retry.
+  - No remote CI run/status is available for the local task commit.
+  - Independent Verification has not reviewed the committed revision.
 next_action: verification
