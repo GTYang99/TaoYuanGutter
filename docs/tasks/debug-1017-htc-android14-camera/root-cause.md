@@ -69,6 +69,7 @@ If the HTC Camera2 service/HAL reports one of those failures, the exception is t
 - `~80%`: an OEM-specific CameraX/Camera2/HAL or MediaProvider compatibility boundary is involved, based on the clean AOSP API 34 result and the device-specific report. This is not `>=95%` because the HTC phase and stack are missing.
 - The actual CameraX capture path now has scoped AOSP evidence, so a universal `ImageCapture`/Android 14 failure is less likely; the remaining uncertainty is specifically OEM behavior and the unknown user-visible phase.
 - Public sources did not yield a model-specific HTC CameraX/MediaProvider crash report. The U24 pro high-resolution branch is therefore conditional on the model, not an attribution.
+- Firebase Test Lab's current official device catalog has no HTC or U24 entry, so a cloud Android 14 device cannot provide equivalent HTC Camera2/HAL or MediaProvider evidence.
 - `~70–80%`: the exact reported HTC crash is the post-capture MediaStore boundary if the user sees the crash immediately after the shutter/photo preview; it drops to `~65%` if the app disappears before preview is visible.
 
 ## Required proof to close debug
