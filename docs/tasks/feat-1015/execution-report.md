@@ -59,3 +59,14 @@
 - Resolved the `GutterApiService.kt` conflict by retaining both nearby query overloads and the source branch's selectable backend service. Kept location-coordinate redaction active in the shared `BackendHttpClient` logging interceptor.
 - Included the source branch's AGP `9.4.1` version as explicitly approved by the user.
 - No build or test was run against the combined revision. It remains pending independent verification and CI; the source branch's CI result applies only to its verified revision.
+
+## AC-004 Focused Test (2026-10-16)
+
+- Added `ImportExistingWaypointUiTest.searchWaitsForSubmissionAndRepeatsLastSubmittedXyNumOnReturn`, which covers only AC-004: opening Search without a submitted query keeps the prompt and sends no XY_NUM request; submitting `A001` sends exactly `A001`; returning from Recent to Search submits the last value again.
+- The test uses the existing `AppVersionUpdateTestHooks` seam to return the installed app version and avoid the unrelated foreground update dialog. No production source was changed.
+- `:app:assembleDebugAndroidTest` — PASS using JDK 21; Android test APK compiled and packaged.
+- Direct instrumentation command — PASS, 1/1 in 4.636 seconds on `UI002_API28` / `emulator-5556` (Android 9/API 28):
+  `adb -s emulator-5556 shell am instrument -w -r -e class com.example.taoyuangutter.ImportExistingWaypointUiTest#searchWaitsForSubmissionAndRepeatsLastSubmittedXyNumOnReturn com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner`
+- The emulator's Wi-Fi was off only for the test and restored to its original enabled state afterward; the temporary AVD was then shut down. The successful instrumentation command explicitly targeted only `emulator-5556`.
+- A prior `connectedDebugAndroidTest` invocation was interrupted after Gradle reported that it would use `UI002_API28`, `Medium_Phone`, and physical `XQ-AU52`, despite the injected serial argument. The local XQ-AU52 output directory contains device information only and no test result or test log; no direct ADB command targeted that device. Whether Gradle began installing an APK there cannot be confirmed without contacting the device, so no claim is made about its install state. The emulator test result from that aborted invocation is not used as AC-004 evidence.
+- The existing combined UI method also failed before Search at line 156 with an ambiguous `rbSelect` matcher on the API 28 emulator. That result does not contradict the focused AC-004 pass; the focused method avoids candidate selection and map assertions.

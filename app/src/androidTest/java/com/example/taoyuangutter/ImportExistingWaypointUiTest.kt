@@ -16,6 +16,10 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.espresso.matcher.ViewMatchers.withContentDescription
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.example.taoyuangutter.AppVersionUpdateTestHooks
+import com.example.taoyuangutter.api.AppVersionRecord
+import com.example.taoyuangutter.api.AppVersionRepository
+import com.example.taoyuangutter.api.AppVersionResponse
 import com.example.taoyuangutter.api.GutterApiService
 import com.example.taoyuangutter.api.GutterRepository
 import com.example.taoyuangutter.api.NodeDetails
@@ -37,6 +41,86 @@ import java.util.concurrent.atomic.AtomicReference
 
 @RunWith(AndroidJUnit4::class)
 class ImportExistingWaypointUiTest {
+    @Test
+    fun searchWaitsForSubmissionAndRepeatsLastSubmittedXyNumOnReturn() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val prefs = context.getSharedPreferences("taoyuan_prefs", Context.MODE_PRIVATE)
+        val previousToken = prefs.getString("auth_token", null)
+        prefs.edit().putString("auth_token", "import-waypoint-search-test-token").commit()
+        val searchCalls = CopyOnWriteArrayList<String>()
+        val requestApi = Proxy.newProxyInstance(
+            GutterApiService::class.java.classLoader,
+            arrayOf(GutterApiService::class.java)
+        ) { _, method, args ->
+            when (method.name) {
+                "getClosestNodeDetails" -> Response.success(NodeDetailsResponse(true, null, emptyList(), null))
+                "getNodeDetailsByXyNum" -> {
+                    searchCalls += args.orEmpty()[0] as String
+                    Response.success(NodeDetailsResponse(true, null, emptyList(), null))
+                }
+                else -> error("Unexpected API call: ${method.name}")
+            }
+        } as GutterApiService
+        val versionApi = object : GutterApiService by requestApi {
+            override suspend fun getAppVersion() = Response.success(
+                AppVersionResponse(
+                    success = true,
+                    data = listOf(AppVersionRecord("android", BuildConfig.VERSION_NAME, "https://example.test/app.apk"))
+                )
+            )
+        }
+        AppVersionUpdateTestHooks.repositoryFactory = { AppVersionRepository { versionApi } }
+
+        try {
+            val intent = GutterFormActivity.newIntent(
+                context,
+                arrayListOf("ui-test"),
+                doubleArrayOf(0.0),
+                doubleArrayOf(0.0),
+                basicData = hashMapOf(),
+                sessionDraftId = 0L,
+                sessionIsOffline = true
+            )
+            ActivityScenario.launch<GutterFormActivity>(intent).use { scenario ->
+                val sheet = ImportExistingWaypointBottomSheet().apply {
+                    gutterRepository = GutterRepository(requestApi)
+                    callbacks = object : ImportExistingWaypointBottomSheet.Callbacks {
+                        override fun onMapPickModeChanged(enabled: Boolean) = Unit
+                        override fun onNearbyCenterChanged(center: LatLng) = Unit
+                        override fun onCandidateWaypointsChanged(items: List<NodeDetails>) = Unit
+                        override fun onWaypointSelected(item: NodeDetails?) = Unit
+                        override fun onImport(item: NodeDetails) = Unit
+                        override fun onDismissed() = Unit
+                        override fun onPageSwitched() = Unit
+                        override fun onRequestMyLocation() = Unit
+                        override fun onAuthExpiredBeforeImportLogout() = Unit
+                    }
+                }
+                scenario.moveToState(Lifecycle.State.RESUMED)
+                scenario.onActivity { activity ->
+                    assertFalse(activity.supportFragmentManager.isStateSaved)
+                    sheet.show(activity.supportFragmentManager, "ImportExistingWaypointSearchUiTest")
+                }
+
+                onView(withContentDescription("搜尋點位")).perform(click())
+                onView(withText("請輸入座標編號 (XY_NUM) 後按搜尋")).check(matches(isDisplayed()))
+                assertEquals(emptyList<String>(), searchCalls.toList())
+
+                onView(withId(R.id.etSearch)).perform(typeText("A001"), pressImeActionButton())
+                assertEquals(listOf("A001"), searchCalls.toList())
+
+                onView(withContentDescription("最近存取節點")).perform(click())
+                onView(withContentDescription("搜尋點位")).perform(click())
+                assertEquals(listOf("A001", "A001"), searchCalls.toList())
+            }
+        } finally {
+            AppVersionUpdateTestHooks.repositoryFactory = null
+            val editor = prefs.edit()
+            if (previousToken == null) editor.remove("auth_token") else editor.putString("auth_token", previousToken)
+            editor.commit()
+        }
+    }
+
     @Test
     fun tabsKeepOrderDefaultAndRefreshEachSubmittedModeOnReturn() {
         val context = ApplicationProvider.getApplicationContext<Context>()
