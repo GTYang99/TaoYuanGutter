@@ -23,9 +23,11 @@ AC-DBG-003 and AC-DBG-004 were dispositioned PASS: the minimum fix scope was doc
 
 The verification non-pass is therefore an evidence-availability problem, not evidence that the implementation contradicts the requirement. The local smoke flow also argues against classifying this as an `implementation_regression`.
 
+The user confirmed during verification round 2 that the requested HTC model/build, app version, exact failure step, and crash trace are not currently available.
+
 ### CI-specific finding
 
-The repository has `.github/workflows/android-ci.yml` configured for push, pull request to `main`, and manual dispatch. It runs selected JVM tests and `:app:assembleDebug`; it does not run the new Android instrumentation tests. The verifier found no published status or workflow run for `b92c122`. A read-only `git ls-remote origin ...` attempt failed at DNS resolution for `github.com`, so this environment cannot distinguish “branch/workflow was never triggered” from “remote result is inaccessible.” This is an environment/infrastructure evidence gap, not a reason to alter the app or workflow in this root-cause round.
+The configured local remote is GitLab. A read-only query found no remote ref named codex/debug/debug-1017-htc-android14-camera, so the current task branch is local-only and no remote pipeline result for its current revision is available. The repository has a GitHub Actions workflow, but GitHub API lookups for the inferred project path returned 404; this checkout has no .gitlab-ci.yml. Local build and instrumentation results are not CI evidence. CI remains NOT VERIFIED until a matching remote pipeline result is available.
 
 ### Updated conclusion
 

@@ -7,18 +7,7 @@
 The verification result is `NOT VERIFIED`, not an implementation `FAIL`. The evidence does not show a new regression in `27e24a0`/`b92c122`; it shows two external evidence gaps:
 
 1. The affected HTC incident metadata and crash trace are absent, so AC-DBG-001 and AC-DBG-002 cannot be proven.
-2. CI has no published status or workflow run for `b92c122`. A read-only `git ls-remote` check could not resolve `github.com` (`Could not resolve hostname`), so the remote/CI state cannot be independently queried from this environment.
-
-### Evidence matrix
-
-| Verification item | Current evidence | Classification |
-|---|---|---|
-| CameraX provider failure recovery | API 34 injected UI test passed; form stayed `RESUMED` | PASS, scoped |
-| `MediaStore.insert()` failure recovery | API 34 injected test returned recoverable `null` | PASS, scoped |
-| Normal camera → JPEG normalization → MediaStore → form return | API 34 manual smoke passed; 1280×960 JPEG and 337,438-byte output recorded | PASS, scoped |
-| AC-DBG-001: HTC model/build/app version/step/stack | No HTC incident artifact supplied | NOT VERIFIED, environment/evidence gap |
-| AC-DBG-002: actual incident boundary classification | Emulator evidence is not HTC evidence; failing phase is unknown | NOT VERIFIED, environment/evidence gap |
-| CI result for tested commit | No published run; remote query blocked by DNS | NOT VERIFIED, infrastructure gap |
+2. CI cannot be confirmed for the current task revision. The configured GitLab remote has no task-branch ref; the inferred GitHub project lookup returned 404. The repository has a GitHub Actions workflow but no GitLab pipeline file, and local Gradle results do not establish CI status.
 
 ### Root cause of the verification non-pass
 

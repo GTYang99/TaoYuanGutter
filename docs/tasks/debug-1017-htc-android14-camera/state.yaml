@@ -30,7 +30,7 @@ validation:
 
 git:
   branch: codex/debug/debug-1017-htc-android14-camera
-  commit: b92c122
+  commit: 190eabe9
   status: committed
 
 verification:
@@ -49,10 +49,9 @@ release:
   status: pending
 
 blocking:
-  - HTC model, Android 14 build/security patch, incident app version, and exact failing capture phase are missing.
-  - No HTC logcat/tombstone/crash report is available to classify the reported exception boundary.
-  - The affected-device capture remains NOT VERIFIED; only the API 34 emulator was tested under the agreed scope.
-  - Commit b92c122 has no published CI status or workflow run in the checked GitHub results.
-  - Read-only GitHub remote inspection failed because this environment could not resolve github.com.
+  - User confirmed HTC model, Android 14 build/security patch, incident app version, exact failing phase, and crash trace are currently unavailable.
+  - The affected HTC capture remains NOT VERIFIED; this round used only the API 34 AVD.
+  - The local task branch is absent from the configured GitLab remote, and no CI result is available for the tested revision.
+  - The task branch is not accessible through the inferred GitHub repository/API lookup.
 
 next_action: verification
