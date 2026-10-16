@@ -21,6 +21,7 @@
   - The active flow performs custom camera selection and full-resolution post-processing.
 - `fd81f7d6` added post-capture MediaStore album copying; `ContentResolver.insert()` is outside the local `try/catch`, and the call is made inside an uncaught lifecycle coroutine.
 - API 34 AVD smoke evidence reached CameraX camera id 10 and attached Preview/ImageCapture without an app crash; no-camera and denied-camera exercises also kept the app process alive.
+- A temporary API 34 instrumentation test passed for a normal AOSP MediaStore JPEG copy and passed its expected assertion that an injected `ContentResolver.insert()` exception escapes `PhotoAlbumStore.copyToSystemAlbum()`; the temporary test was removed after the run.
   - No HTC logcat, crash report, or connected HTC device is available in this turn.
 - Exact phase is decisive: preview/open points to CameraX future/binding; after shutter points to MediaStore/OEM provider or post-processing.
 - next_action: `debug`

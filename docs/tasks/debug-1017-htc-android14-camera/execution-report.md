@@ -18,10 +18,12 @@
 | Isolated Android 14 AVD setup | PASS | Created `DBG1017_API34_Camera` from `system-images;android-34;google_apis;arm64-v8a`; emulator reports SDK 34 / Android 14, model `sdk_gphone64_arm64`, security patch `2023-09-05`. |
 | API 34 camera-overlay smoke | PASS (scoped) | A direct in-process instrumentation smoke run completed once with `tests=1, failures=0`; CameraX logs showed camera id 10, `ImageCapture` 1280x960, and Preview/ImageCapture attached. No app `FATAL EXCEPTION` or process death was observed. |
 | API 34 no-camera / permission-failure exercise | PASS (scoped) | CameraX emitted `CameraIdListIncorrectException` / `No available camera can be found`, while `GutterFormActivity` stayed foreground and the app process remained alive. |
+| API 34 AOSP MediaStore normal-copy control | PASS (scoped) | Temporary instrumentation copied and published a real JPEG through the stock API 34 MediaProvider; logcat showed the pending file moved to `Pictures/TaoYuanGutterDebug`, then the test cleaned it up. |
+| API 34 injected MediaStore insert failure | PASS (scoped) | Temporary instrumentation used `ContentResolver.wrap()` with a provider whose `insert()` throws; `PhotoAlbumStore.copyToSystemAlbum()` propagated the exception as predicted. The temporary test was deleted after evidence collection. |
 | Physical HTC Android 14 reproduction | NOT VERIFIED | The independent AVD is not HTC hardware; no HTC device or HTC crash trace is available. |
 | Capture callback / MediaStore album-copy path | NOT VERIFIED | A later diagnostic attempt was blocked by instrumentation focus/lifecycle instability before its own assertion; it is not evidence of a product crash. |
 | Crash stack-trace correlation | NOT VERIFIED | HTC model, app build, and logcat/tombstone were not supplied. |
 
 ## Current decision
 
-The source review identifies two testable uncaught boundaries: CameraX provider initialization and the post-capture MediaStore album copy introduced by `fd81f7d6`. The Android 14 AVD reaches CameraX binding without a process crash, so the current evidence favors an OEM-specific boundary rather than a universal Android 14 failure. Debug remains open; no production implementation has started.
+The source review identifies two testable uncaught boundaries: CameraX provider initialization and the post-capture MediaStore album copy introduced by `fd81f7d6`. Controlled API 34 fault injection proves the latter can propagate an OEM provider exception through the current code, while a normal AOSP API 34 copy passes. The Android 14 AVD reaches CameraX binding without a process crash, so the evidence favors an OEM-specific boundary rather than a universal Android 14 failure. Debug remains open; no production implementation has started.

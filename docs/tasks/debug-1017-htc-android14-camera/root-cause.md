@@ -2,8 +2,9 @@
 
 ## Status
 
-- Root cause is not confirmed. No production-code change is authorized in this investigation turn.
-- Provisional category: `unknown` with two implementation/OEM compatibility hypotheses. The post-capture MediaStore boundary is now the leading hypothesis if the crash happens after the shutter callback; CameraX provider initialization remains the leading hypothesis if the crash happens while opening preview.
+- Root cause is not confirmed for the specific HTC device because the model, firmware, failing phase, and crash stack are still unavailable. No production-code change is authorized in this investigation turn.
+- The strongest code-level failure mechanism is now proven: an exception from the post-capture MediaStore `insert()` can escape the current photo coroutine. Confidence in that mechanism is `>=95%`; confidence that it is the reported HTC crash remains below 95% until the failing phase or HTC stack is obtained.
+- Provisional category: `unknown` with two implementation/OEM compatibility hypotheses. The post-capture MediaStore boundary is the leading hypothesis if the crash happens after the shutter callback; CameraX provider initialization remains the leading hypothesis if the crash happens while opening preview.
 - Priority: P1 because the affected device's required photo workflow may be blocked.
 
 ## Strongest candidates
@@ -13,6 +14,13 @@
 The current branch contains `fd81f7d6` (`feat: 拍照相簿 a copy 功能`), which added a system-album copy immediately after `ImageCapture.onImageSaved()`. `CameraOverlayFragment.capturePhoto()` launches a lifecycle coroutine and calls `PhotoAlbumStore.copyToSystemAlbum()`. On Android 10+, `copyToMediaStore()` calls `ContentResolver.insert()` at `PhotoAlbumStore.kt:56` before entering its `try/catch`. An HTC Android 14 MediaProvider implementation that throws from `insert()` can therefore escape the coroutine and terminate the app. This maps closely to a report phrased as “拍照後閃退” and is a concrete regression boundary introduced by the album-copy feature.
 
 This is not yet proven: Android 14 scoped storage normally permits this MediaStore insertion, and no HTC stack trace shows the exception class.
+
+#### Controlled fault-injection proof
+
+- A temporary API 34 instrumentation test replaced the app context's resolver with `ContentResolver.wrap()` around a provider whose `insert()` throws `IllegalStateException`.
+- The test passed with the expected assertion: `PhotoAlbumStore.copyToSystemAlbum()` propagated the injected exception instead of returning `null`.
+- A second test copied a real 2x2 JPEG through the stock AOSP API 34 MediaProvider and passed; logcat showed the pending file being opened and published in `Pictures/TaoYuanGutterDebug`.
+- The temporary test source and dependency were deleted afterward; no temporary source or build-configuration diff remains. This proves the app's exception boundary, not that HTC actually throws the same exception.
 
 ### B. CameraX provider initialization exception — leading for an open/preview crash
 
@@ -35,8 +43,9 @@ If the HTC Camera2 service/HAL reports one of those failures, the exception is t
 1. **Capture/HAL error:** `ImageCapture.takePicture()` reports an `ImageCaptureException`; the current callback displays a toast, so a pure callback error should not crash unless a framework/vendor native failure also occurs. Requires logcat.
 2. **Post-processing memory pressure:** the full-size JPEG is decoded and potentially copied/rotated. An HTC high-resolution output could trigger memory pressure. The function catches Kotlin `Throwable`, so a normal Java/Kotlin decode failure should be logged and continue; native process death or an uncaught lifecycle exception remains possible.
 3. **Post-processing bitmap lifecycle defect:** the current revision reads dimensions after recycling the bitmap. This is a concrete bug, but the access is within `runCatching`, so it currently looks more likely to cause a warning and skipped normalization than the reported process crash.
-4. **Camera resource contention:** the stock camera, another app, or a stale CameraX session may hold the resource. This would map to `CameraUnavailableException.CAMERA_IN_USE` or `CAMERA_ERROR`; no device trace is available.
-5. **Android 14 permission/storage conflict:** source review does not support a normal permission denial as the leading generic cause, because the capture file is app-specific and MediaStore insertion is the Android 10+ path. However, an OEM MediaProvider exception from the unguarded `insert()` remains a concrete post-capture candidate.
+4. **Post-capture view lifecycle race:** `onImageSaved()` accesses `viewLifecycleOwner` and later calls `requireContext()` without a guard. If the overlay is dismissed while a slow vendor capture or file operation is completing, either access can throw outside a local handler.
+5. **Camera resource contention:** the stock camera, another app, or a stale CameraX session may hold the resource. This would map to `CameraUnavailableException.CAMERA_IN_USE` or `CAMERA_ERROR`; no device trace is available.
+6. **Android 14 permission/storage conflict:** source review does not support a normal permission denial as the leading generic cause, because the capture file is app-specific and MediaStore insertion is the Android 10+ path. However, an OEM MediaProvider exception from the unguarded `insert()` remains a concrete post-capture candidate.
 
 ## Non-HTC Android 14 evidence
 
@@ -44,6 +53,13 @@ If the HTC Camera2 service/HAL reports one of those failures, the exception is t
 - A direct in-process camera-overlay instrumentation smoke run completed once with `tests=1, failures=0`; logcat showed CameraX binding `Preview` and `ImageCapture` to emulator camera id 10, including an `ImageCapture` pipeline at 1280x960 and both use cases attached. No `FATAL EXCEPTION` or app process death was observed.
 - A separate no-camera/permission-denied exercise produced CameraX `CameraIdListIncorrectException` / `No available camera can be found` warnings while `GutterFormActivity` remained the foreground activity; it did not produce an app crash.
 - These results lower the probability of a universal Android 14 crash and support an OEM-specific boundary, but they do not reproduce HTC HAL or HTC MediaProvider behavior. A later attempt to force the capture callback was `NOT VERIFIED` because the instrumentation harness became `STARTED`/lost overlay focus before its own assertion; that test failure is not product crash evidence.
+
+## Confidence update
+
+- `>=95%`: if an OEM `MediaProvider.insert()` exception occurs during the current post-capture path, the current implementation can let it escape because the call is outside the local `try/catch` and the caller coroutine has no local exception handler. This was demonstrated by controlled API 34 fault injection.
+- `~90%`: there is no direct app-to-app conflict with the HTC stock camera; the active flow is an in-process CameraX overlay rather than a stock-camera intent.
+- `~80%`: an OEM-specific CameraX/Camera2/HAL or MediaProvider compatibility boundary is involved, based on the clean AOSP API 34 result and the device-specific report. This is not `>=95%` because the HTC phase and stack are missing.
+- `~70–80%`: the exact reported HTC crash is the post-capture MediaStore boundary if the user sees the crash immediately after the shutter/photo preview; it drops to `~65%` if the app disappears before preview is visible.
 
 ## Required proof to close debug
 
@@ -55,7 +71,7 @@ If the HTC Camera2 service/HAL reports one of those failures, the exception is t
 
 ## Classification and route
 
-- Current classification: `unknown` pending device evidence. Confidence in “there is no direct stock-camera app conflict” is high (~90%); confidence that the exact HTC crash is the unguarded MediaStore insert is moderate (~70% until a post-shutter stack trace); confidence in the unguarded CameraX future path is moderate (~65% until an open/preview stack trace).
+- Current classification: `unknown` pending device evidence. The failure mechanism for the unguarded MediaStore `insert()` is proven under injection, but the exact HTC attribution remains unconfirmed.
 - If the trace is `InitializationException` / `CameraUnavailableException` at `cameraProviderFuture.get()`, route to `implementation` → debug fix: catch and surface provider initialization failures, log the nested cause, and guard the view lifecycle.
 - If the trace is a vendor `CameraAccessException`/HAL error during binding or capture, route to `implementation` with an HTC-specific compatibility test and minimal CameraX configuration change; do not blame the stock camera app without resource-contended evidence.
 - If the trace is only environmental camera contention or missing permission, route to `infrastructure`/user-device setup rather than changing product code.

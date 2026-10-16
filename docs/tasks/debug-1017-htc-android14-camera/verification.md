@@ -6,7 +6,7 @@
 
 This debug task has no implementation revision to verify yet. The independent API 34 AVD can exercise the in-process CameraX overlay, but it is not HTC hardware and therefore cannot close the HTC-specific root cause.
 
-The current debug evidence is scoped PASS for APK build and CameraX binding on API 34, with `NOT VERIFIED` retained for the actual HTC shutter/capture failure and MediaStore OEM-provider behavior.
+The current debug evidence is scoped PASS for APK build, CameraX binding, and the controlled MediaStore exception boundary on API 34, with `NOT VERIFIED` retained for the actual HTC shutter/capture failure and HTC MediaProvider behavior.
 
 ## Required verification cases after a fix
 
