@@ -5,6 +5,7 @@
 - Task: `debug1016-1` (`bugfix`)
 - Branch: `codex/debug/debug1016-1`
 - Implementation commit: `990e60888604da1a5917b72a542effa6649f60f1`
+- Source revision used for the post-commit emulator audit: `350f30e369d36f9f9ce81bc80dccd8c5710e31c0` (documentation-only commit after the implementation commit)
 - Worktree: `/Users/a10362/.codex/worktrees/debug-1016-1/TaoYuanGutter`
 - Scope: Center the mini-map of a fresh, online add form on the user's current location when the waypoint has no saved coordinates. Keep location camera-only.
 
@@ -23,7 +24,7 @@
 - Instrumentation package: `com.example.taoyuangutter.test`
 - The connected physical device was not targeted.
 - The debug build required the repository's Maps manifest placeholder. A temporary ignored `local.properties` containing only `MAPS_API_KEY=debug-placeholder-not-a-real-key` was used and removed after the build.
-- The test receiver initially lacked the emulator `MOCK_LOCATION` app-op. The positive test uses the emulator-native GPS injection command instead. The test package app-op and secure mock-location setting were restored to their original denied/disabled values after testing.
+- The test receiver initially lacked the emulator `MOCK_LOCATION` app-op. The original positive run used emulator-native GPS injection. During the post-commit audit, toggling the emulator location mode cleared its native last fix; the native injection command then returned `OK` but `dumpsys location` showed no last fix. The positive case passed on its one retry using the test APK's mock provider. Mock-location app-op, secure setting, location mode, and animation settings were restored afterward.
 
 ## Results
 
@@ -33,7 +34,7 @@
 | AC-002: Location remains camera-only | PASS | The same test asserted `currentLat/currentLng == 0`, blank `NODE_X/NODE_Y`, and null session waypoint latitude/longitude. |
 | AC-003: Saved waypoint coordinates retain precedence | PASS | `savedCoordinateEditKeepsSavedCameraTarget` passed on emulator. |
 | AC-004: Offline/restored drafts remain excluded | PASS by source review; no dedicated runtime case | The bottom-sheet predicate excludes offline mode and positive restored `draftId`; the policy still rejects offline and read-only forms. The unmarked-form emulator regression passed. |
-| AC-005: Unavailable location retains prompt and fallback | NOT VERIFIED at runtime | The failure flow and fallback branch were not changed. A no-fix case was not rerun because the emulator-native GPS fix remained cached. |
+| AC-005: Unavailable location retains prompt and fallback | NOT VERIFIED | The no-fix case reached the unavailable prompt, fallback, and coordinate assertions on its first run, but Espresso could not click “Continue” while animations were enabled. Its single retry with animations disabled did not find the expected unavailable title. The case was not retried again. |
 
 ### Build
 
@@ -68,12 +69,24 @@ adb -s emulator-5554 shell am instrument -w -e class 'com.example.taoyuangutter.
 
 Result: PASS (`OK (1 test)`).
 
+### Post-commit Emulator Audit
+
+The three focused positive/regression cases were rerun against the committed source on `emulator-5554`:
+
+- `freshNewPointWithEmulatorGpsFixCentersCameraOnly`: PASS (`OK (1 test)`) after enabling the test APK mock provider with `lat=25.03`, `lng=121.5`; this retry followed one failed attempt after the emulator location mode had been toggled and its native last fix was absent.
+- `unmarkedNewPointKeepsTaoyuanFallback`: PASS (`OK (1 test)`).
+- `savedCoordinateEditKeepsSavedCameraTarget`: PASS (`OK (1 test)`).
+
+The no-fix case `missingCoordinateEditWithoutUsableFixKeepsFallbackAndShowsUnavailablePrompt` was run with emulator location disabled. It displayed the unavailable prompt and retained the fallback, and its coordinate assertions passed; Espresso failed to click the continue button with animations enabled. The one permitted retry with animations disabled failed to locate the expected prompt title. AC-005 therefore remains `NOT VERIFIED`; no further retry was made.
+
+The repository's GitHub Actions workflow runs a JVM unit-test selection and a debug build. No workflow runs or commit statuses exist for this local commit. The GitHub remote was unreachable from the shell during this task, so CI remains `NOT VERIFIED`.
+
 ## Limitations
 
 - The JVM policy test source was updated but not run because the requested validation scope was emulator-only.
-- The no-fix prompt case and offline/restored runtime cases were not run.
+- Offline/restored runtime cases were not run; their exclusions were reviewed in source and policy assertions.
 - Remote CI and independent Verification have not run; these remain downstream gates.
-- Emulator-native GPS was set to the test coordinate. Mock-location app-op and secure setting were restored; no physical device was changed.
+- Emulator location mode was restored to `3`; secure mock-location setting was restored to `0`; test package `android:mock_location` app-op was restored to `deny`; animation settings were restored to their original values. No physical device was changed.
 
 ## Diff Hygiene
 
