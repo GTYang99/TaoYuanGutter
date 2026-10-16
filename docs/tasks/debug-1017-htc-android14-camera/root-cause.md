@@ -62,6 +62,13 @@ If the HTC Camera2 service/HAL reports one of those failures, the exception is t
 - A separate no-camera/permission-denied exercise produced CameraX `CameraIdListIncorrectException` / `No available camera can be found` warnings while `GutterFormActivity` remained the foreground activity; it did not produce an app crash.
 - These results lower the probability of a universal Android 14 crash and support an OEM-specific boundary, but they do not reproduce HTC HAL or HTC MediaProvider behavior. A later attempt to force the capture callback was `NOT VERIFIED` because the instrumentation harness became `STARTED`/lost overlay focus before its own assertion; that test failure is not product crash evidence.
 
+## External compatibility check
+
+- A targeted public search on 2026-10-16 found no model-specific HTC/U24 CameraX or MediaProvider crash report that could be correlated to this app. This is negative evidence only; it does not establish that the HTC incident is unique.
+- The investigated `PhotoAlbumStore` inserts `DISPLAY_NAME`, `MIME_TYPE`, `DATE_TAKEN`, `RELATIVE_PATH`, and `IS_PENDING` into `VOLUME_EXTERNAL_PRIMARY`; it does not write the deprecated `MediaStore.MediaColumns.DATA`/`_data` field. The common Android 14 `_data` mutation failure therefore does not match this source path.
+- Android's MediaStore reference distinguishes the non-insertable synthetic `VOLUME_EXTERNAL` from the specific `VOLUME_EXTERNAL_PRIMARY` volume used here. The API 34 AOSP copy test passing is consistent with that contract and further lowers the probability of a universal Android 14 storage failure.
+- The official CameraX architecture example wraps `cameraProviderFuture.get()` in exception handling, and the same documentation warns that incompatible use-case/resolution combinations can fail at runtime. This supports retaining provider initialization and resolution negotiation as secondary hypotheses, but it is not HTC-specific evidence.
+
 ## Confidence update
 
 - `>=95%`: if an OEM `MediaProvider.insert()` exception occurs during the current post-capture path, the current implementation can let it escape because the call is outside the local `try/catch` and the caller coroutine has no local exception handler. This was demonstrated by controlled API 34 fault injection.
