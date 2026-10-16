@@ -270,14 +270,57 @@ class EditMapInitialLocationInstrumentedTest {
     }
 
     @Test
-    fun newPointDoesNotRecenterOnDeviceLocation() {
+    fun freshNewPointWithEmulatorGpsFixCentersCameraOnly() {
         grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        val testPoint = LatLng(25.03, 121.5)
+
+        launchForm(
+            isEditMode = false,
+            waypoint = waypoint(latitude = null, longitude = null),
+            isNewAddForm = true
+        ).use { scenario ->
+            val actual = awaitCameraTarget(scenario, testPoint, toleranceMeters = 100.0)
+            assertNotNull("Fresh new-point form did not center on the emulator GPS fix", actual)
+            val distance = distanceMeters(testPoint, actual!!)
+            var attempt = 0
+            var flowActive = false
+            var userMoved = false
+            scenario.onActivity { activity ->
+                attempt = readField<Int>(activity, "editMapLocationAttempt")
+                flowActive = readField<Boolean>(activity, "editMapLocationFlowActive")
+                userMoved = readField<Boolean>(activity, "editMapLocationUserMoved")
+            }
+            assertTrue(
+                "Camera target=$actual, distance=${distance}m, location attempt=$attempt, flowActive=$flowActive, userMoved=$userMoved",
+                distance <= 100.0
+            )
+            awaitLocationFlowFinish(scenario)
+            scenario.onActivity { activity ->
+                assertEquals(0.0, readField<Double>(activity, "currentLat"), 0.0)
+                assertEquals(0.0, readField<Double>(activity, "currentLng"), 0.0)
+                @Suppress("UNCHECKED_CAST")
+                val formData = readField<HashMap<String, String>>(activity, "currentFormData")
+                assertTrue("Location must not populate NODE_X", formData["NODE_X"].isNullOrBlank())
+                assertTrue("Location must not populate NODE_Y", formData["NODE_Y"].isNullOrBlank())
+                val savedWaypoint = readField<List<WaypointSnapshot>>(activity, "sessionWaypoints")[0]
+                assertEquals(null, savedWaypoint.latitude)
+                assertEquals(null, savedWaypoint.longitude)
+            }
+            onView(withText(R.string.edit_map_location_unavailable_title)).check(doesNotExist())
+        }
+    }
+
+    @Test
+    fun unmarkedNewPointKeepsTaoyuanFallback() {
+        grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        setMockLocation(null)
         val fallback = LatLng(24.9929, 121.3011)
 
         launchForm(isEditMode = false, waypoint = waypoint(latitude = null, longitude = null)).use { scenario ->
             val actual = awaitCameraTarget(scenario, fallback, toleranceMeters = 100.0)
-            assertNotNull("New-point form did not keep its existing fallback camera", actual)
+            assertNotNull("Unmarked form did not keep its existing fallback camera", actual)
             assertTrue(distanceMeters(fallback, actual!!) <= 100.0)
             Thread.sleep(2_000)
             val afterLocationWindow = cameraTarget(scenario)
@@ -288,7 +331,8 @@ class EditMapInitialLocationInstrumentedTest {
 
     private fun launchForm(
         isEditMode: Boolean,
-        waypoint: WaypointSnapshot
+        waypoint: WaypointSnapshot,
+        isNewAddForm: Boolean = false
     ): ActivityScenario<GutterFormActivity> {
         val context = ApplicationProvider.getApplicationContext<Context>()
         return ActivityScenario.launch(
@@ -298,6 +342,7 @@ class EditMapInitialLocationInstrumentedTest {
                 lats = doubleArrayOf(waypoint.latitude ?: 0.0),
                 lngs = doubleArrayOf(waypoint.longitude ?: 0.0),
                 isEditMode = isEditMode,
+                useCurrentLocationForInitialMap = isNewAddForm,
                 sessionDraftId = 0L,
                 sessionWaypointsJson = Gson().toJson(listOf(waypoint))
             )

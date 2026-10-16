@@ -1,0 +1,57 @@
+task:
+  id: debug1016-1
+  type: bugfix
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+debug:
+  status: completed
+  root_cause: identified_from_static_code_evidence
+  issues:
+    - ISS-DBG-1016-1-001
+
+planning:
+  status: completed
+  scope_note: User approved current-location centering for a fresh empty add form; offline and restored drafts remain unchanged.
+
+plan_review:
+  status: approved
+  result: APPROVED
+  blocking_issues: []
+
+implementation:
+  status: completed
+
+validation:
+  status: completed_with_limitations
+  environment: emulator_only
+  physical_device: excluded
+  debug_build: passed
+  instrumentation_tests: passed_3_of_3
+  policy_unit_test: not_run_emulator_only
+  no_fix_prompt_runtime: not_verified
+  offline_restored_runtime: not_run
+
+git:
+  branch: codex/debug/debug1016-1
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: not_verified
+  test: not_verified
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification
