@@ -49,6 +49,12 @@ If the HTC Camera2 service/HAL reports one of those failures, the exception is t
 5. **Camera resource contention:** the stock camera, another app, or a stale CameraX session may hold the resource. This would map to `CameraUnavailableException.CAMERA_IN_USE` or `CAMERA_ERROR`; no device trace is available.
 6. **Android 14 permission/storage conflict:** source review does not support a normal permission denial as the leading generic cause, because the capture file is app-specific and MediaStore insertion is the Android 10+ path. However, an OEM MediaProvider exception from the unguarded `insert()` remains a concrete post-capture candidate.
 
+### Conditional high-resolution risk
+
+- If the affected phone is HTC U24 pro, HTC's official specification lists Android 14, a 50 MP main camera, a 50 MP telephoto camera, and an 8 MP wide/depth camera. CameraX documentation states that an `ImageCapture` with only an aspect-ratio preference can select the highest available resolution; this code sets 4:3 but no target resolution.
+- The post-capture normalizer decodes the whole JPEG and may allocate a second full-size bitmap for rotation or brightness correction. For a 50 MP JPEG, one ARGB_8888 bitmap is roughly 200 MB before decoder/native overhead, and rotation can temporarily require another allocation. This is a credible OEM-specific memory-pressure risk if the HTC output is high resolution.
+- It is not currently the leading proven crash mechanism: the normalizer is inside `runCatching`, the API 34 AVD actual capture passed, and an HTC OOM/LMK trace is unavailable. Promote this hypothesis only if the device evidence contains `OutOfMemoryError`, low-memory kill, or a `CameraOverlay` log showing very large dimensions immediately before death.
+
 ## Non-HTC Android 14 evidence
 
 - A dedicated API 34 AVD (`DBG1017_API34_Camera`, SDK 34 / Android 14) was created and the debug APK was installed.
@@ -62,6 +68,7 @@ If the HTC Camera2 service/HAL reports one of those failures, the exception is t
 - `~90%`: there is no direct app-to-app conflict with the HTC stock camera; the active flow is an in-process CameraX overlay rather than a stock-camera intent.
 - `~80%`: an OEM-specific CameraX/Camera2/HAL or MediaProvider compatibility boundary is involved, based on the clean AOSP API 34 result and the device-specific report. This is not `>=95%` because the HTC phase and stack are missing.
 - The actual CameraX capture path now has scoped AOSP evidence, so a universal `ImageCapture`/Android 14 failure is less likely; the remaining uncertainty is specifically OEM behavior and the unknown user-visible phase.
+- Public sources did not yield a model-specific HTC CameraX/MediaProvider crash report. The U24 pro high-resolution branch is therefore conditional on the model, not an attribution.
 - `~70–80%`: the exact reported HTC crash is the post-capture MediaStore boundary if the user sees the crash immediately after the shutter/photo preview; it drops to `~65%` if the app disappears before preview is visible.
 
 ## Required proof to close debug

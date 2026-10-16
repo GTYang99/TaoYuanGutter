@@ -40,6 +40,8 @@
 
 The strongest current conclusion is conditional: if the user-visible crash occurs after the shutter has produced the photo file, the unguarded MediaStore insert is a code-level root cause with at least 95% confidence as a crash mechanism. The successful AOSP CameraX capture makes a universal Android 14 CameraX capture defect unlikely. The exact HTC attribution remains below 95% until a device log or a reliable phase report is available.
 
+If the handset is HTC U24 pro, its official Android 14 / 50 MP multi-camera specification makes the current no-target-resolution plus full-resolution normalization path a secondary memory-risk hypothesis. That hypothesis needs an OOM/LMK trace or a very large `CameraOverlay` JPEG dimension log before it can outrank the unguarded MediaStore exception.
+
 ## Secondary risks
 
 - The post-capture path decodes the complete JPEG and may create another full-size bitmap for EXIF rotation or brightness. HTC output resolution and memory pressure are unknown.
