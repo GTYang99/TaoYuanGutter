@@ -198,11 +198,11 @@ Continued root-cause investigation for the location picker, nearby import lookup
 - Added `NearbyLocationFixPolicyTest`: the captured 5.0 m → 4.417 m case is accepted; stale, future-dated, missing-accuracy, and over-30 m cases are rejected.
 - `./gradlew :app:testDebugUnitTest :app:assembleDebug :app:compileDebugAndroidTestKotlin` — PASS (`BUILD SUCCESSFUL`). The sandbox initially blocked Gradle's user cache; rerunning with the installed Android Studio JDK and authorized Gradle cache access passed.
 - `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` — PASS on `Medium_Phone (AVD) - 16`, serial `emulator-5554`: 1 test, 0 failures. The test checks tab/query behavior and candidate callback/import wiring using a fake API.
-- The supplied known-good coordinate was set on the dedicated AVD. The instrumentation runner returned to the launcher and cleared the app login state; the app is now at login and requires the user to sign in before the real-backend result/list check. That live endpoint/UI check is **NOT VERIFIED** pending sign-in. The reported `data=[]` at a different location is a successful empty result, not a transport failure.
+- After the user signed in on the dedicated AVD and opened Nearby, the supplied known-good location returned HTTP 200 and visible candidate rows. Moving the mock location to a distant point and tapping the location button moved the map to a blank map area and showed `無資料`; restoring the known-good location and tapping again returned the map to the candidate area and repopulated candidate rows. Sanitized logs confirmed HTTP 200 at both location steps; request coordinates and response records were not copied into the report. This verifies A→B camera/list refresh and the known-good Nearby result flow on the test emulator. The empty result at the distant point is location-dependent, not a connection failure.
 - No physical device was connected. No candidate was imported, confirmed, or saved.
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk`; package `com.example.taoyuangutter`.
 
 ## Current result
 
-- Fix is implemented; code-level validation passed. Real-backend confirmation at the known-good location remains pending user sign-in on the AVD.
+- Fix is implemented; unit, build, focused instrumentation, and live test-emulator validation passed. Independent Verification and CI remain pending.
 - Sony XQ-AU52 was not used, as requested.

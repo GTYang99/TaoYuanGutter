@@ -23,7 +23,7 @@ validation:
   unit_tests: passed
   debug_build: passed
   focused_instrumentation: passed
-  live_known_good_location_api: not_verified_pending_test_emulator_login
+  live_known_good_location_api: passed
 
 git:
   branch: feat/feat-1015-restore-nearby-waypoints
@@ -46,9 +46,6 @@ debug:
   status: completed
   root_cause: identified
 
-blocking:
-  - Real-backend validation at the supplied known-good location is NOT VERIFIED until the user signs into the dedicated AVD; the instrumentation runner cleared the app session.
-  - Independent picker FAB and candidate-import return reports remain outside this Nearby fix and NOT VERIFIED.
-  - Physical Sony XQ-AU52 behavior is out of scope; requested validation targets the dedicated AVD only.
+blocking: []
 
 next_action: verification
