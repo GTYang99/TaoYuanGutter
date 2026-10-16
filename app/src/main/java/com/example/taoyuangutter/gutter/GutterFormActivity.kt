@@ -937,17 +937,23 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
 		                    if (best == null || locAcc < bestAcc) importBestLocation = loc
 		                }
 
-		                // Preserve the existing high-accuracy threshold for an initial result.
-		                val accurate = freshLocations.firstOrNull { loc ->
-		                    loc.hasAccuracy() && loc.accuracy <= importLocationAccuracyM
+		                // Nearby follows the legacy flow: the first fresh fix under the
+		                // accuracy threshold wins, even if it is not 10 m more accurate
+		                // than the host/cache location already used for the first query.
+		                val accurate = result.locations.firstOrNull { loc ->
+		                    NearbyLocationFixPolicy.shouldAccept(
+		                        locationTimeMillis = loc.time,
+		                        accuracyMeters = loc.accuracy.takeIf { loc.hasAccuracy() },
+		                        nowMillis = now,
+		                        maxAgeMillis = importLocationStaleMs,
+		                        maxAccuracyMeters = importLocationAccuracyM
+		                    )
 		                } ?: return
 
 		                stopImportLocationUpdates()
-		                if (LocationFixQualityPolicy.shouldUseRefinement(accepted, accurate)) {
-		                    val latLng = LatLng(accurate.latitude, accurate.longitude)
-		                    showImportMyLocationMarker(latLng)
-		                    sheet.startNearbyAutoSearch(latLng)
-		                }
+		                val latLng = LatLng(accurate.latitude, accurate.longitude)
+		                showImportMyLocationMarker(latLng)
+		                sheet.startNearbyAutoSearch(latLng)
 		            }
 		        }
 
