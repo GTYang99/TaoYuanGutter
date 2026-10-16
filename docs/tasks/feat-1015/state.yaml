@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_in_progress
+status: verification_failed
 
 knowledge_resolution:
   status: resolved
@@ -22,28 +22,28 @@ validation:
 
 git:
   branch: feat/feat-1015-restore-nearby-waypoints
-  commit: eb536d4
+  commit: f5e31eff808c9aa3d04df23927bd660978d93931
   status: committed
 
 verification:
-  result: not_verified
-  category: environment
-  failed_acceptance_criteria: []
+  result: fail
+  category: unknown
+  failed_acceptance_criteria:
+    - AC-004
   not_verified_acceptance_criteria:
     - AC-003
     - AC-005
 
 ci:
-  build: pending
-  test: pending
+  build: not_verified
+  test: not_verified
 
 release:
   status: pending
 
 blocking:
-  - AC-003 physical GPS, permission/error, current-location marker/camera, and backend behavior remain NOT VERIFIED per user direction; the connected device was not used.
-  - AC-005 visual map rendering, integrated page-switch/map callback behavior, and loading-row retention are not fully evidenced by emulator tests.
-  - The source branch adds .github/workflows/android-ci.yml, but there is no CI result for the combined feat-1015 revision; the source-branch CI pass does not cover this merge result.
-  - The combined feat-1006 and feat-1015 revision has not been independently verified; all acceptance criteria and regression risks must be rechecked before release.
-  - The original emulator-5554 concurrency issue is resolved by provisioning dedicated AVDs. Fresh ImportExistingWaypointUiTest evidence remains unavailable: on the dedicated AVDs it failed twice at the initial Espresso assertion with RootViewWithoutFocusException; the replacement AVD retry was used, and no further retry is permitted in this evidence cycle.
-next_action: verification
+  - AC-004 UI test captured A0 after typing A001; the permitted retry failed earlier at Nearby tab selection, so root cause remains unclassified.
+  - AC-003 physical GPS, permission/error, current-location marker/camera, and authenticated backend behavior were not exercised under emulator-only scope.
+  - AC-005 integrated sheet-to-map/import behavior, visual rendering, and loading-row retention remain incompletely evidenced.
+  - No CI status or workflow run covers f5e31eff808c9aa3d04df23927bd660978d93931.
+next_action: investigation

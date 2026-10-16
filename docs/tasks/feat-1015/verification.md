@@ -2,51 +2,43 @@
 
 ## Revision and Worktree
 
-- Fixed verification target: `91959ac4561b0b759797177d9908542b7e96bb73`
-- Branch: `feat/feat-1015-restore-nearby-waypoints`
-- At verification start, `HEAD` matched the fixed target. The only pre-existing working-tree change was `gradle/libs.versions.toml`; it is unrelated and was left untouched. No other tracked or untracked task source changes were present.
-- The target commit updates task state only. Implementation and tests under review are committed through `399b37d`.
-- Verification scope did not include the physical XQ-AU52 because the user explicitly declined installation and testing there.
+- Fixed revision under test: `f5e31eff808c9aa3d04df23927bd660978d93931` (`feat/feat-1015-restore-nearby-waypoints` at verification start).
+- Verification used a clean detached worktree at that commit. No production or test source was changed during verification. The ignored `local.properties` contained only the repository CI placeholder `MAPS_API_KEY=ci-placeholder`.
+- Device scope was emulator-only, as directed. No command installed or ran the app on the connected XQ-AU52 physical device.
+- This revision includes the FEAT-1006 integration and the DBG-1016 nearby fresh-location fix; the prior verification at `91959ac` does not cover this revision.
 
 ## Acceptance Criteria
 
 | AC | Result | Evidence |
 |---|---|---|
-| AC-001 | PASS | The sheet creates tabs `最近存取節點`, `附近點位`, `搜尋點位` in that order and initializes the recent page. The emulator UI test checks the labels, selected index 0, and the page-specific location-button visibility. Existing layout styling is retained. (`ImportExistingWaypointBottomSheet.kt`; layout XML; `ImportExistingWaypointUiTest.kt`.) |
-| AC-002 | PASS | Recent Saved calls the existing no-query `getClosestNodeDetails(token)` overload on every entry. The repository test verifies the no-query Retrofit call shape; the UI test verifies the initial recent request. (`GutterRepository.kt`; `GutterApiService.kt`; `GutterRepositoryNearbyTest.kt`; `ImportExistingWaypointBottomSheet.kt`.) |
-| AC-003 | NOT VERIFIED | Source review confirms Nearby requests location on entry and button tap, uses the shared endpoint with `lng`/`lat` plus Bearer authorization, hides the coordinate hint, and forwards the response list without client-side filtering or count limits. Emulator UI evidence uses a fake location callback. Physical GPS acquisition, permission/error handling, current-location marker/camera behavior, and authenticated backend results were not exercised because the user declined the physical-device run. (`GutterFormActivity.kt`; `ImportExistingWaypointBottomSheet.kt`; repository tests and emulator UI test.) |
-| AC-004 | PASS | The sheet records only submitted XY_NUM input and re-runs it when Search is re-entered. Without a submitted query it retains the prompt and makes no request. The emulator UI test verifies the blank prompt/no request and that `A001` is sent again after returning to Search. (`ImportExistingWaypointBottomSheet.kt`; `ImportExistingWaypointUiTest.kt`.) |
-| AC-005 | NOT VERIFIED | Emulator UI coverage verifies candidate callbacks from each mode, row radio selection, import enablement and callback handoff, and selection clearing on tab changes. A separate emulator test exercises actual `GoogleMap` marker objects: candidate coordinates/title/tag/z-index, selected marker visibility/highlight, candidate restoration after deselection, and cleanup. However, it does not visually inspect rendered markers or run the full sheet page-switch callbacks against the live map; the refresh test also does not assert that old rows remain visible below the loading overlay. Those portions of AC-005 remain unverified. (`ImportExistingWaypointUiTest.kt`; `ImportWaypointMapMarkerTest.kt`; `GutterFormActivity.kt`.) |
+| AC-001 | PASS | Source review confirms the sheet creates `最近存取節點`, `附近點位`, `搜尋點位` in that order and selects index 0 (`ImportExistingWaypointBottomSheet.kt:315-328`). The first emulator UI attempt passed the visible-label and selected-index assertions (`ImportExistingWaypointUiTest.kt:145-153`) before failing later in the test. The existing layout and sheet styling remain in place. |
+| AC-002 | PASS | `GutterRepositoryNearbyTest` passed 3/3 tests, including `recentSavedLookupKeepsNoQueryCallShape` and the nearby coordinate/Bearer request test. The sheet calls the no-query repository overload on every Recent entry (`ImportExistingWaypointBottomSheet.kt:352-359, 462-487`); the first UI attempt also passed its initial request-count assertion. |
+| AC-003 | NOT VERIFIED | The first emulator attempt passed its fake-location checks for Nearby entry, location-button refresh, candidate response, and coordinates (`ImportExistingWaypointUiTest.kt:161-176`). Source review confirms the fresh-fix policy, marker/camera update, and query (`GutterFormActivity.kt:914-961`); the `NearbyLocationFixPolicy` unit tests are included in the passing JVM suite. Physical GPS acquisition, permission/error handling, the live marker/camera behavior, and authenticated backend results were not exercised. |
+| AC-004 | FAIL | On the first `Medium_Phone` Android 16 attempt, after `typeText("A001")` and Search submit, the fake API recorded `A0`; the assertion expected `A001` (`ImportExistingWaypointUiTest.kt:187-188`). The one permitted retry stopped earlier: after tapping Nearby, `selectedTabPosition` remained 0 instead of 1 (`ImportExistingWaypointUiTest.kt:161-165`). The failure is reproducible only as a failed UI test, and its cause is not classified; no further retry was run. |
+| AC-005 | NOT VERIFIED | `ImportWaypointMapMarkerTest` passed 1/1 on the emulator and checks candidate marker objects, selection highlight, candidate restoration, and cleanup. The import-sheet UI test did not complete its integrated search/page-switch/import path. Visual marker rendering and retaining old rows under the loading overlay were not verified. |
 
 ## Test, Build, and CI Evidence
 
-These focused emulator commands were run against the fixed committed revision with Android Studio's bundled JDK and `emulator-5554` (Android 16):
-
 | Check | Result | Evidence |
 |---|---|---|
-| `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportWaypointMapMarkerTest` | PASS | Gradle completed successfully. The test inspects actual GoogleMap marker state, selection highlight/visibility, deselection restoration, and marker cleanup. |
-| `:app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` | PASS after one permitted retry | First run failed before showing the sheet at the test fixture's `ActivityScenario` RESUMED assertion (`ImportExistingWaypointUiTest.kt:140`); it did not reach feature assertions. The one retry passed. This is recorded as test initialization intermittency, not as evidence of a product behavior failure. |
-| Existing developer validation: `:app:testDebugUnitTest` | PASS (recorded) | Execution report records 98 passing unit tests, including shared-route request arguments, Bearer auth, no-query recent request, and location-coordinate log redaction. |
-| Existing developer validation: `:app:assembleDebug`, `:app:compileDebugAndroidTestKotlin`, `git diff --check` | PASS (recorded) | Results are recorded in `execution-report.md`; no CI result is inferred from local runs. |
-| CI for the verified revision | NOT VERIFIED | The FEAT-1006 branch now contributes `.github/workflows/android-ci.yml`; its recorded CI pass is for the FEAT-1006 revision only. No CI result covers the combined FEAT-1006 + feat-1015 revision. |
+| `:app:testDebugUnitTest` | PASS | 167 tests, 0 failures/errors. `GutterRepositoryNearbyTest`: 3/3 passed. |
+| `:app:assembleDebug` | PASS | Completed on the fixed revision using Android Studio JDK and the CI placeholder. |
+| `:app:compileDebugAndroidTestKotlin` | PASS | Completed on the fixed revision. |
+| `:app:connectedDebugAndroidTest -Pandroid.injected.device.serial=emulator-5554 -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportExistingWaypointUiTest` | FAIL | Attempt 1 failed at line 188 (`expected [A001], got [A0]`). One permitted retry failed at line 165 (`expected tab index 1, got 0`). Both ran only on `Medium_Phone` / `emulator-5554`, Android 16. Retry limit for this evidence cycle is exhausted. |
+| `:app:connectedDebugAndroidTest -Pandroid.injected.device.serial=emulator-5554 -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.ImportWaypointMapMarkerTest` | PASS | 1/1 on `emulator-5554`, Android 16. |
+| `git diff --check f5e31eff^ f5e31eff` | PASS | No whitespace errors. |
+| CI for `f5e31eff` | NOT VERIFIED | GitHub combined status returned no status checks; workflow-run lookup returned no runs for this commit. Local checks are not represented as CI. |
+| Physical-device GPS/backend cases | NOT VERIFIED | Not run under the emulator-only scope. |
 
 ## Implementation and Regression Review
 
-- Recent Saved remains on the no-query request and Search retains the existing XY_NUM request and prompt behavior.
-- Nearby uses the historical GPS-based route and response contract confirmed by the user. The activity's existing location lifecycle is connected to tab entry and the header button. The coordinate hint remains hidden.
-- Successful results from the three pages route through the candidate callback. Selection routes through the selected-waypoint callback and bottom import action. Tab changes cancel the prior request, clear selection and map candidates, and stale responses are guarded by request sequence and active page.
-- Refresh begins with the existing rows still bound to the adapter and uses the loading overlay. The source supports the required retention, but no test asserts the visible list during refresh, so that part of AC-005 is not treated as passed.
-- The map-marker emulator test adds direct evidence about GoogleMap marker objects and marker state. It does not prove visual rendering or the integrated page-switch callback path.
-- No implementation contradiction was found in the reviewed diff. The first UI-test invocation's fixture assertion failed once and passed on its single retry; retain this as a reproducibility caveat.
+- Recent Saved keeps the no-query request and is invoked again on page entry. Search records only submitted text and uses it on re-entry; the submitted-text UI assertion failed as described above.
+- Nearby uses the shared endpoint with `lng`/`lat` and Bearer authorization. The DBG-1016 change accepts the first fresh fix within the accuracy threshold, then updates the current-location marker/camera and queries with that fix. The location policy unit tests passed.
+- Successful responses feed the common candidate callback and preserve server order. Tab changes clear selection/candidates, requests are cancelled or sequence-guarded, and loading does not replace existing rows before a response.
+- No source change was made during verification. The inconsistent tab/search assertions need investigation before changing production code or test code.
 
 ## Final Result
 
-**NOT VERIFIED**
+**FAIL**
 
-AC-003 remains unverified for physical location and backend behavior per the user's instruction. AC-005 remains unverified for integrated page-switch/map rendering and loading-row retention. CI evidence for the combined revision is unavailable. No unexecuted behavior is represented as PASS.
-
-Keep `next_action: verification`: the remaining evidence can be gathered in a future verification pass when map/refresh coverage and acceptable GPS evidence are available. This pass found no implementation failure requiring Debug.
-
-## Integration Note (2026-10-15)
-
-This verification record predates the integration of `feat/feat-1006-wmts-offline-data` at `0c10708`, committed as merge `eb536d4d077f6157a048d69f36d9735fdad237c5`. It evaluates the earlier feat-1015 implementation revision only and does not verify the combined branch. The combined revision requires independent verification and a CI run before release.
+AC-004 failed its executed UI assertion. The failure category remains `unknown`: the first attempt captured a truncated submitted value, while the retry failed earlier at tab selection. Route to Investigation before any re-implementation. AC-003 and AC-005 also remain `NOT VERIFIED`, and CI evidence is unavailable for the fixed revision.

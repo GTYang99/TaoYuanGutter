@@ -67,3 +67,15 @@
 - Remediation attempted: Created and booted a second isolated AVD using the other installed Android 16 Google Play image, stopped the first task-created AVD to reduce host load, and waited for the replacement launcher to settle before the one permitted retry. No application or test source was changed.
 - Remaining limitation: Both test invocations used `-no-window`; Espresso still did not receive window focus on the retry. Do not retry this test again in this evidence cycle. AC-001/AC-004 retain their earlier passing evidence; fresh UI evidence remains unavailable. A future visible-window AVD run may provide evidence.
 - Next action: verification
+
+## ISS-feat-1015-008 — Emulator UI assertions fail inconsistently during tab/search flow
+
+- Task: `feat-1015`
+- Phase found: `verification`
+- Category: `unknown`
+- Priority: `P2`
+- Status: `open`
+- Impact: The independent UI test does not reliably verify the submitted XY_NUM value or Nearby tab entry on the combined revision.
+- Evidence: On fixed revision `f5e31eff808c9aa3d04df23927bd660978d93931`, the first targeted `ImportExistingWaypointUiTest` attempt on `Medium_Phone` / Android 16 failed at line 188 with expected `[A001]`, actual `[A0]`. The single permitted retry on the same emulator failed earlier at line 165 with expected selected tab index 1, actual 0. The test was not run again in this evidence cycle.
+- Route: `investigation`
+- Next action: Determine whether the mismatch comes from application behavior or Espresso/IME/tab interaction timing. Do not patch production or tests until the cause is classified.
