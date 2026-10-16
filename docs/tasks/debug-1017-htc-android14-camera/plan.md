@@ -2,7 +2,7 @@
 
 ## Scope
 
-Investigate the HTC Android 14 photo-capture crash without changing production code.
+Investigate the HTC Android 14 photo-capture crash, then implement the two P1 fixes explicitly requested by the user on 2026-10-16. Validation is emulator-only; no physical HTC test is authorized in this task turn.
 
 ## Evidence sequence
 
@@ -14,4 +14,4 @@ Investigate the HTC Android 14 photo-capture crash without changing production c
 
 ## Implementation gate
 
-No production-code change is authorized until the crash stack trace or an equivalent device reproduction identifies one cause and maps it to an acceptance check.
+The original investigation gate required an HTC stack trace or equivalent device reproduction before production changes. The user subsequently authorized an expedited implementation based on equivalent controlled API 34 fault injection for two uncaught boundaries: CameraX provider initialization and `MediaStore.insert()`. The implementation is limited to those P1 boundaries and must preserve the existing camera behavior.

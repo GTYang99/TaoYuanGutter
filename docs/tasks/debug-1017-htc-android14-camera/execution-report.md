@@ -5,7 +5,8 @@
 - Worktree: `/Users/a10362/.codex/worktrees/debug-htc-android14-camera-current/TaoYuanGutter`
 - Branch: `codex/debug/debug-1017-htc-android14-camera`
 - Base revision: `f7d014a` (`feat/feat-1015-restore-nearby-waypoints`)
-- Production code changed: no
+- Implementation revision: `27e24a0` (`fix(camera): recover from provider and album copy failures`)
+- Production code changed: yes, limited to `CameraOverlayFragment` and `PhotoAlbumStore`
 
 ## Checks performed
 
@@ -14,19 +15,24 @@
 | Camera entry-point trace | PASS | Active path is `GutterPhotosFragment` → `GutterFormActivity` → `CameraOverlayFragment`. |
 | CameraX/Android configuration review | PASS | CameraX 1.4.1, target SDK 36, Camera2 interop, MediaStore path, and permissions reviewed. |
 | Camera history review | PASS | Prior camera crash/normalization commits reviewed, including `2ce44cf`, `6f9bd13`, `b0b604e`, and `45aadf1`. |
-| Gradle dependency/build validation | PASS | With Android Studio's bundled JDK 25 and a non-secret Maps placeholder, `:app:assembleDebug --no-daemon --console=plain` completed `BUILD SUCCESSFUL` in 2m15s. |
-| Isolated Android 14 AVD setup | PASS | Created `DBG1017_API34_Camera` from `system-images;android-34;google_apis;arm64-v8a`; emulator reports SDK 34 / Android 14, model `sdk_gphone64_arm64`, security patch `2023-09-05`. |
-| API 34 camera-overlay smoke | PASS (scoped) | A direct in-process instrumentation smoke run completed once with `tests=1, failures=0`; CameraX logs showed camera id 10, `ImageCapture` 1280x960, and Preview/ImageCapture attached. No app `FATAL EXCEPTION` or process death was observed. |
-| API 34 no-camera / permission-failure exercise | PASS (scoped) | CameraX emitted `CameraIdListIncorrectException` / `No available camera can be found`, while `GutterFormActivity` stayed foreground and the app process remained alive. |
-| API 34 injected CameraX provider initialization failure | PASS (scoped) | Temporary instrumentation configured real CameraX 1.4.1 with a failing `CameraFactory.Provider` and `RetryPolicy.NEVER`; the provider future produced `InitializationException -> CameraUnavailableException(CAMERA_ERROR)`, and the current callback shape observed `ExecutionException`. Result: `OK (1 test)`. The temporary test was deleted afterward. |
-| API 34 AOSP MediaStore normal-copy control | PASS (scoped) | Temporary instrumentation copied and published a real JPEG through the stock API 34 MediaProvider; logcat showed the pending file moved to `Pictures/TaoYuanGutterDebug`, then the test cleaned it up. |
-| API 34 injected MediaStore insert failure | PASS (scoped) | Temporary instrumentation used `ContentResolver.wrap()` with a provider whose `insert()` throws; `PhotoAlbumStore.copyToSystemAlbum()` propagated the exception as predicted. The temporary test was deleted after evidence collection. |
-| API 34 actual CameraX capture → AOSP MediaStore | PASS (scoped) | Temporary instrumentation ran `ImageCapture.takePicture()` against emulator camera id 10, produced a readable JPEG, copied it through `PhotoAlbumStore`, and returned `OK (1 test)` in 18.44s. AOSP logcat showed normal publish plus an asynchronous quota warning, with no app `FATAL EXCEPTION`; the temporary test was deleted. |
+| Debug build and instrumentation APK build | PASS | `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --console=plain`; `BUILD SUCCESSFUL` in 52s with Android Studio bundled JDK. |
+| `git diff --check` | PASS | No whitespace errors before the implementation commit. |
+| API 34 AVD setup | PASS | `DBG1017_API34_Camera`; SDK 34 / Android 14, `sdk_gphone64_arm64`, security patch `2023-09-05`; test serial `emulator-5556`. |
+| API 34 `MediaStore.insert()` fault boundary | PASS | `PhotoAlbumStoreInstrumentedTest.insertFailureReturnsNullWithoutThrowing`; injected `ContentResolver.wrap()` provider throws from `insert()`, result is `OK (1 test)`. |
+| API 34 CameraX provider fault through UI | PASS | `CameraProviderInitializationUiTest.providerInitializationFailureDoesNotTerminateFormActivity`; real CameraX 1.4.1 provider configured to fail with `InitializationException -> CameraUnavailableException(CAMERA_ERROR)`, form remained `RESUMED`, result `OK (1 test)`. |
+| API 34 post-test logcat | PASS | `adb -s emulator-5556 logcat ...`; no `FATAL EXCEPTION` or app crash was observed; instrumentation reported `1 tests, 0 failed`. |
+| API 34 normal CameraX capture → AOSP MediaStore baseline | PASS (pre-fix control) | Earlier temporary instrumentation on the same AVD produced a readable JPEG through camera id 10 and published it through stock API 34 MediaStore; no app `FATAL EXCEPTION`. This is control evidence, not HTC evidence. |
 | Cloud HTC-equivalent environment search | NOT AVAILABLE | Firebase Test Lab's current official device catalog contains no HTC or U24 entry; its Android 14 devices cannot substitute for HTC Camera2/HAL or MediaProvider behavior. |
-| Physical HTC Android 14 reproduction | NOT VERIFIED | The independent AVD is not HTC hardware; no HTC device or HTC crash trace is available. |
-| Capture callback / MediaStore album-copy path | NOT VERIFIED | A later diagnostic attempt was blocked by instrumentation focus/lifecycle instability before its own assertion; it is not evidence of a product crash. |
-| Crash stack-trace correlation | NOT VERIFIED | HTC model, app build, and logcat/tombstone were not supplied. |
+| Physical HTC Android 14 reproduction | NOT VERIFIED | User requested emulator-only validation; the AVD is not HTC hardware and no HTC crash trace is available. |
+| HTC stack-trace correlation | NOT VERIFIED | HTC model, firmware/security patch, app version from the incident, and exact failing phase were not supplied. |
+
+## Implemented scope
+
+1. `CameraOverlayFragment.startCamera()` now catches synchronous provider-request failures and asynchronous future failures, logs the cause, and returns the existing canceled camera result safely.
+2. Camera use-case construction and binding remain `Preview` + `ImageCapture`, but the full initialization boundary is recoverable.
+3. Delayed capture callbacks now use a live view owner/context guard, preserve the form photo on post-processing or album-copy failure, and avoid binding access after view destruction.
+4. `PhotoAlbumStore.copyToMediaStore()` now guards `ContentResolver.insert()`, logs the exception, and best-effort cleans up a partially created item.
 
 ## Current decision
 
-The source review identifies two testable uncaught boundaries: CameraX provider initialization and the post-capture MediaStore album copy introduced by `fd81f7d6`. Controlled API 34 fault injection now proves both boundaries: a real CameraX provider future can fail with the documented initialization exception chain, and an OEM-style MediaProvider exception can propagate through the current code. A real CameraX capture followed by a normal AOSP API 34 copy passes. The evidence favors an OEM-specific provider boundary rather than a universal Android 14 or CameraX capture failure. Debug remains open; no production implementation has started.
+The two P1 code-level crash mechanisms are fixed and covered by emulator fault-injection tests. Developer validation is complete for the API 34 emulator. This does not establish that the reported HTC Android 14 incident enters either boundary; physical HTC reproduction and independent verification remain `NOT VERIFIED`.
