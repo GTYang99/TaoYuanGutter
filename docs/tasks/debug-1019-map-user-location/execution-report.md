@@ -5,7 +5,7 @@
 - Branch: `codex/debug/debug-1019-map-user-location`
 - Implementation commit: `c26dd3f` (`fix(debug-1019-map-user-location): reject zero-zero provider fixes`)
 - Baseline implementation commit: `3e78cfcca0f55a57f518c46490237e1b97ed5ad0`
-- Follow-up: corrected the fresh-add instrumentation fixture and fixed the remaining fused-provider `(0,0)` acceptance path. The latest source revision is being committed after local validation.
+- Follow-up: corrected the fresh-add instrumentation fixture and fixed the fused-provider `(0,0)` paths in both initial form centering and Nearby import. The Nearby policy fix was locally validated and is being committed.
 
 ## Implementation
 
@@ -27,6 +27,8 @@
 | `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#missingCoordinateEditWithoutUsableFixKeepsFallbackAndShowsUnavailablePrompt com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` | PASS — `OK (1 test)` on `DBG1017_API34_Camera`, Android 14 API 34 | With system location and mock-location disabled, the blank form kept the Taoyuan fallback, left node/session coordinates unchanged, showed the unavailable prompt, and allowed manual pan. Emulator settings were restored and the emulator stopped after the case. |
 | `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#zeroZeroFusedLocationDoesNotMoveBlankFormMap com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` | PASS — `OK (1 test)` on `DBG1017_API34_Camera`, Android 14 API 34 | Injected fused `(0,0)` did not move the camera from fallback, showed the unavailable prompt, and left form/session coordinates unchanged. |
 | `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#freshNewPointWithEmulatorGpsFixCentersCameraOnly com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` | PASS — `OK (1 test)` on `DBG1017_API34_Camera`, Android 14 API 34 | Reconfirmed after the fused-coordinate policy change that a valid injected fix still centers a fresh form map without writing the form/session coordinates. |
+| Focused `:app:testDebugUnitTest` for `NearbyLocationFixPolicyTest`, `EditMapLocationPolicyTest`, `MapCoordinatePolicyTest`, and `LocationFixQualityPolicyTest` | PASS — `BUILD SUCCESSFUL`; Nearby policy 3 tests, 0 failures | Includes the new fresh-accurate `(0,0)` Nearby fix rejection test; valid fresh coordinates keep the existing timestamp and accuracy behavior. |
+| `:app:assembleDebug :app:assembleDebugAndroidTest` | PASS — `BUILD SUCCESSFUL` | Re-run after the Nearby policy change using the CI build-only `MAPS_API_KEY=ci-placeholder`; ignored `local.properties` was removed after validation. |
 | GitHub Actions Android CI, Run #19, commit `673671a62998352e90a15e6478c7ea15fd6ede51` | NOT VERIFIED — superseded | The push-triggered `Unit tests and debug build` job remained at “Starting job…” after 16 minutes. This run predates the final source fix and cannot validate it. A new run must be checked for the final committed revision. |
 | Physical device | NOT RUN | No physical Android device was attached. |
 
@@ -43,7 +45,7 @@
 - AC-001: `PASS` on Android 14 API 34; the saved-coordinate instrumentation case retained its waypoint camera target.
 - AC-002: `PASS` for tested fresh-add, ordinary blank-edit, offline, and restored form-map flows on Android 14 API 34; provider `(0,0)` is rejected and camera-only coordinate assertions passed.
 - AC-003: `PASS` for the recenter decision policy in unit tests; host-map and point-picker end-to-end movement remains `NOT VERIFIED`.
-- AC-004: `PASS` on Android 14 API 34 with system location disabled; fallback, unavailable prompt, coordinate preservation, and manual pan assertions passed.
+- AC-004: `PASS` for initial blank-form location fallback on Android 14 API 34 and for the Nearby provider policy boundary in unit tests; invalid fresh `(0,0)` is rejected. Full Nearby sheet runtime behavior remains `NOT VERIFIED`.
 - AC-005: `PASS` by source review; both host callbacks keep an absent camera target nullable and omit the camera move.
 - AC-006: `PASS` by source review; the picker Locate handler requests viewport movement, while only Confirm returns the camera target as a result.
 

@@ -946,6 +946,8 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
 		                // than the host/cache location already used for the first query.
 		                val accurate = result.locations.firstOrNull { loc ->
 		                    NearbyLocationFixPolicy.shouldAccept(
+		                        latitude = loc.latitude,
+		                        longitude = loc.longitude,
 		                        locationTimeMillis = loc.time,
 		                        accuracyMeters = loc.accuracy.takeIf { loc.hasAccuracy() },
 		                        nowMillis = now,

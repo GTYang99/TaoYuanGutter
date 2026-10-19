@@ -54,3 +54,13 @@ The host form-opening callbacks synthesize `LatLng(0,0)` if both the selected wa
 - Regression risk: low and localized; the invalid fix should follow the existing retry/fallback/unavailable path and must not mutate form/session coordinates.
 - Minimum fix: use the shared coordinate policy when filtering the provider result and add a mock-provider `(0,0)` regression case asserting the camera remains at fallback and coordinate data remains untouched.
 - Resolution: `GutterFormActivity.startEditMapLocationAttempt()` now calls `MapCoordinatePolicy.isUsableCoordinate()` for fused results. The new `zeroZeroFusedLocationDoesNotMoveBlankFormMap()` instrumentation test passed on Android 14 API 34 and verified fallback camera, unavailable prompt, and unchanged form/session coordinates.
+
+## Developer Audit Follow-up: Nearby Import `(0,0)` Result
+
+- Issue: `ISS-DBG-1019-007`, category `implementation_regression`, priority P2.
+- Observation: A final audit of every form-map camera update found that the Nearby import flow has a separate fused-location callback from the initial form-map flow. It uses `NearbyLocationFixPolicy.shouldAccept()` before calling `showImportMyLocationMarker()`.
+- Root cause: The Nearby policy only checks timestamp and accuracy; it does not validate latitude/longitude with `MapCoordinatePolicy`. Thus an accurate fresh `(0,0)` fix passes and the form map camera moves to the invalid coordinate.
+- Affected files: `GutterFormActivity.kt`, `NearbyLocationFixPolicy.kt`, and `NearbyLocationFixPolicyTest.kt`.
+- Acceptance mapping: AC-004 / FR-005 — an unusable fix must not replace the existing fallback and must follow the unavailable/error path.
+- Minimum fix: pass the candidate coordinate into the Nearby policy and reject any coordinate that `MapCoordinatePolicy` rejects. Add unit coverage for `(0,0)` and preserve the existing freshness/accuracy behavior for valid points.
+- Resolution: `NearbyLocationFixPolicy` now delegates coordinate checks to `MapCoordinatePolicy`; `GutterFormActivity` passes the provider latitude/longitude into the policy before its camera update. The focused policy tests pass, including the new `(0,0)` case.

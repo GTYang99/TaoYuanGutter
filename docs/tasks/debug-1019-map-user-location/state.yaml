@@ -30,11 +30,12 @@ validation:
   debug_build: passed
   android_test_build: passed
   emulator_location: passed_android_14_form_cases
+  nearby_policy: passed
 
 git:
   branch: codex/debug/debug-1019-map-user-location
-  commit: c26dd3f
-  status: committed
+  commit: pending
+  status: pending_commit
 
 verification:
   result: pending
@@ -49,7 +50,7 @@ release:
   status: pending
 
 blocking:
-  - Remote CI for the final committed revision is not verified; the prior run remained at runner startup.
+  - Remote CI for the latest committed revision is still queued; an earlier run remains in progress without steps.
   - Independent Verification is still required.
-  - Host-map and point-picker Locate end-to-end behavior remains unverified; planned policy tests and source review passed.
+  - Host-map, point-picker Locate, and Nearby sheet end-to-end behavior remain unverified; policy tests and source review passed.
 next_action: verification

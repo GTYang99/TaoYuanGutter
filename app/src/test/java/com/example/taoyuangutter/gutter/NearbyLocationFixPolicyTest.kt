@@ -11,6 +11,8 @@ class NearbyLocationFixPolicyTest {
         // still needs to move the Nearby marker/camera and trigger a B query.
         assertTrue(
             NearbyLocationFixPolicy.shouldAccept(
+                latitude = 25.03,
+                longitude = 121.5,
                 locationTimeMillis = 9_950L,
                 accuracyMeters = 4.417f,
                 nowMillis = 10_000L,
@@ -28,8 +30,25 @@ class NearbyLocationFixPolicyTest {
         assertFalse(accept(time = 9_950L, accuracy = null, now = 10_000L))
     }
 
+    @Test
+    fun rejectsFreshAccurateZeroZeroFix() {
+        assertFalse(
+            NearbyLocationFixPolicy.shouldAccept(
+                latitude = 0.0,
+                longitude = 0.0,
+                locationTimeMillis = 9_950L,
+                accuracyMeters = 4.417f,
+                nowMillis = 10_000L,
+                maxAgeMillis = 30_000L,
+                maxAccuracyMeters = 30f
+            )
+        )
+    }
+
     private fun accept(time: Long, accuracy: Float?, now: Long): Boolean =
         NearbyLocationFixPolicy.shouldAccept(
+            latitude = 25.03,
+            longitude = 121.5,
             locationTimeMillis = time,
             accuracyMeters = accuracy,
             nowMillis = now,

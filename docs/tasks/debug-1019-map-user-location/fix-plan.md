@@ -38,3 +38,10 @@
 - Minimum fix: replace the form callback's inline coordinate checks with `MapCoordinatePolicy.isUsableCoordinate()` and preserve its existing retry/fallback behavior.
 - Add an instrumentation case that injects a `(0,0)` fused mock fix, verifies the camera does not target `(0,0)`, and confirms form/session coordinates remain unchanged.
 - Result: implemented in `GutterFormActivity.kt`; `zeroZeroFusedLocationDoesNotMoveBlankFormMap()` passed on Android 14 API 34 with fallback camera, unavailable prompt, and coordinate-preservation assertions.
+
+## Debug Follow-up: Nearby Import `(0,0)` Result
+
+- Finding: `NearbyLocationFixPolicy` is a separate gate for the form's Nearby import flow. It accepts fresh accurate fixes without checking coordinates, so `(0,0)` can reach the map camera.
+- Minimum fix: reuse `MapCoordinatePolicy.isUsableCoordinate()` inside the Nearby fix policy, wire latitude/longitude from the provider callback, and add focused unit cases proving `(0,0)` is rejected while valid fixes retain the existing age and accuracy rules.
+- Validation: run the focused Nearby policy unit test, the existing location-policy unit tests, debug and androidTest builds, and form-map instrumentation on the configured emulator. Record CI separately.
+- Result: implemented and validated with `NearbyLocationFixPolicyTest` (3/3 passed), the focused location-policy test set, `assembleDebug`, and `assembleDebugAndroidTest`. Existing Android 14 form instrumentation covers invalid and valid initial form fixes; this Nearby callback was validated at its policy boundary and by source wiring review.

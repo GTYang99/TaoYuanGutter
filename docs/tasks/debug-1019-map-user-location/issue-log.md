@@ -94,3 +94,22 @@
 - Resolution: the form now validates the fused result with `MapCoordinatePolicy.isUsableCoordinate()`. Invalid `(0,0)` results follow the existing retry/fallback/unavailable path.
 - Validation: `zeroZeroFusedLocationDoesNotMoveBlankFormMap()` passed on `DBG1017_API34_Camera` (Android 14 API 34). The test asserts that the camera stays at fallback, the unavailable prompt appears, and form/session coordinates remain unchanged.
 - Next action: `verification`
+
+## ISS-DBG-1019-007 — Nearby import accepts `(0,0)` from a fresh location update
+
+- Task: `debug-1019-map-user-location`
+- Phase found: developer coverage audit
+- Category: `implementation_regression`
+- Priority: P2
+- Status: verified
+- Impact: While the gutter form is open, the Nearby import flow can move its background map to `(0,0)` when the fused provider returns an accurate fresh fix at that coordinate.
+- Expected: The form map only moves to a usable current-location coordinate; an unusable fix leaves the existing map center and follows the existing unavailable/error path.
+- Actual: `NearbyLocationFixPolicy.shouldAccept()` receives only timestamp and accuracy. A fresh, accurate `(0,0)` fix passes, after which `showImportMyLocationMarker()` animates the form map to `(0,0)`.
+- Evidence:
+  - `app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt:939-961`
+  - `app/src/main/java/com/example/taoyuangutter/gutter/NearbyLocationFixPolicy.kt:4-15`
+  - `app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt:987-1001`
+- Root cause: The Nearby-specific acceptance policy checks only freshness and accuracy and does not use `MapCoordinatePolicy`.
+- Resolution: The policy now receives latitude and longitude and rejects any coordinate not accepted by `MapCoordinatePolicy.isUsableCoordinate()`; the callback passes the provider result through this gate before moving the camera.
+- Validation: `NearbyLocationFixPolicyTest` passed (3 tests, 0 failures), including a fresh accurate `(0,0)` regression case. Debug app and instrumentation APK builds passed.
+- Next action: `verification`
