@@ -43,14 +43,13 @@ verification:
   failed_acceptance_criteria: []
 
 ci:
-  build: not_verified
-  test: not_verified
+  build: passed
+  test: passed
 
 release:
   status: pending
 
 blocking:
-  - Remote CI for the latest committed revision is still queued; an earlier run remains in progress without steps.
   - Independent Verification is still required.
   - Host-map, point-picker Locate, and Nearby sheet end-to-end behavior remain unverified; policy tests and source review passed.
 next_action: verification

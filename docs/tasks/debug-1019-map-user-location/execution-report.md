@@ -31,7 +31,8 @@
 | Focused `:app:testDebugUnitTest` for `NearbyLocationFixPolicyTest`, `EditMapLocationPolicyTest`, `MapCoordinatePolicyTest`, and `LocationFixQualityPolicyTest` | PASS — `BUILD SUCCESSFUL`; Nearby policy 3 tests, 0 failures | Includes the new fresh-accurate `(0,0)` Nearby fix rejection test; valid fresh coordinates keep the existing timestamp and accuracy behavior. |
 | `:app:assembleDebug :app:assembleDebugAndroidTest` | PASS — `BUILD SUCCESSFUL` | Re-run after the Nearby policy change using the CI build-only `MAPS_API_KEY=ci-placeholder`; ignored `local.properties` was removed after validation. |
 | GitHub Actions Android CI, Run #19, commit `673671a62998352e90a15e6478c7ea15fd6ede51` | NOT VERIFIED — superseded | The job remained in progress without any recorded steps long after runner startup. It predates both source fixes and cannot validate them. |
-| GitHub Actions Android CI, Run #20, commit `6468e8903ba2985a3a85c5732e235e55783380f8` | NOT VERIFIED — superseded | The run is queued behind Run #19 and predates the latest Nearby policy fix. CI for the latest pushed revision remains to be checked. |
+| GitHub Actions Android CI, Run #20, commit `6468e8903ba2985a3a85c5732e235e55783380f8` | NOT VERIFIED — superseded | The run was queued behind Run #19 and predates the latest Nearby policy fix, so it cannot validate the final source revision. |
+| GitHub Actions Android CI, Run #21, commit `7b1780f3bfab9507c055e74b335090683788c05c` | PASS | `Unit tests and debug build` completed successfully, including task-scoped JVM tests and debug APK assembly. This revision contains both source fixes. |
 | Physical device | NOT RUN | No physical Android device was attached. |
 
 ## Build Details
