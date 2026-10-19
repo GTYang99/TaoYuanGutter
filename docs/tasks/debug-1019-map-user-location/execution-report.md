@@ -23,7 +23,7 @@
 | `git diff --check` | PASS | No whitespace errors. |
 | Focused `EditMapInitialLocationInstrumentedTest` cases on `DBG1017_API34_Camera`, Android 14 API 34, with the configured Maps key | PASS — saved coordinate, ordinary blank edit, offline blank, restored blank, `(0,0)` rejection, and corrected fresh-add cases each passed individually | Fresh-add test initially failed because it expected Taipei without setting the mock location. The failure was classified as a fixture defect (ISS-DBG-1019-005); after adding setup/cleanup, the targeted rerun passed. Earlier Android 16 test runs used an invalid Maps key and are historical environment failures (ISS-DBG-1019-004). |
 | `ANDROID_SERIAL=emulator-5554 :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#freshNewPointWithEmulatorGpsFixCentersCameraOnly` | PASS — 1 test, 0 failures; Android 14 API 34 | Result: `app/build/outputs/androidTest-results/connected/debug/TEST-DBG1017_API34_Camera(AVD) - 14.xml`. Confirms camera-only centering on the injected point for fresh-add flow. |
-| Remote CI | NOT RUN | No CI run or status is available in this local task context. |
+| Remote CI | NOT VERIFIED | The task branch was pushed to GitHub. Its combined commit status returned no checks, and the available workflow-run lookup returned no runs; push-triggered CI status could not be confirmed. |
 | Physical device | NOT RUN | No physical Android device was attached. |
 
 ## Build Details
@@ -45,4 +45,4 @@
 
 ## Handoff
 
-- Independent Verification and remote CI are still required. Host/picker end-to-end Locate behavior, AC-004 runtime fallback, and physical-device behavior remain unverified; do not mark the task done or advance to Release yet.
+- Independent Verification and a confirmed remote CI result are still required. Host/picker end-to-end Locate behavior, AC-004 runtime fallback, and physical-device behavior remain unverified; do not mark the task done or advance to Release yet.
