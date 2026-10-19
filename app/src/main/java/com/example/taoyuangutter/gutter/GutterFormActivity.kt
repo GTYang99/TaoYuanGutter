@@ -1743,8 +1743,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
                 if (editMapLocationCancellation !== cancellation) return@addOnSuccessListener
                 stopEditMapLocationAttempt()
                 val validLocation = location?.takeIf {
-                    it.latitude.isFinite() && it.longitude.isFinite() &&
-                        it.latitude in -90.0..90.0 && it.longitude in -180.0..180.0
+                    MapCoordinatePolicy.isUsableCoordinate(it.latitude, it.longitude)
                 }
                 if (validLocation == null) {
                     onEditMapLocationAttemptFailed()

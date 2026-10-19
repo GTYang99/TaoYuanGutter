@@ -5,6 +5,7 @@
 - `GutterFormActivity` treats a `(0,0)` waypoint snapshot as a valid target because it checks only for non-null latitude/longitude.
 - `MyLocationController` applies a cached fix first and rejects a newer fix unless its accuracy improves by at least 10 m. Explicit locate actions can therefore finish at the cached coordinate.
 - Both host `openWaypointForEdit` callbacks substitute `(0,0)` when the map camera target is unavailable. The camera controller currently no-ops without a map, but the sentinel should not be passed as a target.
+- `GutterFormActivity` validates a fused location result with finite/range checks but omits `MapCoordinatePolicy`, so a provider result of `(0,0)` can still move a blank form map to `(0,0)`.
 
 ## Minimum Fix Boundary
 - Make initial location eligibility depend on an editable form, absence of a usable waypoint coordinate, and non-read-only state; do not exclude offline/restored editable forms.
@@ -12,6 +13,7 @@
 - Add a fresh-preference option to the existing shared location controller for explicit locate actions. Prefer a newer usable fix, then fall back to the cached fix if the fresh request fails or is unusable.
 - Make the host form handoff camera target nullable and skip the host camera move when neither the waypoint nor host map supplies a target.
 - Add focused unit and emulator regression coverage for policy, camera-only behavior, saved-point precedence, latest-fix recentering, and no-map-target handling.
+- Apply the shared coordinate policy to fused form-map results so `(0,0)` follows the existing retry/fallback path; cover this with provider-result instrumentation and coordinate-preservation assertions.
 
 ## Risks
 - Editable offline/restored blank forms may request foreground location permission on open; this follows the clarified blank-map behavior and reuses the existing flow.
@@ -29,3 +31,10 @@
 - Classification: test-fixture defect (ISS-DBG-1019-005); this result does not establish a production location regression.
 - Minimum fix: set the test provider to `testPoint` before launching the form and clear it in `finally`, matching the other location instrumentation cases.
 - No production code change is included in this follow-up. Rerun this targeted case once after the fixture correction.
+
+## Debug Follow-up: `(0,0)` Location Provider Result
+- Failed criteria: AC-002 and AC-003; the form accepts `(0,0)` from the location provider and can move the camera there.
+- Classification: implementation regression (ISS-DBG-1019-006), priority P2.
+- Minimum fix: replace the form callback's inline coordinate checks with `MapCoordinatePolicy.isUsableCoordinate()` and preserve its existing retry/fallback behavior.
+- Add an instrumentation case that injects a `(0,0)` fused mock fix, verifies the camera does not target `(0,0)`, and confirms form/session coordinates remain unchanged.
+- Result: implemented in `GutterFormActivity.kt`; `zeroZeroFusedLocationDoesNotMoveBlankFormMap()` passed on Android 14 API 34 with fallback camera, unavailable prompt, and coordinate-preservation assertions.

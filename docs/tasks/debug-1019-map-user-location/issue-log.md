@@ -79,3 +79,18 @@
 - Evidence: `app/src/androidTest/java/com/example/taoyuangutter/gutter/EditMapInitialLocationInstrumentedTest.kt`; neighboring fused-location tests set and clear the mock provider.
 - Resolution: added mock setup and `finally` cleanup; the corrected fixture passed on Android 14 API 34. No production code change was needed.
 - Next action: `verification`
+
+## ISS-DBG-1019-006 — Form accepts `(0,0)` from the location provider
+
+- Task: `debug-1019-map-user-location`
+- Phase found: verification source review
+- Category: `implementation_regression`
+- Priority: P2
+- Status: verified
+- Impact: A blank gutter form can move its camera to `(0,0)` if the fused provider returns that coordinate.
+- Expected: `(0,0)` is unusable for camera centering; retry or retain the existing fallback without modifying form/session coordinates.
+- Actual: Before the fix, `GutterFormActivity.startEditMapLocationAttempt()` checked only finite values and geographic ranges, which includes `(0,0)`.
+- Evidence: `app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt`; `MapCoordinatePolicy.isUsableCoordinate()` explicitly rejects `(0,0)`; existing zero-zero instrumentation only covers the saved waypoint.
+- Resolution: the form now validates the fused result with `MapCoordinatePolicy.isUsableCoordinate()`. Invalid `(0,0)` results follow the existing retry/fallback/unavailable path.
+- Validation: `zeroZeroFusedLocationDoesNotMoveBlankFormMap()` passed on `DBG1017_API34_Camera` (Android 14 API 34). The test asserts that the camera stays at fallback, the unavailable prompt appears, and form/session coordinates remain unchanged.
+- Next action: `verification`

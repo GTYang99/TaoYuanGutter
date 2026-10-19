@@ -31,15 +31,26 @@ The host form-opening callbacks synthesize `LatLng(0,0)` if both the selected wa
 - `ISS-DBG-1019-003`: source-confirmed invalid host-camera fallback. A `(0,0)` target was possible only when both the waypoint and map target were missing. Both callbacks now keep the target nullable and skip camera movement when no usable point exists.
 - `ISS-DBG-1019-004`: `environment` for the earlier Android 16 emulator run, where mock location did not reach GMS under an invalid Maps key. The same restored blank-form case passes on Android 14 API 34 with the configured key.
 - `ISS-DBG-1019-005`: `environment` (test fixture) for the fresh-add instrumentation failure. The test omitted mock-location setup, so the emulator's default Mountain View location was a valid result; add the expected test fix before judging that case.
+- `ISS-DBG-1019-006`: `implementation_regression` for the form's live location callback. It checks finite/ranged latitude and longitude inline, so `(0,0)` passes and is sent to `CameraUpdateFactory`; the shared `MapCoordinatePolicy` that rejects `(0,0)` is used for saved form targets but not this callback.
 
 ## Confidence and Limits
 
 - High confidence in the source-level causes: blank offline/restored forms were excluded, `(0,0)` could be treated as a saved camera target or synthesized host target, and the shared controller applied a fixed 10 m accuracy improvement threshold.
-- Unit tests and affected debug APKs pass. Saved-coordinate, ordinary blank-edit, restored blank, offline blank, and `(0,0)` rejection camera cases pass on Android 14 API 34; the fresh-add case is pending a fixture-corrected rerun.
+- Focused unit tests and affected debug APKs pass. Saved-coordinate, ordinary blank-edit, restored blank, offline blank, fresh-add, no-fix fallback, saved `(0,0)`, and fused-provider `(0,0)` cases pass on Android 14 API 34.
 - There is no physical-device evidence, and host-map/point-picker Locate actions lack end-to-end runtime coverage. Confidence is good for the exercised form-map cases and limited for those remaining flows.
 
 ## Debug Follow-up: Fresh-Add Instrumentation Failure
 
-- Failed case: `freshNewPointWithEmulatorGpsFixCentersCameraOnly()` expected Taipei but did not call `setMockLocation(testPoint)`. The emulator returned its default Mountain View fix, matching the observed camera target.
+- Failed case: `freshNewPointWithEmulatorGpsFixCentersCameraOnly()` initially expected Taipei but did not call `setMockLocation(testPoint)`. The emulator returned its default Mountain View fix, matching the observed camera target.
 - This is a test-fixture defect, not evidence of a production camera/location regression. The minimum correction is to inject the expected fix and clear the provider in `finally`.
-- No production location-request change is justified by this failure; the targeted case must be rerun once after correcting the fixture.
+- No production location-request change was justified by this failure. After correcting the fixture, the targeted case passed on Android 14 API 34.
+
+## Debug Follow-up: `(0,0)` Location Provider Result
+
+- Failed requirement: AC-002 requires a usable current fix for a blank form; AC-003 requires invalid fixes not to replace a usable fallback. `(0,0)` is explicitly unusable under the approved coordinate policy.
+- Root cause: `GutterFormActivity.startEditMapLocationAttempt()` accepts any finite in-range provider result. Unlike `MyLocationController`, it does not call `MapCoordinatePolicy.isUsableCoordinate()`, so a `(0,0)` provider fix is treated as a valid camera target.
+- Evidence: `GutterFormActivity.kt` validates only finiteness/ranges before moving the camera; `MapCoordinatePolicy.kt` rejects `(0,0)`; the existing zero-zero instrumentation covers a saved waypoint sentinel, not a provider result.
+- Affected files: `GutterFormActivity.kt` and `EditMapInitialLocationInstrumentedTest.kt`.
+- Regression risk: low and localized; the invalid fix should follow the existing retry/fallback/unavailable path and must not mutate form/session coordinates.
+- Minimum fix: use the shared coordinate policy when filtering the provider result and add a mock-provider `(0,0)` regression case asserting the camera remains at fallback and coordinate data remains untouched.
+- Resolution: `GutterFormActivity.startEditMapLocationAttempt()` now calls `MapCoordinatePolicy.isUsableCoordinate()` for fused results. The new `zeroZeroFusedLocationDoesNotMoveBlankFormMap()` instrumentation test passed on Android 14 API 34 and verified fallback camera, unavailable prompt, and unchanged form/session coordinates.

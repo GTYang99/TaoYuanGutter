@@ -421,6 +421,41 @@ class EditMapInitialLocationInstrumentedTest {
     }
 
     @Test
+    fun zeroZeroFusedLocationDoesNotMoveBlankFormMap() {
+        grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        val injectedLocation = LatLng(0.0, 0.0)
+        val fallback = LatLng(24.9929, 121.3011)
+
+        try {
+            setMockLocation(injectedLocation)
+            launchForm(isEditMode = true, waypoint = waypoint(latitude = null, longitude = null)).use { scenario ->
+                awaitLocationFlowFinish(scenario)
+                val actual = cameraTarget(scenario)
+                assertNotNull("Blank form map camera was not initialized", actual)
+                assertTrue(
+                    "Invalid fused (0,0) fix moved the blank form map off its fallback: $actual",
+                    distanceMeters(fallback, actual!!) <= 100.0
+                )
+                onView(withText(R.string.edit_map_location_unavailable_title)).check(matches(isDisplayed()))
+                scenario.onActivity { activity ->
+                    assertEquals(0.0, readField<Double>(activity, "currentLat"), 0.0)
+                    assertEquals(0.0, readField<Double>(activity, "currentLng"), 0.0)
+                    @Suppress("UNCHECKED_CAST")
+                    val formData = readField<HashMap<String, String>>(activity, "currentFormData")
+                    assertTrue(formData["NODE_X"].isNullOrBlank())
+                    assertTrue(formData["NODE_Y"].isNullOrBlank())
+                    val savedWaypoint = readField<List<WaypointSnapshot>>(activity, "sessionWaypoints")[0]
+                    assertEquals(null, savedWaypoint.latitude)
+                    assertEquals(null, savedWaypoint.longitude)
+                }
+            }
+        } finally {
+            setMockLocation(null)
+        }
+    }
+
+    @Test
     fun unmarkedNewPointKeepsTaoyuanFallback() {
         grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)

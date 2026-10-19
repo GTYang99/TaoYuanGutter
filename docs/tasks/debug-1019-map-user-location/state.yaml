@@ -18,23 +18,23 @@ plan_review:
 
 implementation:
   status: completed
-  mode: bugfix
+  mode: debug_fix
 
 debug:
   status: completed
   root_cause: identified
 
 validation:
-  status: completed_with_limitations
-  unit_tests: passed_10_of_10
+  status: completed
+  unit_tests: passed
   debug_build: passed
   android_test_build: passed
   emulator_location: passed_android_14_form_cases
 
 git:
   branch: codex/debug/debug-1019-map-user-location
-  commit: 69d1566
-  status: committed
+  commit: pending
+  status: pending_commit
 
 verification:
   result: pending
@@ -49,7 +49,7 @@ release:
   status: pending
 
 blocking:
-  - Host-map and point-picker Locate end-to-end behavior and AC-004 no-fix runtime fallback remain unverified.
-  - Physical device testing is not available.
-  - Remote CI status and independent Verification are still required.
+  - Remote CI for the final committed revision is not verified; the prior run remained at runner startup.
+  - Independent Verification is still required.
+  - Host-map and point-picker Locate end-to-end behavior remains unverified; planned policy tests and source review passed.
 next_action: verification
