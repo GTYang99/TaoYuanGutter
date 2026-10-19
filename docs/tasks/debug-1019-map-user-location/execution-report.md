@@ -3,6 +3,7 @@
 ## Revision
 
 - Branch: `codex/debug/debug-1019-map-user-location`
+- Implementation commit: `c26dd3f` (`fix(debug-1019-map-user-location): reject zero-zero provider fixes`)
 - Baseline implementation commit: `3e78cfcca0f55a57f518c46490237e1b97ed5ad0`
 - Follow-up: corrected the fresh-add instrumentation fixture and fixed the remaining fused-provider `(0,0)` acceptance path. The latest source revision is being committed after local validation.
 
