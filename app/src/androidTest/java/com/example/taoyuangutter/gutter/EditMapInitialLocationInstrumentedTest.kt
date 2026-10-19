@@ -277,39 +277,44 @@ class EditMapInitialLocationInstrumentedTest {
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
         val testPoint = LatLng(25.03, 121.5)
 
-        launchForm(
-            isEditMode = false,
-            waypoint = waypoint(latitude = null, longitude = null),
-            isNewAddForm = true
-        ).use { scenario ->
-            val actual = awaitCameraTarget(scenario, testPoint, toleranceMeters = 100.0)
-            assertNotNull("Fresh new-point form did not center on the emulator GPS fix", actual)
-            val distance = distanceMeters(testPoint, actual!!)
-            var attempt = 0
-            var flowActive = false
-            var userMoved = false
-            scenario.onActivity { activity ->
-                attempt = readField<Int>(activity, "editMapLocationAttempt")
-                flowActive = readField<Boolean>(activity, "editMapLocationFlowActive")
-                userMoved = readField<Boolean>(activity, "editMapLocationUserMoved")
+        try {
+            setMockLocation(testPoint)
+            launchForm(
+                isEditMode = false,
+                waypoint = waypoint(latitude = null, longitude = null),
+                isNewAddForm = true
+            ).use { scenario ->
+                val actual = awaitCameraTarget(scenario, testPoint, toleranceMeters = 100.0)
+                assertNotNull("Fresh new-point form did not center on the emulator GPS fix", actual)
+                val distance = distanceMeters(testPoint, actual!!)
+                var attempt = 0
+                var flowActive = false
+                var userMoved = false
+                scenario.onActivity { activity ->
+                    attempt = readField<Int>(activity, "editMapLocationAttempt")
+                    flowActive = readField<Boolean>(activity, "editMapLocationFlowActive")
+                    userMoved = readField<Boolean>(activity, "editMapLocationUserMoved")
+                }
+                assertTrue(
+                    "Camera target=$actual, distance=${distance}m, location attempt=$attempt, flowActive=$flowActive, userMoved=$userMoved",
+                    distance <= 100.0
+                )
+                awaitLocationFlowFinish(scenario)
+                scenario.onActivity { activity ->
+                    assertEquals(0.0, readField<Double>(activity, "currentLat"), 0.0)
+                    assertEquals(0.0, readField<Double>(activity, "currentLng"), 0.0)
+                    @Suppress("UNCHECKED_CAST")
+                    val formData = readField<HashMap<String, String>>(activity, "currentFormData")
+                    assertTrue("Location must not populate NODE_X", formData["NODE_X"].isNullOrBlank())
+                    assertTrue("Location must not populate NODE_Y", formData["NODE_Y"].isNullOrBlank())
+                    val savedWaypoint = readField<List<WaypointSnapshot>>(activity, "sessionWaypoints")[0]
+                    assertEquals(null, savedWaypoint.latitude)
+                    assertEquals(null, savedWaypoint.longitude)
+                }
+                onView(withText(R.string.edit_map_location_unavailable_title)).check(doesNotExist())
             }
-            assertTrue(
-                "Camera target=$actual, distance=${distance}m, location attempt=$attempt, flowActive=$flowActive, userMoved=$userMoved",
-                distance <= 100.0
-            )
-            awaitLocationFlowFinish(scenario)
-            scenario.onActivity { activity ->
-                assertEquals(0.0, readField<Double>(activity, "currentLat"), 0.0)
-                assertEquals(0.0, readField<Double>(activity, "currentLng"), 0.0)
-                @Suppress("UNCHECKED_CAST")
-                val formData = readField<HashMap<String, String>>(activity, "currentFormData")
-                assertTrue("Location must not populate NODE_X", formData["NODE_X"].isNullOrBlank())
-                assertTrue("Location must not populate NODE_Y", formData["NODE_Y"].isNullOrBlank())
-                val savedWaypoint = readField<List<WaypointSnapshot>>(activity, "sessionWaypoints")[0]
-                assertEquals(null, savedWaypoint.latitude)
-                assertEquals(null, savedWaypoint.longitude)
-            }
-            onView(withText(R.string.edit_map_location_unavailable_title)).check(doesNotExist())
+        } finally {
+            setMockLocation(null)
         }
     }
 
@@ -336,6 +341,8 @@ class EditMapInitialLocationInstrumentedTest {
                 assertTrue(distanceMeters(testPoint, actual!!) <= 100.0)
                 awaitLocationFlowFinish(scenario)
                 scenario.onActivity { activity ->
+                    assertEquals(0.0, readField<Double>(activity, "currentLat"), 0.0)
+                    assertEquals(0.0, readField<Double>(activity, "currentLng"), 0.0)
                     assertTrue(readField<HashMap<String, String>>(activity, "currentFormData")["NODE_X"].isNullOrBlank())
                     assertTrue(readField<HashMap<String, String>>(activity, "currentFormData")["NODE_Y"].isNullOrBlank())
                     @Suppress("UNCHECKED_CAST")
@@ -367,14 +374,18 @@ class EditMapInitialLocationInstrumentedTest {
                 assertTrue(distanceMeters(testPoint, actual!!) <= 100.0)
                 awaitLocationFlowFinish(scenario)
                 scenario.onActivity { activity ->
+                    assertEquals(0.0, readField<Double>(activity, "currentLat"), 0.0)
+                    assertEquals(0.0, readField<Double>(activity, "currentLng"), 0.0)
                     @Suppress("UNCHECKED_CAST")
                     val formData = readField<HashMap<String, String>>(activity, "currentFormData")
-                    assertTrue(formData["NODE_X"].isNullOrBlank())
-                    assertTrue(formData["NODE_Y"].isNullOrBlank())
+                    // Offline form initialization uses 0.0 as its existing missing-coordinate sentinel.
+                    // Camera-only location must keep the sentinel instead of persisting the injected fix.
+                    assertEquals("0.0", formData["NODE_X"])
+                    assertEquals("0.0", formData["NODE_Y"])
                     @Suppress("UNCHECKED_CAST")
                     val savedWaypoint = readField<List<WaypointSnapshot>>(activity, "sessionWaypoints")[0]
-                    assertEquals(null, savedWaypoint.latitude)
-                    assertEquals(null, savedWaypoint.longitude)
+                    assertEquals(0.0, savedWaypoint.latitude!!, 0.0)
+                    assertEquals(0.0, savedWaypoint.longitude!!, 0.0)
                 }
             }
         } finally {

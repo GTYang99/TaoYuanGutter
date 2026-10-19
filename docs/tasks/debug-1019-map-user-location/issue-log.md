@@ -58,9 +58,24 @@
 - Phase found: implementation validation
 - Category: `environment`
 - Priority: P2
-- Status: open
+- Status: resolved
 - Impact: The emulator cannot provide end-to-end evidence for blank restored/offline form centering.
 - Expected: The mock fused fix centers the blank form map while leaving form and waypoint coordinates unchanged.
-- Actual: `restoredBlankFormWithoutFreshAddFlagUsesLocationCameraOnly` fails at the camera-center assertion in `EditMapInitialLocationInstrumentedTest.kt:336` after the high-accuracy request change.
+- Actual: The earlier Android 16 run with an invalid Maps key did not deliver the injected fix. With the configured project key, the restored blank-form case passes on Android 14 API 34.
 - Evidence: `app/build/outputs/androidTest-results/connected/debug/TEST-Medium_Phone(AVD) - 16.xml`; prior device diagnostics recorded the mock fix in the Android location service, but GMS location calls did not produce a callback. Emulator Google Maps/GMS setup is not valid for this integration check.
-- Next action: verification on an emulator with working Google Play Services location or a physical Android device
+- Resolution: validated the restored, offline, ordinary blank-edit, saved-point, and `(0,0)` cases on Android 14 API 34 with the configured Maps key.
+- Limitation: no physical-device run; the earlier Android 16 environment failure remains historical evidence.
+
+## ISS-DBG-1019-005 — Fresh-add instrumentation omitted its mock-location setup
+
+- Task: `debug-1019-map-user-location`
+- Phase found: debug
+- Category: `environment` (test fixture)
+- Priority: P3
+- Status: verified
+- Impact: The fresh-add instrumentation expected the Taipei mock fix but could instead receive the emulator's default Google location.
+- Expected: The new-point form centers on the injected test coordinate while leaving form/session coordinates unchanged.
+- Actual: `freshNewPointWithEmulatorGpsFixCentersCameraOnly()` did not call `setMockLocation(testPoint)`; the camera target was Mountain View.
+- Evidence: `app/src/androidTest/java/com/example/taoyuangutter/gutter/EditMapInitialLocationInstrumentedTest.kt`; neighboring fused-location tests set and clear the mock provider.
+- Resolution: added mock setup and `finally` cleanup; the corrected fixture passed on Android 14 API 34. No production code change was needed.
+- Next action: `verification`

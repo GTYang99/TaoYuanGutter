@@ -3,8 +3,8 @@
 ## Revision
 
 - Branch: `codex/debug/debug-1019-map-user-location`
-- Implementation commit: `3e78cfcca0f55a57f518c46490237e1b97ed5ad0`
-- Working tree was clean immediately after the implementation commit. This report and state update are a documentation-only follow-up.
+- Baseline implementation commit: `3e78cfcca0f55a57f518c46490237e1b97ed5ad0`
+- Follow-up: corrected the fresh-add instrumentation fixture and recorded the Android 14 API 34 result; see `state.yaml` for the task branch revision.
 
 ## Implementation
 
@@ -21,9 +21,10 @@
 | Focused `:app:testDebugUnitTest` for `EditMapLocationPolicyTest`, `MapCoordinatePolicyTest`, and `LocationFixQualityPolicyTest` | PASS — 10 tests, 0 failures, confirmed in the three JUnit XML reports | Covers eligibility, coordinate validity, cached-fix freshness, and explicit recenter policy. |
 | `:app:assembleDebug :app:assembleDebugAndroidTest` | PASS — `BUILD SUCCESSFUL` | Artifacts: `app/build/outputs/apk/debug/app-debug.apk` and `app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk`. The Kotlin incremental compiler reported a temporary-file exception, fell back to non-incremental compilation, and completed successfully. |
 | `git diff --check` | PASS | No whitespace errors. |
-| `ANDROID_SERIAL=emulator-5554 :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#restoredBlankFormWithoutFreshAddFlagUsesLocationCameraOnly` | FAIL at `EditMapInitialLocationInstrumentedTest.kt:336`; test waited 40.9 s and the camera remained away from the injected test point | After enabling the AVD mock-location provider, Android's location service showed the mock fix, but the fused location callback still did not reach the form. The same case failed again after changing the form request to high accuracy. Classify this as an emulator/GMS environment limitation; AC-002 remains `NOT VERIFIED`. See `ISS-DBG-1019-004`. |
+| Focused `EditMapInitialLocationInstrumentedTest` cases on `DBG1017_API34_Camera`, Android 14 API 34, with the configured Maps key | PASS — saved coordinate, ordinary blank edit, offline blank, restored blank, `(0,0)` rejection, and corrected fresh-add cases each passed individually | Fresh-add test initially failed because it expected Taipei without setting the mock location. The failure was classified as a fixture defect (ISS-DBG-1019-005); after adding setup/cleanup, the targeted rerun passed. Earlier Android 16 test runs used an invalid Maps key and are historical environment failures (ISS-DBG-1019-004). |
+| `ANDROID_SERIAL=emulator-5554 :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#freshNewPointWithEmulatorGpsFixCentersCameraOnly` | PASS — 1 test, 0 failures; Android 14 API 34 | Result: `app/build/outputs/androidTest-results/connected/debug/TEST-DBG1017_API34_Camera(AVD) - 14.xml`. Confirms camera-only centering on the injected point for fresh-add flow. |
 | Remote CI | NOT RUN | No CI run or status is available in this local task context. |
-| Physical device | NOT RUN | No physical Android device was attached; Android emulator was API 36, serial `emulator-5554`. |
+| Physical device | NOT RUN | No physical Android device was attached. |
 
 ## Build Details
 
@@ -31,17 +32,17 @@
 - Build variant: `debug`
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
 - Instrumentation APK: `app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk`
-- A temporary ignored `local.properties` with a non-secret placeholder Maps key was used only to allow local builds; it is not part of the task changes.
+- An ignored local `local.properties` was used for local Maps-enabled emulator validation. It is not part of the task changes and was removed after testing.
 
 ## Acceptance-Criteria Evidence Snapshot
 
-- AC-001: `NOT VERIFIED` by emulator; source preserves a usable saved coordinate and the focused unit policy is covered, but no successful camera instrumentation result is retained for the final revision.
-- AC-002: `NOT VERIFIED`; the restored blank-form instrumentation case fails because the emulator does not deliver its injected fused fix.
-- AC-003: `PASS` for the recenter decision rule in unit tests; host/picker end-to-end movement remains unverified.
-- AC-004: `PASS` for fallback and unavailable prompt assertions in the focused instrumentation run before its later manual-gesture assertion; the manual-pan gesture is `NOT VERIFIED` because this AVD has an invalid Maps SDK key.
+- AC-001: `PASS` on Android 14 API 34; the saved-coordinate instrumentation case retained its waypoint camera target.
+- AC-002: `PASS` for tested fresh-add, ordinary blank-edit, offline, and restored form-map flows on Android 14 API 34; camera-only coordinate assertions passed.
+- AC-003: `PASS` for the recenter decision policy in unit tests; host-map and point-picker end-to-end movement remains `NOT VERIFIED`.
+- AC-004: `NOT VERIFIED` on the final configured emulator run; no-fix fallback/unavailable behavior is covered in source and existing test code but lacks a final retained runtime result.
 - AC-005: `PASS` by source review; both host callbacks keep an absent camera target nullable and omit the camera move.
 - AC-006: `PASS` by source review; the picker Locate handler requests viewport movement, while only Confirm returns the camera target as a result.
 
 ## Handoff
 
-- Independent Verification and remote CI are still required. Do not mark the task done or advance to Release while AC-002 and other device-dependent evidence remain unverified.
+- Independent Verification and remote CI are still required. Host/picker end-to-end Locate behavior, AC-004 runtime fallback, and physical-device behavior remain unverified; do not mark the task done or advance to Release yet.

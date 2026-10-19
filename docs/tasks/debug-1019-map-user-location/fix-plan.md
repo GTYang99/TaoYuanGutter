@@ -23,3 +23,9 @@
 - Build the debug app and androidTest APK.
 - Run focused gutter-form instrumentation cases on the configured emulator only, explicitly selecting its serial.
 - Record any unavailable runtime or CI evidence as `NOT VERIFIED`.
+
+## Debug Follow-up: Fresh-Add Instrumentation Failure
+- Failed case: `freshNewPointWithEmulatorGpsFixCentersCameraOnly()` expected the injected Taipei coordinate, but its setup omitted `setMockLocation(testPoint)`. The emulator supplied its default Mountain View coordinate instead.
+- Classification: test-fixture defect (ISS-DBG-1019-005); this result does not establish a production location regression.
+- Minimum fix: set the test provider to `testPoint` before launching the form and clear it in `finally`, matching the other location instrumentation cases.
+- No production code change is included in this follow-up. Rerun this targeted case once after the fixture correction.

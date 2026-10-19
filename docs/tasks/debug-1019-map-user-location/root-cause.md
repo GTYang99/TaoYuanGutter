@@ -26,13 +26,20 @@ The host form-opening callbacks synthesize `LatLng(0,0)` if both the selected wa
 
 ## Classification
 
-- `ISS-DBG-1019-001`: `requirement_gap` / scope expansion for blank offline/restored form maps. The prior exclusion belonged to the earlier fresh-add scope. The user clarified that blank editable forms should use current location while valid saved points remain centered; this is captured in the approved requirement and plan. Eligibility and coordinate checks are implemented; end-to-end location centering remains unverified in the current emulator.
+- `ISS-DBG-1019-001`: `requirement_gap` / scope expansion for blank offline/restored form maps. The prior exclusion belonged to the earlier fresh-add scope. The user clarified that blank editable forms should use current location while valid saved points remain centered; this is captured in the approved requirement and plan. Eligibility and coordinate checks are implemented; Android 14 end-to-end cases now pass.
 - `ISS-DBG-1019-002`: `unknown` for the shared locate-button refinement path. The former accuracy gate is removed for fresh-preferred host and picker actions, with a usable cached fix retained as fallback. Unit coverage passes, but this task has no successful runtime capture from those buttons.
 - `ISS-DBG-1019-003`: source-confirmed invalid host-camera fallback. A `(0,0)` target was possible only when both the waypoint and map target were missing. Both callbacks now keep the target nullable and skip camera movement when no usable point exists.
-- `ISS-DBG-1019-004`: `environment` for emulator location integration. The restored blank-form test still does not receive or apply the injected fused fix on Android 16 emulator `emulator-5554`, despite enabling its mock provider and switching the form request to high accuracy. The test fails at its expected camera-center assertion; do not treat it as evidence that a real-device path passes.
+- `ISS-DBG-1019-004`: `environment` for the earlier Android 16 emulator run, where mock location did not reach GMS under an invalid Maps key. The same restored blank-form case passes on Android 14 API 34 with the configured key.
+- `ISS-DBG-1019-005`: `environment` (test fixture) for the fresh-add instrumentation failure. The test omitted mock-location setup, so the emulator's default Mountain View location was a valid result; add the expected test fix before judging that case.
 
 ## Confidence and Limits
 
 - High confidence in the source-level causes: blank offline/restored forms were excluded, `(0,0)` could be treated as a saved camera target or synthesized host target, and the shared controller applied a fixed 10 m accuracy improvement threshold.
-- Unit tests and the affected debug APKs pass after the changes. The emulator did not return a fused location to the restored blank-form test, so runtime confidence for AC-002 is low and that criterion remains `NOT VERIFIED`.
-- The static source path does not prove that the current user's device actually hit any of the former branches. No successful physical-device or valid-GMS end-to-end run is available in this task.
+- Unit tests and affected debug APKs pass. Saved-coordinate, ordinary blank-edit, restored blank, offline blank, and `(0,0)` rejection camera cases pass on Android 14 API 34; the fresh-add case is pending a fixture-corrected rerun.
+- There is no physical-device evidence, and host-map/point-picker Locate actions lack end-to-end runtime coverage. Confidence is good for the exercised form-map cases and limited for those remaining flows.
+
+## Debug Follow-up: Fresh-Add Instrumentation Failure
+
+- Failed case: `freshNewPointWithEmulatorGpsFixCentersCameraOnly()` expected Taipei but did not call `setMockLocation(testPoint)`. The emulator returned its default Mountain View fix, matching the observed camera target.
+- This is a test-fixture defect, not evidence of a production camera/location regression. The minimum correction is to inject the expected fix and clear the provider in `finally`.
+- No production location-request change is justified by this failure; the targeted case must be rerun once after correcting the fixture.
