@@ -3,9 +3,10 @@
 ## Revision
 
 - Branch: `codex/debug/debug-1019-map-user-location`
-- Implementation commit: `c26dd3f` (`fix(debug-1019-map-user-location): reject zero-zero provider fixes`)
+- Earlier source fix: `c26dd3f` (`fix(debug-1019-map-user-location): reject zero-zero provider fixes`)
+- Latest source fix: `1e896f1` (`fix(debug-1019-map-user-location): reject invalid nearby fixes`)
 - Baseline implementation commit: `3e78cfcca0f55a57f518c46490237e1b97ed5ad0`
-- Follow-up: corrected the fresh-add instrumentation fixture and fixed the fused-provider `(0,0)` paths in both initial form centering and Nearby import. The Nearby policy fix was locally validated and is being committed.
+- Follow-up: corrected the fresh-add instrumentation fixture and fixed the fused-provider `(0,0)` paths in both initial form centering and Nearby import. The Nearby policy fix is committed after local validation.
 
 ## Implementation
 
@@ -29,7 +30,8 @@
 | `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#freshNewPointWithEmulatorGpsFixCentersCameraOnly com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` | PASS — `OK (1 test)` on `DBG1017_API34_Camera`, Android 14 API 34 | Reconfirmed after the fused-coordinate policy change that a valid injected fix still centers a fresh form map without writing the form/session coordinates. |
 | Focused `:app:testDebugUnitTest` for `NearbyLocationFixPolicyTest`, `EditMapLocationPolicyTest`, `MapCoordinatePolicyTest`, and `LocationFixQualityPolicyTest` | PASS — `BUILD SUCCESSFUL`; Nearby policy 3 tests, 0 failures | Includes the new fresh-accurate `(0,0)` Nearby fix rejection test; valid fresh coordinates keep the existing timestamp and accuracy behavior. |
 | `:app:assembleDebug :app:assembleDebugAndroidTest` | PASS — `BUILD SUCCESSFUL` | Re-run after the Nearby policy change using the CI build-only `MAPS_API_KEY=ci-placeholder`; ignored `local.properties` was removed after validation. |
-| GitHub Actions Android CI, Run #19, commit `673671a62998352e90a15e6478c7ea15fd6ede51` | NOT VERIFIED — superseded | The push-triggered `Unit tests and debug build` job remained at “Starting job…” after 16 minutes. This run predates the final source fix and cannot validate it. A new run must be checked for the final committed revision. |
+| GitHub Actions Android CI, Run #19, commit `673671a62998352e90a15e6478c7ea15fd6ede51` | NOT VERIFIED — superseded | The job remained in progress without any recorded steps long after runner startup. It predates both source fixes and cannot validate them. |
+| GitHub Actions Android CI, Run #20, commit `6468e8903ba2985a3a85c5732e235e55783380f8` | NOT VERIFIED — superseded | The run is queued behind Run #19 and predates the latest Nearby policy fix. CI for the latest pushed revision remains to be checked. |
 | Physical device | NOT RUN | No physical Android device was attached. |
 
 ## Build Details

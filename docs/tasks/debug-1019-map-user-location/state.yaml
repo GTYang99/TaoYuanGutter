@@ -34,8 +34,8 @@ validation:
 
 git:
   branch: codex/debug/debug-1019-map-user-location
-  commit: pending
-  status: pending_commit
+  commit: 1e896f1
+  status: committed
 
 verification:
   result: pending
