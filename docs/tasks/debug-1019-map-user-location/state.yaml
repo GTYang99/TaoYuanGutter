@@ -3,7 +3,7 @@ task:
   type: bugfix
 
 phase: implementation
-status: implementation_in_progress
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -17,15 +17,20 @@ plan_review:
   blocking_issues: []
 
 implementation:
-  status: in_progress
+  status: completed
+  mode: bugfix
 
 validation:
-  status: pending
+  status: completed_with_limitations
+  unit_tests: passed_10_of_10
+  debug_build: passed
+  android_test_build: passed
+  emulator_location: not_verified_environment
 
 git:
   branch: codex/debug/debug-1019-map-user-location
-  commit: ""
-  status: pending
+  commit: 3e78cfc
+  status: committed
 
 verification:
   result: pending
@@ -33,11 +38,13 @@ verification:
   failed_acceptance_criteria: []
 
 ci:
-  build: pending
-  test: pending
+  build: not_verified
+  test: not_verified
 
 release:
   status: pending
 
-blocking: []
-next_action: implementation
+blocking:
+  - AC-002 emulator fused-location callback did not arrive; verify on a functioning Google Play Services emulator or physical Android device.
+  - Remote CI status and independent Verification are still required.
+next_action: verification

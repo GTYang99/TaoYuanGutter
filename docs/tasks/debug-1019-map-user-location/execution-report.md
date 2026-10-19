@@ -1,5 +1,11 @@
 # Execution Report — debug-1019-map-user-location
 
+## Revision
+
+- Branch: `codex/debug/debug-1019-map-user-location`
+- Implementation commit: `3e78cfcca0f55a57f518c46490237e1b97ed5ad0`
+- Working tree was clean immediately after the implementation commit. This report and state update are a documentation-only follow-up.
+
 ## Implementation
 
 - Blank editable gutter forms without a usable saved coordinate now request a bounded high-accuracy location, including offline and restored drafts. The request moves only the camera; it does not write form or waypoint coordinates.
