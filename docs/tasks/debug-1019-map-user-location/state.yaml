@@ -33,7 +33,7 @@ validation:
 
 git:
   branch: codex/debug/debug-1019-map-user-location
-  commit: 3e78cfc
+  commit: 69d1566
   status: committed
 
 verification:
