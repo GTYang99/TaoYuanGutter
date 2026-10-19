@@ -25,12 +25,18 @@ class MyLocationController(
         requestPermission: () -> Unit,
         onLocationUpdated: (Location) -> Unit,
         onCameraMoveFinished: (() -> Unit)? = null,
-        onLocationUnavailable: (() -> Unit)? = null
+        onLocationUnavailable: (() -> Unit)? = null,
+        preferFreshLocation: Boolean = false
     ) {
         val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
         val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
         if (fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED) {
-            enableMyLocationAndMove(onLocationUpdated, onCameraMoveFinished, onLocationUnavailable)
+            enableMyLocationAndMove(
+                onLocationUpdated = onLocationUpdated,
+                onCameraMoveFinished = onCameraMoveFinished,
+                onLocationUnavailable = onLocationUnavailable,
+                preferFreshLocation = preferFreshLocation
+            )
         } else {
             requestPermission()
         }
@@ -40,7 +46,8 @@ class MyLocationController(
     fun enableMyLocationAndMove(
         onLocationUpdated: (Location) -> Unit,
         onCameraMoveFinished: (() -> Unit)? = null,
-        onLocationUnavailable: (() -> Unit)? = null
+        onLocationUnavailable: (() -> Unit)? = null,
+        preferFreshLocation: Boolean = false
     ) {
         val map = mapProvider() ?: return
         map.isMyLocationEnabled = true
@@ -52,12 +59,30 @@ class MyLocationController(
             .addOnSuccessListener { cached ->
                 if (generation != requestGeneration) return@addOnSuccessListener
                 val accepted = cached.takeIf { LocationFixQualityPolicy.isUsableCached(it) }
-                accepted?.let { moveMap(map, it, onLocationUpdated, onCameraMoveFinished) }
-                requestHighAccuracyRefinement(generation, map, accepted, onLocationUpdated, onCameraMoveFinished, onLocationUnavailable)
+                if (!preferFreshLocation) {
+                    accepted?.let { moveMap(map, it, onLocationUpdated, onCameraMoveFinished) }
+                }
+                requestHighAccuracyRefinement(
+                    generation,
+                    map,
+                    accepted,
+                    onLocationUpdated,
+                    onCameraMoveFinished,
+                    onLocationUnavailable,
+                    preferFreshLocation
+                )
             }
             .addOnFailureListener {
                 if (generation == requestGeneration) {
-                    requestHighAccuracyRefinement(generation, map, null, onLocationUpdated, onCameraMoveFinished, onLocationUnavailable)
+                    requestHighAccuracyRefinement(
+                        generation,
+                        map,
+                        null,
+                        onLocationUpdated,
+                        onCameraMoveFinished,
+                        onLocationUnavailable,
+                        preferFreshLocation
+                    )
                 }
             }
     }
@@ -75,7 +100,8 @@ class MyLocationController(
         accepted: Location?,
         onLocationUpdated: (Location) -> Unit,
         onCameraMoveFinished: (() -> Unit)?,
-        onLocationUnavailable: (() -> Unit)?
+        onLocationUnavailable: (() -> Unit)?,
+        preferFreshLocation: Boolean
     ) {
         val cancellation = CancellationTokenSource()
         currentLocationCancellation = cancellation
@@ -83,16 +109,24 @@ class MyLocationController(
             .addOnSuccessListener { refinement ->
                 if (generation != requestGeneration || currentLocationCancellation !== cancellation) return@addOnSuccessListener
                 currentLocationCancellation = null
-                if (LocationFixQualityPolicy.shouldUseRefinement(accepted, refinement)) {
+                if (LocationFixQualityPolicy.shouldUseRefinement(accepted, refinement, preferFreshLocation)) {
                     moveMap(map, refinement!!, onLocationUpdated, onCameraMoveFinished)
-                } else if (accepted == null) {
-                    onLocationUnavailable?.invoke()
+                } else {
+                    if (preferFreshLocation && accepted != null) {
+                        moveMap(map, accepted, onLocationUpdated, onCameraMoveFinished)
+                    } else if (accepted == null) {
+                        onLocationUnavailable?.invoke()
+                    }
                 }
             }
             .addOnFailureListener {
                 if (generation != requestGeneration || currentLocationCancellation !== cancellation) return@addOnFailureListener
                 currentLocationCancellation = null
-                if (accepted == null) onLocationUnavailable?.invoke()
+                if (preferFreshLocation && accepted != null) {
+                    moveMap(map, accepted, onLocationUpdated, onCameraMoveFinished)
+                } else if (accepted == null) {
+                    onLocationUnavailable?.invoke()
+                }
             }
     }
 

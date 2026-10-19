@@ -3,14 +3,10 @@ package com.example.taoyuangutter.gutter
 /** Decisions for the edit form's camera-only location flow. */
 internal object EditMapLocationPolicy {
     fun shouldLocateForInitialCamera(
-        isEditMode: Boolean,
         isViewMode: Boolean,
-        isOfflineMode: Boolean,
         submittedDraftReadOnly: Boolean,
-        hasSavedCoordinates: Boolean,
-        isNewAddForm: Boolean = false
-    ): Boolean = (isEditMode || isNewAddForm) && !isViewMode && !isOfflineMode &&
-        !submittedDraftReadOnly && !hasSavedCoordinates
+        hasSavedCoordinates: Boolean
+    ): Boolean = !isViewMode && !submittedDraftReadOnly && !hasSavedCoordinates
 
     fun hasForegroundLocationPermission(fineGranted: Boolean, coarseGranted: Boolean): Boolean =
         fineGranted || coarseGranted

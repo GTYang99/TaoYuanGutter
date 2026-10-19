@@ -70,6 +70,7 @@ import com.example.taoyuangutter.map.MarkerIconFactory
 import com.example.taoyuangutter.map.MapOverlayController
 import com.example.taoyuangutter.map.MeasureConfig
 import com.example.taoyuangutter.map.MyLocationController
+import com.example.taoyuangutter.map.MapCoordinatePolicy
 import com.example.taoyuangutter.map.NoDitchPointHitTester
 import com.example.taoyuangutter.map.ScopeMapCoordinator
 import com.example.taoyuangutter.map.ScopeGutterPolylineController
@@ -414,7 +415,8 @@ class MainActivity : AppCompatActivity(),
                     },
                     onCameraMoveFinished = {
                         handleMainMapLocationRecenterFinished()
-                    }
+                    },
+                    preferFreshLocation = true
                 )
             } else {
                 pendingUserLocationRecenter = false
@@ -870,7 +872,8 @@ class MainActivity : AppCompatActivity(),
             },
             onCameraMoveFinished = {
                 handleMainMapLocationRecenterFinished()
-            }
+            },
+            preferFreshLocation = true
         )
 
         googleMap?.uiSettings?.apply {
@@ -1602,7 +1605,11 @@ class MainActivity : AppCompatActivity(),
 
         // 直接開表單：若點位尚未選座標，先用目前地圖視角中心作為初始座標，
         // 讓使用者在表單內點擊 X/Y 欄位再進入選點頁面。
-        val initialLatLng = wp.latLng ?: googleMap?.cameraPosition?.target ?: LatLng(0.0, 0.0)
+        val initialLatLng = wp.latLng?.takeIf {
+            MapCoordinatePolicy.isUsableCoordinate(it.latitude, it.longitude)
+        } ?: googleMap?.cameraPosition?.target?.takeIf {
+            MapCoordinatePolicy.isUsableCoordinate(it.latitude, it.longitude)
+        }
         
         pendingWaypointFormIndex = waypointIndex
         highlightMarker(waypointIndex)
@@ -1652,16 +1659,18 @@ class MainActivity : AppCompatActivity(),
     private fun openAddForm(
         currentIndex: Int,
         wp: Waypoint,
-        latLng: LatLng,
+        latLng: LatLng?,
         isEditMode: Boolean = false,
         submittedDraftReadOnly: Boolean = false,
         useCurrentLocationForInitialMap: Boolean = false
     ) {
-        mapCameraController.moveCameraToLatLngOffset(
-            latLng,
-            0.75,
-            mapCameraController.zoomForGutterSize(wp.basicData)
-        )
+        latLng?.let {
+            mapCameraController.moveCameraToLatLngOffset(
+                it,
+                0.75,
+                mapCameraController.zoomForGutterSize(wp.basicData)
+            )
+        }
         val state = mapOverlayController.currentState()
         val sessionDraftId = ensureCurrentSessionDraftId()
         val launch = gutterFormNavigator.buildAddIntent(
@@ -1843,7 +1852,8 @@ class MainActivity : AppCompatActivity(),
                 },
                 onCameraMoveFinished = {
                     handleMainMapLocationRecenterFinished()
-                }
+                },
+                preferFreshLocation = true
             )
         }
         binding.btnReportNoDitch.setOnClickListener { openNoDitchReport() }

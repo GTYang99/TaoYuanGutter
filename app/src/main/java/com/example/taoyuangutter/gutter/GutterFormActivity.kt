@@ -36,6 +36,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 import com.google.android.gms.tasks.CancellationTokenSource
 import com.example.taoyuangutter.map.LocationFixQualityPolicy
+import com.example.taoyuangutter.map.MapCoordinatePolicy
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -1669,25 +1670,25 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
             }
         }
 
-        val isNewAddForm = intent.getBooleanExtra(EXTRA_NEW_ADD_FORM_INITIAL_LOCATION, false)
         val currentWaypoint = sessionWaypoints.getOrNull(currentIndex)
-        val currentTarget = currentWaypoint?.latitude?.let { wpLat ->
-            currentWaypoint.longitude?.let { wpLng -> LatLng(wpLat, wpLng) }
+        val currentTarget = currentWaypoint?.let { waypoint ->
+            val latitude = waypoint.latitude
+            val longitude = waypoint.longitude
+            if (MapCoordinatePolicy.isUsableCoordinate(latitude, longitude)) {
+                LatLng(latitude!!, longitude!!)
+            } else {
+                null
+            }
         }
         if (currentTarget != null) {
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(currentTarget, 18f))
         } else {
             // 若沒有既有座標，先以桃園作為 fallback；符合條件時再由定位流程更新鏡頭。
-            val lat = if (currentLat != 0.0) currentLat else 24.9929
-            val lng = if (currentLng != 0.0) currentLng else 121.3011
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(lat, lng), 17f))
+            map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 17f))
             if (EditMapLocationPolicy.shouldLocateForInitialCamera(
-                    isEditMode = isEditMode,
                     isViewMode = isViewMode,
-                    isOfflineMode = isOfflineMode,
                     submittedDraftReadOnly = submittedDraftReadOnly,
-                    hasSavedCoordinates = false,
-                    isNewAddForm = isNewAddForm
+                    hasSavedCoordinates = false
                 )
             ) {
                 editMapLocationFlowActive = true
@@ -1737,7 +1738,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
         }
         editMapLocationTimeoutJob = timeoutJob
 
-        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, cancellation.token)
+        fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, cancellation.token)
             .addOnSuccessListener { location ->
                 if (editMapLocationCancellation !== cancellation) return@addOnSuccessListener
                 stopEditMapLocationAttempt()

@@ -17,6 +17,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.taoyuangutter.R
 import com.example.taoyuangutter.pending.WaypointSnapshot
+import com.example.taoyuangutter.pending.GutterSessionDraft
+import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
 import com.google.gson.Gson
@@ -312,6 +314,102 @@ class EditMapInitialLocationInstrumentedTest {
     }
 
     @Test
+    fun restoredBlankFormWithoutFreshAddFlagUsesLocationCameraOnly() {
+        grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val repository = GutterSessionRepository(context)
+        val draftId = System.currentTimeMillis()
+        val blankWaypoint = waypoint(latitude = null, longitude = null)
+        repository.save(GutterSessionDraft(id = draftId, waypoints = listOf(blankWaypoint)))
+        val testPoint = LatLng(25.03, 121.5)
+
+        try {
+            setMockLocation(testPoint)
+            launchForm(
+                isEditMode = false,
+                waypoint = blankWaypoint,
+                sessionDraftId = draftId
+            ).use { scenario ->
+                val actual = awaitCameraTarget(scenario, testPoint, toleranceMeters = 100.0)
+                assertNotNull("Restored blank form did not center on the emulator GPS fix", actual)
+                assertTrue(distanceMeters(testPoint, actual!!) <= 100.0)
+                awaitLocationFlowFinish(scenario)
+                scenario.onActivity { activity ->
+                    assertTrue(readField<HashMap<String, String>>(activity, "currentFormData")["NODE_X"].isNullOrBlank())
+                    assertTrue(readField<HashMap<String, String>>(activity, "currentFormData")["NODE_Y"].isNullOrBlank())
+                    @Suppress("UNCHECKED_CAST")
+                    val savedWaypoint = readField<List<WaypointSnapshot>>(activity, "sessionWaypoints")[0]
+                    assertEquals(null, savedWaypoint.latitude)
+                    assertEquals(null, savedWaypoint.longitude)
+                }
+            }
+        } finally {
+            setMockLocation(null)
+            repository.delete(draftId)
+        }
+    }
+
+    @Test
+    fun offlineBlankFormUsesLocationCameraOnly() {
+        grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        val testPoint = LatLng(25.03, 121.5)
+        try {
+            setMockLocation(testPoint)
+            launchForm(
+                isEditMode = false,
+                waypoint = waypoint(latitude = null, longitude = null),
+                isOfflineMode = true
+            ).use { scenario ->
+                val actual = awaitCameraTarget(scenario, testPoint, toleranceMeters = 100.0)
+                assertNotNull("Offline blank form did not center on the emulator GPS fix", actual)
+                assertTrue(distanceMeters(testPoint, actual!!) <= 100.0)
+                awaitLocationFlowFinish(scenario)
+                scenario.onActivity { activity ->
+                    @Suppress("UNCHECKED_CAST")
+                    val formData = readField<HashMap<String, String>>(activity, "currentFormData")
+                    assertTrue(formData["NODE_X"].isNullOrBlank())
+                    assertTrue(formData["NODE_Y"].isNullOrBlank())
+                    @Suppress("UNCHECKED_CAST")
+                    val savedWaypoint = readField<List<WaypointSnapshot>>(activity, "sessionWaypoints")[0]
+                    assertEquals(null, savedWaypoint.latitude)
+                    assertEquals(null, savedWaypoint.longitude)
+                }
+            }
+        } finally {
+            setMockLocation(null)
+        }
+    }
+
+    @Test
+    fun zeroZeroWaypointIsNotUsedAsFormMapTarget() {
+        grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        val testPoint = LatLng(25.03, 121.5)
+        try {
+            setMockLocation(testPoint)
+            launchForm(
+                isEditMode = false,
+                waypoint = waypoint(latitude = 0.0, longitude = 0.0)
+            ).use { scenario ->
+                val actual = awaitCameraTarget(scenario, testPoint, toleranceMeters = 100.0)
+                assertNotNull("(0,0) waypoint was treated as a valid camera target", actual)
+                assertTrue(distanceMeters(testPoint, actual!!) <= 100.0)
+                awaitLocationFlowFinish(scenario)
+                scenario.onActivity { activity ->
+                    @Suppress("UNCHECKED_CAST")
+                    val savedWaypoint = readField<List<WaypointSnapshot>>(activity, "sessionWaypoints")[0]
+                    assertEquals(0.0, savedWaypoint.latitude!!, 0.0)
+                    assertEquals(0.0, savedWaypoint.longitude!!, 0.0)
+                }
+            }
+        } finally {
+            setMockLocation(null)
+        }
+    }
+
+    @Test
     fun unmarkedNewPointKeepsTaoyuanFallback() {
         grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -332,7 +430,9 @@ class EditMapInitialLocationInstrumentedTest {
     private fun launchForm(
         isEditMode: Boolean,
         waypoint: WaypointSnapshot,
-        isNewAddForm: Boolean = false
+        isNewAddForm: Boolean = false,
+        isOfflineMode: Boolean = false,
+        sessionDraftId: Long = 0L
     ): ActivityScenario<GutterFormActivity> {
         val context = ApplicationProvider.getApplicationContext<Context>()
         return ActivityScenario.launch(
@@ -343,7 +443,8 @@ class EditMapInitialLocationInstrumentedTest {
                 lngs = doubleArrayOf(waypoint.longitude ?: 0.0),
                 isEditMode = isEditMode,
                 useCurrentLocationForInitialMap = isNewAddForm,
-                sessionDraftId = 0L,
+                sessionDraftId = sessionDraftId,
+                sessionIsOffline = isOfflineMode,
                 sessionWaypointsJson = Gson().toJson(listOf(waypoint))
             )
         )

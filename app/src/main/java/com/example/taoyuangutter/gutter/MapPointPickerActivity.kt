@@ -33,6 +33,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.example.taoyuangutter.map.MarkerIconFactory
 import com.example.taoyuangutter.map.MyLocationController
+import com.example.taoyuangutter.map.MapCoordinatePolicy
 import com.example.taoyuangutter.gutter.WaypointType
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
@@ -203,7 +204,8 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
             onLocationUpdated = {},
             onLocationUnavailable = {
                 Toast.makeText(this, getString(R.string.msg_location_not_available), Toast.LENGTH_SHORT).show()
-            }
+            },
+            preferFreshLocation = true
         )
     }
 
@@ -229,7 +231,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         val lat = intent.getDoubleExtra(EXTRA_INITIAL_LAT, 0.0)
         val lng = intent.getDoubleExtra(EXTRA_INITIAL_LNG, 0.0)
 
-        if (lat != 0.0 || lng != 0.0) {
+        if (MapCoordinatePolicy.isUsableCoordinate(lat, lng)) {
             val start = LatLng(lat, lng)
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 20f))
         } else {

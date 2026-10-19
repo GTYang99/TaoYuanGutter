@@ -20,6 +20,37 @@ class LocationFixQualityPolicyTest {
     }
 
     @Test
+    fun explicitRecenterPrefersAnyNewerFixWithAccuracy() {
+        assertTrue(
+            LocationFixQualityPolicy.shouldUseRefinement(
+                1_000L,
+                20f,
+                2_000L,
+                22f,
+                preferFreshLocation = true
+            )
+        )
+        assertFalse(
+            LocationFixQualityPolicy.shouldUseRefinement(
+                1_000L,
+                20f,
+                1_000L,
+                10f,
+                preferFreshLocation = true
+            )
+        )
+        assertFalse(
+            LocationFixQualityPolicy.shouldUseRefinement(
+                1_000L,
+                20f,
+                2_000L,
+                null,
+                preferFreshLocation = true
+            )
+        )
+    }
+
+    @Test
     fun firstHighAccuracyResultIsAcceptedWithoutCache() {
         assertTrue(LocationFixQualityPolicy.shouldUseRefinement(0L, null, 1_000L, 25f))
         assertFalse(LocationFixQualityPolicy.shouldUseRefinement(0L, null, 1_000L, null))

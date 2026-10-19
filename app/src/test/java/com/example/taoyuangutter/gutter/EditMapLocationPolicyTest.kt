@@ -6,18 +6,11 @@ import org.junit.Test
 
 class EditMapLocationPolicyTest {
     @Test
-    fun initialCameraLocationAllowsEditsAndExplicitFreshAddsOnly() {
-        assertTrue(EditMapLocationPolicy.shouldLocateForInitialCamera(true, false, false, false, false))
-        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(true, false, false, false, true))
-        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(false, false, false, false, false))
-        assertTrue(EditMapLocationPolicy.shouldLocateForInitialCamera(false, false, false, false, false, true))
-        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(false, false, false, false, true, true))
-        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(false, true, false, false, false, true))
-        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(false, false, true, false, false, true))
-        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(false, false, false, true, false, true))
-        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(true, true, false, false, false))
-        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(true, false, true, false, false))
-        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(true, false, false, true, false))
+    fun initialCameraLocationAllowsEveryEditableBlankForm() {
+        assertTrue(EditMapLocationPolicy.shouldLocateForInitialCamera(false, false, false))
+        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(false, false, true))
+        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(true, false, false))
+        assertFalse(EditMapLocationPolicy.shouldLocateForInitialCamera(false, true, false))
     }
 
     @Test

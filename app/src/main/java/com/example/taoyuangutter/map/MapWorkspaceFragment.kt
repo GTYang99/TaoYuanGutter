@@ -286,7 +286,8 @@ class MapWorkspaceFragment : Fragment(),
             if (granted) {
                 myLocationController.enableMyLocationAndMove(
                     onLocationUpdated = ::handleMainMapLocationUpdated,
-                    onCameraMoveFinished = ::handleMainMapLocationRecenterFinished
+                    onCameraMoveFinished = ::handleMainMapLocationRecenterFinished,
+                    preferFreshLocation = true
                 )
             } else {
                 pendingUserLocationRecenter = false
@@ -570,7 +571,8 @@ class MapWorkspaceFragment : Fragment(),
                 locationPermissionLauncher.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION))
             },
             onLocationUpdated = ::handleMainMapLocationUpdated,
-            onCameraMoveFinished = ::handleMainMapLocationRecenterFinished
+            onCameraMoveFinished = ::handleMainMapLocationRecenterFinished,
+            preferFreshLocation = true
         )
 
         googleMap?.uiSettings?.apply {
@@ -686,7 +688,8 @@ class MapWorkspaceFragment : Fragment(),
                 onLocationUpdated = { location ->
                     handleMainMapLocationUpdated(location)
                 },
-                onCameraMoveFinished = ::handleMainMapLocationRecenterFinished
+                onCameraMoveFinished = ::handleMainMapLocationRecenterFinished,
+                preferFreshLocation = true
             )
         }
         binding.btnReportNoDitch.setOnClickListener { openNoDitchReport() }
@@ -765,7 +768,11 @@ class MapWorkspaceFragment : Fragment(),
     ) {
         currentWaypoints = sheet.getWaypoints()
         val wp = currentWaypoints.getOrNull(waypointIndex) ?: return
-        val initialLatLng = wp.latLng ?: googleMap?.cameraPosition?.target ?: LatLng(0.0, 0.0)
+        val initialLatLng = wp.latLng?.takeIf {
+            MapCoordinatePolicy.isUsableCoordinate(it.latitude, it.longitude)
+        } ?: googleMap?.cameraPosition?.target?.takeIf {
+            MapCoordinatePolicy.isUsableCoordinate(it.latitude, it.longitude)
+        }
         pendingWaypointFormIndex = waypointIndex
         highlightMarker(waypointIndex)
         sheet.hideSelf()
@@ -1229,12 +1236,18 @@ class MapWorkspaceFragment : Fragment(),
     private fun openAddForm(
         currentIndex: Int,
         wp: Waypoint,
-        latLng: LatLng,
+        latLng: LatLng?,
         isEditMode: Boolean = false,
         submittedDraftReadOnly: Boolean = false,
         useCurrentLocationForInitialMap: Boolean = false
     ) {
-        mapCameraController.moveCameraToLatLngOffset(latLng, 0.75, mapCameraController.zoomForGutterSize(wp.basicData))
+        latLng?.let {
+            mapCameraController.moveCameraToLatLngOffset(
+                it,
+                0.75,
+                mapCameraController.zoomForGutterSize(wp.basicData)
+            )
+        }
         val state = mapOverlayController.currentState()
         val sessionDraftId = ensureCurrentSessionDraftId()
         val launch = gutterFormNavigator.buildAddIntent(
