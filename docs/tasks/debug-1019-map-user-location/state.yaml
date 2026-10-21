@@ -2,8 +2,8 @@ task:
   id: debug-1019-map-user-location
   type: bugfix
 
-phase: infrastructure
-status: blocked
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -26,23 +26,25 @@ debug:
 
 validation:
   status: completed
-  unit_tests: passed
+  unit_tests: not_rerun_for_followup_revision
   debug_build: passed
   android_test_build: passed
-  emulator_location: passed_android_14_and_api_36_form_and_picker_cases
+  emulator_location: focused_passes_with_manual_pan_case_unverified
   host_test_execution: not_run_emulator_only_policy
   nearby_policy: passed
 
 git:
   branch: codex/fix/map-dashboard-viewport
-  commit: 98eabb8e
+  commit: d4f6f46b
   status: committed
 
 verification:
   result: not_verified
-  category: environment
+  category: unknown
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria: []
+  not_verified_acceptance_criteria:
+    - AC-007 delayed location callback after a manual pan on a host-seeded map
+    - Independent verification of the follow-up revision
 
 ci:
   build: pending
@@ -51,7 +53,7 @@ ci:
 infrastructure:
   status: blocked
   evidence:
-    target_revision: 98eabb8e
+    target_revision: d4f6f46b
     github_branch_search: branch_not_found
     github_workflow_runs: none
     workflow_trigger: push_required
@@ -63,5 +65,6 @@ release:
   status: pending
 
 blocking:
-  - CI remains NOT VERIFIED because the required branch push was rejected by automatic approval review; explicit authorization to publish the exact branch and payload is required.
-next_action: infrastructure
+  - Hosted CI remains NOT VERIFIED because publishing the exact branch and payload was rejected by automatic approval review; the previously authorized CI run cannot start without that push.
+  - ISS-DBG-1019-011 remains unclassified beyond unknown; the host-seeded manual-pan instrumentation did not move the camera.
+next_action: investigation

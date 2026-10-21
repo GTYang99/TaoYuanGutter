@@ -63,6 +63,7 @@
 ## Blank-Form First-Frame Follow-up
 
 - Branch: `codex/fix/map-dashboard-viewport`.
+- Implementation commit: `d4f6f46b` (`fix(debug-1019-map-user-location): prevent blank form fallback flash`); the task-state record was committed separately.
 - Production behavior: a blank editable form map is hidden while its initial location is unresolved. A recent usable host fix is applied before the map is first shown; otherwise the map is revealed at the usable provider fix or at the existing fallback after the location/permission failure path. Saved waypoint coordinates remain immediately visible and take precedence.
 - Build command: `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' PATH='/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin':$PATH ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest` — **PASS**, `BUILD SUCCESSFUL`.
 - Test target: `emulator-5554`, Android 16 / API 36. Physical-device testing was not performed.
@@ -71,7 +72,7 @@
 - `freshNewPointWithEmulatorGpsFixCentersCameraOnly` — **PASS**; the usable fix centered the new form without writing coordinate data.
 - `savedCoordinateEditKeepsSavedCameraTarget` — **PASS**; the saved point remained centered.
 - `manualPanBeforeFusedMockCallbackKeepsManualCameraTarget` — **FAIL / NOT VERIFIED**, reproduced twice: the instrumentation swipe did not move the camera before the fused callback. This does not establish whether the UI gesture was missed or whether a production gesture path regressed. The existing no-fix instrumentation still confirms manual map panning after fallback, but the host-seeded, delayed-callback case remains unverified; tracked as `ISS-DBG-1019-011`.
-- `git diff --check` — **PASS** before final documentation updates; rerun before commit.
+- `git diff --check` — **PASS** after final source, test, and task-document edits and before commit.
 - Hosted CI and independent verification have not run for this follow-up revision. CI remains pending because publishing the exact branch/payload was rejected by the automatic approval review. Do not treat this as a release-complete revision.
 
 ## Build Details
