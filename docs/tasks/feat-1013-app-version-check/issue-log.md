@@ -61,7 +61,8 @@
 - Phase: `verification`
 - Category: `implementation_regression`
 - Priority: `P1`
-- Status: resolved
+- Status: open
 - Affected acceptance criteria: AC-011
-- Evidence: fix commit `c96908a` restored `P0_VERSION_CODE=5`, the highest successfully consumed Release code recorded by this task. On verification target `04500ab743be646951edd4dba7d083198b98dd96`, Debug build passed and produced versionCode 6/versionName 0.0.0 while leaving P0=5 and P1/P2/P3=0/0/0 unchanged. The unchanged Gradle Release logic computes P0+1, so the next Release uses code 6 and persists it only after successful assembly. GitHub Actions [Android CI run #13](https://github.com/GTYang99/TaoYuanGutter/actions/runs/38504607896) completed successfully for the exact verification target. Independent Verification marked AC-011 PASS.
-- Next action: none.
+- Earlier evidence: fix commit `c96908a` restored `P0_VERSION_CODE=5`; the release decision for `04500ab743be646951edd4dba7d083198b98dd96` stated that the next Release must use code 6. The Gradle Release logic computes P0+1 and persists it after successful assembly.
+- Reopened 2026-10-21: on branch `codex/feat1013-supplemental-modification`, commit `9377f41` changed P0 from 5 back to 1. Current verification target `03a90e3692138a1fe68d4dc9abf0d01b159e07f2` still has P0=1, so the next Release would calculate code 2, below the previously consumed code 5. The focused Debug tests passed and left P0=1; no Release build was run.
+- Next action: debug the counter reset before another release decision.
