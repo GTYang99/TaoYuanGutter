@@ -35,7 +35,7 @@ validation:
 
 git:
   branch: codex/fix/map-dashboard-viewport
-  commit: 431c6db
+  commit: cb3c1cc
   status: committed
 
 verification:
@@ -53,5 +53,5 @@ release:
 blocking:
   - Independent Verification has not reviewed the current combined branch.
   - CI build/test are not available for the current combined branch under the emulator-only test scope.
-  - Host-map Locate and Nearby import end-to-end behavior remain unverified; policy tests and source review passed.
+  - Nearby import's full sheet end-to-end behavior remains unverified; its coordinate policy tests and source wiring review passed.
 next_action: verification
