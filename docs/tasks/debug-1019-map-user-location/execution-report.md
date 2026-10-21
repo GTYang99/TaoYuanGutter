@@ -35,6 +35,20 @@
 | GitHub Actions Android CI, Run #21, commit `7b1780f3bfab9507c055e74b335090683788c05c` | PASS | `Unit tests and debug build` completed successfully, including task-scoped JVM tests and debug APK assembly. This revision contains both source fixes. |
 | Physical device | NOT RUN | No physical Android device was attached. |
 
+## Emulator-only Revalidation on the Current Branch
+
+- Current branch before recording these results: `codex/fix/map-dashboard-viewport`, based on the committed location fixes and the later map-tab retention fix.
+- Test target: `emulator-5554`, `sdk_gphone16k_arm64`, Android 16 / API 36. No physical device or host/JVM test runner was used in this revalidation.
+- `:app:assembleDebugAndroidTest` | **PASS** — `BUILD SUCCESSFUL`; rebuilt the instrumentation APK after correcting a test-only assumption.
+- `EditMapInitialLocationInstrumentedTest#savedCoordinateEditKeepsSavedCameraTarget` | **PASS** — `OK (1 test)`; the saved gutter point remained centered with location permission available.
+- `EditMapInitialLocationInstrumentedTest#missingCoordinateEditWithFusedMockLocationCentersCameraOnly` | **PASS** — `OK (1 test)`; a blank form centered on the injected usable fix without writing form or waypoint coordinates.
+- `EditMapInitialLocationInstrumentedTest#zeroZeroWaypointIsNotUsedAsFormMapTarget` | **PASS** — `OK (1 test)`; a `(0,0)` waypoint did not become the camera target.
+- `EditMapInitialLocationInstrumentedTest#zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin` (initial, strict fallback assertion) | **FAIL — test assumption**; API 36 returned a usable non-zero camera target `(25.051658, 121.407173)`, so requiring only the Taoyuan fallback was incompatible with the blank-map current-location requirement. Tracked as `ISS-DBG-1019-008`.
+- Corrected `EditMapInitialLocationInstrumentedTest#zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin` | **PASS** — `OK (1 test)`; asserts the final camera target is usable and cannot be `(0,0)`, while checking form/session coordinates remain unchanged. The separate no-fix test remains responsible for the fallback and unavailable prompt.
+- `EditMapInitialLocationInstrumentedTest#offlineBlankFormUsesLocationCameraOnly` | **PASS** — `OK (1 test)`; the legacy/offline blank form centered on the injected usable fix without saving it as form or waypoint coordinates.
+- Fine and coarse location permissions were denied again after instrumentation; `dumpsys package` confirmed the emulator returned to its original denied state. The mock GPS test provider is disabled by each test's `finally` cleanup.
+- Current combined-branch CI and independent Verification remain pending. The configured CI workflow runs hosted JVM tests, outside the emulator-only validation scope.
+
 ## Build Details
 
 - Application package: `com.example.taoyuangutter`

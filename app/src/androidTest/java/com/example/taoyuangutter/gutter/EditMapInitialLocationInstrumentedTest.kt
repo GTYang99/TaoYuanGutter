@@ -16,6 +16,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.taoyuangutter.R
+import com.example.taoyuangutter.map.MapCoordinatePolicy
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
@@ -421,11 +422,10 @@ class EditMapInitialLocationInstrumentedTest {
     }
 
     @Test
-    fun zeroZeroFusedLocationDoesNotMoveBlankFormMap() {
+    fun zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin() {
         grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
         val injectedLocation = LatLng(0.0, 0.0)
-        val fallback = LatLng(24.9929, 121.3011)
 
         try {
             setMockLocation(injectedLocation)
@@ -434,10 +434,11 @@ class EditMapInitialLocationInstrumentedTest {
                 val actual = cameraTarget(scenario)
                 assertNotNull("Blank form map camera was not initialized", actual)
                 assertTrue(
-                    "Invalid fused (0,0) fix moved the blank form map off its fallback: $actual",
-                    distanceMeters(fallback, actual!!) <= 100.0
+                    "Blank form camera must never target the unusable (0,0) coordinate: $actual",
+                    MapCoordinatePolicy.isUsableCoordinate(actual!!.latitude, actual.longitude)
                 )
-                onView(withText(R.string.edit_map_location_unavailable_title)).check(matches(isDisplayed()))
+                // A usable cached/device fix may be returned even when GMS rejects the injected (0,0) fix.
+                // The separate no-fix case verifies fallback and the unavailable prompt.
                 scenario.onActivity { activity ->
                     assertEquals(0.0, readField<Double>(activity, "currentLat"), 0.0)
                     assertEquals(0.0, readField<Double>(activity, "currentLng"), 0.0)

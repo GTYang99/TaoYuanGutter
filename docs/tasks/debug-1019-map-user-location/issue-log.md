@@ -92,7 +92,7 @@
 - Actual: Before the fix, `GutterFormActivity.startEditMapLocationAttempt()` checked only finite values and geographic ranges, which includes `(0,0)`.
 - Evidence: `app/src/main/java/com/example/taoyuangutter/gutter/GutterFormActivity.kt`; `MapCoordinatePolicy.isUsableCoordinate()` explicitly rejects `(0,0)`; existing zero-zero instrumentation only covers the saved waypoint.
 - Resolution: the form now validates the fused result with `MapCoordinatePolicy.isUsableCoordinate()`. Invalid `(0,0)` results follow the existing retry/fallback/unavailable path.
-- Validation: `zeroZeroFusedLocationDoesNotMoveBlankFormMap()` passed on `DBG1017_API34_Camera` (Android 14 API 34). The test asserts that the camera stays at fallback, the unavailable prompt appears, and form/session coordinates remain unchanged.
+- Validation: The original `zeroZeroFusedLocationDoesNotMoveBlankFormMap()` case passed on `DBG1017_API34_Camera` (Android 14 API 34), asserting fallback, unavailable prompt, and unchanged coordinates. The current emulator-robust `zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin()` revalidation is recorded in `ISS-DBG-1019-008`.
 - Next action: `verification`
 
 ## ISS-DBG-1019-007 — Nearby import accepts `(0,0)` from a fresh location update
@@ -112,4 +112,20 @@
 - Root cause: The Nearby-specific acceptance policy checks only freshness and accuracy and does not use `MapCoordinatePolicy`.
 - Resolution: The policy now receives latitude and longitude and rejects any coordinate not accepted by `MapCoordinatePolicy.isUsableCoordinate()`; the callback passes the provider result through this gate before moving the camera.
 - Validation: `NearbyLocationFixPolicyTest` passed (3 tests, 0 failures), including a fresh accurate `(0,0)` regression case. Debug app and instrumentation APK builds passed.
+- Next action: `verification`
+
+## ISS-DBG-1019-008 — Zero-zero form instrumentation assumes no usable cached fix
+
+- Task: `debug-1019-map-user-location`
+- Phase found: developer validation
+- Category: `planning_gap` (test expectation did not allow a valid current fix)
+- Priority: P3
+- Status: verified
+- Impact: The form-map `(0,0)` regression case failed on the Android 16 test emulator even though the observed camera target was a valid, non-zero device location.
+- Expected: Reject `(0,0)` as a camera target; use any available usable current fix, or retain the existing fallback and unavailable prompt when no usable fix exists.
+- Actual: `zeroZeroFusedLocationDoesNotMoveBlankFormMap()` required the camera to remain at the Taoyuan fallback and the unavailable prompt to appear. The emulator returned camera target `(25.051658, 121.407173)`, so the assertion rejected the valid-location behavior required for blank maps.
+- Evidence: `adb -s emulator-5554 shell am instrument ...#zeroZeroFusedLocationDoesNotMoveBlankFormMap` failed at the fallback-only assertion on Android 16/API 36. A second attempt that required the unavailable prompt whenever the camera equaled fallback also failed: the camera may equal that coordinate for a valid current fix. The same emulator passed `zeroZeroWaypointIsNotUsedAsFormMapTarget`, `savedCoordinateEditKeepsSavedCameraTarget`, and `missingCoordinateEditWithFusedMockLocationCentersCameraOnly`.
+- Root cause: The test conflated “provider returns no usable fix” with “provider rejects the injected `(0,0)` but a usable device/cached fix is available.” No production defect was established.
+- Resolution: The test now asserts the camera target is usable and not `(0,0)` and confirms form/session coordinates remain unchanged. It allows any usable location, including a current fix at the fallback coordinate; the dedicated no-fix case verifies fallback and the unavailable prompt.
+- Validation: `EditMapInitialLocationInstrumentedTest#zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin` passed on `emulator-5554` (Android 16/API 36); the assertion rejects an unusable camera target while allowing the usable device fix returned by this emulator. Form/session coordinates remained unchanged.
 - Next action: `verification`
