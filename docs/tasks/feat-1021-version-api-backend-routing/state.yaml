@@ -1,0 +1,44 @@
+task:
+  id: feat-1021-version-api-backend-routing
+  type: feature
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: resolved
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+  unit_test: pass
+  debug_build: pass
+  physical_device: not_verified
+
+git:
+  branch: codex/feat-1021-version-api-backend-routing
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification

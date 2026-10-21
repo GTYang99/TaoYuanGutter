@@ -4,14 +4,12 @@ import com.example.taoyuangutter.common.ApiBackendTarget
 import kotlinx.coroutines.CancellationException
 
 class AppVersionRepository internal constructor(
-    private val serviceForTarget: (ApiBackendTarget) -> GutterApiService = { target ->
-        check(target == ApiBackendTarget.BASE)
-        GutterApiClient.versionCheckService()
-    }
+    private val serviceForTarget: (ApiBackendTarget) -> GutterApiService = GutterApiClient::versionCheckService
 ) {
-    /** Uses the fixed BASE Retrofit service even when the login-page debug target selects another API. */
+    /** Uses the target selected when this check starts; an in-flight request keeps that target. */
     suspend fun getAvailableAndroidUpdate(): AvailableAppUpdate? = try {
-        val response = serviceForTarget(ApiBackendTarget.BASE).getAppVersion()
+        val target = GutterApiClient.selectedTarget
+        val response = serviceForTarget(target).getAppVersion()
         if (!response.isSuccessful) null else response.body()?.toAvailableAndroidUpdateOrNull()
     } catch (cancelled: CancellationException) {
         throw cancelled
