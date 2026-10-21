@@ -49,7 +49,15 @@
 - `MapPointPickerLocationInstrumentedTest#explicitLocateMovesCameraToFreshFixWithoutFinishingPicker` | **PASS** — `OK (1 test)`; the picker opened on a saved point, the Locate FAB moved the camera to the injected fresh fix, and the picker remained open so Locate did not return/commit a coordinate.
 - `MainMapLocateInstrumentedTest#hostMapLocateButtonMovesCameraToFreshFix` | **PASS** — `OK (1 test)`; tapping the primary map's Locate button moved the production map from a different camera center to the injected fresh location.
 - Fine and coarse location permissions were denied again after instrumentation; `dumpsys package` confirmed the emulator returned to its original denied state. The mock GPS test provider is disabled by each test's `finally` cleanup.
-- Current combined-branch CI and independent Verification remain pending. The configured CI workflow runs hosted JVM tests, outside the emulator-only validation scope.
+- Current combined-branch CI remains pending; independent Verification has completed and is recorded in `verification.md`. The configured CI workflow runs hosted JVM tests, outside the emulator-only validation scope.
+
+## Post-verification Emulator Rerun
+
+- Date: 2026-10-21. Current HEAD was `b02a0145`; production and instrumentation sources are unchanged from reviewed code/test revision `0b78cc43`.
+- Test target: `emulator-5554`, `sdk_gphone16k_arm64`, Android 16 / API 36. No physical device or host/JVM test runner was used.
+- Command: `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner`.
+- Result: **PASS** — emulator logcat records `run finished: 1 tests, 0 failed, 0 ignored` and `VM exiting with result code 0`.
+- Cleanup: the test's `finally` cleared the mock location provider. Fine and coarse location permissions were revoked and their `user-set` / `user-fixed` flags cleared; `dumpsys package` confirmed both permissions were denied afterward.
 
 ## Build Details
 
