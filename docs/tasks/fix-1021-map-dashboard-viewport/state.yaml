@@ -2,8 +2,8 @@ task:
   id: fix-1021-map-dashboard-viewport
   type: bugfix
 
-phase: verification
-status: verification_not_verified
+phase: infrastructure
+status: blocked
 
 knowledge_resolution:
   status: not_required
@@ -29,7 +29,7 @@ validation:
 
 git:
   branch: codex/fix/map-dashboard-viewport
-  commit: 0b78cc43
+  commit: 98eabb8e
   status: committed
 
 verification:
@@ -42,9 +42,20 @@ ci:
   build: pending
   test: pending
 
+infrastructure:
+  status: blocked
+  evidence:
+    target_revision: 98eabb8e
+    github_branch_search: branch_not_found
+    github_workflow_runs: none
+    workflow_trigger: push_required
+    push_attempt: auto_review_rejected_exact_payload_approval_required
+    user_hosted_ci_authorization: granted
+  resume_phase: verification
+
 release:
   status: pending
 
 blocking:
-  - CI build/test status is unavailable; the configured hosted JVM tests are outside the approved emulator-only test scope.
+  - CI remains NOT VERIFIED because the required branch push was rejected by automatic approval review; explicit authorization to publish the exact branch and payload is required.
 next_action: infrastructure
