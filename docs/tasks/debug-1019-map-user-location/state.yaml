@@ -2,8 +2,8 @@ task:
   id: debug-1019-map-user-location
   type: bugfix
 
-phase: verification
-status: verification_not_verified
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -25,13 +25,14 @@ debug:
   root_cause: identified
 
 validation:
-  status: completed
+  status: completed_with_limitations
   unit_tests: focused EditMapLocationPolicyTest and MapCoordinatePolicyTest passed
   debug_build: passed
   android_test_build: passed
   emulator_location: host_first_visible_frame_passed_api36; no_host_success_first_frame_passed_api34; manual_pan_not_verified; permission_fallback_latest_rerun_limited
   host_test_execution: not_run_emulator_only_policy
   nearby_policy: passed
+  point_picker_initial_camera: unit_passed; debug_and_android_test_build_passed; api34_first_frame_passed_once; repeated_mock_location_not_verified
 
 git:
   branch: codex/debug/debug-1019-map-dashboard-viewport
@@ -66,4 +67,4 @@ release:
 blocking:
   - Hosted CI remains NOT VERIFIED because publishing the exact branch and payload was rejected by automatic approval review; the previously authorized CI run cannot start without that push.
   - ISS-DBG-1019-011 remains unclassified beyond unknown; the host-seeded manual-pan instrumentation did not move the camera.
-next_action: investigation
+next_action: verification

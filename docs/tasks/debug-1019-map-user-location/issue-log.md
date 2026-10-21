@@ -80,6 +80,14 @@
 - Resolution: added mock setup and `finally` cleanup; the corrected fixture passed on Android 14 API 34. No production code change was needed.
 - Next action: `verification`
 
+## ISS-DBG-1019-013 — Blank point picker exposes Taoyuan before location resolves
+
+- Phase found: debug follow-up; category: `implementation_regression`; priority: P2.
+- Expected: With no usable initial point, hide the picker map until a usable location is applied; reveal the existing fallback after permission/location failure. Keep valid supplied point coordinates immediately visible.
+- Root cause: `GutterFormActivity.launchLocationPicker()` passes blank coordinates as `(0,0)`. `MapPointPickerActivity.onMapReady()` displayed the Taoyuan camera before starting its asynchronous locate request.
+- Resolution: hide `mapPicker` while the initial location is pending, disable Confirm during that interval, reveal at the location fix or existing failure fallback, and retain saved-coordinate precedence.
+- Validation: `MapPointPickerInitialCameraPolicyTest` and debug/androidTest builds passed. The first-visible-frame emulator test passed once on Android 14 API 34. A later run captured a usable non-Taoyuan provider target, but the original exact-mock-coordinate assertion failed; the test now checks the no-fallback product behavior and was recompiled, not rerun. Mark the revised test result `NOT VERIFIED`.
+
 ## ISS-DBG-1019-006 — Form accepts `(0,0)` from the location provider
 
 - Task: `debug-1019-map-user-location`
