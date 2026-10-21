@@ -41,5 +41,6 @@
 
 ## Outcome
 - The regression path is corrected and focused developer validation passed.
-- Implementation commit: `f279e2b` on `codex/fix/map-dashboard-viewport`.
-- Remaining task gates: CI and independent verification.
+- Main implementation commit: `f279e2b`.
+- Validated revision: `80726c0` on `codex/fix/map-dashboard-viewport` (includes the real camera instrumentation coverage).
+- Remote CI and independent verification remain pending. The configured CI workflow runs JVM tests on a hosted runner; those host tests were not run because this task's approved test scope is the Android test emulator.

@@ -29,7 +29,7 @@ validation:
 
 git:
   branch: codex/fix/map-dashboard-viewport
-  commit: f279e2b
+  commit: 80726c0
   status: committed
 
 verification:
@@ -45,5 +45,6 @@ release:
   status: pending
 
 blocking:
-  - Independent Verification and CI have not run yet.
+  - Independent Verification has not run yet.
+  - CI's configured JVM tests run on a hosted runner outside the approved emulator-only test scope.
 next_action: verification
