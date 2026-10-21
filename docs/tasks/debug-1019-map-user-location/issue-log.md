@@ -173,8 +173,8 @@
 - Status: open
 - Impact: The regression case cannot verify that a manual pan before a delayed fused callback remains in place when the map was initially centered from a recent host fix.
 - Expected: A user pan changes the camera, and the later location callback does not override it.
-- Actual: `manualPanBeforeFusedMockCallbackKeepsManualCameraTarget` failed twice at its pre-callback assertion because the swipe did not move the camera.
-- Evidence: The case was run on `emulator-5554` (Android 16/API 36); the separate no-fix form instrumentation did successfully pan after the fallback was revealed. Current evidence does not distinguish a missed instrumentation gesture from a production regression.
+- Actual: `manualPanBeforeFusedMockCallbackKeepsManualCameraTarget` fails because the camera target does not change during the attempted pan.
+- Evidence: Four emulator attempts were made on `emulator-5554` (Android 16/API 36), including two diagnostic reruns. In the diagnostic runs, the map was visible and location flow active before the swipe; afterward `editMapLocationUserMoved=true`, but the camera target was still exactly the host coordinate and the flow had completed. Increasing the swipe distance did not change the result. This does not establish whether the cause is input timing or a production map behavior, and the delayed-callback-after-pan assertion was not reached. The prior no-fix form test on Android 14/API 34 did successfully pan after fallback.
 - Next action: `investigation`
 
 ## ISS-DBG-1019-009 — Host-map Locate instrumentation reads camera off the main thread
