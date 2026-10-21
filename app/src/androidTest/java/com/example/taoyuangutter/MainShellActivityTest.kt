@@ -15,6 +15,7 @@ import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.espresso.matcher.ViewMatchers.isDisplayed
+import androidx.test.espresso.matcher.RootMatchers.isDialog
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -79,6 +80,7 @@ class MainShellActivityTest {
     class TestAddGutterHostFragment : Fragment(), com.example.taoyuangutter.gutter.AddGutterListBottomSheet.Host {
         var addClicked = false
         var confirmedClose = false
+        var cancelledClose = false
         var measureClicked = false
         var lastListSheet: com.example.taoyuangutter.gutter.AddGutterListBottomSheet? = null
 
@@ -86,6 +88,9 @@ class MainShellActivityTest {
             com.example.taoyuangutter.gutter.AddGutterListBottomSheet().also {
                 it.drafts = listOf(
                     GutterSessionDraft(
+                        id = if (withContent) 7001L else 7002L,
+                        createdAt = 1L,
+                        savedAt = 1L,
                         waypoints = if (withContent) {
                             listOf(WaypointSnapshot(latitude = 25.0, longitude = 121.0))
                         } else {
@@ -100,6 +105,10 @@ class MainShellActivityTest {
         override fun onAddGutterListAdd() { addClicked = true }
         override fun onAddGutterListSelect(draft: GutterSessionDraft) = Unit
         override fun onAddGutterListConfirmedClose() { confirmedClose = true }
+        override fun onAddGutterListCloseCancelled() {
+            cancelledClose = true
+            showList()
+        }
     }
 
     @Test
@@ -542,6 +551,83 @@ class MainShellActivityTest {
 
             onView(withId(R.id.btnAddGutterListClose)).perform(click())
             onView(withText("確定")).perform(click())
+            assertTrue(hostRef.get()!!.confirmedClose)
+        } finally {
+            MainShellActivity.fragmentFactoryForTests = null
+            scenario.close()
+        }
+    }
+
+    @Test
+    fun canceledListSheetCancelReopensList() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        listOf("animator_duration_scale", "transition_animation_scale", "window_animation_scale").forEach { key ->
+            instrumentation.uiAutomation.executeShellCommand("settings put global $key 0").close()
+        }
+        instrumentation.waitForIdleSync()
+        MainShellActivity.fragmentFactoryForTests = { TestAddGutterHostFragment() }
+        val scenario = ActivityScenario.launch(MainShellActivity::class.java)
+        try {
+            val hostRef = AtomicReference<TestAddGutterHostFragment?>()
+            scenario.onActivity { activity ->
+                hostRef.set(
+                    activity.supportFragmentManager
+                        .findFragmentById(R.id.shell_container) as TestAddGutterHostFragment
+                )
+                hostRef.get()!!.showList()
+            }
+            instrumentation.waitForIdleSync()
+
+            val cancelledSheet = hostRef.get()!!.lastListSheet!!
+            scenario.onActivity { cancelledSheet.dialog!!.cancel() }
+            instrumentation.waitForIdleSync()
+            scenario.onActivity {
+                assertFalse(cancelledSheet.isAdded)
+                assertTrue(cancelledSheet.parentFragment == null)
+            }
+            onView(withText("未上傳側溝草稿將儲存到草稿中")).check(matches(isDisplayed()))
+            onView(withText("取消")).perform(click())
+            assertTrue(hostRef.get()!!.cancelledClose)
+            instrumentation.waitForIdleSync()
+            val reopenedSheet = hostRef.get()!!.lastListSheet!!
+            assertFalse(cancelledSheet === reopenedSheet)
+            assertEquals(cancelledSheet.drafts, reopenedSheet.drafts)
+            scenario.onActivity { assertTrue(reopenedSheet.isAdded) }
+        } finally {
+            MainShellActivity.fragmentFactoryForTests = null
+            scenario.close()
+        }
+    }
+
+    @Test
+    fun canceledListSheetConfirmNotifiesHostAfterDetach() {
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        listOf("animator_duration_scale", "transition_animation_scale", "window_animation_scale").forEach { key ->
+            instrumentation.uiAutomation.executeShellCommand("settings put global $key 0").close()
+        }
+        instrumentation.waitForIdleSync()
+        MainShellActivity.fragmentFactoryForTests = { TestAddGutterHostFragment() }
+        val scenario = ActivityScenario.launch(MainShellActivity::class.java)
+        try {
+            val hostRef = AtomicReference<TestAddGutterHostFragment?>()
+            scenario.onActivity { activity ->
+                hostRef.set(
+                    activity.supportFragmentManager
+                        .findFragmentById(R.id.shell_container) as TestAddGutterHostFragment
+                )
+                hostRef.get()!!.showList()
+            }
+            instrumentation.waitForIdleSync()
+
+            val listSheet = hostRef.get()!!.lastListSheet!!
+            scenario.onActivity { listSheet.dialog!!.cancel() }
+            instrumentation.waitForIdleSync()
+            scenario.onActivity {
+                assertFalse(listSheet.isAdded)
+                assertTrue(listSheet.parentFragment == null)
+            }
+            onView(withText("未上傳側溝草稿將儲存到草稿中")).inRoot(isDialog()).check(matches(isDisplayed()))
+            onView(withText("確定")).inRoot(isDialog()).perform(click())
             assertTrue(hostRef.get()!!.confirmedClose)
         } finally {
             MainShellActivity.fragmentFactoryForTests = null

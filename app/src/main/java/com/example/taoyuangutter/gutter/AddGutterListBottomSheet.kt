@@ -20,6 +20,7 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
         fun onAddGutterListAdd()
         fun onAddGutterListSelect(draft: GutterSessionDraft)
         fun onAddGutterListConfirmedClose()
+        fun onAddGutterListCloseCancelled()
     }
 
     var drafts: List<GutterSessionDraft> = emptyList()
@@ -66,19 +67,22 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
         sheetView.animate().translationY(0f).setDuration(250).start()
     }
 
-    private fun confirmClose() {
+    private fun confirmClose(fromBottomSheetCancellation: Boolean = false) {
+        val host = parentFragment as? Host
         // The alert is about leaving the current add-list session, not about
         // whether every row already has enough data to be persisted.
         if (drafts.isEmpty()) {
-            (parentFragment as? Host)?.onAddGutterListConfirmedClose()
+            host?.onAddGutterListConfirmedClose()
             dismissAllowingStateLoss()
             return
         }
         MaterialAlertDialogBuilder(requireContext())
             .setMessage("未上傳側溝草稿將儲存到草稿中")
-            .setNegativeButton("取消", null)
+            .setNegativeButton("取消") { _, _ ->
+                if (fromBottomSheetCancellation) host?.onAddGutterListCloseCancelled()
+            }
             .setPositiveButton("確定") { _, _ ->
-                (parentFragment as? Host)?.onAddGutterListConfirmedClose()
+                host?.onAddGutterListConfirmedClose()
                 dismissAllowingStateLoss()
             }
             .show()
@@ -148,7 +152,7 @@ class AddGutterListBottomSheet : BottomSheetDialogFragment() {
     }
 
     override fun onCancel(dialog: android.content.DialogInterface) {
-        confirmClose()
+        confirmClose(fromBottomSheetCancellation = true)
     }
 
     override fun onDestroyView() {

@@ -1,0 +1,52 @@
+task:
+  id: debug-1021-2
+  type: debug
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: pending
+
+plan_review:
+  status: pending
+
+debug:
+  status: completed
+  root_cause: late_bottom_sheet_cancel_confirmation_skips_host_cleanup_and_leaves_target_panel_state
+  issues:
+    - ISS-DBG-1021-2-001
+  evidence:
+    source_review: completed
+    on_cancel_runtime_characterization: completed
+    runtime_reproduction: not_verified
+
+implementation:
+  status: completed
+  mode: debug_fix
+
+validation:
+  status: completed
+
+git:
+  branch: codex/debug/debug-1021-2
+  commit: 815540aab261a20439ae2ceb39a1de897267e0c9
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: verification

@@ -1127,6 +1127,12 @@ class MapWorkspaceFragment : Fragment(),
         restoreMainUiAfterSheetClosed()
     }
 
+    override fun onAddGutterListCloseCancelled() {
+        // The swipe already dismissed the old sheet; cancel the close by reopening its draft list.
+        addGutterListSheet = null
+        showAddGutterList()
+    }
+
     private fun buildSessionUiHooks(): GutterSessionUiCoordinator.Hooks {
         return GutterSessionUiCoordinator.Hooks(
             isHostFinishing = { false },
