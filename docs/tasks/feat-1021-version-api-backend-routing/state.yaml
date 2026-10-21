@@ -24,7 +24,7 @@ validation:
   physical_device: not_verified
 
 git:
-  branch: codex/feat-1021-version-api-backend-routing
+  branch: codex/feat1013-supplemental-modification
   commit: 7f31d966bf14909231062e51d7fbb4cbf11c915e
   verification_commit: 7176b5bebe3b9e0425d2757389b0dcefa700b15a
   status: committed
