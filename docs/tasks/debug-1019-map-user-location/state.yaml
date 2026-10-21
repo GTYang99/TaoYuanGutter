@@ -2,8 +2,8 @@ task:
   id: debug-1019-map-user-location
   type: bugfix
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -35,13 +35,14 @@ validation:
 
 git:
   branch: codex/fix/map-dashboard-viewport
-  commit: cb3c1cc
+  commit: 0b78cc43
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
 
 ci:
   build: pending
@@ -51,7 +52,5 @@ release:
   status: pending
 
 blocking:
-  - Independent Verification has not reviewed the current combined branch.
-  - CI build/test are not available for the current combined branch under the emulator-only test scope.
-  - Nearby import's full sheet end-to-end behavior remains unverified; its coordinate policy tests and source wiring review passed.
-next_action: verification
+  - CI build/test status is unavailable for the current combined revision under the approved emulator-only test scope.
+next_action: infrastructure

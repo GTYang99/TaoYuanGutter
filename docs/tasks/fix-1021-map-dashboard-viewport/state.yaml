@@ -29,7 +29,7 @@ validation:
 
 git:
   branch: codex/fix/map-dashboard-viewport
-  commit: 49e934b
+  commit: 0b78cc43
   status: committed
 
 verification:
