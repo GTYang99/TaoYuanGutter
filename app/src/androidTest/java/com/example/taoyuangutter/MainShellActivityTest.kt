@@ -19,6 +19,7 @@ import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Lifecycle
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import com.google.android.material.progressindicator.CircularProgressIndicator
@@ -35,7 +36,9 @@ import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.example.taoyuangutter.pending.WORKFLOW_MULTI_GUTTER
 import java.util.concurrent.atomic.AtomicReference
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -250,37 +253,70 @@ class MainShellActivityTest {
                         InstrumentationRegistry.getInstrumentation().runOnMainSync {
                             activity.supportFragmentManager.executePendingTransactions()
                             currentRef.set(
-                                activity.supportFragmentManager.findFragmentById(R.id.shell_container)?.javaClass
+                                activity.supportFragmentManager.fragments
+                                    .firstOrNull { it.id == R.id.shell_container && !it.isHidden }
+                                    ?.javaClass
                             )
                         }
                         if (currentRef.get() == expected) return
                     }
                     Thread.sleep(100)
                 }
-                val activity = currentActivity()
-                if (activity != null) {
-                    val currentRef = AtomicReference<Class<out Fragment>?>()
-                    InstrumentationRegistry.getInstrumentation().runOnMainSync {
-                        activity.supportFragmentManager.executePendingTransactions()
-                        currentRef.set(
-                            activity.supportFragmentManager.findFragmentById(R.id.shell_container)?.javaClass
-                        )
-                    }
-                    assertEquals(expected, currentRef.get())
+                val activity = checkNotNull(currentActivity()) {
+                    "MainShellActivity did not become RESUMED"
                 }
+                val currentRef = AtomicReference<Class<out Fragment>?>()
+                InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                    activity.supportFragmentManager.executePendingTransactions()
+                    currentRef.set(
+                        activity.supportFragmentManager.fragments
+                            .firstOrNull { it.id == R.id.shell_container && !it.isHidden }
+                            ?.javaClass
+                    )
+                }
+                assertEquals(expected, currentRef.get())
             }
 
             waitForFragment(TestMapFragment::class.java)
+            val mapFragment = AtomicReference<Fragment?>()
             withCurrentActivity {
+                mapFragment.set(supportFragmentManager.findFragmentByTag("tab:${R.id.nav_map}"))
+                findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+                    .selectedItemId = R.id.nav_dashboard
+            }
+            waitForFragment(TestDashboardFragment::class.java)
+            val dashboardFragment = AtomicReference<Fragment?>()
+            withCurrentActivity {
+                dashboardFragment.set(supportFragmentManager.findFragmentByTag("tab:${R.id.nav_dashboard}"))
+                assertSame(mapFragment.get(), supportFragmentManager.findFragmentByTag("tab:${R.id.nav_map}"))
+                assertTrue(mapFragment.get()!!.isHidden)
+                assertFalse(dashboardFragment.get()!!.isHidden)
+                assertEquals(Lifecycle.State.STARTED, mapFragment.get()!!.lifecycle.currentState)
+                assertEquals(Lifecycle.State.RESUMED, dashboardFragment.get()!!.lifecycle.currentState)
+                findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+                    .selectedItemId = R.id.nav_map
+            }
+            waitForFragment(TestMapFragment::class.java)
+            withCurrentActivity {
+                assertSame(mapFragment.get(), supportFragmentManager.findFragmentByTag("tab:${R.id.nav_map}"))
+                assertSame(
+                    dashboardFragment.get(),
+                    supportFragmentManager.findFragmentByTag("tab:${R.id.nav_dashboard}")
+                )
+                assertFalse(mapFragment.get()!!.isHidden)
+                assertTrue(dashboardFragment.get()!!.isHidden)
+                assertEquals(Lifecycle.State.RESUMED, mapFragment.get()!!.lifecycle.currentState)
+                assertEquals(Lifecycle.State.STARTED, dashboardFragment.get()!!.lifecycle.currentState)
                 findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
                     .selectedItemId = R.id.nav_dashboard
             }
             waitForFragment(TestDashboardFragment::class.java)
             withCurrentActivity {
-                findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
-                    .selectedItemId = R.id.nav_map
+                assertSame(
+                    dashboardFragment.get(),
+                    supportFragmentManager.findFragmentByTag("tab:${R.id.nav_dashboard}")
+                )
             }
-            waitForFragment(TestMapFragment::class.java)
         } finally {
             MainShellActivity.fragmentFactoryForTests = null
             scenario.close()

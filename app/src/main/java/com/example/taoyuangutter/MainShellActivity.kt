@@ -7,6 +7,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.commitNow
+import androidx.lifecycle.Lifecycle
 import com.example.taoyuangutter.dashboard.DashboardFragment
 import com.example.taoyuangutter.databinding.ActivityMainShellBinding
 import com.example.taoyuangutter.map.MapWorkspaceFragment
@@ -62,13 +63,27 @@ class MainShellActivity : AppCompatActivity() {
 
     private fun showTab(tabId: Int) {
         currentTabId = tabId
-        val fragment = fragmentFactoryForTests?.invoke(tabId) ?: when (tabId) {
-            R.id.nav_dashboard -> DashboardFragment.newInstance()
-            else -> MapWorkspaceFragment.newInstance()
-        }
-        supportFragmentManager.commitNow {
+        val fragmentManager = supportFragmentManager
+        val tag = tabTag(tabId)
+        val fragment = fragmentManager.findFragmentByTag(tag)
+            ?: fragmentFactoryForTests?.invoke(tabId)
+            ?: when (tabId) {
+                R.id.nav_dashboard -> DashboardFragment.newInstance()
+                else -> MapWorkspaceFragment.newInstance()
+            }
+        fragmentManager.commitNow {
             setReorderingAllowed(true)
-            replace(R.id.shell_container, fragment, tabTag(tabId))
+            fragmentManager.fragments
+                .filter { it.id == R.id.shell_container && it != fragment }
+                .forEach {
+                    hide(it)
+                    setMaxLifecycle(it, Lifecycle.State.STARTED)
+                }
+            if (!fragment.isAdded) {
+                add(R.id.shell_container, fragment, tag)
+            }
+            show(fragment)
+            setMaxLifecycle(fragment, Lifecycle.State.RESUMED)
         }
         if (binding.bottomNav.selectedItemId != tabId) {
             binding.bottomNav.menu.findItem(tabId)?.isChecked = true

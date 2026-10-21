@@ -1,0 +1,48 @@
+task:
+  id: fix-1021-map-dashboard-viewport
+  type: bugfix
+
+phase: implementation
+status: implementation_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: approved
+  result: APPROVED
+  blocking_issues: []
+
+implementation:
+  status: completed
+
+validation:
+  status: completed
+  debug_build: passed
+  android_test_build: passed
+  emulator_instrumentation: passed
+  host_test_execution: not_run_emulator_only_policy
+
+git:
+  branch: codex/fix/map-dashboard-viewport
+  commit: pending
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking:
+  - Independent Verification and CI have not run yet.
+next_action: verification
