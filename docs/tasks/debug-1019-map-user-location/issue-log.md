@@ -177,6 +177,20 @@
 - Evidence: Four emulator attempts were made on `emulator-5554` (Android 16/API 36), including two diagnostic reruns. In the diagnostic runs, the map was visible and location flow active before the swipe; afterward `editMapLocationUserMoved=true`, but the camera target was still exactly the host coordinate and the flow had completed. Increasing the swipe distance did not change the result. This does not establish whether the cause is input timing or a production map behavior, and the delayed-callback-after-pan assertion was not reached. The prior no-fix form test on Android 14/API 34 did successfully pan after fallback.
 - Next action: `investigation`
 
+## ISS-DBG-1019-012 — API 36 emulator does not deliver the no-host fused fix to the form
+
+- Task: `debug-1019-map-user-location`
+- Phase found: developer validation
+- Category: `unknown`
+- Priority: P2
+- Status: open
+- Impact: AC-007's no-host successful-fix first-visible-frame branch cannot be demonstrated on the current Android 16 emulator.
+- Expected: A blank form remains hidden while location is unresolved, then applies a usable fused fix before its first visible frame.
+- Actual: The test mock provider accepted the injected location and `dumpsys location` showed a fused last location, but `GutterFormActivity` did not receive a successful `getCurrentLocation()` callback within the test window; the map remained hidden until the existing timeout/fallback path.
+- Evidence: Focused API 36 emulator attempt for `blankFormWithoutHostFixUsesFusedFixBeforeFirstVisibleFrame` timed out; `DBG1007MockLocation` logged `Mock provider action completed: enable`, and `dumpsys location` showed `Location[fused 25.040001,121.519997 ... mock]`. The diagnostic test draft was removed after the failed run. The host-seeded first-visible-frame case passes on the same emulator.
+- Classification: No production failure is established; retain `unknown` pending a GMS/location-capable emulator reproduction.
+- Next action: `investigation`
+
 ## ISS-DBG-1019-009 — Host-map Locate instrumentation reads camera off the main thread
 
 - Task: `debug-1019-map-user-location`

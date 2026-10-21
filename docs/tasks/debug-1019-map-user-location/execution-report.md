@@ -75,6 +75,14 @@
 - `git diff --check` — **PASS** after final source, test, and task-document edits and before commit.
 - Hosted CI and independent verification have not run for this follow-up revision. CI remains pending because publishing the exact branch/payload was rejected by the automatic approval review. Do not treat this as a release-complete revision.
 
+## Continued Focused Validation — 2026-10-21
+
+- No physical device was used. The instrumentation command explicitly selected `emulator-5554` (Android 16 / API 36).
+- Focused unit command: `./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.gutter.EditMapLocationPolicyTest' --tests 'com.example.taoyuangutter.map.MapCoordinatePolicyTest'` — **PASS**, `BUILD SUCCESSFUL`.
+- `EditMapInitialLocationInstrumentedTest#blankFormUsesFreshHostLocationBeforeFirstMapDisplay` — **PASS**, 1 test / 0 failures. Its `OnPreDraw` capture confirmed the first visible frame used the fresh host coordinate.
+- Diagnostic attempt for AC-007's no-host successful-fix branch — **NOT VERIFIED**. On this API 36 emulator the mock provider accepted the injected point and `dumpsys location` showed it as the fused last location, but the form's `getCurrentLocation()` callback did not reveal the map within the test window. The temporary test draft was removed; this does not establish a production failure. Keep AC-007's successful-fix branch open for investigation on a location-capable emulator.
+- `git diff --check` — **PASS** after recording these results.
+
 ## Build Details
 
 - Application package: `com.example.taoyuangutter`

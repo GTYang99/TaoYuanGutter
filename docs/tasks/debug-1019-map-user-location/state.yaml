@@ -2,8 +2,8 @@ task:
   id: debug-1019-map-user-location
   type: bugfix
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -26,10 +26,10 @@ debug:
 
 validation:
   status: completed
-  unit_tests: not_rerun_for_followup_revision
+  unit_tests: focused EditMapLocationPolicyTest and MapCoordinatePolicyTest passed
   debug_build: passed
   android_test_build: passed
-  emulator_location: focused_passes_with_manual_pan_case_unverified
+  emulator_location: host_first_visible_frame_passed_api36; no_host_success_and_manual_pan_not_verified
   host_test_execution: not_run_emulator_only_policy
   nearby_policy: passed
 
@@ -43,8 +43,9 @@ verification:
   category: unknown
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
-    - AC-007 delayed location callback after a manual pan on a host-seeded map
-    - Independent verification of the follow-up revision
+    - AC-007 no-host successful-fix reveal before first visible frame
+    - AC-007 diagnostic fused callback not delivered in API 36 emulator
+    - ISS-DBG-1019-011 host-seeded pan followed by delayed location callback
 
 ci:
   build: pending
@@ -66,5 +67,6 @@ release:
 
 blocking:
   - Hosted CI remains NOT VERIFIED because publishing the exact branch and payload was rejected by automatic approval review; the previously authorized CI run cannot start without that push.
+  - AC-007 no-host successful-fix visibility sequence remains NOT VERIFIED; API 36 fused mock injection did not produce a form callback.
   - ISS-DBG-1019-011 remains unclassified beyond unknown; the host-seeded manual-pan instrumentation did not move the camera.
 next_action: investigation
