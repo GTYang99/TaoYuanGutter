@@ -34,7 +34,7 @@ validation:
   nearby_policy: passed
 
 git:
-  branch: codex/fix/map-dashboard-viewport
+  branch: codex/debug/debug-1019-map-dashboard-viewport
   commit: d4f6f46b
   status: committed
 
