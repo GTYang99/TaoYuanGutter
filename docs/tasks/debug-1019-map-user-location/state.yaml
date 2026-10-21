@@ -35,7 +35,7 @@ validation:
 
 git:
   branch: codex/debug/debug-1019-map-dashboard-viewport
-  commit: d4f6f46b
+  commit: a159da51
   status: committed
 
 verification:
@@ -67,6 +67,6 @@ release:
 
 blocking:
   - Hosted CI remains NOT VERIFIED because publishing the exact branch and payload was rejected by automatic approval review; the previously authorized CI run cannot start without that push.
-  - AC-007 no-host successful-fix visibility sequence remains NOT VERIFIED; API 36 fused mock injection did not produce a form callback.
+  - AC-007 no-host successful-fix visibility sequence remains NOT VERIFIED; API 36 fused mock injection did not produce a form callback (ISS-DBG-1019-012).
   - ISS-DBG-1019-011 remains unclassified beyond unknown; the host-seeded manual-pan instrumentation did not move the camera.
 next_action: investigation

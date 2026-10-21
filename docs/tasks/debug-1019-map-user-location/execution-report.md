@@ -72,8 +72,9 @@
 - `freshNewPointWithEmulatorGpsFixCentersCameraOnly` — **PASS**; the usable fix centered the new form without writing coordinate data.
 - `savedCoordinateEditKeepsSavedCameraTarget` — **PASS**; the saved point remained centered.
 - `manualPanBeforeFusedMockCallbackKeepsManualCameraTarget` — **FAIL / NOT VERIFIED**. Two diagnostic reruns confirmed the map was visible and the location flow active before the swipe; afterward `editMapLocationUserMoved=true`, but the camera target remained exactly at the host coordinate and the location flow had completed. A wider swipe produced the same result. This does not prove whether input timing or a production map behavior caused the unchanged camera, and the test never established a delayed callback after a moved camera. The host-seeded case remains unverified; tracked as `ISS-DBG-1019-011`.
+- A later rerun of `returningFromSettingsWithoutPermissionKeepsFallbackUsable` on the same API 36 emulator — **NOT VERIFIED**. Espresso raised `NoActivityResumedException` at the first Retry-button interaction after `denySystemLocationPermissionPrompt()` (`EditMapInitialLocationInstrumentedTest.kt:306`). The helper taps a fixed Android 14 permission-dialog coordinate; the API 36 run did not return to a resumed app activity. This is a test-environment/UI automation limitation and does not establish a product regression. The earlier API 36 pass remains recorded; revalidation needs a permission-dialog interaction that works on this emulator version.
 - `git diff --check` — **PASS** after final source, test, and task-document edits and before commit.
-- Hosted CI and independent verification have not run for this follow-up revision. CI remains pending because publishing the exact branch/payload was rejected by the automatic approval review. Do not treat this as a release-complete revision.
+- Independent Verification reviewed committed HEAD `a159da51` and recorded `NOT VERIFIED` because the no-host success branch and manual-pan regression remain unproven. Hosted CI remains pending because publishing the exact branch/payload was rejected by the automatic approval review. Do not treat this as a release-complete revision.
 
 ## Continued Focused Validation — 2026-10-21
 
@@ -99,7 +100,7 @@
 - AC-004: `PASS` for initial blank-form location fallback on Android 14 API 34 and for the Nearby provider policy boundary in unit tests; invalid fresh `(0,0)` is rejected. Full Nearby sheet runtime behavior remains `NOT VERIFIED`.
 - AC-005: `PASS` by source review; both host callbacks keep an absent camera target nullable and omit the camera move.
 - AC-006: `PASS` by source review and picker instrumentation; Locate moves the camera while leaving the picker open, and only Confirm returns the camera target as a result.
-- AC-007: `PASS` for the first-visible-frame host-fix case and permission-denial/fallback visibility case on Android 16 API 36. The delayed-callback manual-pan case is `NOT VERIFIED` (ISS-DBG-1019-011).
+- AC-007: `PASS` for the first-visible-frame host-fix case on Android 16 API 36. The no-host successful-fix reveal and delayed-callback manual-pan cases are `NOT VERIFIED` (ISS-DBG-1019-012 and ISS-DBG-1019-011); permission-denial/fallback visibility has an earlier API 36 pass, but its latest rerun was blocked by the permission-dialog automation limitation recorded above.
 
 ## Handoff
 
