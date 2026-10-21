@@ -51,13 +51,14 @@
 - Fine and coarse location permissions were denied again after instrumentation; `dumpsys package` confirmed the emulator returned to its original denied state. The mock GPS test provider is disabled by each test's `finally` cleanup.
 - Current combined-branch CI remains pending; independent Verification has completed and is recorded in `verification.md`. The configured CI workflow runs hosted JVM tests, outside the emulator-only validation scope.
 
-## Post-verification Emulator Rerun
+## Post-verification Emulator Reruns
 
-- Date: 2026-10-21. Current HEAD was `b02a0145`; production and instrumentation sources are unchanged from reviewed code/test revision `0b78cc43`.
+- Date: 2026-10-21. Current HEAD is `c5ded0d9`; production and instrumentation sources are unchanged from reviewed code/test revision `0b78cc43`.
 - Test target: `emulator-5554`, `sdk_gphone16k_arm64`, Android 16 / API 36. No physical device or host/JVM test runner was used.
-- Command: `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner`.
-- Result: **PASS** — emulator logcat records `run finished: 1 tests, 0 failed, 0 ignored` and `VM exiting with result code 0`.
-- Cleanup: the test's `finally` cleared the mock location provider. Fine and coarse location permissions were revoked and their `user-set` / `user-fixed` flags cleared; `dumpsys package` confirmed both permissions were denied afterward.
+- Command `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#savedCoordinateEditKeepsSavedCameraTarget com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — **PASS**, `OK (1 test)` in 34.088 seconds. A saved gutter point remained the map center.
+- Command `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#missingCoordinateEditWithFusedMockLocationCentersCameraOnly com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — **PASS**, `OK (1 test)` in 35.393 seconds. The blank form centered on the injected usable fix while `NODE_X`, `NODE_Y`, and waypoint/session coordinates remained unchanged.
+- Command `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — **PASS**. Emulator logcat records `run finished: 1 tests, 0 failed, 0 ignored` and `VM exiting with result code 0`.
+- Cleanup: each test's `finally` cleared the mock location provider. Fine and coarse location permissions were revoked and their `user-set` / `user-fixed` flags cleared; `dumpsys package` confirmed both permissions were denied afterward, and the test runner was stopped.
 
 ## Build Details
 
