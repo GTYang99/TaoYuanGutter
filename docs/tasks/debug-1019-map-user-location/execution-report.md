@@ -47,6 +47,7 @@
 - Corrected `EditMapInitialLocationInstrumentedTest#zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin` | **PASS** — `OK (1 test)`; asserts the final camera target is usable and cannot be `(0,0)`, while checking form/session coordinates remain unchanged. The separate no-fix test remains responsible for the fallback and unavailable prompt.
 - `EditMapInitialLocationInstrumentedTest#offlineBlankFormUsesLocationCameraOnly` | **PASS** — `OK (1 test)`; the legacy/offline blank form centered on the injected usable fix without saving it as form or waypoint coordinates.
 - `MapPointPickerLocationInstrumentedTest#explicitLocateMovesCameraToFreshFixWithoutFinishingPicker` | **PASS** — `OK (1 test)`; the picker opened on a saved point, the Locate FAB moved the camera to the injected fresh fix, and the picker remained open so Locate did not return/commit a coordinate.
+- `MainMapLocateInstrumentedTest#hostMapLocateButtonMovesCameraToFreshFix` | **PASS** — `OK (1 test)`; tapping the primary map's Locate button moved the production map from a different camera center to the injected fresh location.
 - Fine and coarse location permissions were denied again after instrumentation; `dumpsys package` confirmed the emulator returned to its original denied state. The mock GPS test provider is disabled by each test's `finally` cleanup.
 - Current combined-branch CI and independent Verification remain pending. The configured CI workflow runs hosted JVM tests, outside the emulator-only validation scope.
 
@@ -62,11 +63,11 @@
 
 - AC-001: `PASS` on Android 14 API 34; the saved-coordinate instrumentation case retained its waypoint camera target.
 - AC-002: `PASS` for tested fresh-add, ordinary blank-edit, offline, and restored form-map flows on Android 14 API 34; provider `(0,0)` is rejected and camera-only coordinate assertions passed.
-- AC-003: `PASS` for the recenter decision policy in unit tests; host-map and point-picker end-to-end movement remains `NOT VERIFIED`.
+- AC-003: `PASS` for the recenter decision policy in the previously recorded unit tests and for primary host-map and point-picker Locate movement in the current API 36 emulator instrumentation; stale/invalid fallback remains covered by policy tests.
 - AC-004: `PASS` for initial blank-form location fallback on Android 14 API 34 and for the Nearby provider policy boundary in unit tests; invalid fresh `(0,0)` is rejected. Full Nearby sheet runtime behavior remains `NOT VERIFIED`.
 - AC-005: `PASS` by source review; both host callbacks keep an absent camera target nullable and omit the camera move.
-- AC-006: `PASS` by source review; the picker Locate handler requests viewport movement, while only Confirm returns the camera target as a result.
+- AC-006: `PASS` by source review and picker instrumentation; Locate moves the camera while leaving the picker open, and only Confirm returns the camera target as a result.
 
 ## Handoff
 
-- Independent Verification and a completed remote CI result for the final commit are still required. Host-map and point-picker Locate end-to-end behavior remains unverified; physical-device testing is outside the approved plan.
+- Independent Verification and a completed remote CI result for the current combined branch are still required. Nearby import's full sheet runtime behavior remains `NOT VERIFIED`; physical-device testing is outside the approved plan.

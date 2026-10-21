@@ -129,3 +129,31 @@
 - Resolution: The test now asserts the camera target is usable and not `(0,0)` and confirms form/session coordinates remain unchanged. It allows any usable location, including a current fix at the fallback coordinate; the dedicated no-fix case verifies fallback and the unavailable prompt.
 - Validation: `EditMapInitialLocationInstrumentedTest#zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin` passed on `emulator-5554` (Android 16/API 36); the assertion rejects an unusable camera target while allowing the usable device fix returned by this emulator. Form/session coordinates remained unchanged.
 - Next action: `verification`
+
+## ISS-DBG-1019-009 — Host-map Locate instrumentation reads camera off the main thread
+
+- Task: `debug-1019-map-user-location`
+- Phase found: developer validation
+- Category: `planning_gap` (test harness threading)
+- Priority: P3
+- Status: verified
+- Impact: The new primary-map Locate instrumentation failed before reaching its camera assertion.
+- Expected: GoogleMap camera reads and writes run on the Android main thread.
+- Actual: The first test draft read `GoogleMap.cameraPosition` on the instrumentation worker thread; Maps SDK raised `Not on the main thread`.
+- Resolution: Camera reads now use `ActivityScenario.onActivity`; production code was unchanged.
+- Validation: `MainMapLocateInstrumentedTest#hostMapLocateButtonMovesCameraToFreshFix` passed on `emulator-5554` (Android 16/API 36), moving the primary map from a different center to the injected fresh fix.
+- Next action: `verification`
+
+## ISS-DBG-1019-009 — Host-map Locate instrumentation reads camera off the main thread
+
+- Task: `debug-1019-map-user-location`
+- Phase found: developer validation
+- Category: `planning_gap` (test harness threading)
+- Priority: P3
+- Status: verified
+- Impact: The new primary-map Locate instrumentation failed before reaching its camera assertion.
+- Expected: GoogleMap camera reads and writes run on the Android main thread.
+- Actual: The first test draft read `GoogleMap.cameraPosition` on the instrumentation worker thread; Maps SDK raised `Not on the main thread`.
+- Resolution: Camera reads now use `ActivityScenario.onActivity`; production code was unchanged.
+- Validation: `MainMapLocateInstrumentedTest#hostMapLocateButtonMovesCameraToFreshFix` passed on `emulator-5554` (Android 16/API 36), moving the primary map from a different center to the injected fresh fix.
+- Next action: `verification`
