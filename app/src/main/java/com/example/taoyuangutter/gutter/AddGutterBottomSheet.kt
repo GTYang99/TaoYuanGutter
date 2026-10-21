@@ -1104,7 +1104,7 @@ class AddGutterBottomSheet : BottomSheetDialogFragment() {
                     repairWaypointPhotosFromPendingIfNeeded(waypoints)
                     restoreUnchangedPhotoMetadataIntoWaypoints(waypoints)
                     if (!validateWaypointPhotosAndFieldsOrAlert(waypoints.toList())) {
-                        updateSubmitButtonState()
+                        setSubmitLoading(false)
                         return@launch
                     }
                     if (ensureWaypointPhotosUploadedBeforeSubmit(waypoints.toList(), token) == null) {

@@ -1,0 +1,49 @@
+task:
+  id: debug-1021
+  type: debug
+
+phase: implementation
+status: implementation_in_progress
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: pending
+
+debug:
+  status: completed
+  root_cause: identified
+  issues:
+    - ISS-DBG-1021-001
+
+implementation:
+  status: in_progress
+
+validation:
+  status: pending
+
+git:
+  branch: codex/debug/debug-1021
+  commit: ""
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+
+next_action: implementation
+
