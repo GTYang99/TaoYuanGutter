@@ -95,6 +95,14 @@
 - `returningFromSettingsWithoutPermissionKeepsFallbackUsable` on API 34 — **NOT VERIFIED**; the instrumentation process exited without a test result while interacting with the native permission UI. A prior API 36 pass remains recorded; the latest API 36 rerun also stopped before its assertion with `NoActivityResumedException`.
 - The secure mock-location-app selection is empty on both AVDs after validation; API 36's test-package app-op is back to default. Location permissions were revoked and test providers were disabled on both emulators. The Android 14 AVD was shut down after validation. No physical device was used.
 
+## Final Implementation-Validation Check — 2026-10-21
+
+- Source and instrumentation revision under test: `b60fe370`; current HEAD at execution: `d6b9e1ff` (documentation-only follow-up, no source or test changes).
+- Focused command: `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' PATH='/Applications/Android Studio.app/Contents/jbr/Contents/bin':$PATH ./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.gutter.EditMapLocationPolicyTest' --tests 'com.example.taoyuangutter.map.MapCoordinatePolicyTest'` — **PASS**, `BUILD SUCCESSFUL`; Gradle reported the selected tasks up to date.
+- The first sandboxed invocation could not create Gradle's wrapper lock under `~/.gradle` (`Operation not permitted`). The same focused command was retried with approved local cache access and passed; no repository source or test files were changed by the run.
+- Emulator regression evidence remains the API 36 host-seeded first-frame pass and API 34 no-host first-frame pass recorded above. No physical device was used. The host-seeded manual-pan callback case remains **NOT VERIFIED** (`ISS-DBG-1019-011`); this focused JVM run does not cover that UI timing behavior.
+- Hosted CI and Release were not run as the requested scope ends at implementation validation.
+
 ## Build Details
 
 - Application package: `com.example.taoyuangutter`
