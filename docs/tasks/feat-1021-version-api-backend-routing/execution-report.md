@@ -20,6 +20,12 @@
 - APK: `app/build/outputs/apk/debug/app-debug.apk`
 - Application ID: `com.example.taoyuangutter`
 
+## Git
+
+- Branch: `codex/feat-1021-version-api-backend-routing`
+- Implementation commit: `7f31d96`
+- Worktree was clean immediately after the implementation commit; task state/report are being recorded in a follow-up documentation commit.
+
 ## Limitations
 
 - No physical-device or live backend request was performed. Backend routing is covered by the selected-target tests and the existing endpoint mapping test.
