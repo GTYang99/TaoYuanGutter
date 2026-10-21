@@ -17,6 +17,7 @@
 - FR-005: If location permission or a usable fix is unavailable, preserve the existing fallback and location-unavailable behavior.
 - FR-006: When the host map has no camera target and the waypoint has no coordinate, opening the gutter form must not move the host camera to `(0,0)`.
 - FR-007: The point-picker Confirm action continues to return its camera target as the selected coordinate; pressing Locate alone does not write it to the form.
+- FR-008: A blank form must not visibly show the Taoyuan fallback while a usable host/current location is still being resolved. Use a fresh usable host fix as the synchronous initial center; if none exists, reveal the blank map only after a usable current fix is applied or the existing unavailable/fallback path is selected.
 
 ## Acceptance Criteria
 - AC-001: A valid saved-coordinate form opens centered on that coordinate and does not start initial location acquisition.
@@ -25,6 +26,7 @@
 - AC-004: A blank form or point picker with no usable fix retains its existing fallback and location-unavailable behavior.
 - AC-005: A missing waypoint coordinate plus an unavailable host map target does not issue a camera move to `(0,0)`.
 - AC-006: The point-picker Locate action changes only the viewport; Confirm continues to return the chosen camera coordinate.
+- AC-007: When a blank form opens without a usable host handoff location, the form map stays hidden before location resolution; it becomes visible centered on a usable current fix, or reveals the existing Taoyuan fallback only after permission/location failure. A valid saved point remains immediately visible and centered.
 
 ## Non-functional Requirements
 - No new dependency.

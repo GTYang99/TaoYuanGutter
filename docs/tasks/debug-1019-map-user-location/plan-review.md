@@ -55,3 +55,12 @@
 - phase: plan_review
 - status: approved
 - next_action: implementation
+
+## Follow-up Plan Review — AC-007 Initial Form Map Presentation
+
+- Review basis: user-reported brief Taoyuan flash; source sequence in `GutterFormActivity.onMapReady()` and existing `EditMapInitialLocationInstrumentedTest` assertions.
+- Requirement update: FR-008 / AC-007 distinguish a usable host fix, pending blank-map location, and the existing denied/unavailable fallback.
+- Scope review: limited to initial form-map camera/visibility and its emulator regression case; no saved-point, coordinate persistence, permission, host-map, or API behavior change.
+- Risk review: a blank form with no usable host fix temporarily hides only the map surface while location resolves; the form panel remains usable. On failure, reveal the same fallback and existing prompt before allowing continuation.
+- Test review: the emulator will check visibility before result, camera before reveal on success, fallback reveal after denial, saved-point visibility, and pan protection when a usable host center is available.
+- Decision: APPROVED; no blocking findings.

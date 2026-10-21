@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.view.View
+import android.view.ViewTreeObserver
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.doesNotExist
@@ -29,6 +30,9 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 /** Emulator integration coverage for the edit-only, camera-only location behavior. */
 @RunWith(AndroidJUnit4::class)
@@ -47,6 +51,7 @@ class EditMapInitialLocationInstrumentedTest {
                 assertTrue("Form map did not center on the Fused mock location", distanceMeters(testPoint, actual!!) <= 100.0)
                 awaitLocationFlowFinish(scenario)
                 scenario.onActivity { activity ->
+                    assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.formMapContainer).visibility)
                     assertEquals(0.0, readField<Double>(activity, "currentLat"), 0.0)
                     assertEquals(0.0, readField<Double>(activity, "currentLng"), 0.0)
                     @Suppress("UNCHECKED_CAST")
@@ -69,15 +74,22 @@ class EditMapInitialLocationInstrumentedTest {
         grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
         val injectedLocation = LatLng(25.03, 121.5)
+        val hostLocation = recentLocation(25.01, 121.48)
         setMockLocation(null)
         try {
-            launchForm(isEditMode = true, waypoint = waypoint(latitude = null, longitude = null)).use { scenario ->
+            launchForm(
+                isEditMode = true,
+                waypoint = waypoint(latitude = null, longitude = null),
+                hostInitialLocation = hostLocation
+            ).use { scenario ->
                 awaitLocationAttempt(scenario, expectedAttempt = 1)
+                val initialTarget = cameraTarget(scenario)
+                assertNotNull("Fresh host location was not used for the initial map", initialTarget)
+                assertTrue(distanceMeters(LatLng(hostLocation.latitude, hostLocation.longitude), initialTarget!!) <= 100.0)
                 swipeVisibleMapArea(scenario)
                 val manualTarget = cameraTarget(scenario)
                 assertNotNull("Manual map gesture did not produce a camera target", manualTarget)
-                val fallback = LatLng(24.9929, 121.3011)
-                assertTrue("Manual map gesture did not move the camera", distanceMeters(fallback, manualTarget!!) > 100.0)
+                assertTrue("Manual map gesture did not move the camera", distanceMeters(initialTarget, manualTarget!!) > 100.0)
 
                 setMockLocation(injectedLocation)
                 awaitLocationFlowFinish(scenario)
@@ -173,6 +185,50 @@ class EditMapInitialLocationInstrumentedTest {
     }
 
     @Test
+    fun blankFormUsesFreshHostLocationBeforeFirstMapDisplay() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        prepareLocationPermissionPrompt(context)
+        val hostLocation = recentLocation(25.02, 121.53)
+        val expected = LatLng(hostLocation.latitude, hostLocation.longitude)
+        val firstVisibleCameraTarget = AtomicReference<LatLng?>()
+        val firstVisibleFrame = CountDownLatch(1)
+
+        launchForm(
+            isEditMode = true,
+            waypoint = waypoint(latitude = null, longitude = null),
+            hostInitialLocation = hostLocation
+        ).use { scenario ->
+            scenario.onActivity { activity ->
+                val container = activity.findViewById<View>(R.id.formMapContainer)
+                container.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+                    override fun onPreDraw(): Boolean {
+                        if (container.visibility == View.VISIBLE) {
+                            firstVisibleCameraTarget.set(
+                                readField<GoogleMap?>(activity, "formMap")?.cameraPosition?.target
+                            )
+                            firstVisibleFrame.countDown()
+                            container.viewTreeObserver.removeOnPreDrawListener(this)
+                        }
+                        return true
+                    }
+                })
+            }
+            assertTrue(
+                "Map did not produce its first visible frame after the host fix was applied",
+                firstVisibleFrame.await(20, TimeUnit.SECONDS)
+            )
+            val actual = firstVisibleCameraTarget.get()
+            assertNotNull("Form map did not initialize", actual)
+            assertTrue(
+                "First visible frame did not use the fresh host fix: $actual",
+                distanceMeters(expected, actual!!) <= 100.0
+            )
+            // The OS dialog pauses this Activity; close it before ActivityScenario cleanup.
+            runShell("input keyevent KEYCODE_BACK")
+        }
+    }
+
+    @Test
     fun coarseOnlyPermissionStartsEditLocationWithoutPermissionPrompt() {
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -239,11 +295,25 @@ class EditMapInitialLocationInstrumentedTest {
 
         launchForm(isEditMode = true, waypoint = waypoint(latitude = null, longitude = null)).use { scenario ->
             Thread.sleep(1_000L)
+            scenario.onActivity { activity ->
+                assertEquals(
+                    "Blank map must stay hidden while the permission decision is pending",
+                    View.INVISIBLE,
+                    activity.findViewById<View>(R.id.formMapContainer).visibility
+                )
+            }
             denySystemLocationPermissionPrompt()
             onView(withText(R.string.edit_map_location_retry)).check(matches(isDisplayed())).perform(click())
             Thread.sleep(1_000L)
             denySystemLocationPermissionPrompt()
             onView(withText(R.string.edit_map_location_unavailable_title)).check(matches(isDisplayed()))
+            scenario.onActivity { activity ->
+                assertEquals(
+                    "Failure decision must reveal the fallback map",
+                    View.VISIBLE,
+                    activity.findViewById<View>(R.id.formMapContainer).visibility
+                )
+            }
             onView(withText(R.string.edit_map_location_open_settings)).perform(click())
             Thread.sleep(1_000L)
             runShell("input keyevent KEYCODE_BACK")
@@ -287,6 +357,9 @@ class EditMapInitialLocationInstrumentedTest {
             ).use { scenario ->
                 val actual = awaitCameraTarget(scenario, testPoint, toleranceMeters = 100.0)
                 assertNotNull("Fresh new-point form did not center on the emulator GPS fix", actual)
+                scenario.onActivity { activity ->
+                    assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.formMapContainer).visibility)
+                }
                 val distance = distanceMeters(testPoint, actual!!)
                 var attempt = 0
                 var flowActive = false
@@ -479,22 +552,31 @@ class EditMapInitialLocationInstrumentedTest {
         waypoint: WaypointSnapshot,
         isNewAddForm: Boolean = false,
         isOfflineMode: Boolean = false,
-        sessionDraftId: Long = 0L
+        sessionDraftId: Long = 0L,
+        hostInitialLocation: Location? = null
     ): ActivityScenario<GutterFormActivity> {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        return ActivityScenario.launch(
-            GutterFormActivity.newIntent(
-                context = context,
-                labels = arrayListOf(waypoint.label),
-                lats = doubleArrayOf(waypoint.latitude ?: 0.0),
-                lngs = doubleArrayOf(waypoint.longitude ?: 0.0),
-                isEditMode = isEditMode,
-                useCurrentLocationForInitialMap = isNewAddForm,
-                sessionDraftId = sessionDraftId,
-                sessionIsOffline = isOfflineMode,
-                sessionWaypointsJson = Gson().toJson(listOf(waypoint))
-            )
+        val intent = GutterFormActivity.newIntent(
+            context = context,
+            labels = arrayListOf(waypoint.label),
+            lats = doubleArrayOf(waypoint.latitude ?: 0.0),
+            lngs = doubleArrayOf(waypoint.longitude ?: 0.0),
+            isEditMode = isEditMode,
+            useCurrentLocationForInitialMap = isNewAddForm,
+            sessionDraftId = sessionDraftId,
+            sessionIsOffline = isOfflineMode,
+            sessionWaypointsJson = Gson().toJson(listOf(waypoint))
         )
+        hostInitialLocation?.let { location ->
+            intent.putExtra(GutterFormActivity.EXTRA_HOST_LAST_LAT, location.latitude)
+            intent.putExtra(GutterFormActivity.EXTRA_HOST_LAST_LNG, location.longitude)
+            intent.putExtra(GutterFormActivity.EXTRA_HOST_LAST_TIME, location.time)
+            intent.putExtra(
+                GutterFormActivity.EXTRA_HOST_LAST_ACC,
+                if (location.hasAccuracy()) location.accuracy else -1f
+            )
+        }
+        return ActivityScenario.launch(intent)
     }
 
     private fun waypoint(latitude: Double?, longitude: Double?) = WaypointSnapshot(
@@ -504,6 +586,14 @@ class EditMapInitialLocationInstrumentedTest {
         longitude = longitude,
         basicData = hashMapOf("NODE_TYP" to "2")
     )
+
+    private fun recentLocation(latitude: Double, longitude: Double): Location =
+        Location("instrumented-test").apply {
+            this.latitude = latitude
+            this.longitude = longitude
+            time = System.currentTimeMillis()
+            accuracy = 12f
+        }
 
     private fun grantLocationPermission(permission: String) {
         InstrumentationRegistry.getInstrumentation().uiAutomation.grantRuntimePermission(
@@ -571,9 +661,9 @@ class EditMapInitialLocationInstrumentedTest {
             val mapContainer = activity.findViewById<View>(R.id.formMapContainer)
             val screenLocation = IntArray(2)
             mapContainer.getLocationOnScreen(screenLocation)
-            gesture[0] = screenLocation[0] + mapContainer.width / 2
-            gesture[1] = screenLocation[1] + mapContainer.height / 10
-            gesture[2] = gesture[0] + mapContainer.width / 8
+            gesture[0] = screenLocation[0] + mapContainer.width / 3
+            gesture[1] = screenLocation[1] + mapContainer.height / 12
+            gesture[2] = gesture[0] + mapContainer.width / 4
             gesture[3] = screenLocation[1] + mapContainer.height / 5
         }
         InstrumentationRegistry.getInstrumentation().uiAutomation.executeShellCommand(

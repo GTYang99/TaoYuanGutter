@@ -588,6 +588,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
             private var editMapLocationMaxAttempts = 2
             private var editMapLocationCancellation: CancellationTokenSource? = null
             private var editMapLocationTimeoutJob: Job? = null
+    private var initialLocationMapHidden = false
 
 		    private val importLocationStaleMs: Long = 30_000L
 		    private val importLocationAccuracyM: Float = 30f
@@ -1411,6 +1412,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
 
         // 全螢幕地圖背景 + 表單面板（不論離線或一般模式皆使用新版佈局）
         setupFullScreenWithMap()
+        prepareInitialFormMapVisibility()
 
         // 檢視模式：標題改為「側溝編號 {gutterId}」；其他模式沿用點位 label（起點/節點/終點）
         val titleText = if (isViewMode) {
@@ -1654,6 +1656,56 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
             .commit()
     }
 
+    /** Avoid drawing the Taoyuan fallback while a blank form is waiting for its initial fix. */
+    private fun prepareInitialFormMapVisibility() {
+        val savedTarget = currentWaypointMapTarget()
+        val shouldLocate = EditMapLocationPolicy.shouldLocateForInitialCamera(
+            isViewMode = isViewMode,
+            submittedDraftReadOnly = submittedDraftReadOnly,
+            hasSavedCoordinates = savedTarget != null
+        )
+        if (shouldLocate) {
+            initialLocationMapHidden = true
+            binding.formMapContainer.visibility = View.INVISIBLE
+        }
+    }
+
+    private fun currentWaypointMapTarget(): LatLng? = sessionWaypoints.getOrNull(currentIndex)?.let { waypoint ->
+        val latitude = waypoint.latitude
+        val longitude = waypoint.longitude
+        if (MapCoordinatePolicy.isUsableCoordinate(latitude, longitude)) {
+            LatLng(latitude!!, longitude!!)
+        } else {
+            null
+        }
+    }
+
+    /** The host fix is already available synchronously, but only while it is recent and usable. */
+    private fun initialHostLocationTarget(): LatLng? {
+        val target = hostLastLatLng ?: return null
+        if (!MapCoordinatePolicy.isUsableCoordinate(target.latitude, target.longitude) ||
+            !LocationFixQualityPolicy.isUsableCached(hostLastLocationTime, System.currentTimeMillis())
+        ) {
+            return null
+        }
+        return target
+    }
+
+    private fun revealInitialMapFallbackIfHidden() {
+        if (!initialLocationMapHidden) return
+        formMap?.moveCamera(
+            CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 17f)
+        )
+        binding.formMapContainer.visibility = View.VISIBLE
+        initialLocationMapHidden = false
+    }
+
+    private fun revealInitialMapAfterLocation() {
+        if (!initialLocationMapHidden) return
+        binding.formMapContainer.visibility = View.VISIBLE
+        initialLocationMapHidden = false
+    }
+
     override fun onMapReady(map: GoogleMap) {
         formMap = map
         map.uiSettings.isMyLocationButtonEnabled = false
@@ -1672,32 +1724,37 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
             }
         }
 
-        val currentWaypoint = sessionWaypoints.getOrNull(currentIndex)
-        val currentTarget = currentWaypoint?.let { waypoint ->
-            val latitude = waypoint.latitude
-            val longitude = waypoint.longitude
-            if (MapCoordinatePolicy.isUsableCoordinate(latitude, longitude)) {
-                LatLng(latitude!!, longitude!!)
-            } else {
-                null
-            }
-        }
+        val currentTarget = currentWaypointMapTarget()
         if (currentTarget != null) {
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(currentTarget, 18f))
         } else {
-            // 若沒有既有座標，先以桃園作為 fallback；符合條件時再由定位流程更新鏡頭。
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 17f))
-            if (EditMapLocationPolicy.shouldLocateForInitialCamera(
+            val shouldLocate = EditMapLocationPolicy.shouldLocateForInitialCamera(
                     isViewMode = isViewMode,
                     submittedDraftReadOnly = submittedDraftReadOnly,
                     hasSavedCoordinates = false
                 )
-            ) {
+            val hostTarget = if (shouldLocate) initialHostLocationTarget() else null
+            if (hostTarget != null) {
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(hostTarget, 17f))
+                revealInitialMapAfterLocation()
+            } else {
+                map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 17f))
+                if (!shouldLocate) {
+                    revealInitialMapAfterLocation()
+                } else {
+                    initialLocationMapHidden = true
+                    binding.formMapContainer.visibility = View.INVISIBLE
+                }
+            }
+            if (shouldLocate) {
                 editMapLocationFlowActive = true
                 editMapLocationUserMoved = false
                 beginEditMapLocationPermissionFlow()
+            } else {
+                revealInitialMapAfterLocation()
             }
         }
+        if (currentTarget != null) revealInitialMapAfterLocation()
         updateImportMapClickListener()
     }
 
@@ -1761,6 +1818,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
                         formMap?.animateCamera(cameraUpdate)
                     }
                 }
+                revealInitialMapAfterLocation()
                 editMapLocationFlowActive = false
             }
             .addOnFailureListener {
@@ -1778,6 +1836,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
             startEditMapLocationAttempt()
         } else {
             editMapLocationFlowActive = false
+            revealInitialMapFallbackIfHidden()
             showEditMapLocationUnavailableDialog(showSettingsAction = false)
         }
     }
@@ -1809,6 +1868,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
 
     private fun showEditMapLocationUnavailableDialog(showSettingsAction: Boolean) {
         if (isFinishing || isDestroyed) return
+        revealInitialMapFallbackIfHidden()
         val dialog = MaterialAlertDialogBuilder(this)
             .setTitle(R.string.edit_map_location_unavailable_title)
             .setMessage(

@@ -60,6 +60,20 @@
 - Command `adb -s emulator-5554 shell am instrument -w -e class com.example.taoyuangutter.gutter.EditMapInitialLocationInstrumentedTest#zeroZeroFusedLocationDoesNotMoveBlankFormMapToOrigin com.example.taoyuangutter.test/androidx.test.runner.AndroidJUnitRunner` — **PASS**. Emulator logcat records `run finished: 1 tests, 0 failed, 0 ignored` and `VM exiting with result code 0`.
 - Cleanup: each test's `finally` cleared the mock location provider. Fine and coarse location permissions were revoked and their `user-set` / `user-fixed` flags cleared; `dumpsys package` confirmed both permissions were denied afterward, and the test runner was stopped.
 
+## Blank-Form First-Frame Follow-up
+
+- Branch: `codex/fix/map-dashboard-viewport`.
+- Production behavior: a blank editable form map is hidden while its initial location is unresolved. A recent usable host fix is applied before the map is first shown; otherwise the map is revealed at the usable provider fix or at the existing fallback after the location/permission failure path. Saved waypoint coordinates remain immediately visible and take precedence.
+- Build command: `env JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' PATH='/Applications/Android Studio.app/Contents/jbr/Contents/Home/bin':$PATH ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest` — **PASS**, `BUILD SUCCESSFUL`.
+- Test target: `emulator-5554`, Android 16 / API 36. Physical-device testing was not performed.
+- `blankFormUsesFreshHostLocationBeforeFirstMapDisplay` — **PASS**; the first visible frame used the recent host coordinate, not the Taoyuan fallback.
+- `returningFromSettingsWithoutPermissionKeepsFallbackUsable` — **PASS**; the blank map remained hidden while the permission decision was unresolved and became visible at the fallback after denial.
+- `freshNewPointWithEmulatorGpsFixCentersCameraOnly` — **PASS**; the usable fix centered the new form without writing coordinate data.
+- `savedCoordinateEditKeepsSavedCameraTarget` — **PASS**; the saved point remained centered.
+- `manualPanBeforeFusedMockCallbackKeepsManualCameraTarget` — **FAIL / NOT VERIFIED**, reproduced twice: the instrumentation swipe did not move the camera before the fused callback. This does not establish whether the UI gesture was missed or whether a production gesture path regressed. The existing no-fix instrumentation still confirms manual map panning after fallback, but the host-seeded, delayed-callback case remains unverified; tracked as `ISS-DBG-1019-011`.
+- `git diff --check` — **PASS** before final documentation updates; rerun before commit.
+- Hosted CI and independent verification have not run for this follow-up revision. CI remains pending because publishing the exact branch/payload was rejected by the automatic approval review. Do not treat this as a release-complete revision.
+
 ## Build Details
 
 - Application package: `com.example.taoyuangutter`
@@ -76,6 +90,7 @@
 - AC-004: `PASS` for initial blank-form location fallback on Android 14 API 34 and for the Nearby provider policy boundary in unit tests; invalid fresh `(0,0)` is rejected. Full Nearby sheet runtime behavior remains `NOT VERIFIED`.
 - AC-005: `PASS` by source review; both host callbacks keep an absent camera target nullable and omit the camera move.
 - AC-006: `PASS` by source review and picker instrumentation; Locate moves the camera while leaving the picker open, and only Confirm returns the camera target as a result.
+- AC-007: `PASS` for the first-visible-frame host-fix case and permission-denial/fallback visibility case on Android 16 API 36. The delayed-callback manual-pan case is `NOT VERIFIED` (ISS-DBG-1019-011).
 
 ## Handoff
 

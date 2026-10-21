@@ -25,6 +25,8 @@
 - An explicit locate action moves the camera to the device's current location. A camera-only locate action must not write `NODE_X`/`NODE_Y`; the point-picker Confirm action remains the explicit coordinate-selection action.
 - Camera-only location behavior must not rewrite existing draft/session coordinate data.
 - If permission or a usable location fix is unavailable, retain the existing fallback and user-facing failure behavior for now. The user has not asked to remove the fallback.
+- Newly confirmed presentation defect: `GutterFormActivity.onMapReady()` applies the Taoyuan fallback before the asynchronous location request. A valid host fix is already attached to the intent but not used for initial map centering. On a blank form, this can expose the city-hall location for one frame or longer before the current fix arrives.
+- Expected presentation: use a fresh usable host fix synchronously; if there is no usable handoff fix, keep the map surface hidden until the current-location result or the existing failure decision selects the visible center. The fallback remains available after failure.
 
 ## Affected Modules
 

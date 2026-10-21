@@ -32,6 +32,7 @@ The host form-opening callbacks synthesize `LatLng(0,0)` if both the selected wa
 - `ISS-DBG-1019-004`: `environment` for the earlier Android 16 emulator run, where mock location did not reach GMS under an invalid Maps key. The same restored blank-form case passes on Android 14 API 34 with the configured key.
 - `ISS-DBG-1019-005`: `environment` (test fixture) for the fresh-add instrumentation failure. The test omitted mock-location setup, so the emulator's default Mountain View location was a valid result; add the expected test fix before judging that case.
 - `ISS-DBG-1019-006`: `implementation_regression` for the form's live location callback. It checks finite/ranged latitude and longitude inline, so `(0,0)` passes and is sent to `CameraUpdateFactory`; the shared `MapCoordinatePolicy` that rejects `(0,0)` is used for saved form targets but not this callback.
+- `ISS-DBG-1019-010`: `implementation_regression` for blank form presentation. `onMapReady()` assigns the Taoyuan camera before its asynchronous location attempt; the host location extra is ignored for that initial target, and current tests observe only the final camera. FR-008/AC-007 now require host-fix seeding or a hidden map until success/failure resolves.
 
 ## Confidence and Limits
 

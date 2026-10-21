@@ -144,6 +144,39 @@
 - Validation: `MainMapLocateInstrumentedTest#hostMapLocateButtonMovesCameraToFreshFix` passed on `emulator-5554` (Android 16/API 36), moving the primary map from a different center to the injected fresh fix.
 - Next action: `verification`
 
+## ISS-DBG-1019-010 — Blank form briefly exposes Taoyuan fallback before GPS
+
+- Task: `debug-1019-map-user-location`
+- Phase found: follow-up source review
+- Category: `implementation_regression`
+- Priority: P2
+- Status: verified
+- Impact: Opening a blank point from `AddGutterBottomSheet` can visibly flash the Taoyuan city-hall area before the current location arrives.
+- Expected: A blank form uses a fresh usable host location before its first visible frame; when none exists, keep the map hidden until location success or the existing failure/fallback decision.
+- Actual before fix: `GutterFormActivity.onMapReady()` moved to `(24.9929, 121.3011)` before requesting location; the provider callback moved to the usable fix later.
+- Evidence:
+  - `EditMapInitialLocationInstrumentedTest#blankFormUsesFreshHostLocationBeforeFirstMapDisplay` passed on `emulator-5554` (Android 16/API 36); it captures the first visible frame and confirms the camera already targets the fresh host location.
+  - `EditMapInitialLocationInstrumentedTest#returningFromSettingsWithoutPermissionKeepsFallbackUsable` passed on the same emulator; the map stays hidden while permission is unresolved, then shows the fallback after denial.
+  - Fresh-add GPS and saved-coordinate instrumentation cases also passed on the same emulator.
+  - `GutterFormNavigator.kt:66-83` serializes a blank waypoint with null coordinates while attaching the host location separately.
+  - `GutterFormActivity` now uses a recent valid host fix before reveal, or hides the blank map until the provider result/fallback decision.
+- Resolution: blank-map first-frame behavior is verified on the emulator; saved-point precedence and camera-only coordinate behavior passed focused cases.
+- Limitation: hosted CI and independent verification have not run for this follow-up revision.
+- Next action: `verification`
+
+## ISS-DBG-1019-011 — Host-seeded map gesture instrumentation does not move camera
+
+- Task: `debug-1019-map-user-location`
+- Phase found: developer validation
+- Category: `unknown`
+- Priority: P3
+- Status: open
+- Impact: The regression case cannot verify that a manual pan before a delayed fused callback remains in place when the map was initially centered from a recent host fix.
+- Expected: A user pan changes the camera, and the later location callback does not override it.
+- Actual: `manualPanBeforeFusedMockCallbackKeepsManualCameraTarget` failed twice at its pre-callback assertion because the swipe did not move the camera.
+- Evidence: The case was run on `emulator-5554` (Android 16/API 36); the separate no-fix form instrumentation did successfully pan after the fallback was revealed. Current evidence does not distinguish a missed instrumentation gesture from a production regression.
+- Next action: `investigation`
+
 ## ISS-DBG-1019-009 — Host-map Locate instrumentation reads camera off the main thread
 
 - Task: `debug-1019-map-user-location`

@@ -45,3 +45,11 @@
 - Minimum fix: reuse `MapCoordinatePolicy.isUsableCoordinate()` inside the Nearby fix policy, wire latitude/longitude from the provider callback, and add focused unit cases proving `(0,0)` is rejected while valid fixes retain the existing age and accuracy rules.
 - Validation: run the focused Nearby policy unit test, the existing location-policy unit tests, debug and androidTest builds, and form-map instrumentation on the configured emulator. Record CI separately.
 - Result: implemented and validated with `NearbyLocationFixPolicyTest` (3/3 passed), the focused location-policy test set, `assembleDebug`, and `assembleDebugAndroidTest`. Existing Android 14 form instrumentation covers invalid and valid initial form fixes; this Nearby callback was validated at its policy boundary and by source wiring review.
+
+## Debug Follow-up: Blank Form Briefly Shows Taoyuan Before GPS
+
+- Failed behavior: opening a blank point from `AddGutterBottomSheet` can visibly show the fixed Taoyuan fallback before a usable asynchronous GPS result arrives.
+- Classification: implementation regression (`ISS-DBG-1019-010`), priority P2; source sequence confirms fallback camera assignment precedes location acquisition, and current tests only check the eventual camera target.
+- Minimum fix: synchronously seed from a fresh usable host fix attached to the intent. If none exists, keep the blank map surface hidden until a usable current fix has been applied or the existing permission/location failure path has selected and exposed the Taoyuan fallback. Keep saved-coordinate precedence and camera-only data behavior unchanged.
+- Result: `GutterFormActivity` now hides an eligible blank map during location resolution, uses a recent usable host fix before first display, and reveals the map at a provider fix or at the existing fallback after failure. Saved coordinates remain visible and take precedence.
+- Validation: on `emulator-5554` (Android 16/API 36), first-visible-frame host-fix, permission-denial/fallback, fresh-add GPS, and saved-coordinate cases passed. `manualPanBeforeFusedMockCallbackKeepsManualCameraTarget` failed twice because the swipe did not move the camera before the callback; cause is unknown and tracked separately as `ISS-DBG-1019-011`. Do not claim the delayed-callback pan case passed.
