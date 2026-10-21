@@ -29,13 +29,13 @@ validation:
   unit_tests: passed
   debug_build: passed
   android_test_build: passed
-  emulator_location: passed_android_14_and_api_36_focused_form_cases
+  emulator_location: passed_android_14_and_api_36_form_and_picker_cases
   host_test_execution: not_run_emulator_only_policy
   nearby_policy: passed
 
 git:
   branch: codex/fix/map-dashboard-viewport
-  commit: a779052
+  commit: 431c6db
   status: committed
 
 verification:
@@ -53,5 +53,5 @@ release:
 blocking:
   - Independent Verification has not reviewed the current combined branch.
   - CI build/test are not available for the current combined branch under the emulator-only test scope.
-  - Host-map, point-picker Locate, and Nearby sheet end-to-end behavior remain unverified; policy tests and source review passed.
+  - Host-map Locate and Nearby import end-to-end behavior remain unverified; policy tests and source review passed.
 next_action: verification
