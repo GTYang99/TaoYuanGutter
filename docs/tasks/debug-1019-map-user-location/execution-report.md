@@ -81,8 +81,19 @@
 - No physical device was used. The instrumentation command explicitly selected `emulator-5554` (Android 16 / API 36).
 - Focused unit command: `./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.gutter.EditMapLocationPolicyTest' --tests 'com.example.taoyuangutter.map.MapCoordinatePolicyTest'` — **PASS**, `BUILD SUCCESSFUL`.
 - `EditMapInitialLocationInstrumentedTest#blankFormUsesFreshHostLocationBeforeFirstMapDisplay` — **PASS**, 1 test / 0 failures. Its `OnPreDraw` capture confirmed the first visible frame used the fresh host coordinate.
-- Diagnostic attempt for AC-007's no-host successful-fix branch — **NOT VERIFIED**. On this API 36 emulator the mock provider accepted the injected point and `dumpsys location` showed it as the fused last location, but the form's `getCurrentLocation()` callback did not reveal the map within the test window. The temporary test draft was removed; this does not establish a production failure. Keep AC-007's successful-fix branch open for investigation on a location-capable emulator.
+- Earlier diagnostic attempt for AC-007's no-host successful-fix branch — **NOT VERIFIED on API 36; superseded by API 34 evidence below**. On that API 36 emulator the fused callback did not arrive within the test window. This was later classified as an emulator/GMS test-environment limitation (`ISS-DBG-1019-012`), not a production failure.
 - `git diff --check` — **PASS** after recording these results.
+
+## No-Host First-Frame Revalidation — 2026-10-21
+
+- Test target: `emulator-5556`, AVD `DBG1017_API34_Camera`, Android 14 / API 34. No physical device was used.
+- `:app:assembleDebugAndroidTest` — **PASS**, `BUILD SUCCESSFUL` after adding the focused no-host first-frame instrumentation case.
+- `blankFormWithoutHostFixStaysHiddenUntilProviderFixIsApplied` — **PASS**, `OK (1 test)` in 7.697 seconds. The form was asserted hidden after the location attempt began and before test GPS injection. An `OnPreDraw` capture confirmed the first visible frame was centered on the injected fix. `currentLat`, `currentLng`, `NODE_X`, `NODE_Y`, and the waypoint snapshot coordinates remained unchanged.
+- `freshNewPointWithEmulatorGpsFixCentersCameraOnly` — **PASS**, `OK (1 test)` in 7.007 seconds on the same API 34 AVD.
+- Focused JVM command for `EditMapLocationPolicyTest` and `MapCoordinatePolicyTest` — **PASS**, `BUILD SUCCESSFUL`; Gradle reported tasks up to date.
+- API 36/API 36 mock-provider diagnostics: the first attempt was rejected because the test package was not authorized for `MOCK_LOCATION`. After enabling the test-only mock-location app-op, the provider accepted the fix and `dumpsys location` showed the fused/GPS cache; however, `GutterFormActivity` remained on attempt 2 without a callback during the assertion window. This is recorded as environment issue `ISS-DBG-1019-012`; the API 34 pass closes AC-007's no-host branch.
+- `returningFromSettingsWithoutPermissionKeepsFallbackUsable` on API 34 — **NOT VERIFIED**; the instrumentation process exited without a test result while interacting with the native permission UI. A prior API 36 pass remains recorded; the latest API 36 rerun also stopped before its assertion with `NoActivityResumedException`.
+- The secure mock-location-app selection is empty on both AVDs after validation; API 36's test-package app-op is back to default. Location permissions were revoked and test providers were disabled on both emulators. The Android 14 AVD was shut down after validation. No physical device was used.
 
 ## Build Details
 
@@ -100,7 +111,7 @@
 - AC-004: `PASS` for initial blank-form location fallback on Android 14 API 34 and for the Nearby provider policy boundary in unit tests; invalid fresh `(0,0)` is rejected. Full Nearby sheet runtime behavior remains `NOT VERIFIED`.
 - AC-005: `PASS` by source review; both host callbacks keep an absent camera target nullable and omit the camera move.
 - AC-006: `PASS` by source review and picker instrumentation; Locate moves the camera while leaving the picker open, and only Confirm returns the camera target as a result.
-- AC-007: `PASS` for the first-visible-frame host-fix case on Android 16 API 36. The no-host successful-fix reveal and delayed-callback manual-pan cases are `NOT VERIFIED` (ISS-DBG-1019-012 and ISS-DBG-1019-011); permission-denial/fallback visibility has an earlier API 36 pass, but its latest rerun was blocked by the permission-dialog automation limitation recorded above.
+- AC-007: `PASS` for the host-fix first-visible frame on API 36 and the no-host successful-fix first-visible frame on API 34. The delayed-callback manual-pan regression remains `NOT VERIFIED` (ISS-DBG-1019-011); permission-denial/fallback visibility has an earlier API 36 pass, but its latest reruns were blocked by permission-dialog automation limitations recorded above.
 
 ## Handoff
 

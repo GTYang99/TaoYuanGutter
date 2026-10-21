@@ -181,15 +181,16 @@
 
 - Task: `debug-1019-map-user-location`
 - Phase found: developer validation
-- Category: `unknown`
+- Category: `environment`
 - Priority: P2
-- Status: open
-- Impact: AC-007's no-host successful-fix first-visible-frame branch cannot be demonstrated on the current Android 16 emulator.
+- Status: resolved
+- Impact: The Android 16/API 36 emulator could not demonstrate the no-host successful-fix first-visible-frame branch with this test mock provider.
 - Expected: A blank form remains hidden while location is unresolved, then applies a usable fused fix before its first visible frame.
-- Actual: The test mock provider accepted the injected location and `dumpsys location` showed a fused last location, but `GutterFormActivity` did not receive a successful `getCurrentLocation()` callback within the test window; the map remained hidden until the existing timeout/fallback path.
-- Evidence: Focused API 36 emulator attempt for `blankFormWithoutHostFixUsesFusedFixBeforeFirstVisibleFrame` timed out; `DBG1007MockLocation` logged `Mock provider action completed: enable`, and `dumpsys location` showed `Location[fused 25.040001,121.519997 ... mock]`. The diagnostic test draft was removed after the failed run. The host-seeded first-visible-frame case passes on the same emulator.
-- Classification: No production failure is established; retain `unknown` pending a GMS/location-capable emulator reproduction.
-- Next action: `investigation`
+- Actual: API 36 did not deliver the test GPS fix through `getCurrentLocation()` during the test window. On API 34, the same blank no-host flow received the fix and revealed at that location.
+- Evidence: API 36 `dumpsys location` showed the injected fused/GPS mock fix, but the form remained at attempt 2 with the map hidden. A subsequent API 34/API 34 AVD run passed `blankFormWithoutHostFixStaysHiddenUntilProviderFixIsApplied`; its first `OnPreDraw` after reveal captured the injected provider coordinate, and form/session coordinates remained blank.
+- Classification: Emulator/GMS test-environment difference. The API 34 emulator provides valid acceptance evidence; no production failure was established on API 36.
+- Resolution: Use the existing Android 14/API 34 AVD for this fused-provider instrumentation case. The no-host success branch is now covered and passed.
+- Next action: `verification`
 
 ## ISS-DBG-1019-009 — Host-map Locate instrumentation reads camera off the main thread
 

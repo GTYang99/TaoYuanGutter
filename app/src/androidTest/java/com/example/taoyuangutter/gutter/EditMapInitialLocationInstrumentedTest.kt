@@ -229,6 +229,73 @@ class EditMapInitialLocationInstrumentedTest {
     }
 
     @Test
+    fun blankFormWithoutHostFixStaysHiddenUntilProviderFixIsApplied() {
+        grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        val testPoint = LatLng(25.04, 121.52)
+        val firstVisibleCameraTarget = AtomicReference<LatLng?>()
+        val firstVisibleFrame = CountDownLatch(1)
+        setMockLocation(null)
+
+        try {
+            launchForm(
+                isEditMode = true,
+                waypoint = waypoint(latitude = null, longitude = null),
+                isNewAddForm = true
+            ).use { scenario ->
+                awaitLocationAttempt(scenario, expectedAttempt = 1)
+                scenario.onActivity { activity ->
+                    val container = activity.findViewById<View>(R.id.formMapContainer)
+                    assertEquals(
+                        "Blank map must remain hidden before the provider fix arrives",
+                        View.INVISIBLE,
+                        container.visibility
+                    )
+                    container.viewTreeObserver.addOnPreDrawListener(object : ViewTreeObserver.OnPreDrawListener {
+                        override fun onPreDraw(): Boolean {
+                            if (container.visibility == View.VISIBLE) {
+                                firstVisibleCameraTarget.set(
+                                    readField<GoogleMap?>(activity, "formMap")?.cameraPosition?.target
+                                )
+                                firstVisibleFrame.countDown()
+                                container.viewTreeObserver.removeOnPreDrawListener(this)
+                            }
+                            return true
+                        }
+                    })
+                }
+
+                setMockLocation(testPoint)
+                assertTrue(
+                    "Blank map did not reveal after the injected provider fix",
+                    firstVisibleFrame.await(20, TimeUnit.SECONDS)
+                )
+                val firstVisibleTarget = firstVisibleCameraTarget.get()
+                assertNotNull("First visible frame did not have an initialized map", firstVisibleTarget)
+                assertTrue(
+                    "First visible frame used $firstVisibleTarget instead of the provider fix $testPoint",
+                    distanceMeters(testPoint, firstVisibleTarget!!) <= 100.0
+                )
+                awaitLocationFlowFinish(scenario)
+                scenario.onActivity { activity ->
+                    assertEquals(0.0, readField<Double>(activity, "currentLat"), 0.0)
+                    assertEquals(0.0, readField<Double>(activity, "currentLng"), 0.0)
+                    @Suppress("UNCHECKED_CAST")
+                    val formData = readField<HashMap<String, String>>(activity, "currentFormData")
+                    assertTrue("Location must not populate NODE_X", formData["NODE_X"].isNullOrBlank())
+                    assertTrue("Location must not populate NODE_Y", formData["NODE_Y"].isNullOrBlank())
+                    val waypoint = readField<List<WaypointSnapshot>>(activity, "sessionWaypoints")[0]
+                    assertEquals(null, waypoint.latitude)
+                    assertEquals(null, waypoint.longitude)
+                }
+                onView(withText(R.string.edit_map_location_unavailable_title)).check(doesNotExist())
+            }
+        } finally {
+            setMockLocation(null)
+        }
+    }
+
+    @Test
     fun coarseOnlyPermissionStartsEditLocationWithoutPermissionPrompt() {
         grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -358,7 +425,16 @@ class EditMapInitialLocationInstrumentedTest {
                 val actual = awaitCameraTarget(scenario, testPoint, toleranceMeters = 100.0)
                 assertNotNull("Fresh new-point form did not center on the emulator GPS fix", actual)
                 scenario.onActivity { activity ->
-                    assertEquals(View.VISIBLE, activity.findViewById<View>(R.id.formMapContainer).visibility)
+                    val visibility = activity.findViewById<View>(R.id.formMapContainer).visibility
+                    val mapHidden = readField<Boolean>(activity, "initialLocationMapHidden")
+                    val flowActive = readField<Boolean>(activity, "editMapLocationFlowActive")
+                    val attempt = readField<Int>(activity, "editMapLocationAttempt")
+                    assertEquals(
+                        "Map visibility=$visibility hiddenFlag=$mapHidden flowActive=$flowActive " +
+                            "attempt=$attempt camera=$actual",
+                        View.VISIBLE,
+                        visibility
+                    )
                 }
                 val distance = distanceMeters(testPoint, actual!!)
                 var attempt = 0
