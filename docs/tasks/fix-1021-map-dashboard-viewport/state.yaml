@@ -24,6 +24,7 @@ validation:
   debug_build: passed
   android_test_build: passed
   emulator_instrumentation: passed
+  production_map_camera_center_zoom: passed
   host_test_execution: not_run_emulator_only_policy
 
 git:

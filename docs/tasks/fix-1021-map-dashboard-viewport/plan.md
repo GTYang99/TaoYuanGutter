@@ -17,7 +17,7 @@
 
 ## Test Plan
 - Build `:app:assembleDebug :app:assembleDebugAndroidTest` on the development host.
-- Install and run only the focused shell instrumentation test on the Android test emulator `emulator-5554`.
+- Install and run only the focused shell and production-map instrumentation tests on the Android test emulator `emulator-5554`.
 - Do not execute tests on the connected physical device.
 
 ### Physical Device Test Scope
@@ -31,8 +31,9 @@
 
 | AC | Environment | Steps | Expected | Evidence |
 |---|---|---|---|---|
-| AC-001, AC-002 | `emulator-5554` | Launch shell; capture map fragment; switch Dashboard → Map; compare identity; switch again and compare Dashboard identity | Both original fragment instances are reused; only the selected tab is visible | Instrumentation result |
-| AC-003 | `emulator-5554` | Launch shell and complete the focused tab test | Initial map tab still loads; no new fragment is created when returning to Map | Instrumentation result |
+| AC-001 | `emulator-5554` | Launch the production map fragment, set a known GoogleMap center and zoom, switch Dashboard → Map, and read camera state | Center and zoom match the values set before switching | Production-map instrumentation result |
+| AC-002 | `emulator-5554` | Switch Map ↔ Dashboard; compare parent and nested map fragment identity and visibility | Both original fragment instances are reused; only the selected tab is visible | Shell and production-map instrumentation results |
+| AC-003 | `emulator-5554` | Launch the production map fragment and switch away/back | Initial map fragment is created once; tab return does not recreate it | Production-map instrumentation result and unchanged initialization source |
 
 ## Regression Plan
 - Confirm selected tab fragment is visible and all other tab fragments are hidden.

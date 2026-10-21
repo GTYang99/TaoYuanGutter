@@ -20,6 +20,10 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
 import androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry
 import androidx.test.runner.lifecycle.Stage
 import com.google.android.material.progressindicator.CircularProgressIndicator
@@ -29,12 +33,15 @@ import com.example.taoyuangutter.gutter.MultiGutterSessionCoordinator
 import com.example.taoyuangutter.api.GutterApiClient
 import com.example.taoyuangutter.common.ApiBackendTarget
 import com.example.taoyuangutter.main.MainBlockingUiController
+import com.example.taoyuangutter.map.MapWorkspaceFragment
 import com.example.taoyuangutter.pending.GutterSessionDraft
 import com.example.taoyuangutter.pending.GutterSessionRepository
 import com.example.taoyuangutter.pending.GutterDraftCoordinator
 import com.example.taoyuangutter.pending.WaypointSnapshot
 import com.example.taoyuangutter.pending.WORKFLOW_MULTI_GUTTER
 import java.util.concurrent.atomic.AtomicReference
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -316,6 +323,80 @@ class MainShellActivityTest {
                     dashboardFragment.get(),
                     supportFragmentManager.findFragmentByTag("tab:${R.id.nav_dashboard}")
                 )
+            }
+        } finally {
+            MainShellActivity.fragmentFactoryForTests = null
+            scenario.close()
+        }
+    }
+
+    @Test
+    fun productionMapAndNestedMapFragmentsSurviveDashboardSwitches() {
+        MainShellActivity.fragmentFactoryForTests = { tabId ->
+            if (tabId == R.id.nav_dashboard) TestDashboardFragment() else MapWorkspaceFragment.newInstance()
+        }
+
+        val scenario = ActivityScenario.launch(MainShellActivity::class.java)
+        try {
+            val mapFragment = AtomicReference<MapWorkspaceFragment?>()
+            val supportMapFragment = AtomicReference<SupportMapFragment?>()
+            val googleMap = AtomicReference<GoogleMap?>()
+            val mapReady = CountDownLatch(1)
+            scenario.onActivity { activity ->
+                val map = activity.supportFragmentManager.findFragmentByTag("tab:${R.id.nav_map}")
+                    as? MapWorkspaceFragment
+                assertNotNull(map)
+                mapFragment.set(map)
+                val nestedMap = map!!.childFragmentManager.findFragmentById(R.id.map) as? SupportMapFragment
+                assertNotNull(nestedMap)
+                supportMapFragment.set(nestedMap)
+                nestedMap!!.getMapAsync {
+                    googleMap.set(it)
+                    mapReady.countDown()
+                }
+            }
+            assertTrue("GoogleMap did not become ready", mapReady.await(30, TimeUnit.SECONDS))
+
+            // Let the map's existing first-load location request settle before simulating a user pan/zoom.
+            Thread.sleep(2_000)
+            val expectedCenter = LatLng(25.12345, 121.54321)
+            val expectedZoom = 13.5f
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                googleMap.get()!!.moveCamera(
+                    CameraUpdateFactory.newLatLngZoom(expectedCenter, expectedZoom)
+                )
+            }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+
+            scenario.onActivity { activity ->
+                activity.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+                    .selectedItemId = R.id.nav_dashboard
+            }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertSame(
+                    mapFragment.get(),
+                    activity.supportFragmentManager.findFragmentByTag("tab:${R.id.nav_map}")
+                )
+                assertSame(mapFragment.get()!!.childFragmentManager.findFragmentById(R.id.map), supportMapFragment.get())
+                assertTrue(mapFragment.get()!!.isHidden)
+            }
+
+            scenario.onActivity { activity ->
+                activity.findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottomNav)
+                    .selectedItemId = R.id.nav_map
+            }
+            InstrumentationRegistry.getInstrumentation().waitForIdleSync()
+            scenario.onActivity { activity ->
+                assertSame(
+                    mapFragment.get(),
+                    activity.supportFragmentManager.findFragmentByTag("tab:${R.id.nav_map}")
+                )
+                assertSame(mapFragment.get()!!.childFragmentManager.findFragmentById(R.id.map), supportMapFragment.get())
+                assertFalse(mapFragment.get()!!.isHidden)
+                assertEquals(expectedCenter.latitude, googleMap.get()!!.cameraPosition.target.latitude, 0.00001)
+                assertEquals(expectedCenter.longitude, googleMap.get()!!.cameraPosition.target.longitude, 0.00001)
+                assertEquals(expectedZoom, googleMap.get()!!.cameraPosition.zoom, 0.01f)
             }
         } finally {
             MainShellActivity.fragmentFactoryForTests = null
