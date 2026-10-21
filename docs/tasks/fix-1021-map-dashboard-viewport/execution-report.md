@@ -43,4 +43,4 @@
 - The regression path is corrected and focused developer validation passed.
 - Main implementation commit: `f279e2b`.
 - Validated revision: `80726c0` on `codex/fix/map-dashboard-viewport` (includes the real camera instrumentation coverage).
-- Remote CI and independent verification remain pending. The configured CI workflow runs JVM tests on a hosted runner; those host tests were not run because this task's approved test scope is the Android test emulator.
+- Independent Verification reviewed `49e934b` and marked AC-001, AC-002, and AC-003 PASS. Overall Verification remains **NOT VERIFIED** because CI build/test evidence is pending; the configured workflow runs JVM tests on a hosted runner, outside this task's approved emulator-only test scope.
