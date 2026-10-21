@@ -33,4 +33,5 @@
 
 ## Outcome
 - The regression path is corrected and focused developer validation passed.
-- Remaining task gates: commit evidence, CI, and independent verification.
+- Implementation commit: `f279e2b` on `codex/fix/map-dashboard-viewport`.
+- Remaining task gates: CI and independent verification.

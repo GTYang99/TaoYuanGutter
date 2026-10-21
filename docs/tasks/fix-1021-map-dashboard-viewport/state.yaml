@@ -28,8 +28,8 @@ validation:
 
 git:
   branch: codex/fix/map-dashboard-viewport
-  commit: pending
-  status: pending
+  commit: f279e2b
+  status: committed
 
 verification:
   result: pending
