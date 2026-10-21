@@ -28,5 +28,6 @@
 
 - Branch: `codex/debug/debug-1021`.
 - Implementation commit: `34f163bb1f882d1eb4153d0b05bdf03ffc2f3a3f`.
-- Unrelated pre-existing changes to `app/version.properties` and `app/release/` are preserved and excluded from the task commit.
-- Pre-verification worktree status after task artifacts are committed is expected to contain only `M app/version.properties` and `?? app/release/`; these pre-existing changes are not part of the task revision.
+- Task evidence commit: `c35b901e`.
+- Worktree status at handoff: `M app/version.properties`, `?? app/release/`, and the three untracked historical verifier artifacts `docs/tasks/debug-1021/verification.md`, `docs/tasks/debug-1021/emulator-results/AC-001-verification-2cfa7c8.md`, and `docs/tasks/debug-1021/emulator-results/AC-001-verification-2cfa7c8.txt`.
+- The version/release changes are pre-existing user changes; the three verifier artifacts are preserved untouched for Independent Verification. None are part of the developer commits.
