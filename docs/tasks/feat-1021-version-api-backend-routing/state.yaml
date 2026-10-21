@@ -2,8 +2,8 @@ task:
   id: feat-1021-version-api-backend-routing
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -25,13 +25,15 @@ validation:
 
 git:
   branch: codex/feat-1021-version-api-backend-routing
-  commit: 7f31d96
+  commit: 7f31d966bf14909231062e51d7fbb4cbf11c915e
+  verification_commit: 7176b5bebe3b9e0425d2757389b0dcefa700b15a
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
 
 ci:
   build: pending
@@ -40,5 +42,6 @@ ci:
 release:
   status: pending
 
-blocking: []
+blocking:
+  - CI result for the fixed verification revision is not available; CI is a required gate before Release.
 next_action: verification
