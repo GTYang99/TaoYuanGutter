@@ -1,21 +1,32 @@
-# Execution Report
+# Execution Report — debug-1021
 
-## Implementation
+## Change Summary
 
-- 在 `AddGutterBottomSheet` 新增流程的必要資料/照片驗證失敗分支呼叫 `setSubmitLoading(false)`，讓 coroutine return 前恢復送出按鈕為可點擊的「新增側溝」。
-- 新增 `Debug1021IncompleteSubmitUiTest`：提供起訖座標與側溝類型，保留必要資料/照片不足，送出並關閉 Dialog 後檢查按鈕文字與可點擊狀態，並確認未進入提交流程。
-- 沒有變更驗證規則、API 請求或其他表單流程。
+- Expanded `Debug1021IncompleteSubmitUiTest` to independently cover missing required fields with usable photos, missing required photos with complete required fields, and both missing together.
+- Each case verifies the existing dialog, dismisses it, checks `btnSubmitGutter` is enabled with the “新增側溝” label, and asserts the upload host received zero submissions.
+- Used the existing `AppVersionUpdateTestHooks` seam to prevent the unrelated live app-version prompt from blocking the form tests.
+- Corrected the data-only test fixture to include `SPI_TYP=1`; without it, the existing “請先選擇側溝類型後再送出” precondition correctly stopped submission before required-field validation.
+- No production source was changed in this reimplementation.
 
-## Validation
+## Developer Validation
 
-- `:app:testDebugUnitTest --tests com.example.taoyuangutter.gutter.GutterCompletionPolicyTest` — PASS，6 tests，0 failures/errors。
-- `:app:compileDebugAndroidTestKotlin` — PASS。
-- `:app:connectedDebugAndroidTest -Pandroid.injected.device.serial=emulator-5554 -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.gutter.Debug1021IncompleteSubmitUiTest` — PASS；`DBG1017_API34_Camera (AVD)` / API 34，1 test，0 failures/errors。Gradle XML 報告確認測試 serial 為 `emulator-5554`。
-- 收到「不在實機上測試」的指示後，只在 API 34 Emulator 執行 instrumented 測試；先前在指示前已產生的實體裝置測試結果不列為本任務驗收證據。
-- 建置使用暫時的 `MAPS_API_KEY=debug-test-placeholder` 供 manifest merge；命令結束後已移除 `local.properties`。
-- 未執行 CI 或 Independent Verification；需由 Verification 階段檢查固定提交。
+- `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest --tests com.example.taoyuangutter.gutter.GutterCompletionPolicyTest` — **BUILD SUCCESSFUL**; the focused JVM suite contains 6 tests with 0 failures.
+- `./gradlew :app:assembleDebug :app:assembleDebugAndroidTest` — **BUILD SUCCESSFUL** after adding the update-prompt test hook.
+- `./gradlew :app:assembleDebugAndroidTest` — **BUILD SUCCESSFUL** after correcting the data-only fixture.
+- API 34 Emulator UI evidence: [AC-001 revalidation](emulator-results/AC-001-api34-reimplementation.md).
+- `git diff --check` — PASS.
 
-## Commit
+## Scope and Limitations
 
-- Branch: `codex/debug/debug-1021`
-- Implementation commit: `f9d033d62e669cd858c84e46d2e17c3c587b4aa6` (`fix(debug-1021): restore submit button after validation failure`)
+- Test target was the temporary API 34 AVD `Codex_Debug1021_API34`, serial `emulator-5554`; commands used the explicit emulator serial. No physical-device tests were performed.
+- Build variant: `debug`; app package: `com.example.taoyuangutter`.
+- APKs: `app/build/outputs/apk/debug/app-debug.apk` and `app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk`.
+- CI for the task branch and independent Verification of the new committed revision remain pending.
+- The original production-fix commit predates the plan review. The retrospective review is recorded and does not change that chronology.
+
+## Git Handoff
+
+- Branch: `codex/debug/debug-1021`.
+- Implementation commit: `34f163bb1f882d1eb4153d0b05bdf03ffc2f3a3f`.
+- Unrelated pre-existing changes to `app/version.properties` and `app/release/` are preserved and excluded from the task commit.
+- Pre-verification worktree status after task artifacts are committed is expected to contain only `M app/version.properties` and `?? app/release/`; these pre-existing changes are not part of the task revision.
