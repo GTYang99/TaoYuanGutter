@@ -2,18 +2,20 @@
 
 ## Implementation
 
-- 在 AddGutterBottomSheet 新增流程的必要資料/照片驗證失敗分支改呼叫 setSubmitLoading(false)，讓 coroutine return 前恢復送出按鈕為可點擊的「新增側溝」。
-- 新增 Debug1021IncompleteSubmitUiTest：設定起訖座標與側溝類型但保留必要資料/照片不足，點擊送出、確認 Dialog，檢查按鈕恢復並確認未進入提交流程。
+- 在 `AddGutterBottomSheet` 新增流程的必要資料/照片驗證失敗分支呼叫 `setSubmitLoading(false)`，讓 coroutine return 前恢復送出按鈕為可點擊的「新增側溝」。
+- 新增 `Debug1021IncompleteSubmitUiTest`：提供起訖座標與側溝類型，保留必要資料/照片不足，送出並關閉 Dialog 後檢查按鈕文字與可點擊狀態，並確認未進入提交流程。
 - 沒有變更驗證規則、API 請求或其他表單流程。
 
 ## Validation
 
-- Unit test: :app:testDebugUnitTest --tests com.example.taoyuangutter.gutter.GutterCompletionPolicyTest — PASS，6 tests，0 failures/errors。
-- Debug main 與 androidTest Kotlin compile/package tasks — PASS，使用 Gradle 輸出確認。
-- API 36 emulator instrumentation — NOT VERIFIED：啟動測試時該 serial 已不在 ADB 裝置清單；目前可用測試裝置為 XQ-AU52/API 31，後續以該裝置執行同一個 instrumentation test。
-- 測試建置使用 worktree 內臨時 MAPS_API_KEY placeholder 僅供 manifest merge；Gradle 結束後已刪除 local.properties。
+- `:app:testDebugUnitTest --tests com.example.taoyuangutter.gutter.GutterCompletionPolicyTest` — PASS，6 tests，0 failures/errors。
+- `:app:compileDebugAndroidTestKotlin` — PASS。
+- `:app:connectedDebugAndroidTest -Pandroid.injected.device.serial=emulator-5554 -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.gutter.Debug1021IncompleteSubmitUiTest` — PASS；`DBG1017_API34_Camera (AVD)` / API 34，1 test，0 failures/errors。Gradle XML 報告確認測試 serial 為 `emulator-5554`。
+- 收到「不在實機上測試」的指示後，只在 API 34 Emulator 執行 instrumented 測試；先前在指示前已產生的實體裝置測試結果不列為本任務驗收證據。
+- 建置使用暫時的 `MAPS_API_KEY=debug-test-placeholder` 供 manifest merge；命令結束後已移除 `local.properties`。
+- 未執行 CI 或 Independent Verification；需由 Verification 階段檢查固定提交。
 
-## Pending
+## Commit
 
-- 對固定提交 revision 執行 XQ-AU52/API 31 instrumentation test。
-- 記錄最終 test result、commit ID、worktree status，再交 Independent Verification。
+- Branch: `codex/debug/debug-1021`
+- Implementation commit: `f9d033d62e669cd858c84e46d2e17c3c587b4aa6` (`fix(debug-1021): restore submit button after validation failure`)

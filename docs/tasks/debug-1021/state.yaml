@@ -3,7 +3,7 @@ task:
   type: debug
 
 phase: implementation
-status: implementation_in_progress
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -21,15 +21,15 @@ debug:
     - ISS-DBG-1021-001
 
 implementation:
-  status: in_progress
+  status: completed
 
 validation:
-  status: pending
+  status: completed
 
 git:
   branch: codex/debug/debug-1021
-  commit: ""
-  status: pending
+  commit: f9d033d62e669cd858c84e46d2e17c3c587b4aa6
+  status: committed
 
 verification:
   result: pending
@@ -45,5 +45,4 @@ release:
 
 blocking: []
 
-next_action: implementation
-
+next_action: verification
