@@ -110,3 +110,37 @@ This section supersedes the historical final result above for the current branch
 **PASS** — all acceptance criteria have PASS evidence, including CI run #13 for this exact revision. Release may proceed under the existing release rules; no merge or deployment is authorized by this verification.
 
 CI build and test: PASS (GitHub Actions run #13). The historical CI limitation above has been resolved for this exact HEAD.
+
+## Supplemental Branch Verification — `codex/feat1013-supplemental-modification` (2026-10-21)
+
+### Revision and scope
+
+- Fixed target: `03a90e3692138a1fe68d4dc9abf0d01b159e07f2`; worktree was clean at start and the commit's direct diff only changes comments in `app/version.properties`.
+- This branch also contains the approved feat-1021 follow-up that routes version checks through the selected backend. Its requirement supersedes feat-1013's earlier fixed-BASE routing decision; that follow-up is covered by current repository tests and `docs/tasks/feat-1021-version-api-backend-routing/verification.md`.
+- Device: Android 16 Medium Phone AVD, serial `emulator-5554`. The connected Sony phone was not targeted.
+- No Release task was run. The targeted checks built Debug artifacts only.
+
+### Acceptance criteria
+
+| AC | Result | Evidence |
+|---|---|---|
+| AC-001 | PASS | Release version-code Gradle logic is unchanged from the prior verified implementation. The current Debug test build did not alter P0. No Release build was run because the current P0 value raises the separate AC-011 regression below. |
+| AC-002 | PASS | Current `AppVersionModelsTest` passed numeric ordering, malformed version, URL, and response validation cases. |
+| AC-003 | PASS | The fixed-BASE rule was superseded by approved feat-1021. Current `AppVersionRepositoryTest` verifies selected-target routing and target capture; `GutterApiService` retains the no-parameter `GET api/appVersion`. |
+| AC-004 | PASS | Current `AppVersionUpdateFlowTest` passed foreground request cadence across recreation and background return. |
+| AC-005 | PASS | Current `AppVersionUpdateFlowTest` passed Continue dismissal while preserving Login state; the updater UI source is otherwise unchanged from prior emulator evidence. |
+| AC-006 | PASS | Current `AppVersionUpdateFlowTest` passed download cancellation. Prior retry/failure evidence applies to unchanged updater code. |
+| AC-007 | PASS | Prior same-AVD permission-settings, automatic installer resume, and cancellation evidence applies; the updater/installer implementation is unchanged on this branch. |
+| AC-008 | PASS | Prior JKS-signed code-4 to code-5 update evidence applies; release signing configuration is unchanged. The current counter reset is separately classified under AC-011. |
+| AC-009 | PASS | Current model and repository tests passed invalid-input and unsuccessful-response cases. Prior offline and HTTPS-redirect evidence applies to unchanged downloader code. |
+| AC-010 | PASS | The approved feat-1021 follow-up replaces fixed-BASE routing with selected-target routing. Current repository tests verify the BASE, TAIPEI, and DEMO mappings. |
+| AC-011 | FAIL | Current `app/version.properties` has `P0_VERSION_CODE=1`. Commit `9377f41` changed it from 5 to 1 after the feat-1013 release decision and `ISS-006` recorded 5 as the highest consumed code; that decision states the next Release must use code 6. Gradle computes `P0+1`, so the current next Release would use code 2. The counter regression is present on the branch even though HEAD's direct commit only changes comments. See reopened `ISS-006`. |
+
+### Validation and result
+
+- Focused JVM command: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ./gradlew --no-daemon --console=plain :app:testDebugUnitTest --tests 'com.example.taoyuangutter.api.AppVersionModelsTest' --tests 'com.example.taoyuangutter.api.AppVersionRepositoryTest' --tests 'com.example.taoyuangutter.common.BackendEndpointsTest'` — PASS; 9 tests, 0 failures, 0 errors, 0 skipped.
+- Focused AVD command: `JAVA_HOME='/Applications/Android Studio.app/Contents/jbr/Contents/Home' ANDROID_SERIAL=emulator-5554 ./gradlew --no-daemon --console=plain :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.AppVersionUpdateFlowTest` — PASS; 3 tests, 0 failures, 0 errors, 0 skipped.
+- `git diff --check HEAD^ HEAD` — PASS. After both test commands, P0 remained 1 and P1/P2/P3 remained 1/0/0.
+- CI for exact commit `03a90e3` was not verified in this round. Existing feat-1013 CI run #13 applies to `04500ab`, not this branch HEAD; CI remains a release gate.
+
+**Overall result: FAIL**, category `implementation`, failed AC `AC-011`. Route to Debug before another release decision; no production code was changed during Verification.

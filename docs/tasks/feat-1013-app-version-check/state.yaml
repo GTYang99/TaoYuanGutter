@@ -2,8 +2,8 @@ task:
   id: feat-1013-app-version-check
   type: feature
 
-phase: release
-status: release_ready
+phase: verification
+status: verification_failed
 
 knowledge_resolution:
   status: resolved
@@ -22,16 +22,20 @@ implementation:
 
 validation:
   status: completed
+  unit_test: pass
+  debug_build: pass
+  physical_device: not_verified
 
 git:
-  branch: codex/feat-1013-app-version-check-implementation
-  commit: 04500ab743be646951edd4dba7d083198b98dd96
+  branch: codex/feat1013-supplemental-modification
+  commit: 03a90e3692138a1fe68d4dc9abf0d01b159e07f2
   status: committed
 
 verification:
-  result: pass
-  category: null
-  failed_acceptance_criteria: []
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-011
   not_verified_acceptance_criteria: []
 
 debug:
@@ -39,11 +43,13 @@ debug:
   root_cause: identified
 
 ci:
-  build: pass
-  test: pass
+  build: pending
+  test: pending
 
 release:
-  status: approved
+  status: pending
 
-blocking: []
-next_action: human_release
+blocking:
+  - ISS-006 reopened: current P0_VERSION_CODE is below the previously consumed code.
+  - CI results for supplemental branch commit 03a90e3 are not verified.
+next_action: debug
