@@ -105,6 +105,7 @@
 
 ## Point-Picker Fallback Flash Follow-up — 2026-10-21
 
+- Implementation commit: `650b4e91` on `codex/debug/debug-1019-map-dashboard-viewport`.
 - Changed `MapPointPickerActivity` to keep the map hidden and Confirm disabled for an unusable initial coordinate; it reveals at a usable location, or at the existing Taoyuan fallback after location/permission failure. Valid initial coordinates still display directly.
 - Added `MapPointPickerInitialCameraPolicyTest` and `blankPickerFirstVisibleFrameUsesLocationInsteadOfTaoyuanFallback`.
 - `:app:testDebugUnitTest --tests 'com.example.taoyuangutter.gutter.MapPointPickerInitialCameraPolicyTest' :app:assembleDebug :app:assembleDebugAndroidTest` — **PASS**, `BUILD SUCCESSFUL`.

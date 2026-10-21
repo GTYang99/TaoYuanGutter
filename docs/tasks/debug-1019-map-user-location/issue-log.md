@@ -83,6 +83,7 @@
 ## ISS-DBG-1019-013 — Blank point picker exposes Taoyuan before location resolves
 
 - Phase found: debug follow-up; category: `implementation_regression`; priority: P2.
+- Status: implementation committed; revised instrumentation rerun pending.
 - Expected: With no usable initial point, hide the picker map until a usable location is applied; reveal the existing fallback after permission/location failure. Keep valid supplied point coordinates immediately visible.
 - Root cause: `GutterFormActivity.launchLocationPicker()` passes blank coordinates as `(0,0)`. `MapPointPickerActivity.onMapReady()` displayed the Taoyuan camera before starting its asynchronous locate request.
 - Resolution: hide `mapPicker` while the initial location is pending, disable Confirm during that interval, reveal at the location fix or existing failure fallback, and retain saved-coordinate precedence.

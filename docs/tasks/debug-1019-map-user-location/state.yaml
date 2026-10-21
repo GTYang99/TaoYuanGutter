@@ -36,7 +36,7 @@ validation:
 
 git:
   branch: codex/debug/debug-1019-map-dashboard-viewport
-  commit: b60fe370
+  commit: 650b4e91
   status: committed
 
 verification:
