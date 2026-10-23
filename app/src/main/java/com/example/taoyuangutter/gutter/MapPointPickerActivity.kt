@@ -47,6 +47,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     private var currentTileOverlay: TileOverlay? = null
     private var pickerBarBaseBottomMarginPx: Int? = null
     private var myLocationFabBaseBottomMarginPx: Int? = null
+    private var initialLocationPending = false
 
     // ── 背景地圖圖層開關 ──────────────────────────────────────────────────
     private var showPlanOverlay = true
@@ -76,6 +77,7 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         if (granted) {
             enableMyLocationAndJump()
         } else {
+            revealInitialFallbackIfNeeded()
             Toast.makeText(this, getString(R.string.msg_location_permission_required), Toast.LENGTH_SHORT).show()
         }
     }
@@ -126,6 +128,11 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onCreate(savedInstanceState)
         binding = ActivityMapPointPickerBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        val initialLat = intent.getDoubleExtra(EXTRA_INITIAL_LAT, 0.0)
+        val initialLng = intent.getDoubleExtra(EXTRA_INITIAL_LNG, 0.0)
+        initialLocationPending = MapPointPickerInitialCameraPolicy.shouldWaitForLocation(initialLat, initialLng)
+        if (initialLocationPending) binding.mapPicker.visibility = android.view.View.INVISIBLE
 
         showPlanOverlay = intent.getBooleanExtra(EXTRA_SHOW_PLAN, true)
         showWaterOldOverlay = intent.getBooleanExtra(EXTRA_SHOW_WATER_OLD, true)
@@ -201,12 +208,36 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
     @Suppress("MissingPermission")
     private fun enableMyLocationAndJump() {
         myLocationController.enableMyLocationAndMove(
-            onLocationUpdated = {},
+            onLocationUpdated = { location ->
+                if (!initialLocationPending ||
+                    !MapCoordinatePolicy.isUsableCoordinate(location.latitude, location.longitude)
+                ) return@enableMyLocationAndMove
+                googleMap?.moveCamera(
+                    CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 18f)
+                )
+                revealInitialMap()
+            },
             onLocationUnavailable = {
+                revealInitialFallbackIfNeeded()
                 Toast.makeText(this, getString(R.string.msg_location_not_available), Toast.LENGTH_SHORT).show()
             },
             preferFreshLocation = true
         )
+    }
+
+    private fun revealInitialMap() {
+        if (!initialLocationPending) return
+        initialLocationPending = false
+        binding.mapPicker.visibility = android.view.View.VISIBLE
+        binding.locationPickerOverlay.btnConfirmPick.isEnabled = true
+    }
+
+    private fun revealInitialFallbackIfNeeded() {
+        if (!initialLocationPending) return
+        googleMap?.moveCamera(
+            CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 16f)
+        )
+        revealInitialMap()
     }
 
     override fun onDestroy() {
@@ -231,12 +262,14 @@ class MapPointPickerActivity : AppCompatActivity(), OnMapReadyCallback {
         val lat = intent.getDoubleExtra(EXTRA_INITIAL_LAT, 0.0)
         val lng = intent.getDoubleExtra(EXTRA_INITIAL_LNG, 0.0)
 
-        if (MapCoordinatePolicy.isUsableCoordinate(lat, lng)) {
+        if (!MapPointPickerInitialCameraPolicy.shouldWaitForLocation(lat, lng)) {
             val start = LatLng(lat, lng)
             map.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 20f))
         } else {
-            // 如果沒有初始座標：先以桃園作為初始鏡頭，再嘗試定位到使用者現在位置
-            map.moveCamera(CameraUpdateFactory.newLatLngZoom(LatLng(24.9929, 121.3011), 16f))
+            // 空白點位等待定位結果期間隱藏地圖，避免先顯示桃園 fallback。
+            initialLocationPending = true
+            binding.mapPicker.visibility = android.view.View.INVISIBLE
+            binding.locationPickerOverlay.btnConfirmPick.isEnabled = false
             onMyLocationButtonClicked()
         }
     }

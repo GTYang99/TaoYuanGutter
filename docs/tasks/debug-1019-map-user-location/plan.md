@@ -14,6 +14,7 @@
 - `app/src/main/java/com/example/taoyuangutter/map/MyLocationController.kt` and `LocationFixQualityPolicy.kt` — allow explicit recenter actions to prefer a newer usable fix and retain cache as fallback.
 - `app/src/main/java/com/example/taoyuangutter/map/MapWorkspaceFragment.kt` and `app/src/main/java/com/example/taoyuangutter/MainActivity.kt` — use fresh-preferred location on host map location flows and avoid `(0,0)` handoff targets.
 - `app/src/main/java/com/example/taoyuangutter/gutter/MapPointPickerActivity.kt` — use fresh-preferred location for the blank-map and explicit locate flows.
+- `app/src/main/java/com/example/taoyuangutter/gutter/MapPointPickerInitialCameraPolicy.kt` — test whether the blank point-picker map must wait for location before reveal.
 - Focused Kotlin unit tests and `EditMapInitialLocationInstrumentedTest.kt` — cover policy boundaries, saved-coordinate precedence, offline/restored blank-form camera-only behavior, fallback, and picker-compatible location policy.
 - `docs/tasks/debug-1019-map-user-location/` — requirement, plan review, execution, verification, and state evidence.
 
@@ -31,6 +32,7 @@
 - Build `:app:assembleDebug` and `:app:assembleDebugAndroidTest`.
 - Run focused `EditMapInitialLocationInstrumentedTest` cases using the configured emulator serial, never an unfiltered connected-device invocation.
 - Add emulator assertions for pre-result map visibility, successful-result reveal, and failure/fallback reveal; retain saved-coordinate and manual-pan protection coverage.
+- For a blank point picker, hide the map and disable Confirm until location success or the existing permission/location failure path reveals the usable target/fallback.
 
 ### Physical Device Test Scope
 - Requires physical device: No.
@@ -50,6 +52,7 @@
 | AC-005 | JVM test or focused callback test | Open a waypoint with no coordinate while map target is absent | No `(0,0)` camera target is issued | Nullable target policy/callback assertion |
 | AC-006 | Code/test review | Tap Locate without Confirm, then inspect picker result path | Locate changes viewport only; coordinate is returned only on Confirm | Instrumentation/source review |
 | AC-007 | Emulator | Open a blank form without a host fix and pause at permission choice; then grant/deny; also open with a host fix | Map is hidden while unresolved, reveals at current fix on success, reveals Taoyuan only after failure, and opens directly on a usable host fix | Instrumentation visibility and camera assertions |
+| AC-008 | Unit + emulator | Open point picker with `(0,0)` and a location fix | First visible frame uses a usable fix, not Taoyuan; valid supplied coordinate remains immediate | Policy unit test and first-visible-frame instrumentation |
 
 ## Regression Plan
 - Confirm valid saved waypoint coordinates still prevent automatic location.

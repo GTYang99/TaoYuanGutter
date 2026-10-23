@@ -103,6 +103,17 @@
 - Emulator regression evidence remains the API 36 host-seeded first-frame pass and API 34 no-host first-frame pass recorded above. No physical device was used. The host-seeded manual-pan callback case remains **NOT VERIFIED** (`ISS-DBG-1019-011`); this focused JVM run does not cover that UI timing behavior.
 - Hosted CI and Release were not run as the requested scope ends at implementation validation.
 
+## Point-Picker Fallback Flash Follow-up — 2026-10-21
+
+- Implementation commit: `650b4e91` on `codex/debug/debug-1019-map-dashboard-viewport`.
+- Changed `MapPointPickerActivity` to keep the map hidden and Confirm disabled for an unusable initial coordinate; it reveals at a usable location, or at the existing Taoyuan fallback after location/permission failure. Valid initial coordinates still display directly.
+- Added `MapPointPickerInitialCameraPolicyTest` and `blankPickerFirstVisibleFrameUsesLocationInsteadOfTaoyuanFallback`.
+- `:app:testDebugUnitTest --tests 'com.example.taoyuangutter.gutter.MapPointPickerInitialCameraPolicyTest' :app:assembleDebug :app:assembleDebugAndroidTest` — **PASS**, `BUILD SUCCESSFUL`.
+- Android 14 API 34 AVD first-visible-frame case passed once in the focused class run. A later isolated run returned a different usable emulator-provider coordinate than the injected mock; the captured frame was still away from the Taoyuan fallback. The instrumentation assertion now checks the product requirement (usable first frame, no fallback flash) instead of requiring one exact mock coordinate. The revised assertion was compiled but not rerun. The existing explicit Locate case was blocked by the emulator permission dialog during Espresso lookup.
+- Hosted CI and independent verification were not run; requested scope ends at implementation validation.
+
+- AC-008: First-visible-frame behavior was observed on Android 14 API 34 at a usable non-Taoyuan provider target, and the initial exact-coordinate version passed once. The relaxed semantic assertion compiles; its standalone rerun is **NOT VERIFIED** due mock-provider variability.
+
 ## Build Details
 
 - Application package: `com.example.taoyuangutter`

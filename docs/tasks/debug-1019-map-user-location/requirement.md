@@ -27,6 +27,7 @@
 - AC-005: A missing waypoint coordinate plus an unavailable host map target does not issue a camera move to `(0,0)`.
 - AC-006: The point-picker Locate action changes only the viewport; Confirm continues to return the chosen camera coordinate.
 - AC-007: When a blank form opens without a usable host handoff location, the form map stays hidden before location resolution; it becomes visible centered on a usable current fix, or reveals the existing Taoyuan fallback only after permission/location failure. A valid saved point remains immediately visible and centered.
+- AC-008: When the point picker opens without a usable initial coordinate, its map stays hidden until a usable location fix is applied; on permission/location failure it reveals the existing fallback. A valid initial point remains immediately visible and centered.
 
 ## Non-functional Requirements
 - No new dependency.

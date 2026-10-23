@@ -3,6 +3,8 @@ package com.example.taoyuangutter.gutter
 import android.Manifest
 import android.content.Context
 import android.location.Location
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
@@ -11,16 +13,68 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.taoyuangutter.R
+import com.example.taoyuangutter.map.MapCoordinatePolicy
 import com.google.android.gms.maps.model.LatLng
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.atomic.AtomicReference
 
 /** Emulator coverage for the point picker's explicit, viewport-only Locate action. */
 @RunWith(AndroidJUnit4::class)
 class MapPointPickerLocationInstrumentedTest {
+
+    @Test
+    fun blankPickerFirstVisibleFrameUsesLocationInsteadOfTaoyuanFallback() {
+        grantLocationPermission(Manifest.permission.ACCESS_FINE_LOCATION)
+        grantLocationPermission(Manifest.permission.ACCESS_COARSE_LOCATION)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val currentPoint = LatLng(25.03, 121.5)
+        val taoyuanFallback = LatLng(24.9929, 121.3011)
+        val firstVisibleTarget = AtomicReference<LatLng?>(null)
+
+        try {
+            setMockLocation(currentPoint)
+            val intent = MapPointPickerActivity.newIntent(context, initialLat = 0.0, initialLng = 0.0)
+            ActivityScenario.launch<MapPointPickerActivity>(intent).use { scenario ->
+                scenario.onActivity { activity ->
+                    val mapView = activity.findViewById<View>(R.id.mapPicker)
+                    val listener = object : ViewTreeObserver.OnPreDrawListener {
+                        override fun onPreDraw(): Boolean {
+                            if (mapView.visibility == View.VISIBLE && firstVisibleTarget.get() == null) {
+                                val field = MapPointPickerActivity::class.java.getDeclaredField("googleMap").apply {
+                                    isAccessible = true
+                                }
+                                val map = field.get(activity) as? com.google.android.gms.maps.GoogleMap
+                                val target = map?.cameraPosition?.target
+                                if (target != null && firstVisibleTarget.compareAndSet(null, target)) {
+                                    mapView.viewTreeObserver.removeOnPreDrawListener(this)
+                                }
+                            }
+                            return true
+                        }
+                    }
+                    mapView.viewTreeObserver.addOnPreDrawListener(listener)
+                }
+
+                val firstFrame = awaitFirstVisibleTarget(firstVisibleTarget)
+                assertNotNull("Blank picker did not reveal after location arrived", firstFrame)
+                val visibleTarget = firstFrame!!
+                assertTrue(
+                    "First visible picker target must be a usable coordinate",
+                    MapCoordinatePolicy.isUsableCoordinate(visibleTarget.latitude, visibleTarget.longitude)
+                )
+                assertTrue(
+                    "First visible picker frame must not expose Taoyuan; target=$visibleTarget",
+                    distanceMeters(taoyuanFallback, visibleTarget) > 100.0
+                )
+            }
+        } finally {
+            setMockLocation(null)
+        }
+    }
 
     @Test
     fun explicitLocateMovesCameraToFreshFixWithoutFinishingPicker() {
@@ -100,6 +154,12 @@ class MapPointPickerLocationInstrumentedTest {
             target = map?.cameraPosition?.target
         }
         return target
+    }
+
+    private fun awaitFirstVisibleTarget(target: AtomicReference<LatLng?>): LatLng? {
+        val deadline = System.currentTimeMillis() + 35_000L
+        while (System.currentTimeMillis() < deadline && target.get() == null) Thread.sleep(250L)
+        return target.get()
     }
 
     private fun distanceMeters(expected: LatLng, actual: LatLng): Double {

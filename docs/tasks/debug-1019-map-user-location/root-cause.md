@@ -65,3 +65,10 @@ The host form-opening callbacks synthesize `LatLng(0,0)` if both the selected wa
 - Acceptance mapping: AC-004 / FR-005 — an unusable fix must not replace the existing fallback and must follow the unavailable/error path.
 - Minimum fix: pass the candidate coordinate into the Nearby policy and reject any coordinate that `MapCoordinatePolicy` rejects. Add unit coverage for `(0,0)` and preserve the existing freshness/accuracy behavior for valid points.
 - Resolution: `NearbyLocationFixPolicy` now delegates coordinate checks to `MapCoordinatePolicy`; `GutterFormActivity` passes the provider latitude/longitude into the policy before its camera update. The focused policy tests pass, including the new `(0,0)` case.
+
+## Point-Picker Initial Fallback Flash
+
+- A blank form initializes its coordinate fields with no usable point (`0,0` in the legacy intent arrays). `GutterFormActivity.launchLocationPicker()` passes those values into `MapPointPickerActivity`.
+- Before this fix, the picker immediately moved its visible map to `(24.9929, 121.3011)` and then started an asynchronous high-accuracy location request. With `preferFreshLocation=true`, the shared controller waits for the current-location callback instead of immediately centering on cached location, so the Taoyuan view remains visible during that wait.
+- The minimum fix hides the picker map while an invalid initial coordinate is being resolved, disables Confirm during that interval, and reveals the map only after centering on a usable location. Permission/provider failure reveals the existing fallback.
+- Valid initial coordinates bypass this wait and remain centered. Camera centering remains viewport-only.

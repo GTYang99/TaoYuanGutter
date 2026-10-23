@@ -53,3 +53,9 @@
 - Minimum fix: synchronously seed from a fresh usable host fix attached to the intent. If none exists, keep the blank map surface hidden until a usable current fix has been applied or the existing permission/location failure path has selected and exposed the Taoyuan fallback. Keep saved-coordinate precedence and camera-only data behavior unchanged.
 - Result: `GutterFormActivity` now hides an eligible blank map during location resolution, uses a recent usable host fix before first display, and reveals the map at a provider fix or at the existing fallback after failure. Saved coordinates remain visible and take precedence.
 - Validation: on `emulator-5554` (Android 16/API 36), first-visible-frame host-fix, permission-denial/fallback, fresh-add GPS, and saved-coordinate cases passed. `manualPanBeforeFusedMockCallbackKeepsManualCameraTarget` failed twice because the swipe did not move the camera before the callback; cause is unknown and tracked separately as `ISS-DBG-1019-011`. Do not claim the delayed-callback pan case passed.
+
+## Debug Follow-up: Blank Point Picker Shows Taoyuan Before GPS
+
+- Finding: invalid initial coordinates enter the point picker's Taoyuan fallback branch before its asynchronous location request resolves.
+- Minimum fix: hide `mapPicker` and disable Confirm for an unusable initial coordinate; reveal at a usable location, or reveal the existing fallback after permission/location failure. Preserve immediate display of valid initial coordinates.
+- Tests: add a focused unit test for blank versus valid initial camera decisions and emulator coverage asserting the first visible blank-picker frame is not the Taoyuan fallback.
