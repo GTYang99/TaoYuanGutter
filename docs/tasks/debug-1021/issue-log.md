@@ -33,7 +33,25 @@
 - impact: Release readiness cannot be approved until CI reports the required build and unit-test checks for the committed task revision.
 - evidence:
   - `plan.md` and an approved retrospective `plan-review.md` are now recorded; the review preserves the original timing deviation.
-  - GitHub combined commit status for 2cfa7c801f75b06a8932dd7aa6459d9aa8f8dc53 returned no checks.
-  - The task branch has not yet been pushed to origin to trigger `.github/workflows/android-ci.yml`.
+  - GitHub combined commit status for `604aa34ff9e468e9c27375aa87f20bf5bf40b22d` returned an empty status list.
+  - `.github/workflows/android-ci.yml` defines build and unit-test checks, but neither has reported for the revision under verification.
+- next_action: infrastructure
+
+## ISS-DBG-1021-003
+
+- task_id: debug-1021
+- phase: infrastructure
+- category: environment
+- priority: P2
+- title: Independent API 34 verification cannot access the emulator
+- status: resolved
+- impact: Before remediation, AC-001 could not be independently verified on the committed revision.
+- evidence:
+  - Android Studio Device Manager listed only `Medium Phone` (API 36); API 34 system image exists but no API 34 AVD was registered.
+  - Sandboxed `adb devices -l` failed to bind the ADB smart socket with `Operation not permitted`; the single elevated retry timed out in automatic review.
+  - Android Studio UI actions failed with `noWindowsAvailable` after the Mac was unlocked.
+  - Direct `emulator -avd Medium_Phone -no-window -no-audio` exited with code 132.
+  - The API 34 `Medium Phone 2` AVD was launched in Android Studio and the focused instrumentation suite passed all three cases on revision `604aa34ff9e468e9c27375aa87f20bf5bf40b22d`; see `verification.md` and `emulator-results/AC-001-verification-604aa34.xml`.
+- resolution: Registered/launched an API 34 AVD and ran the focused connected instrumentation test from the clean committed snapshot; 3 tests passed with 0 failures.
 - next_action: infrastructure
 

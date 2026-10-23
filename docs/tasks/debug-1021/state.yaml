@@ -2,8 +2,8 @@ task:
   id: debug-1021
   type: debug
 
-phase: infrastructure
-status: infrastructure_in_progress
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: not_required
@@ -28,12 +28,12 @@ validation:
 
 git:
   branch: codex/debug/debug-1021
-  commit: 34f163bb1f882d1eb4153d0b05bdf03ffc2f3a3f
+  commit: 604aa34ff9e468e9c27375aa87f20bf5bf40b22d
   status: committed
 
 verification:
-  result: pending
-  category: null
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria: []
 
@@ -46,6 +46,6 @@ release:
 
 blocking:
   - Historical workflow deviation: original implementation commit predates plan review; retrospective review is recorded and chronology cannot be changed.
-  - CI has not reported build and unit-test checks for the committed task branch.
+  - CI has no build or unit-test status for committed revision 604aa34ff9e468e9c27375aa87f20bf5bf40b22d.
 
 next_action: infrastructure

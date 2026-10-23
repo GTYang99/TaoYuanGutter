@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<testsuites tests="3" failures="0" errors="0" skipped="0" time="0.000" timestamp="2026-10-21T12:55:14" hostname="localhost">
+  <testsuite name="com.example.taoyuangutter.gutter.Debug1021IncompleteSubmitUiTest" tests="3" failures="0" errors="0" skipped="0" time="4.871" timestamp="2026-10-21T12:55:14" hostname="localhost">
+    <properties>
+      <property name="device" value="emulator-5554" />
+    </properties>
+    <testcase name="missingRequiredFieldsAndPhotosRestoresAddButtonAfterDialogDismissal" classname="com.example.taoyuangutter.gutter.Debug1021IncompleteSubmitUiTest" time="1.784" />
+    <testcase name="missingRequiredPhotosRestoresAddButtonAfterDialogDismissal" classname="com.example.taoyuangutter.gutter.Debug1021IncompleteSubmitUiTest" time="1.835" />
+    <testcase name="missingRequiredFieldsRestoresAddButtonAfterDialogDismissal" classname="com.example.taoyuangutter.gutter.Debug1021IncompleteSubmitUiTest" time="1.252" />
+  </testsuite>
+</testsuites>
