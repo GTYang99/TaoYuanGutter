@@ -36,8 +36,8 @@ validation:
 
 git:
   branch: codex/debug/debug-1112
-  commit: pending
-  status: implementation_pending_commit
+  commit: 9f4670d6
+  status: committed
 
 verification:
   result: pending
@@ -53,6 +53,6 @@ release:
 
 blocking:
   - Backend implementation and sanitized request/response evidence are unavailable in this repository; the exact delete/inheritance transaction is not independently verified, but it is not required to implement the import-time guard.
-  - No production fix or runtime reproduction was performed in the root-cause-only phase.
+  - Runtime/UI reproduction was not executed because the local Java runtime is unavailable.
 
 next_action: verification
