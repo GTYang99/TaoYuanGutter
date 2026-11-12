@@ -2,8 +2,8 @@ task:
   id: debug-1112
   type: debug
 
-phase: debug
-status: debug_complete
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: not_required
@@ -22,18 +22,22 @@ debug:
     - ISS-DBG-1112-002
 
 implementation:
-  status: pending
+  status: completed
+  source: completed
+  unit_test: added
 
 validation:
   status: limited
   static_source_review: completed
+  targeted_unit_test: not_verified
+  targeted_unit_test_reason: java_runtime_unavailable
   runtime_reproduction: not_verified
   backend_smoke: not_verified
 
 git:
   branch: codex/debug/debug-1112
-  commit: ""
-  status: branch_created
+  commit: pending
+  status: implementation_pending_commit
 
 verification:
   result: pending
@@ -51,4 +55,4 @@ blocking:
   - Backend implementation and sanitized request/response evidence are unavailable in this repository; the exact delete/inheritance transaction is not independently verified, but it is not required to implement the import-time guard.
   - No production fix or runtime reproduction was performed in the root-cause-only phase.
 
-next_action: implementation_debug
+next_action: verification

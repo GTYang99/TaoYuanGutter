@@ -652,6 +652,15 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
 		        }
 
     private fun handleImportedNodeDetails(nodeDetails: NodeDetails) {
+        if (GutterImportValidator.hasExistingXyNum(nodeDetails.xyNum, sessionWaypoints)) {
+            Toast.makeText(
+                this,
+                getString(R.string.msg_import_duplicate_xy_num),
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
         nodeDetails.nodeId?.let { importedNodeId ->
             nodeId = importedNodeId
             currentFormData["_nodeId"] = importedNodeId.toString()
