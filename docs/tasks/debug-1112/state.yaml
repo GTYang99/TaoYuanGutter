@@ -48,7 +48,7 @@ release:
   status: pending
 
 blocking:
-  - Backend implementation and sanitized request/response evidence are unavailable in this repository; atomic inherit-before-delete is not independently verified.
+  - Backend implementation and sanitized request/response evidence are unavailable in this repository; the exact delete/inheritance transaction is not independently verified, but it is not required to implement the import-time guard.
   - No production fix or runtime reproduction was performed in the root-cause-only phase.
 
 next_action: implementation_debug
