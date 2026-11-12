@@ -1,0 +1,54 @@
+task:
+  id: debug-1112
+  type: debug
+
+phase: debug
+status: debug_complete
+
+knowledge_resolution:
+  status: not_required
+
+planning:
+  status: completed
+
+plan_review:
+  status: pending
+
+debug:
+  status: completed
+  root_cause: identified_from_static_code_and_product_clarification
+  issues:
+    - ISS-DBG-1112-001
+    - ISS-DBG-1112-002
+
+implementation:
+  status: pending
+
+validation:
+  status: limited
+  static_source_review: completed
+  runtime_reproduction: not_verified
+  backend_smoke: not_verified
+
+git:
+  branch: codex/debug/debug-1112
+  commit: ""
+  status: branch_created
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking:
+  - Backend implementation and sanitized request/response evidence are unavailable in this repository; atomic inherit-before-delete is not independently verified.
+  - No production fix or runtime reproduction was performed in the root-cause-only phase.
+
+next_action: implementation_debug
