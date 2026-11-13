@@ -38,7 +38,7 @@ validation:
 
 git:
   branch: codex/debug/debug-1112
-  commit: 9f4670d6
+  commit: 12853e30
   status: committed
 
 verification:
