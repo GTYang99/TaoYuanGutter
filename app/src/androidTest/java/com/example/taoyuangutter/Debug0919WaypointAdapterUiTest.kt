@@ -20,7 +20,7 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class Debug0919WaypointAdapterUiTest {
     @Test
-    fun listShowsNoDataForBlankAndPartialRowsButFilledForUploadCompleteRow() {
+    fun listShowsXyNumForPartialExistingRowAndFilledForUploadCompleteRow() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         ActivityScenario.launch<GutterFormActivity>(
             GutterFormActivity.newIntent(
@@ -39,7 +39,7 @@ class Debug0919WaypointAdapterUiTest {
                     basicData = hashMapOf()
                 )))
 
-                assertEquals("暫無資料", renderStatus(activity, Waypoint(
+                assertEquals("C", renderStatus(activity, Waypoint(
                     type = WaypointType.START,
                     label = "起點",
                     latLng = LatLng(24.0, 121.0),
@@ -54,6 +54,7 @@ class Debug0919WaypointAdapterUiTest {
                         "IS_BROKEN" to "0",
                         "IS_HANGING" to "0",
                         "IS_SILT" to "0",
+                        "XY_NUM" to "C",
                         "photo1" to "https://example.test/photo1.jpg",
                         "photo2" to "https://example.test/photo2.jpg"
                     )

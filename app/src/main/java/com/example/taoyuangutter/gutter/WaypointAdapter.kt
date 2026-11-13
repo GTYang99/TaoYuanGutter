@@ -68,10 +68,15 @@ class WaypointAdapter(
             }
         )
 
-        // 只有完整符合送出／上傳條件時，才顯示編號或「已填寫資料」。
-        if (isComplete && xyNum != null) {
-            statusView.text = xyNum
-            
+        // XY_NUM 是後端既有點位的識別顯示，不應被完整性檢查隱藏。
+        if (xyNum != null) {
+            statusView.text = waypointStatusText(
+                xyNum = xyNum,
+                isComplete = isComplete,
+                dataFilledLabel = ctx.getString(R.string.msg_data_filled),
+                noDataLabel = ctx.getString(R.string.msg_no_data)
+            )
+
             // 統一顏色：只要有資料（通過上一頁檢查），就顯示紫色標籤
             val primary = MaterialColors.getColor(
                 holder.itemView,
@@ -161,3 +166,10 @@ internal fun editableWaypointDisplayLabel(item: Waypoint): String {
         ?.lowercase() in setOf("1", "true", "yes", "y", "on")
     return item.label + if (isPendingDeploy) "(待架站)" else ""
 }
+
+internal fun waypointStatusText(
+    xyNum: String?,
+    isComplete: Boolean,
+    dataFilledLabel: String,
+    noDataLabel: String
+): String = xyNum ?: if (isComplete) dataFilledLabel else noDataLabel

@@ -25,12 +25,14 @@ implementation:
   status: completed
   source: completed
   unit_test: added
+  follow_up_ui_tag_fix: completed
 
 validation:
   status: limited
   static_source_review: completed
   targeted_unit_test: not_verified
   targeted_unit_test_reason: java_runtime_unavailable
+  ui_regression_test: added_not_verified
   runtime_reproduction: not_verified
   backend_smoke: not_verified
 
