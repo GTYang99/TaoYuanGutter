@@ -65,4 +65,32 @@ class GutterSessionDraftTest {
 
         assertFalse(restored.hasSubmittedStoreDitch)
     }
+
+    @Test
+    fun legacyTieInMarkerDoesNotPreventDraftRetention() {
+        val draft = GutterSessionDraft(
+            id = 906L,
+            savedAt = 1_725_408_000_000L,
+            spiTyp = null,
+            waypoints = listOf(
+                WaypointSnapshot(
+                    type = "NODE",
+                    label = "節點legacy",
+                    latitude = null,
+                    longitude = null,
+                    basicData = hashMapOf(
+                        "IS_TIEINPOINT" to "1",
+                        "NODE_NOTE" to "legacy note"
+                    ),
+                    uid = "legacy-node"
+                )
+            )
+        )
+
+        val json = Gson().toJson(listOf(draft))
+        val restored = Gson().fromJson<List<GutterSessionDraft>>(json, object : TypeToken<List<GutterSessionDraft>>() {}.type).single()
+
+        assertTrue(restored.waypoints.isNotEmpty())
+        assertEquals("1", restored.waypoints.single().basicData["IS_TIEINPOINT"])
+    }
 }

@@ -203,7 +203,7 @@ class GutterInspectPhotosFragment : Fragment() {
                 "溝體結構受損" to normalizeDisplayValue(mapBoolean01(details?.isBroken == "1")),
                 "附掛或過路管線" to normalizeDisplayValue(inspectionPresenceValue(details?.isHanging == "1")),
                 "淤積程度" to normalizeDisplayValue(mapSilt(details?.isSilt)),
-                "連接管" to normalizeDisplayValue(inspectionPresenceValue(details?.isConnectingAsBoolean))
+                "連接管" to normalizeDisplayValue("")
             )
             inspectionDetailFieldOrder().forEach { label ->
                 binding.layoutFields.addView(createFieldRow(label, detailValues.getValue(label)))
@@ -444,7 +444,6 @@ class GutterInspectPhotosFragment : Fragment() {
         if (details == null) return ""
         val suffixes = mutableListOf<String>()
         if (details.isCantOpenAsBoolean) suffixes += "(無法開蓋)"
-        if (details.isTieInPointAsBoolean) suffixes += "(銜接點)"
         if (details.isVirtual?.trim()?.lowercase() in setOf("1", "true", "t", "y", "yes")) {
             suffixes += "(虛擬點)"
         }
@@ -514,7 +513,7 @@ internal fun inspectionDetailFieldOrder(): List<String> = listOf(
 
 /** Detail measurements, attributes, and photo slots 2/3 do not apply to exempt modes. */
 internal fun shouldShowInspectionDetailFields(details: NodeDetails?, isVirtual: Boolean): Boolean =
-    !isVirtual && details?.isCantOpenAsBoolean != true && details?.isTieInPointAsBoolean != true
+    !isVirtual && details?.isCantOpenAsBoolean != true
 
 /** Uses the approved presence wording for inspection attributes that represent an attached item. */
 internal fun inspectionPresenceValue(value: Boolean?): String = when (value) {

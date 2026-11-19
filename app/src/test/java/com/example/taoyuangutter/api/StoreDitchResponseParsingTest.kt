@@ -30,17 +30,14 @@ class StoreDitchResponseParsingTest {
         )
 
         val normal = response.data!![0]
-        assertTrue(normal.isTieInPointAsBoolean)
-        assertTrue(normal.isConnectingAsBoolean)
+        assertFalse(normal.isTieInPointAsBoolean)
 
         val cantOpenWins = response.data!![1]
         assertTrue(cantOpenWins.isCantOpenAsBoolean)
         assertFalse(cantOpenWins.isTieInPointAsBoolean)
-        assertFalse(cantOpenWins.isConnectingAsBoolean)
 
         val missingDefaults = response.data!![2]
         assertFalse(missingDefaults.isTieInPointAsBoolean)
-        assertFalse(missingDefaults.isConnectingAsBoolean)
     }
 
     @Test

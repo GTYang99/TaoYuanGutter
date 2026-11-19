@@ -195,11 +195,7 @@ class GutterDraftCoordinator(
     private fun hasMeaningfulBasicData(basicData: Map<String, String>): Boolean {
         return basicData.any { (key, value) ->
             when (key) {
-                "is_virtual", "_isImported" -> false
-                "IS_TIEINPOINT", "IS_CONNECTING" -> value.equals("1", ignoreCase = true) ||
-                    value.equals("true", ignoreCase = true) ||
-                    value.equals("y", ignoreCase = true) ||
-                    value.equals("yes", ignoreCase = true)
+                "is_virtual", "_isImported", "IS_TIEINPOINT" -> false
                 "IS_PENDING_DEPLOY" -> value.equals("1", ignoreCase = true) ||
                     value.equals("true", ignoreCase = true) ||
                     value.equals("y", ignoreCase = true) ||
@@ -236,11 +232,7 @@ class GutterDraftCoordinator(
     private fun hasRetainableBasicData(basicData: Map<String, String>): Boolean {
         return basicData.any { (key, value) ->
             when {
-                key == "is_virtual" || key == "_isImported" -> false
-                key == "IS_TIEINPOINT" || key == "IS_CONNECTING" -> value.equals("1", ignoreCase = true) ||
-                    value.equals("true", ignoreCase = true) ||
-                    value.equals("y", ignoreCase = true) ||
-                    value.equals("yes", ignoreCase = true)
+                key == "is_virtual" || key == "_isImported" || key == "IS_TIEINPOINT" -> false
                 key == "IS_PENDING_DEPLOY" -> value.equals("1", ignoreCase = true) ||
                     value.equals("true", ignoreCase = true) ||
                     value.equals("y", ignoreCase = true) ||
