@@ -1,0 +1,41 @@
+task:
+  id: feat-1118-3
+  type: feature
+
+phase: planning
+status: plan_ready
+
+knowledge_resolution:
+  status: completed
+
+planning:
+  status: completed
+
+plan_review:
+  status: pending
+
+implementation:
+  status: pending
+
+validation:
+  status: pending
+
+git:
+  branch: codex/feat/feat-1118-3
+  commit: "8d484d5a6d31924d099e793476f898ed99594aa8"
+  status: pending
+
+verification:
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+
+ci:
+  build: pending
+  test: pending
+
+release:
+  status: pending
+
+blocking: []
+next_action: plan_review
