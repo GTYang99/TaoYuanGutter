@@ -91,8 +91,7 @@ class CantOpenSessionViewModel : ViewModel() {
 
     companion object {
         val CANT_OPEN_FIELDS = listOf(
-            "COVER_DEP", "NODE_DEP", "NODE_WID", "MAT_TYP", "IS_BROKEN", "IS_HANGING", "IS_SILT",
-            "IS_CONNECTING"
+            "COVER_DEP", "NODE_DEP", "NODE_WID", "MAT_TYP", "IS_BROKEN", "IS_HANGING", "IS_SILT"
         )
     }
 }

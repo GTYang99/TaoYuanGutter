@@ -23,8 +23,7 @@ internal object GutterCompletionPolicy {
     }
 
     fun isDetailExempt(data: Map<String, String>): Boolean =
-        parseLooseBoolean(data["IS_CANTOPEN"]) ||
-            parseLooseBoolean(data["IS_TIEINPOINT"])
+        parseLooseBoolean(data["IS_CANTOPEN"])
 
     fun requiredBasicKeys(isVirtual: Boolean, requiresMeasureId: Boolean): List<String> {
         if (isVirtual) {
