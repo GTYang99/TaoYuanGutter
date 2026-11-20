@@ -20,6 +20,7 @@
 | `./gradlew :app:assembleDebugAndroidTest` | PASS | Instrumentation APK and all AndroidTest sources compiled successfully. |
 | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.map.OfflinePolygonDataStoreInstrumentedTest` | PASS | 7/7 emulator tests passed, including empty district selection and packaged GeoPackage geometry. |
 | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.map.OfflinePolygonMapHostInstrumentedTest` | PASS | Full map-host class passed on `Medium_Phone(AVD) - 16`, including district selection, layer toggles, rendering, and lifecycle cases. |
+| CI workflow-equivalent commands from `.github/workflows/android-ci.yml` | PASS | The five workflow-scoped JVM test classes and `:app:assembleDebug` passed locally; remote Actions result is not available. |
 | `git diff --check` | PASS | No whitespace errors. |
 | Scope/source scan | PASS | Restored files have only minimal feature additions; no AGP/version diff remains; all 13 districts and three field mappings are present. |
 

@@ -27,4 +27,4 @@
 
 ## Final Verification Result
 
-`PASS` for local implementation and emulator verification. CI remains a separate pending gate because no CI result is available in the workspace.
+`PASS` for local implementation, emulator verification, and CI-workflow-equivalent commands. Remote CI remains a separate pending gate because no Actions result is available in the workspace.
