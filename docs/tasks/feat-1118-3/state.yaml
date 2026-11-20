@@ -25,23 +25,14 @@ validation:
 
 git:
   branch: codex/feat/feat-1118-3
-  commit: "108a6dc2bd441a87cc053d130c058f2b9eac5141"
-  status: pending
+  commit: "5d26cf1c"
+  status: committed
 
 verification:
-  result: fail
-  category: implementation
-  failed_acceptance_criteria:
-    - AC-009
-  not_verified_acceptance_criteria:
-    - AC-001
-    - AC-002
-    - AC-003
-    - AC-004
-    - AC-005
-    - AC-006
-    - AC-007
-    - AC-008
+  result: pending
+  category: null
+  failed_acceptance_criteria: []
+  not_verified_acceptance_criteria: []
 
 ci:
   build: not_verified
