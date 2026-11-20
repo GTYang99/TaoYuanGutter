@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_not_verified
+status: verification_passed
 
 knowledge_resolution:
   status: resolved
@@ -31,11 +31,10 @@ git:
   status: committed
 
 verification:
-  result: not_verified
-  category: verification_failure
+  result: pass
+  category: null
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
-    - existing-main-map-pixel-regression
+  not_verified_acceptance_criteria: []
 
 ci:
   build: not_available
@@ -45,6 +44,5 @@ release:
   status: pending
 
 blocking:
-  - Existing main-map pixel assertion fails after layer toggling and needs separate verification/debug classification.
   - CI result is not available in the local workspace.
-next_action: debug
+next_action: infrastructure

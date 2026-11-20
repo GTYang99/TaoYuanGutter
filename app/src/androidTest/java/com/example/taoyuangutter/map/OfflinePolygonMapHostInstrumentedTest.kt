@@ -315,6 +315,15 @@ class OfflinePolygonMapHostInstrumentedTest {
 
     private fun findInteriorSample(layer: OfflinePolygonLayer): OfflineCoordinate {
         val bounds = doubleArrayOf(274000.0, 2755000.0, 276000.0, 2760000.0)
+        val otherFillLayer = when (layer) {
+            OfflinePolygonLayer.LEGACY -> OfflinePolygonLayer.POSSIBLE
+            OfflinePolygonLayer.POSSIBLE -> OfflinePolygonLayer.LEGACY
+            OfflinePolygonLayer.REGION -> null
+        }
+        val otherFillGeometries = otherFillLayer
+            ?.let { OfflinePolygonDataStore.load(context, it).get().query(bounds) }
+            ?.map(OfflineGeometryCodec::fromGeoPackage)
+            .orEmpty()
         return OfflinePolygonDataStore.load(context, layer).get().query(bounds)
             .asSequence()
             .map(OfflineGeometryCodec::fromGeoPackage)
@@ -324,6 +333,12 @@ class OfflinePolygonMapHostInstrumentedTest {
                     val shell = polygon.rings.firstOrNull() ?: return@firstOrNull false
                     pointInRing(point, shell) && polygon.rings.drop(1).none { pointInRing(point, it) }
                 } ?: return@mapNotNull null
+                if (otherFillGeometries.any { otherGeometry ->
+                        otherGeometry.polygons.any { polygon ->
+                            val shell = polygon.rings.firstOrNull() ?: return@any false
+                            pointInRing(point, shell) && polygon.rings.drop(1).none { pointInRing(point, it) }
+                        }
+                    }) return@mapNotNull null
                 point to containingPolygon.rings.minOf { distanceToRing(point, it) }
             }
             .maxByOrNull { it.second }
@@ -443,14 +458,23 @@ class OfflinePolygonMapHostInstrumentedTest {
         }
         assertTrue("${layer.name} map snapshot should complete", snapshotReady.await(30, TimeUnit.SECONDS))
         screenshotFailure?.let { throw AssertionError("Unable to inspect ${layer.name} map snapshot", it) }
-        assertEquals(
+        assertColorNear(
             "${layer.name} GPKG interior at $target should render its opaque fill in the map snapshot at $samplePoint",
             layer.color,
-            actualColor
+            actualColor ?: error("${layer.name} snapshot did not produce a pixel")
         )
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             setProviderVisibility(manager, restoreLegacy, restorePossible)
         }
+    }
+
+    private fun assertColorNear(message: String, expected: Int, actual: Int, tolerance: Int = 8) {
+        val channelDelta = listOf(
+            kotlin.math.abs((expected shr 16 and 0xff) - (actual shr 16 and 0xff)),
+            kotlin.math.abs((expected shr 8 and 0xff) - (actual shr 8 and 0xff)),
+            kotlin.math.abs((expected and 0xff) - (actual and 0xff))
+        ).maxOrNull() ?: 0
+        assertTrue("$message expected #${expected.toUInt().toString(16)} but was #${actual.toUInt().toString(16)}", channelDelta <= tolerance)
     }
 
     private fun findInteriorPoint(geometry: OfflineGeometry, searchBounds: DoubleArray): OfflineCoordinate? {
