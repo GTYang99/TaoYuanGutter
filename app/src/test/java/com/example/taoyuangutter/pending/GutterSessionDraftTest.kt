@@ -93,4 +93,20 @@ class GutterSessionDraftTest {
         assertTrue(restored.waypoints.isNotEmpty())
         assertEquals("1", restored.waypoints.single().basicData["IS_TIEINPOINT"])
     }
+
+    @Test
+    fun legacyTieInMarkerIsRemovedWhenDraftIsSerializedAgain() {
+        val snapshot = WaypointSnapshot(
+            type = "NODE",
+            basicData = hashMapOf(
+                "IS_TIEINPOINT" to "1",
+                "NODE_NOTE" to "keep"
+            )
+        )
+
+        val normalized = snapshot.withoutLegacyRuntimeMarkers()
+
+        assertFalse(normalized.basicData.containsKey("IS_TIEINPOINT"))
+        assertEquals("keep", normalized.basicData["NODE_NOTE"])
+    }
 }

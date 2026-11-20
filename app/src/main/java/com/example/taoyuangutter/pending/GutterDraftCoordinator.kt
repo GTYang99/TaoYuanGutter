@@ -52,7 +52,7 @@ class GutterDraftCoordinator(
                 longitude = wp.latLng?.longitude,
                 basicData = HashMap(wp.basicData),
                 uid = wp.uid
-            )
+            ).withoutLegacyRuntimeMarkers()
         }
         repository.save(
             GutterSessionDraft(
@@ -125,7 +125,7 @@ class GutterDraftCoordinator(
                 longitude = wp.latLng?.longitude,
                 basicData = wp.basicData,
                 uid = wp.uid
-            )
+            ).withoutLegacyRuntimeMarkers()
         }
 
         val spiNum = waypoints.firstOrNull { it.type == WaypointType.START }

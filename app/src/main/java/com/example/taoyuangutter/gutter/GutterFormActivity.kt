@@ -302,6 +302,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
         const val EXTRA_DATA_IS_HANGING  = "ex_is_hanging"
         const val EXTRA_DATA_IS_SILT     = "ex_is_silt"
         const val EXTRA_DATA_IS_CANTOPEN = "ex_is_cantopen"
+        const val EXTRA_DATA_IS_CONNECTING = "ex_is_connecting"
         const val EXTRA_DATA_IS_PENDING_DEPLOY = "ex_is_pending_deploy"
         const val EXTRA_DATA_IS_VIRTUAL  = "ex_is_virtual" // 新增：是否為虛擬點
         const val EXTRA_DATA_IS_IMPORTED = "ex_is_imported" // 新增：是否為匯入點位
@@ -347,6 +348,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
         const val RESULT_DATA_IS_HANGING  = "r_is_hanging"
         const val RESULT_DATA_IS_SILT     = "r_is_silt"
         const val RESULT_DATA_IS_CANTOPEN = "r_is_cantopen"
+        const val RESULT_DATA_IS_CONNECTING = "r_is_connecting"
         const val RESULT_DATA_IS_PENDING_DEPLOY = "r_is_pending_deploy"
         const val RESULT_DATA_IS_VIRTUAL  = "r_is_virtual" // 新增：是否為虛擬點
         const val RESULT_DATA_IS_IMPORTED = "r_is_imported" // 新增：是否為匯入點位
@@ -1564,6 +1566,7 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
         "IS_HANGING" to "",
         "IS_SILT"   to "",
         "IS_CANTOPEN" to "",
+        "IS_CONNECTING" to "0",
         "IS_PENDING_DEPLOY" to "",
         "NODE_NOTE" to "",
         "photo1"    to "", "photo2" to "", "photo3" to "",
@@ -2263,6 +2266,11 @@ class  GutterFormActivity : AppCompatActivity(), OnMapReadyCallback,
     private fun sanitizeConnectionFlagsForMode(target: MutableMap<String, String>) {
         if (parseLooseBoolean(target["is_virtual"])) {
             target.remove("IS_CANTOPEN")
+            target.remove("IS_CONNECTING")
+        } else if (parseLooseBoolean(target["IS_CANTOPEN"])) {
+            target.remove("IS_CONNECTING")
+        } else {
+            target["IS_CONNECTING"] = if (parseLooseBoolean(target["IS_CONNECTING"])) "1" else "0"
         }
     }
 

@@ -63,6 +63,9 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.EXTRA_DATA_IS_HANGING, data["IS_HANGING"] ?: data["isHanging"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_IS_SILT, data["IS_SILT"] ?: data["isSilt"] ?: "")
         intent.putExtra(GutterFormActivity.EXTRA_DATA_IS_CANTOPEN, data["IS_CANTOPEN"] ?: data["isCantOpen"] ?: "")
+        if (!data["is_virtual"].toBooleanLoose()) {
+            intent.putExtra(GutterFormActivity.EXTRA_DATA_IS_CONNECTING, data["IS_CONNECTING"] ?: "")
+        }
         intent.putExtra(
             GutterFormActivity.EXTRA_DATA_IS_PENDING_DEPLOY,
             data["IS_PENDING_DEPLOY"] ?: data["is_pendingDeploy"] ?: data["isPendingDeploy"] ?: ""
@@ -109,6 +112,7 @@ object GutterFormContract {
             "IS_HANGING" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_HANGING) ?: ""),
             "IS_SILT" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_SILT) ?: ""),
             "IS_CANTOPEN" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_CANTOPEN) ?: ""),
+            "IS_CONNECTING" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_CONNECTING) ?: ""),
             "IS_PENDING_DEPLOY" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_PENDING_DEPLOY) ?: ""),
             "is_virtual" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_VIRTUAL) ?: ""),
             "_isImported" to (intent.getStringExtra(GutterFormActivity.EXTRA_DATA_IS_IMPORTED) ?: ""),
@@ -116,6 +120,7 @@ object GutterFormContract {
         ).apply {
             if (this["is_virtual"].toBooleanLoose()) {
                 remove("IS_CANTOPEN")
+                remove("IS_CONNECTING")
             }
             putStringExtraIfPresent(this, intent, "photo1", GutterFormActivity.EXTRA_DATA_PHOTO_1)
             putStringExtraIfPresent(this, intent, "photo2", GutterFormActivity.EXTRA_DATA_PHOTO_2)
@@ -171,6 +176,9 @@ object GutterFormContract {
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_HANGING, basicData["IS_HANGING"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_SILT, basicData["IS_SILT"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: "")
+        if (!basicData["is_virtual"].toBooleanLoose()) {
+            intent.putExtra(GutterFormActivity.RESULT_DATA_IS_CONNECTING, basicData["IS_CONNECTING"] ?: "")
+        }
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_PENDING_DEPLOY, basicData["IS_PENDING_DEPLOY"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_VIRTUAL, basicData["is_virtual"] ?: "")
         intent.putExtra(GutterFormActivity.RESULT_DATA_IS_IMPORTED, basicData["_isImported"] ?: "")
@@ -215,6 +223,7 @@ object GutterFormContract {
             "IS_HANGING" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_HANGING) ?: ""),
             "IS_SILT" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_SILT) ?: ""),
             "IS_CANTOPEN" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_CANTOPEN) ?: ""),
+            "IS_CONNECTING" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_CONNECTING) ?: ""),
             "IS_PENDING_DEPLOY" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_PENDING_DEPLOY) ?: ""),
             "is_virtual" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_VIRTUAL) ?: ""),
             "_isImported" to (intent?.getStringExtra(GutterFormActivity.RESULT_DATA_IS_IMPORTED) ?: ""),
@@ -222,6 +231,7 @@ object GutterFormContract {
         ).apply {
             if (this["is_virtual"].toBooleanLoose()) {
                 remove("IS_CANTOPEN")
+                remove("IS_CONNECTING")
             }
             putStringExtraIfPresent(this, intent, "photo1", GutterFormActivity.RESULT_DATA_PHOTO_1)
             putStringExtraIfPresent(this, intent, "photo2", GutterFormActivity.RESULT_DATA_PHOTO_2)

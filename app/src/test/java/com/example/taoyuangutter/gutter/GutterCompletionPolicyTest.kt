@@ -7,11 +7,11 @@ import org.junit.Test
 
 class GutterCompletionPolicyTest {
     @Test
-    fun connectPointUsesCantOpenDetailExemption() {
+    fun legacyTieInMarkerDoesNotUseCantOpenDetailExemption() {
         val data = mapOf("IS_TIEINPOINT" to "1")
 
-        assertTrue(GutterCompletionPolicy.isDetailExempt(data))
-        assertEquals(listOf(1), GutterCompletionPolicy.requiredPhotoSlots(false, true))
+        assertFalse(GutterCompletionPolicy.isDetailExempt(data))
+        assertEquals(listOf(1, 2, 3), GutterCompletionPolicy.requiredPhotoSlots(false, false))
     }
 
     @Test

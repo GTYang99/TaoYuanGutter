@@ -49,12 +49,12 @@ class InspectionPresentationTest {
     }
 
     @Test
-    fun tieInInspectionHidesTheSameDetailFieldsAsCantOpen() {
+    fun legacyTieInInspectionUsesNormalDetailFields() {
         val tieIn = nodeDetails("{\"IS_TIEINPOINT\":\"1\"}")
         val cantOpen = nodeDetails("{\"IS_CANTOPEN\":\"1\"}")
         val normal = nodeDetails("{\"IS_CANTOPEN\":\"0\",\"IS_TIEINPOINT\":\"0\"}")
 
-        assertFalse(shouldShowInspectionDetailFields(tieIn, isVirtual = false))
+        assertEquals(true, shouldShowInspectionDetailFields(tieIn, isVirtual = false))
         assertFalse(shouldShowInspectionDetailFields(cantOpen, isVirtual = false))
         assertEquals(true, shouldShowInspectionDetailFields(normal, isVirtual = false))
         assertFalse(shouldShowInspectionDetailFields(normal, isVirtual = true))

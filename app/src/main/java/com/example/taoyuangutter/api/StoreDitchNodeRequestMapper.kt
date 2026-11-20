@@ -14,6 +14,7 @@ object StoreDitchNodeRequestMapper {
         val isCantOpen = waypoint.basicData["IS_CANTOPEN"].toBooleanLoose()
         val isVirtual = waypoint.isVirtual
         val isDetailExempt = isCantOpen
+        val isConnecting = waypoint.basicData["IS_CONNECTING"].toBooleanLoose()
         val nodeAtt = when (waypoint.type) {
             WaypointType.START -> 1
             WaypointType.NODE -> 2
@@ -44,6 +45,7 @@ object StoreDitchNodeRequestMapper {
             xyNum = waypoint.basicData["XY_NUM"]?.takeIf { it.isNotBlank() },
             isPendingDeploy = if (waypoint.basicData["IS_PENDING_DEPLOY"].toBooleanLoose()) 1 else 0,
             isCantOpen = if (isVirtual) null else isCantOpen,
+            isConnecting = if (isVirtual || isDetailExempt) null else isConnecting,
             isVirtual = isVirtual,
             matTyp = if (isDetailExempt || isVirtual) null else (waypoint.basicData["MAT_TYP"]?.toIntOrNull() ?: 1),
             nodeDep = if (isDetailExempt || isVirtual) null else (waypoint.basicData["NODE_DEP"]?.toIntOrNull() ?: 0),

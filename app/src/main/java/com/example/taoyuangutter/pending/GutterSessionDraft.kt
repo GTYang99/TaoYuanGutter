@@ -65,3 +65,8 @@ data class WaypointSnapshot(
             return v == "1" || v == "true"
         }
 }
+
+/** Removes legacy runtime-only markers before a draft is serialized again. */
+internal fun WaypointSnapshot.withoutLegacyRuntimeMarkers(): WaypointSnapshot = copy(
+    basicData = HashMap(basicData.filterKeys { it != "IS_TIEINPOINT" })
+)

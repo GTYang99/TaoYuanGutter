@@ -45,4 +45,36 @@ class SubmittedDraftResumePolicyTest {
         assertFalse(SubmittedDraftResumePolicy.isReadOnly(draft))
         assertEquals(PendingDraftTagKind.EXISTING_GUTTER, PendingDraftTagPolicy.kindFor(draft))
     }
+
+    @Test
+    fun submittedLegacyTieInDraftCanBeRepaired() {
+        val draft = GutterSessionDraft(
+            hasSubmittedStoreDitch = true,
+            waypoints = listOf(
+                WaypointSnapshot(
+                    type = WaypointType.NODE.name,
+                    basicData = hashMapOf("IS_TIEINPOINT" to "1")
+                )
+            )
+        )
+
+        assertTrue(SubmittedDraftResumePolicy.isLegacyTieInRepairable(draft))
+        assertFalse(SubmittedDraftResumePolicy.isReadOnly(draft))
+    }
+
+    @Test
+    fun submittedNonTieInDraftRemainsReadOnly() {
+        val draft = GutterSessionDraft(
+            hasSubmittedStoreDitch = true,
+            waypoints = listOf(
+                WaypointSnapshot(
+                    type = WaypointType.NODE.name,
+                    basicData = hashMapOf("NODE_NOTE" to "ordinary")
+                )
+            )
+        )
+
+        assertFalse(SubmittedDraftResumePolicy.isLegacyTieInRepairable(draft))
+        assertTrue(SubmittedDraftResumePolicy.isReadOnly(draft))
+    }
 }

@@ -349,6 +349,9 @@ data class NodeDetails(
      */
     @SerializedName("IS_CANTOPEN") val isCantOpen: Any?,
 
+    /** 連接管：舊 response 仍可能回傳 0/1 字串。 */
+    @SerializedName("IS_CONNECTING") val isConnecting: String? = null,
+
     /** 溝體結構受損：0=否 1=是 */
     @SerializedName("IS_BROKEN")  val isBroken: String?,
     /** 附掛或過路管線：0=無 1=有 */
@@ -446,6 +449,9 @@ data class NodeDetails(
             else -> false
         }
 
+    val isConnectingAsBoolean: Boolean
+        get() = isConnecting?.trim()?.lowercase() in setOf("1", "true", "t", "y", "yes")
+
     @Deprecated("Legacy compatibility only; tie-in point is no longer surfaced")
     val isTieInPointAsBoolean: Boolean
         get() = false
@@ -541,6 +547,9 @@ data class StoreDitchNodeRequest(
     @SerializedName("is_pendingDeploy") val isPendingDeploy: Int = 0,
     /** 無法開蓋：非虛擬點送 Boolean；虛擬點為 null 並省略 */
     @SerializedName("IS_CANTOPEN") val isCantOpen: Boolean? = null,
+
+    /** 連接管：一般非虛擬、非無法開蓋點送 Boolean。 */
+    @SerializedName("IS_CONNECTING") val isConnecting: Boolean? = null,
 
     /** 是否為虛擬點：true/false */
     @SerializedName("is_virtual") val isVirtual: Boolean = false,

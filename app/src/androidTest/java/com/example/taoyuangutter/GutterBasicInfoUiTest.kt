@@ -73,51 +73,11 @@ class GutterBasicInfoUiTest {
     }
 
     @Test
-    fun existingTieInWithMissingConnectionLeavesPipeUnselected() {
-        launchForm(hashMapOf("NODE_TYP" to "1", "IS_TIEINPOINT" to "1")).use {
-            onView(withId(R.id.cbConnectPoint)).check(matches(isChecked()))
-            onView(withId(R.id.rbConnectPipe0)).check(matches(isNotChecked()))
-            onView(withId(R.id.rbConnectPipe1)).check(matches(isNotChecked()))
-        }
-    }
-
-    @Test
     fun existingCantOpenWithMissingConnectionLeavesPipeUnselected() {
         launchForm(hashMapOf("NODE_TYP" to "1", "IS_CANTOPEN" to "1")).use {
             onView(withId(R.id.cbCantOpen)).check(matches(isChecked()))
             onView(withId(R.id.rbConnectPipe0)).check(matches(isNotChecked()))
             onView(withId(R.id.rbConnectPipe1)).check(matches(isNotChecked()))
-        }
-    }
-
-    @Test
-    fun detailExemptionKeepsConnectPipeOpacityAlignedWithOtherDisabledFields() {
-        listOf(
-            hashMapOf("NODE_TYP" to "1", "IS_TIEINPOINT" to "1"),
-            hashMapOf("NODE_TYP" to "1", "IS_CANTOPEN" to "1")
-        ).forEach { data ->
-            launchForm(data).use { scenario ->
-                scenario.onActivity { activity ->
-                    assertEquals(
-                        "connect pipe container must not apply a second alpha layer",
-                        1f,
-                        activity.findViewById<android.view.View>(R.id.layoutConnectPipe).alpha,
-                        0f
-                    )
-                    assertEquals(
-                        "connect pipe options must use the same disabled alpha as other groups",
-                        0.5f,
-                        activity.findViewById<android.view.View>(R.id.rgConnectPipe).alpha,
-                        0f
-                    )
-                    assertEquals(
-                        "connect pipe title must remain fully opaque",
-                        1f,
-                        activity.findViewById<android.view.View>(R.id.tvConnectPipeTitle).alpha,
-                        0f
-                    )
-                }
-            }
         }
     }
 
@@ -146,64 +106,12 @@ class GutterBasicInfoUiTest {
     }
 
     @Test
-    fun tieInPointExemptsDetailFieldsAndSecondaryPhotos() {
-        launchForm(hashMapOf("NODE_TYP" to "1", "IS_TIEINPOINT" to "0")).use {
-            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
-            onView(withId(R.id.etDepth)).check(matches(isNotEnabled()))
-            onView(withId(R.id.etTopWidth)).check(matches(isNotEnabled()))
-            onView(withId(R.id.btnTakePhotoSlot2)).check(matches(isNotEnabled()))
-            onView(withId(R.id.btnTakePhotoSlot3)).check(matches(isNotEnabled()))
-            onView(withId(R.id.tvDepthRequired)).check(matches(Matchers.not(isDisplayed())))
-            onView(withId(R.id.tvTopWidthRequired)).check(matches(Matchers.not(isDisplayed())))
-            onView(withId(R.id.tvSiltRequired)).check(matches(Matchers.not(isDisplayed())))
-        }
-    }
-
-    @Test
-    fun tieInPointWarnsBeforeClearingAndCancelPreservesData() {
-        launchForm(
-            hashMapOf(
-                "NODE_TYP" to "1",
-                "NODE_DEP" to "10",
-                "NODE_WID" to "30",
-                "COVER_DEP" to "3",
-                "MAT_TYP" to "1",
-                "IS_BROKEN" to "1",
-                "IS_HANGING" to "1",
-                "IS_SILT" to "2",
-                "IS_CONNECTING" to "1",
-                "IS_TIEINPOINT" to "0"
-            )
-        ).use {
-            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
-            onView(withText("切換成「銜接點」後將清除已填寫資訊與照片，是否確認切換?")).check(matches(isDisplayed()))
-            onView(withText("取消")).perform(ViewActions.click())
-            onView(withId(R.id.cbConnectPoint)).check(matches(isNotChecked()))
-            onView(withId(R.id.etDepth)).check(matches(withText("10")))
-            onView(withId(R.id.rbConnectPipe1)).check(matches(isChecked()))
-            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
-            onView(withText("確認")).perform(ViewActions.click())
-            onView(withId(R.id.cbConnectPoint)).check(matches(isChecked()))
-            onView(withId(R.id.etDepth)).check(matches(withText("")))
-            onView(withId(R.id.rbConnectPipe0)).check(matches(Matchers.not(isChecked())))
-            onView(withId(R.id.rbConnectPipe1)).check(matches(Matchers.not(isChecked())))
-        }
-    }
-
-    @Test
-    fun connectionControlsHaveRequiredDefaultsAndCantOpenIsMutuallyExclusive() {
-        launchForm(hashMapOf()).use {
-            onView(withId(R.id.cbConnectPoint)).check(matches(isNotChecked()))
-            onView(withId(R.id.cbConnectPoint)).check(matches(isEnabled()))
-            onView(withId(R.id.rbConnectPipe0)).check(matches(isChecked()))
-            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
+    fun legacyTieInMarkerDoesNotCreateATieInControlOrExemption() {
+        launchForm(hashMapOf("NODE_TYP" to "1", "IS_TIEINPOINT" to "1")).use {
+            onView(withId(R.id.etDepth)).check(matches(isEnabled()))
+            onView(withId(R.id.etTopWidth)).check(matches(isEnabled()))
             onView(withId(R.id.cbCantOpen)).check(matches(isNotChecked()))
-            onView(withId(R.id.cbCantOpen)).check(matches(Matchers.not(isEnabled())))
-            onView(withId(R.id.cbConnectPoint)).perform(ViewActions.click())
-            onView(withId(R.id.cbCantOpen)).check(matches(isEnabled()))
-            onView(withId(R.id.cbCantOpen)).perform(ViewActions.click())
-            onView(withId(R.id.cbConnectPoint)).check(matches(isNotChecked()))
-            onView(withId(R.id.cbConnectPoint)).check(matches(Matchers.not(isEnabled())))
+            onView(withId(R.id.layoutConnectPipe)).check(matches(isDisplayed()))
         }
     }
 
@@ -242,7 +150,6 @@ class GutterBasicInfoUiTest {
             onView(withId(R.id.cbIsVirtual)).check(matches(isChecked()))
             onView(withId(R.id.switchPageBar)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             onView(withId(R.id.cbCantOpen)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
-            onView(withId(R.id.cbConnectPoint)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             onView(withId(R.id.layoutConnectPipe)).check(matches(org.hamcrest.Matchers.not(isDisplayed())))
             listOf(
                 R.id.tvGutterTypeTitle,

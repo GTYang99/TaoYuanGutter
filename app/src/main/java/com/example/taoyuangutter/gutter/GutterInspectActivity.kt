@@ -424,6 +424,14 @@ class GutterInspectActivity : AppCompatActivity() {
             val photo2 = resolvePhoto("2", "EDIT_${node.nodeId}_2_")
             val photo3 = resolvePhoto("3", "EDIT_${node.nodeId}_3_")
 
+            val normalizedConnecting = nodeDetails.isConnecting?.trim()?.lowercase()?.let { raw ->
+                when (raw) {
+                    "1", "true", "yes", "y", "on" -> "1"
+                    "0", "false", "no", "n", "off" -> "0"
+                    else -> null
+                }
+            }
+
             val basicData = hashMapOf(
                 "_nodeId" to node.nodeId.toString(),
                 "SPI_NUM" to ditch.spiNum,
@@ -461,7 +469,9 @@ class GutterInspectActivity : AppCompatActivity() {
                 "photo1UploadState" to (if (photo1.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE),
                 "photo2UploadState" to (if (photo2.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE),
                 "photo3UploadState" to (if (photo3.isNotBlank()) "success" else PhotoUploadSlotState.STATE_IDLE)
-            )
+            ).apply {
+                if (!isVirtualNode) normalizedConnecting?.let { put("IS_CONNECTING", it) }
+            }
             logPhotoImgIdTrace("preloadEditableWaypoints.mapped", basicData, target.label)
             PhotoCapturedAtResolver.writeBasicData(
                 basicData,

@@ -58,14 +58,14 @@ class StoreDitchNodeRequestMapperTest {
 
         assertFalse(json.contains("\"XY_NUM\""))
         assertTrue(json.contains("\"IS_CANTOPEN\":false"))
-        assertTrue(json.contains("\"IS_TIEINPOINT\":false"))
+        assertFalse(json.contains("IS_TIEINPOINT"))
         assertTrue(json.contains("\"IS_CONNECTING\":false"))
         assertFalse(json.contains("is_connect_point"))
         assertFalse(json.contains("is_connect_pipe"))
     }
 
     @Test
-    fun tieInPointOmitsExemptDetailAndConnectingParameters() {
+    fun legacyTieInPointIsSentAsANormalPoint() {
         val waypoint = waypoint(
             "IS_TIEINPOINT" to "1",
             "IS_CONNECTING" to "1",
@@ -83,16 +83,16 @@ class StoreDitchNodeRequestMapperTest {
         val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, null, 1))
 
         assertTrue(json.contains("\"IS_CANTOPEN\":false"))
-        assertTrue(json.contains("\"IS_TIEINPOINT\":true"))
-        assertFalse(json.contains("\"IS_CONNECTING\""))
-        assertFalse(json.contains("\"MAT_TYP\""))
-        assertFalse(json.contains("\"NODE_DEP\""))
-        assertFalse(json.contains("\"NODE_WID\""))
-        assertFalse(json.contains("\"COVER_DEP\""))
-        assertFalse(json.contains("\"IS_BROKEN\""))
-        assertFalse(json.contains("\"IS_HANGING\""))
-        assertFalse(json.contains("\"IS_SILT\""))
-        assertTrue(json.contains("\"img_ids\":[101]"))
+        assertFalse(json.contains("IS_TIEINPOINT"))
+        assertTrue(json.contains("\"IS_CONNECTING\":true"))
+        assertTrue(json.contains("\"MAT_TYP\":2"))
+        assertTrue(json.contains("\"NODE_DEP\":89"))
+        assertTrue(json.contains("\"NODE_WID\":78"))
+        assertTrue(json.contains("\"COVER_DEP\":5"))
+        assertTrue(json.contains("\"IS_BROKEN\":1"))
+        assertTrue(json.contains("\"IS_HANGING\":1"))
+        assertTrue(json.contains("\"IS_SILT\":2"))
+        assertTrue(json.contains("\"img_ids\":[101,102,103]"))
     }
 
     @Test
@@ -115,7 +115,7 @@ class StoreDitchNodeRequestMapperTest {
         val json = gson.toJson(StoreDitchNodeRequestMapper.map(waypoint, null, 1))
 
         assertTrue(json.contains("\"IS_CANTOPEN\":true"))
-        assertTrue(json.contains("\"IS_TIEINPOINT\":false"))
+        assertFalse(json.contains("IS_TIEINPOINT"))
         assertFalse(json.contains("\"IS_CONNECTING\""))
         assertFalse(json.contains("\"MAT_TYP\""))
         assertFalse(json.contains("\"NODE_DEP\""))

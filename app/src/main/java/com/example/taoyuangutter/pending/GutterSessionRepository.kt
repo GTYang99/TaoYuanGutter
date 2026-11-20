@@ -2,7 +2,7 @@ package com.example.taoyuangutter.pending
 
 import android.content.Context
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import com.google.gson.JsonParser
 import java.util.UUID
 
 /**
@@ -105,8 +105,11 @@ class GutterSessionRepository(context: Context) {
     private fun parseLegacyDrafts(json: String?): List<GutterSessionDraft> {
         if (json.isNullOrBlank()) return emptyList()
         return try {
-            val type = object : TypeToken<List<GutterSessionDraft>>() {}.type
-            gson.fromJson<List<GutterSessionDraft>>(json, type).orEmpty()
+            val root = JsonParser.parseString(json)
+            if (!root.isJsonArray) return emptyList()
+            root.asJsonArray.mapNotNull { element ->
+                runCatching { gson.fromJson(element, GutterSessionDraft::class.java) }.getOrNull()
+            }
         } catch (_: Exception) {
             emptyList()
         }
@@ -114,8 +117,11 @@ class GutterSessionRepository(context: Context) {
 
     private fun entityToDraft(entity: DraftEntity): GutterSessionDraft? {
         val waypoints = try {
-            val type = object : TypeToken<List<WaypointSnapshot>>() {}.type
-            gson.fromJson<List<WaypointSnapshot>>(entity.waypointsJson, type).orEmpty()
+            val root = JsonParser.parseString(entity.waypointsJson)
+            if (!root.isJsonArray) return null
+            root.asJsonArray.mapNotNull { element ->
+                runCatching { gson.fromJson(element, WaypointSnapshot::class.java) }.getOrNull()
+            }
         } catch (_: Exception) {
             return null
         }
@@ -137,6 +143,9 @@ class GutterSessionRepository(context: Context) {
     }
 
     private fun GutterSessionDraft.toEntity(): DraftEntity {
+        val normalizedWaypoints = waypoints.map { snapshot ->
+            snapshot.withoutLegacyRuntimeMarkers()
+        }
         return DraftEntity(
             id = id,
             createdAt = createdAt,
@@ -147,7 +156,7 @@ class GutterSessionRepository(context: Context) {
             isOffline = isOffline,
             hasSubmittedStoreDitch = hasSubmittedStoreDitch,
             isSinglePoint = isSinglePoint,
-            waypointsJson = gson.toJson(waypoints)
+            waypointsJson = gson.toJson(normalizedWaypoints)
         )
     }
 }

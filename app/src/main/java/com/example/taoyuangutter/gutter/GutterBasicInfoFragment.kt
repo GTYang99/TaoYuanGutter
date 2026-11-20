@@ -163,6 +163,7 @@ class GutterBasicInfoFragment : Fragment() {
         private const val ARG_DATA_IS_HANGING  = "d_is_hanging"
         private const val ARG_DATA_IS_SILT     = "d_is_silt"
         private const val ARG_DATA_IS_CANTOPEN = "d_is_cantopen"
+        private const val ARG_DATA_IS_CONNECT_PIPE = "d_is_connecting"
         private const val ARG_DATA_NODE_NOTE   = "d_node_note"
         private const val ARG_DATA_IS_PENDING_DEPLOY = "d_is_pending_deploy"
         private const val ARG_DATA_IS_VIRTUAL  = "d_is_virtual" // 新增：虛擬點欄位
@@ -255,6 +256,7 @@ class GutterBasicInfoFragment : Fragment() {
                 putString(ARG_DATA_IS_HANGING,  basicData["IS_HANGING"]  ?: basicData["isHanging"] ?: "")
                 putString(ARG_DATA_IS_SILT,     basicData["IS_SILT"]     ?: basicData["isSilt"] ?: "")
                 putString(ARG_DATA_IS_CANTOPEN, basicData["IS_CANTOPEN"] ?: basicData["isCantOpen"] ?: "")
+                putString(ARG_DATA_IS_CONNECT_PIPE, basicData["IS_CONNECTING"] ?: "")
                 putString(ARG_DATA_NODE_NOTE,   basicData["NODE_NOTE"]   ?: basicData["remarks"] ?: "")
                 putString(ARG_PHOTO_1, basicData["photo1"] ?: "")
                 putString(ARG_PHOTO_2, basicData["photo2"] ?: "")
@@ -579,6 +581,14 @@ class GutterBasicInfoFragment : Fragment() {
         for (i in 0 until childCount) { getChildAt(i)?.isEnabled = enabled }
     }
 
+    private fun RadioGroup.setConnectionPipeSelection(raw: String?) {
+        when (raw?.trim()?.lowercase()) {
+            "1", "true", "yes", "y", "on" -> check(R.id.rbConnectPipe1)
+            "0", "false", "no", "n", "off" -> check(R.id.rbConnectPipe0)
+            else -> clearCheck()
+        }
+    }
+
     private fun setupGutterTypeSelector() {
         binding.layoutGutterTypeSelector.setOnClickListener {
             if (!binding.layoutGutterTypeSelector.isEnabled) return@setOnClickListener
@@ -625,6 +635,7 @@ class GutterBasicInfoFragment : Fragment() {
         val isHanging  = args.getString(ARG_DATA_IS_HANGING,  "")
         val isSilt     = args.getString(ARG_DATA_IS_SILT,     "")
         val isCantOpen = args.getString(ARG_DATA_IS_CANTOPEN, "")
+        val isConnectPipe = args.getString(ARG_DATA_IS_CONNECT_PIPE, "")
         val nodeNote   = args.getString(ARG_DATA_NODE_NOTE,   "")
         val photo1 = args.getString(ARG_PHOTO_1, "")
         val photo2 = args.getString(ARG_PHOTO_2, "")
@@ -639,7 +650,7 @@ class GutterBasicInfoFragment : Fragment() {
         val hasAnyData = listOf(
             spiNum, nodeTyp, matTyp, nodeX, nodeY, nodeLe,
             xyNum, coverDep, nodeDep, nodeWid, isBroken, isHanging, isSilt, isCantOpen, nodeNote,
-            isPendingDeploy, isVirtualArg, isImportedArg,
+            isPendingDeploy, isVirtualArg, isImportedArg, isConnectPipe,
             photo1, photo2, photo3, photo1CapturedAt, photo2CapturedAt, photo3CapturedAt,
             args.getString(ARG_PHOTO_1_IMG_ID), args.getString(ARG_PHOTO_2_IMG_ID), args.getString(ARG_PHOTO_3_IMG_ID),
             args.getString(ARG_PHOTO_1_UPLOAD_ERROR), args.getString(ARG_PHOTO_2_UPLOAD_ERROR), args.getString(ARG_PHOTO_3_UPLOAD_ERROR)
@@ -668,6 +679,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsBroken.setCheckedByText(isBrokenCodeToText(isBroken))
             binding.rgIsHanging.setCheckedByText(isHangingCodeToText(isHanging))
             binding.rgIsSilt.setCheckedByText(isSiltCodeToText(isSilt))
+            binding.rgConnectPipe.setConnectionPipeSelection(isConnectPipe)
             
             val cantOpenBool = parseLooseBoolean(isCantOpen)
             binding.cbCantOpen.isChecked = cantOpenBool
@@ -680,6 +692,7 @@ class GutterBasicInfoFragment : Fragment() {
             // 新建表單才套用產品指定的預設值；有資料的流程一律由上方回填原值。
             binding.rgIsBroken.check(R.id.rbIsBroken0)
             binding.rgIsSilt.check(R.id.rbIsSilt0)
+            binding.rgConnectPipe.check(R.id.rbConnectPipe0)
             prefillCoordinates()
         }
     }
@@ -715,7 +728,9 @@ class GutterBasicInfoFragment : Fragment() {
     }
 
     private fun setupConnectPointAndPipe() {
+        binding.rgConnectPipe.setOnCheckedChangeListener { _, _ -> notifyDraftChanged() }
         applyCantOpenUi(binding.cbCantOpen.isChecked)
+        applyConnectionPipeUi()
     }
 
     private fun rebindDetailExemptionListener(button: CompoundButton) {
@@ -742,6 +757,12 @@ class GutterBasicInfoFragment : Fragment() {
         onDetailExemptionUnchecked()
     }
 
+    private fun applyConnectionPipeUi() {
+        val editable = isFormEditable && !isImportLocked && !isVirtualMode && !binding.cbCantOpen.isChecked
+        binding.rgConnectPipe.setChildrenEnabled(editable)
+        binding.layoutConnectPipe.alpha = if (editable || binding.rgConnectPipe.checkedRadioButtonId != View.NO_ID) 1f else 0.5f
+    }
+
     private fun hasCantOpenContentToClear(): Boolean = GutterFormExitRules.shouldConfirmCantOpenClear(
         // 明溝時系統強制寫入的 0 不是使用者填寫、也不會造成資料遺失。
         coverThickness = binding.etCoverThickness.text?.toString()
@@ -758,6 +779,7 @@ class GutterBasicInfoFragment : Fragment() {
         // 「無」同樣是新建表單的預設值，不應單獨觸發確認。
         siltSelected = binding.rgIsSilt.checkedRadioButtonId != View.NO_ID &&
             binding.rgIsSilt.checkedRadioButtonId != R.id.rbIsSilt0,
+        connectPipeSelected = binding.rgConnectPipe.checkedRadioButtonId == R.id.rbConnectPipe1,
         hasPhoto2 = photoUriSlot2 != null || photoImgId2 != null,
         hasPhoto3 = photoUriSlot3 != null || photoImgId3 != null
     )
@@ -794,6 +816,7 @@ class GutterBasicInfoFragment : Fragment() {
                 binding.rgIsBroken.clearCheck()
                 binding.rgIsHanging.clearCheck()
                 binding.rgIsSilt.clearCheck()
+                binding.rgConnectPipe.clearCheck()
 
                 binding.tilCoverThickness.error = null
                 binding.tilDepth.error = null
@@ -941,6 +964,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsHanging,
             binding.rgIsSilt
         ).forEach { it.alpha = alpha }
+        applyConnectionPipeUi()
         if (isBackendManagedMeasureId()) {
             binding.tilMeasureId.alpha = 0.5f
         }
@@ -1002,7 +1026,8 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgMatType,
             binding.rgIsBroken,
             binding.rgIsHanging,
-            binding.rgIsSilt
+            binding.rgIsSilt,
+            binding.rgConnectPipe
         ).forEach { rg -> rg.setChildrenEnabled(actualEnabled) }
         binding.layoutGutterTypeSelector.isEnabled = actualEnabled
         binding.tvGutterTypeSelector.isEnabled = actualEnabled
@@ -1020,6 +1045,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsBroken,
             binding.rgIsHanging,
             binding.rgIsSilt,
+            binding.layoutConnectPipe,
             binding.tilRemarks,
             binding.chipGroupRemarksPresets
         ).forEach { it.alpha = alpha }
@@ -1249,6 +1275,11 @@ class GutterBasicInfoFragment : Fragment() {
             "IS_SILT"     to siltTextToCode(binding.rgIsSilt.getCheckedText()),
             // 以 "1"/"0" 形式存入 basicData（送出 API 時再轉為 JSON boolean）
             "IS_CANTOPEN" to (if (binding.cbCantOpen.isChecked) "1" else "0"),
+            "IS_CONNECTING" to when (binding.rgConnectPipe.checkedRadioButtonId) {
+                R.id.rbConnectPipe1 -> "1"
+                R.id.rbConnectPipe0 -> "0"
+                else -> ""
+            },
             "NODE_NOTE"   to (binding.etRemarks.text?.toString()       ?: ""),
             "photo1" to (photoUriSlot1?.toString() ?: ""),
             "photo2" to (photoUriSlot2?.toString() ?: ""),
@@ -1323,7 +1354,9 @@ class GutterBasicInfoFragment : Fragment() {
         binding.cbCantOpen.visibility = visibility
         if (isVirtual) {
             binding.cbCantOpen.isChecked = false
+            binding.rgConnectPipe.clearCheck()
         }
+        applyConnectionPipeUi()
         updateRequiredIndicators()
         notifyDraftChanged()
     }
@@ -1374,6 +1407,7 @@ class GutterBasicInfoFragment : Fragment() {
             // 淤積狀態（API key 為 IS_SILT，值為字串）
             val siltText = isSiltCodeToText(nodeDetails.isSilt)
             rgIsSilt.setCheckedByText(siltText)
+            rgConnectPipe.setConnectionPipeSelection(nodeDetails.isConnecting)
             // 無法開蓋狀態（使用 isCantOpenAsBoolean 方法處理型別轉換）
             cbCantOpen.isChecked = nodeDetails.isCantOpenAsBoolean
 
@@ -1476,6 +1510,7 @@ class GutterBasicInfoFragment : Fragment() {
             binding.rgIsBroken.setCheckedByText(isBrokenCodeToText(data["IS_BROKEN"].orEmpty()))
             binding.rgIsHanging.setCheckedByText(isHangingCodeToText(data["IS_HANGING"].orEmpty()))
             binding.rgIsSilt.setCheckedByText(isSiltCodeToText(data["IS_SILT"].orEmpty()))
+            binding.rgConnectPipe.setConnectionPipeSelection(data["IS_CONNECTING"])
 
             syncPersistedPhotoState(
                 data["photo1"], data["photo2"], data["photo3"],

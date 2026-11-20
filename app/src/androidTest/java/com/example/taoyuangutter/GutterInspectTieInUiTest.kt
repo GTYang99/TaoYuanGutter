@@ -21,7 +21,7 @@ import org.junit.runner.RunWith
 class GutterInspectTieInUiTest {
 
     @Test
-    fun tieInPointInspectionHidesExemptDetailsAndPhotos() {
+    fun legacyTieInInspectionUsesNormalDetails() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val scenario = ActivityScenario.launch<GutterInspectActivity>(
             GutterInspectActivity.newIntent(
@@ -33,12 +33,13 @@ class GutterInspectTieInUiTest {
 
         scenario.use {
             onView(withText("點位資料（1）")).perform(click())
-            onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("溝蓋板厚度(公分)")))))
-            onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("側溝測量深度(公分)")))))
-            onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("側溝材質")))))
-            onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("連接管")))))
-            onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("側溝內徑寬度尺寸")))))
-            onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("側溝深度尺寸")))))
+            onView(withId(R.id.layoutFields)).check(matches(hasDescendant(withText("溝蓋板厚度(公分)"))))
+            onView(withId(R.id.layoutFields)).check(matches(hasDescendant(withText("側溝測量深度(公分)"))))
+            onView(withId(R.id.layoutFields)).check(matches(hasDescendant(withText("側溝材質"))))
+            onView(withId(R.id.layoutFields)).check(matches(hasDescendant(withText("連接管"))))
+            onView(withId(R.id.layoutFields)).check(matches(hasDescendant(withText("側溝內徑寬度尺寸"))))
+            onView(withId(R.id.layoutFields)).check(matches(hasDescendant(withText("側溝深度尺寸"))))
+            onView(withId(R.id.layoutFields)).check(matches(not(hasDescendant(withText("銜接點")))))
         }
     }
 

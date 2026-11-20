@@ -9,7 +9,17 @@ import com.example.taoyuangutter.pending.PendingDraftTagPolicy
  * behavior; only ordinary drafts with a persisted submission marker become read-only.
  */
 object SubmittedDraftResumePolicy {
+    fun isLegacyTieInRepairable(draft: GutterSessionDraft): Boolean =
+        draft.hasSubmittedStoreDitch &&
+            !PendingDraftTagPolicy.hasValidSpiNum(draft) &&
+            draft.waypoints.any { waypoint ->
+                waypoint.basicData["IS_TIEINPOINT"]?.trim()?.lowercase() in
+                    setOf("1", "true", "t", "y", "yes")
+            }
+
     fun isReadOnly(draft: GutterSessionDraft): Boolean {
-        return draft.hasSubmittedStoreDitch && !PendingDraftTagPolicy.hasValidSpiNum(draft)
+        return draft.hasSubmittedStoreDitch &&
+            !PendingDraftTagPolicy.hasValidSpiNum(draft) &&
+            !isLegacyTieInRepairable(draft)
     }
 }

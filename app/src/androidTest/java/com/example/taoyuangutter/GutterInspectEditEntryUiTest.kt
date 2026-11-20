@@ -95,7 +95,6 @@ class GutterInspectEditEntryUiTest {
         nodeDep = "20",
         nodeWid = "30",
         isCantOpen = "0",
-        isTieInPoint = "0",
         isConnecting = "0",
         isBroken = "0",
         isHanging = "0",
