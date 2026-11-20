@@ -20,7 +20,7 @@ internal class OfflinePolygonTileProvider(
     context: Context,
     private val layer: OfflinePolygonLayer,
     private val outlineWidthPx: Float? = null,
-    private val selectedDistrictsProvider: () -> Set<String> = { emptySet() },
+    private val selectedDistrictsProvider: () -> Set<String> = { MapOverlayController.DEFAULT_DISTRICTS },
     private val generationProvider: () -> Long = { 0L }
 ) : TileProvider {
     private data class TileKey(val x: Int, val y: Int, val zoom: Int, val generation: Long)
@@ -176,7 +176,7 @@ internal class OfflinePolygonOverlayManager(
         showLegacy: Boolean,
         showPossible: Boolean,
         showRegion: Boolean = false,
-        selectedDistricts: Set<String> = emptySet(),
+        selectedDistricts: Set<String> = MapOverlayController.DEFAULT_DISTRICTS,
         generation: Long = generationProvider()
     ) {
         if (activeDistricts != selectedDistricts || activeGeneration != generation) {

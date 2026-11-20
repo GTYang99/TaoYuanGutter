@@ -44,7 +44,10 @@ internal data class IndexedGeometry(
 )
 
 internal interface OfflinePolygonDataSource {
-    fun query(bounds: DoubleArray, selectedDistricts: Set<String>): List<ByteArray>
+    fun query(
+        bounds: DoubleArray,
+        selectedDistricts: Set<String> = MapOverlayController.DEFAULT_DISTRICTS
+    ): List<ByteArray>
 }
 
 internal object OfflinePolygonDataStore {
