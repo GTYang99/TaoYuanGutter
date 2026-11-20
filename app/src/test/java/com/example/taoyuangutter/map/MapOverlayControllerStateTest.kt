@@ -1,5 +1,6 @@
 package com.example.taoyuangutter.map
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -13,8 +14,37 @@ class MapOverlayControllerStateTest {
     }
 
     @Test
-    fun deletedAreaStateCanBeTurnedOffWithoutChangingOtherState() {
+    fun allDistrictsAreSelectedByDefault() {
         val controller = MapOverlayController(mapProvider = { null })
+
+        assertEquals(13, controller.currentState().selectedDistricts.size)
+    }
+
+    @Test
+    fun overlayStateCarriesDistrictSelection() {
+        val controller = MapOverlayController(mapProvider = { null })
+
+        controller.applyState(
+            MapOverlayController.OverlayState(
+                selectedLayer = "EMAP",
+                showPlan = true,
+                showWaterOld = true,
+                showPossible = true,
+                showRegion = true,
+                showNoDitchPoints = false,
+                showDeletedArea = false,
+                selectedDistricts = setOf("桃園區", "中壢區"),
+            )
+        )
+
+        assertEquals(setOf("桃園區", "中壢區"), controller.currentState().selectedDistricts)
+        assertTrue(controller.currentState().showPlan)
+    }
+
+    @Test
+    fun updateOverlayTogglesIncrementsGeneration() {
+        val controller = MapOverlayController(mapProvider = { null })
+        val initialGeneration = controller.currentState().generation
 
         controller.updateOverlayToggles(
             showPlan = true,
@@ -22,10 +52,10 @@ class MapOverlayControllerStateTest {
             showPossible = true,
             showRegion = true,
             showNoDitchPoints = false,
-            showDeletedArea = false
+            showDeletedArea = false,
+            selectedDistricts = setOf("桃園區")
         )
 
-        assertFalse(controller.currentState().showDeletedArea)
-        assertTrue(controller.currentState().showPlan)
+        assertTrue(controller.currentState().generation > initialGeneration)
     }
 }

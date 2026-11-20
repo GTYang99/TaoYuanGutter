@@ -87,6 +87,21 @@
     <!-- Layers sheet -->
     <string name="layers_sheet_title">圖層套疊</string>
     <string name="layers_sheet_overlays">圖層套疊</string>
+    <string name="layers_sheet_districts">行政區篩選</string>
+    <string name="layers_sheet_district_all">全選</string>
+    <string name="layers_sheet_district_0">桃園區</string>
+    <string name="layers_sheet_district_1">中壢區</string>
+    <string name="layers_sheet_district_2">大溪區</string>
+    <string name="layers_sheet_district_3">楊梅區</string>
+    <string name="layers_sheet_district_4">蘆竹區</string>
+    <string name="layers_sheet_district_5">大園區</string>
+    <string name="layers_sheet_district_6">龜山區</string>
+    <string name="layers_sheet_district_7">八德區</string>
+    <string name="layers_sheet_district_8">龍潭區</string>
+    <string name="layers_sheet_district_9">平鎮區</string>
+    <string name="layers_sheet_district_10">新屋區</string>
+    <string name="layers_sheet_district_11">觀音區</string>
+    <string name="layers_sheet_district_12">復興區</string>
     <string name="layers_sheet_basemap">底圖切換</string>
     <string name="layers_sheet_plan">本次計畫調查</string>
     <string name="layers_sheet_water_old">水務局舊資料</string>

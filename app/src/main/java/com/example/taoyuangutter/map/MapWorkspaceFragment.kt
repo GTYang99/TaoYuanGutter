@@ -276,6 +276,7 @@ class MapWorkspaceFragment : Fragment(),
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        mainViewModel.overlayState = mainViewModel.loadOverlayState(requireContext())
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(requireContext())
 
         locationPermissionLauncher = registerForActivityResult(
@@ -676,7 +677,8 @@ class MapWorkspaceFragment : Fragment(),
                 showPossible = state.showPossible,
                 showRegion = state.showRegion,
                 showNoDitchPoints = state.showNoDitchPoints,
-                showDeletedArea = state.showDeletedArea
+                showDeletedArea = state.showDeletedArea,
+                selectedDistricts = state.selectedDistricts
             ).show(childFragmentManager, "LayersBottomSheet")
         }
         binding.btnMyLocation.setOnClickListener {
@@ -726,6 +728,7 @@ class MapWorkspaceFragment : Fragment(),
     override fun onLayerSelected(layer: String) {
         mapOverlayController.setBaseLayer(layer)
         mainViewModel.overlayState = mapOverlayController.currentState()
+        mainViewModel.saveOverlayState(requireContext(), mapOverlayController.currentState())
     }
 
     override fun onOverlayTogglesChanged(
@@ -734,7 +737,8 @@ class MapWorkspaceFragment : Fragment(),
         showPossible: Boolean,
         showRegion: Boolean,
         showNoDitchPoints: Boolean,
-        showDeletedArea: Boolean
+        showDeletedArea: Boolean,
+        selectedDistricts: Set<String>
     ) {
         mapOverlayController.updateOverlayToggles(
             showPlan = showPlan,
@@ -742,13 +746,15 @@ class MapWorkspaceFragment : Fragment(),
             showPossible = showPossible,
             showRegion = showRegion,
             showNoDitchPoints = showNoDitchPoints,
-            showDeletedArea = showDeletedArea
+            showDeletedArea = showDeletedArea,
+            selectedDistricts = selectedDistricts
         )
         scopeGutterPolylineController.setVisible(showPlan)
         if (showNoDitchPoints) {
             loadNoDitchPointsForVisibleArea()
         }
         mainViewModel.overlayState = mapOverlayController.currentState()
+        mainViewModel.saveOverlayState(requireContext(), mapOverlayController.currentState())
     }
 
     override fun startLocationPick(sheet: AddGutterBottomSheet, waypointIndex: Int) {

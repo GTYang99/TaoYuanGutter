@@ -8,6 +8,7 @@ import com.google.android.gms.maps.model.TileOverlayOptions
 import com.google.android.gms.maps.model.UrlTileProvider
 import java.net.MalformedURLException
 import java.net.URL
+import java.util.concurrent.atomic.AtomicLong
 
 class MapOverlayController(
     private val mapProvider: () -> GoogleMap?,
@@ -21,7 +22,9 @@ class MapOverlayController(
         val showPossible: Boolean,
         val showRegion: Boolean,
         val showNoDitchPoints: Boolean,
-        val showDeletedArea: Boolean = false
+        val showDeletedArea: Boolean = false,
+        val selectedDistricts: Set<String> = DEFAULT_DISTRICTS,
+        val generation: Long = 0L
     )
 
     private var currentTileOverlay: TileOverlay? = null
@@ -30,8 +33,10 @@ class MapOverlayController(
     private var measureLabelsWmsOverlay: TileOverlay? = null
     private var offlinePolygonOverlays: OfflinePolygonOverlayManager? = null
     private var noDitchPointsInteractionEnabled: Boolean = false
+    private var selectedDistricts: Set<String> = DEFAULT_DISTRICTS
+    private val stateGeneration = AtomicLong(0L)
 
-    private var currentLayer: String = LayersBottomSheet.LAYER_EMAP
+    private var currentLayer: String = BASE_LAYER_EMAP
     private var showPlanOverlay = true
     private var showWaterOldOverlay = true
     private var showPossibleOverlay = true
@@ -48,7 +53,9 @@ class MapOverlayController(
         showPossible = showPossibleOverlay,
         showRegion = showRegionOverlay,
         showNoDitchPoints = showNoDitchPointsOverlay,
-        showDeletedArea = showDeletedAreaOverlay
+        showDeletedArea = showDeletedAreaOverlay,
+        selectedDistricts = selectedDistricts,
+        generation = stateGeneration.get()
     )
 
     fun applyState(state: OverlayState) {
@@ -59,8 +66,9 @@ class MapOverlayController(
         showRegionOverlay = state.showRegion
         showNoDitchPointsOverlay = state.showNoDitchPoints
         showDeletedAreaOverlay = state.showDeletedArea
+        selectedDistricts = state.selectedDistricts
+        stateGeneration.set(state.generation)
 
-        // Re-apply base layer and overlays
         setBaseLayer(currentLayer)
         applyWmsOverlays()
     }
@@ -87,7 +95,8 @@ class MapOverlayController(
         showPossible: Boolean,
         showRegion: Boolean,
         showNoDitchPoints: Boolean,
-        showDeletedArea: Boolean
+        showDeletedArea: Boolean,
+        selectedDistricts: Set<String> = this.selectedDistricts
     ) {
         showPlanOverlay = showPlan
         showWaterOldOverlay = showWaterOld
@@ -95,6 +104,8 @@ class MapOverlayController(
         showRegionOverlay = showRegion
         showNoDitchPointsOverlay = showNoDitchPoints
         showDeletedAreaOverlay = showDeletedArea
+        this.selectedDistricts = selectedDistricts
+        stateGeneration.incrementAndGet()
         applyWmsOverlays()
     }
 
@@ -114,11 +125,17 @@ class MapOverlayController(
 
     fun applyWmsOverlays() {
         val map = mapProvider() ?: return
-
-        val offlineOverlays = offlinePolygonOverlays ?: context?.let {
-            OfflinePolygonOverlayManager(it, mapProvider).also { manager -> offlinePolygonOverlays = manager }
+        val currentGeneration = stateGeneration.get()
+        if (offlinePolygonOverlays == null) {
+            offlinePolygonOverlays = context?.let { OfflinePolygonOverlayManager(it, mapProvider, { currentGeneration }) }
         }
-        offlineOverlays?.setVisibility(showWaterOldOverlay, showPossibleOverlay, showRegionOverlay)
+        offlinePolygonOverlays?.setVisibility(
+            showWaterOldOverlay,
+            showPossibleOverlay,
+            showRegionOverlay,
+            selectedDistricts,
+            currentGeneration
+        )
 
         if (showDeletedAreaOverlay) {
             if (deletedAreaWmsOverlay == null) {
@@ -159,4 +176,12 @@ class MapOverlayController(
     }
 
     fun releaseOfflineOverlays() = offlinePolygonOverlays?.release()
+
+    companion object {
+        const val BASE_LAYER_EMAP = "EMAP"
+        val DEFAULT_DISTRICTS = setOf(
+            "桃園區", "中壢區", "大溪區", "楊梅區", "蘆竹區", "大園區", "龜山區",
+            "八德區", "龍潭區", "平鎮區", "新屋區", "觀音區", "復興區"
+        )
+    }
 }

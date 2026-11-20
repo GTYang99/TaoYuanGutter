@@ -22,7 +22,8 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
             showPossible: Boolean,
             showRegion: Boolean,
             showNoDitchPoints: Boolean,
-            showDeletedArea: Boolean
+            showDeletedArea: Boolean,
+            selectedDistricts: Set<String> = DEFAULT_DISTRICTS
         ) { /* optional */ }
     }
 
@@ -48,6 +49,8 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
         val showRegion = arguments?.getBoolean(ARG_SHOW_REGION, true) ?: true
         val showNoDitchPoints = arguments?.getBoolean(ARG_SHOW_NO_DITCH_POINTS, false) ?: false
         val showDeletedArea = arguments?.getBoolean(ARG_SHOW_DELETED_AREA, false) ?: false
+        var selectedDistrictsState = arguments?.getStringArrayList(ARG_SELECTED_DISTRICTS)?.toSet() ?: DEFAULT_DISTRICTS
+        var suppressAllListener = false
         updateBasemapUi(selected)
 
         // Fill layer codes
@@ -63,7 +66,8 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
                 showPossible = binding.cbPossible.isChecked,
                 showRegion = binding.cbRegion.isChecked,
                 showNoDitchPoints = binding.cbNoDitchPoints.isChecked,
-                showDeletedArea = binding.cbDeletedArea.isChecked
+                showDeletedArea = binding.cbDeletedArea.isChecked,
+                selectedDistricts = selectedDistrictsState
             )
         }
         // Apply initial state from args before wiring listeners.
@@ -73,6 +77,37 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
         binding.cbRegion.isChecked = showRegion
         binding.cbNoDitchPoints.isChecked = showNoDitchPoints
         binding.cbDeletedArea.isChecked = showDeletedArea
+        val districtChecks = listOf(
+            binding.cbDistrict0, binding.cbDistrict1, binding.cbDistrict2, binding.cbDistrict3,
+            binding.cbDistrict4, binding.cbDistrict5, binding.cbDistrict6, binding.cbDistrict7,
+            binding.cbDistrict8, binding.cbDistrict9, binding.cbDistrict10, binding.cbDistrict11,
+            binding.cbDistrict12
+        )
+        fun bindDistrictChecks() {
+            districtChecks.forEachIndexed { index, checkBox ->
+                checkBox.setOnCheckedChangeListener(null)
+                checkBox.isChecked = DISTRICTS[index] in selectedDistrictsState
+                checkBox.setOnCheckedChangeListener { _, checked ->
+                    selectedDistrictsState = if (checked) {
+                        selectedDistrictsState + DISTRICTS[index]
+                    } else {
+                        selectedDistrictsState - DISTRICTS[index]
+                    }
+                    suppressAllListener = true
+                    binding.cbDistrictAll.isChecked = selectedDistrictsState.size == DISTRICTS.size
+                    suppressAllListener = false
+                    dispatchOverlayToggles()
+                }
+            }
+        }
+        bindDistrictChecks()
+        binding.cbDistrictAll.isChecked = selectedDistrictsState.size == DISTRICTS.size
+        binding.cbDistrictAll.setOnCheckedChangeListener { _, checked ->
+            if (suppressAllListener) return@setOnCheckedChangeListener
+            selectedDistrictsState = if (checked) DEFAULT_DISTRICTS else emptySet()
+            bindDistrictChecks()
+            dispatchOverlayToggles()
+        }
         binding.cbPlan.setOnCheckedChangeListener { _, _ -> dispatchOverlayToggles() }
         binding.cbWaterOld.setOnCheckedChangeListener { _, _ -> dispatchOverlayToggles() }
         binding.cbPossible.setOnCheckedChangeListener { _, _ -> dispatchOverlayToggles() }
@@ -141,6 +176,13 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
         private const val ARG_SHOW_REGION = "show_region"
         private const val ARG_SHOW_NO_DITCH_POINTS = "show_no_ditch_points"
         private const val ARG_SHOW_DELETED_AREA = "show_deleted_area"
+        private const val ARG_SELECTED_DISTRICTS = "selected_districts"
+
+        private val DISTRICTS = listOf(
+            "桃園區", "中壢區", "大溪區", "楊梅區", "蘆竹區", "大園區", "龜山區",
+            "八德區", "龍潭區", "平鎮區", "新屋區", "觀音區", "復興區"
+        )
+        private val DEFAULT_DISTRICTS = DISTRICTS.toSet()
 
         const val LAYER_EMAP = "EMAP"
         const val LAYER_EMAP01 = "EMAP01"
@@ -153,7 +195,8 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
             showPossible: Boolean = true,
             showRegion: Boolean = true,
             showNoDitchPoints: Boolean = false,
-            showDeletedArea: Boolean = false
+            showDeletedArea: Boolean = false,
+            selectedDistricts: Set<String> = DEFAULT_DISTRICTS
         ): LayersBottomSheet =
             LayersBottomSheet().apply {
                 arguments = Bundle().apply {
@@ -164,6 +207,7 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
                     putBoolean(ARG_SHOW_REGION, showRegion)
                     putBoolean(ARG_SHOW_NO_DITCH_POINTS, showNoDitchPoints)
                     putBoolean(ARG_SHOW_DELETED_AREA, showDeletedArea)
+                    putStringArrayList(ARG_SELECTED_DISTRICTS, ArrayList(selectedDistricts))
                 }
             }
     }

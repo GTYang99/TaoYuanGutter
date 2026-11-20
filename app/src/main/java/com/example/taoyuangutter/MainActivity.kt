@@ -350,6 +350,7 @@ class MainActivity : AppCompatActivity(),
     override fun onCreate(savedInstanceState: Bundle?) {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         super.onCreate(savedInstanceState)
+        mainViewModel.overlayState = mainViewModel.loadOverlayState(this)
         draftCoordinator.cleanupEmptyDrafts()
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -1837,7 +1838,8 @@ class MainActivity : AppCompatActivity(),
                 showPossible = state.showPossible,
                 showRegion = state.showRegion,
                 showNoDitchPoints = state.showNoDitchPoints,
-                showDeletedArea = state.showDeletedArea
+                showDeletedArea = state.showDeletedArea,
+                selectedDistricts = state.selectedDistricts
             ).show(supportFragmentManager, "LayersBottomSheet")
         }
         binding.btnMyLocation.setOnClickListener {
@@ -2452,6 +2454,7 @@ class MainActivity : AppCompatActivity(),
     override fun onLayerSelected(layer: String) {
         mapOverlayController.setBaseLayer(layer)
         mainViewModel.overlayState = mapOverlayController.currentState()
+        mainViewModel.saveOverlayState(this, mapOverlayController.currentState())
     }
 
     override fun onOverlayTogglesChanged(
@@ -2460,7 +2463,8 @@ class MainActivity : AppCompatActivity(),
         showPossible: Boolean,
         showRegion: Boolean,
         showNoDitchPoints: Boolean,
-        showDeletedArea: Boolean
+        showDeletedArea: Boolean,
+        selectedDistricts: Set<String>
     ) {
         mapOverlayController.updateOverlayToggles(
             showPlan,
@@ -2468,13 +2472,15 @@ class MainActivity : AppCompatActivity(),
             showPossible,
             showRegion,
             showNoDitchPoints,
-            showDeletedArea
+            showDeletedArea,
+            selectedDistricts
         )
         scopeGutterPolylineController.setVisible(showPlan)
         if (showNoDitchPoints) {
             loadNoDitchPointsForVisibleArea()
         }
         mainViewModel.overlayState = mapOverlayController.currentState()
+        mainViewModel.saveOverlayState(this, mapOverlayController.currentState())
     }
 
     // ── 測距模式 ──────────────────────────────────────────────────────────────
