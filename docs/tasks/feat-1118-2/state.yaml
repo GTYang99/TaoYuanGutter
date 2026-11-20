@@ -27,25 +27,24 @@ validation:
 
 git:
   branch: codex/feat/feat-1118-2
-  commit: 690cb831fadb9a550576f5afb4351c2082099d78
+  commit: 84e2bcf3
   status: committed
 
 verification:
   result: not_verified
-  category: environment
+  category: verification_failure
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
-    - AC-003
-    - AC-005
+    - existing-main-map-pixel-regression
 
 ci:
-  build: pending
-  test: pending
+  build: not_available
+  test: not_available
 
 release:
   status: pending
 
 blocking:
-  - Android device/ADB unavailable for independent UI verification; adb daemon could not start because of local permission and USB plugin errors.
+  - Existing main-map pixel assertion fails after layer toggling and needs separate verification/debug classification.
   - CI result is not available in the local workspace.
-next_action: infrastructure
+next_action: debug

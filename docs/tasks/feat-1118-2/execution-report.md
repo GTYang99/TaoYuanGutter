@@ -18,10 +18,12 @@
 | `./gradlew :app:testDebugUnitTest` | PASS | Full Debug JVM suite completed successfully. |
 | `./gradlew :app:assembleDebug` | PASS | Debug APK assembled at `app/build/outputs/apk/debug/app-debug.apk`. |
 | `./gradlew :app:assembleDebugAndroidTest` | PASS | Instrumentation APK and all AndroidTest sources compiled successfully. |
+| `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.map.OfflinePolygonDataStoreInstrumentedTest` | PASS | 7/7 emulator tests passed, including empty district selection and packaged GeoPackage geometry. |
+| `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.map.OfflinePolygonMapHostInstrumentedTest` | PARTIAL | District all/individual synchronization, workspace host, and lifecycle cases passed; existing main-map pixel assertion failed on stale/overlapping tile color. |
 | `git diff --check` | PASS | No whitespace errors. |
 | Scope/source scan | PASS | Restored files have only minimal feature additions; no AGP/version diff remains; all 13 districts and three field mappings are present. |
 
 ## Limitations
 
-- Physical-device/UI interaction verification has not been executed in this implementation phase.
+- Feature-specific Android UI interaction verification passed on `Medium_Phone(AVD) - 16`; one existing pixel-based map regression remains open.
 - CI and independent verification remain pending.
