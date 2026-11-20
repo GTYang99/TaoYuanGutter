@@ -48,3 +48,13 @@
 **NOT VERIFIED**
 
 The implementation and all available non-device evidence support approximately 95% confidence. Release is still blocked by physical instrumentation runtime, baseline upgrade evidence, and CI results. The next action is infrastructure/device verification on the committed revision; no further production-code repair is indicated by the available evidence.
+
+## Minimal Verification Round — 2026-11-20
+
+- Revision: `f683cdee` (documentation follow-up on implementation revision `5d26cf1c`)
+- Command:
+  `./gradlew testDebugUnitTest --tests 'com.example.taoyuangutter.api.StoreDitchNodeRequestMapperTest' --tests 'com.example.taoyuangutter.api.GutterRepositoryStoreDitchBoundaryTest' --tests 'com.example.taoyuangutter.api.StoreDitchResponseParsingTest' --tests 'com.example.taoyuangutter.pending.GutterSessionDraftTest' --tests 'com.example.taoyuangutter.gutter.GutterCompletionPolicyTest' --tests 'com.example.taoyuangutter.gutter.GutterImportValidatorTest' --tests 'com.example.taoyuangutter.gutter.InspectionPresentationTest' --tests 'com.example.taoyuangutter.gutter.SubmittedDraftResumePolicyTest' --tests 'com.example.taoyuangutter.gutter.WaypointAdapterPresentationTest'`
+- Result: **PASS** — 33 tests completed; Gradle `BUILD SUCCESSFUL`.
+- Coverage: request omission, virtual/normal point mapping, legacy response parsing, draft retention/normalization, submitted legacy repair policy, required-field validation, inspection presentation, and waypoint presentation.
+- No production code or existing unrelated AGP worktree change was modified during this round.
+- Overall task result remains **NOT VERIFIED** pending physical instrumentation, baseline upgrade, and CI evidence.
