@@ -271,7 +271,7 @@ internal object OfflinePolygonDataStore {
             val placeholders = batch.joinToString(",") { "?" }
             val args = batch.map(Long::toString).toTypedArray()
             database.rawQuery(
-                "SELECT fid, district_name FROM feature_bounds WHERE id IN ($placeholders)",
+                "SELECT id, district_name FROM feature_bounds WHERE id IN ($placeholders)",
                 args
             ).use { cursor ->
                 while (cursor.moveToNext()) {

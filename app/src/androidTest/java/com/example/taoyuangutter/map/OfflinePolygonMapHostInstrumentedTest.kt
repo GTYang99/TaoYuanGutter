@@ -9,6 +9,7 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.action.ViewActions.click
+import androidx.test.espresso.action.ViewActions.scrollTo
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers.isChecked
 import androidx.test.espresso.matcher.ViewMatchers.isNotChecked
@@ -54,6 +55,10 @@ class OfflinePolygonMapHostInstrumentedTest {
 
     @Before
     fun suppressUpdatePromptForMapHostScenarios() {
+        context.getSharedPreferences("overlay_state_prefs", Context.MODE_PRIVATE).edit().clear().commit()
+        val uiAutomation = InstrumentationRegistry.getInstrumentation().uiAutomation
+        uiAutomation.grantRuntimePermission(BuildConfig.APPLICATION_ID, android.Manifest.permission.ACCESS_FINE_LOCATION)
+        uiAutomation.grantRuntimePermission(BuildConfig.APPLICATION_ID, android.Manifest.permission.ACCESS_COARSE_LOCATION)
         val baseService = GutterApiClient.serviceFor(ApiBackendTarget.BASE)
         val versionService = object : GutterApiService by baseService {
             override suspend fun getAppVersion() = retrofit2.Response.success(
@@ -251,6 +256,26 @@ class OfflinePolygonMapHostInstrumentedTest {
                 pickerScenario.close()
             }
             assertProvidersReleased(pickerManager!!)
+        }
+    }
+
+    @Test
+    fun layerSheetSynchronizesDistrictAllAndIndividualSelections() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        context.getSharedPreferences("overlay_state_prefs", Context.MODE_PRIVATE).edit().clear().commit()
+        val scenario = ActivityScenario.launch<MainActivity>(Intent(context, MainActivity::class.java).putExtra(MainActivity.EXTRA_OFFLINE_MAIN, true))
+        try {
+            awaitMainMap(scenario)
+            onView(withId(R.id.btnLayers)).perform(click())
+            onView(withId(R.id.cbDistrictAll)).perform(scrollTo()).check(matches(isChecked()))
+            onView(withId(R.id.cbDistrictAll)).perform(click())
+            onView(withId(R.id.cbDistrict0)).perform(scrollTo()).check(matches(isNotChecked()))
+            onView(withId(R.id.cbDistrict0)).perform(click()).check(matches(isChecked()))
+            onView(withId(R.id.cbDistrictAll)).check(matches(isNotChecked()))
+            onView(withId(R.id.cbDistrictAll)).perform(click()).check(matches(isChecked()))
+            onView(withId(R.id.cbDistrict12)).perform(scrollTo()).check(matches(isChecked()))
+        } finally {
+            scenario.close()
         }
     }
 
@@ -542,6 +567,7 @@ class OfflinePolygonMapHostInstrumentedTest {
     }
 
     private fun assertLayerToggle(viewId: Int, label: String, assertProviderVisibility: (Boolean) -> Unit) {
+        onView(withId(viewId)).perform(scrollTo())
         onView(withId(viewId)).check(matches(withText(label)))
         onView(withId(viewId)).check(matches(isChecked()))
         assertProviderVisibility(true)

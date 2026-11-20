@@ -172,6 +172,16 @@ internal class OfflinePolygonOverlayManager(
     private var activeDistricts: Set<String>? = null
     private var activeGeneration: Long? = null
 
+    fun setVisibility(showLegacy: Boolean, showPossible: Boolean, showRegion: Boolean) {
+        setVisibility(
+            showLegacy = showLegacy,
+            showPossible = showPossible,
+            showRegion = showRegion,
+            selectedDistricts = MapOverlayController.DEFAULT_DISTRICTS,
+            generation = generationProvider()
+        )
+    }
+
     fun setVisibility(
         showLegacy: Boolean,
         showPossible: Boolean,

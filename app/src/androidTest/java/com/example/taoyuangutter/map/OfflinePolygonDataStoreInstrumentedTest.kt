@@ -176,6 +176,16 @@ class OfflinePolygonDataStoreInstrumentedTest {
     }
 
     @Test
+    fun emptyDistrictSelectionReturnsNoGeometryForAllFilteredLayers() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val bounds = doubleArrayOf(274000.0, 2755000.0, 276000.0, 2760000.0)
+
+        listOf(OfflinePolygonLayer.LEGACY, OfflinePolygonLayer.POSSIBLE, OfflinePolygonLayer.REGION).forEach { layer ->
+            assertTrue("${layer.name} must hide all features for an empty district selection", OfflinePolygonDataStore.load(context, layer).get().query(bounds, emptySet()).isEmpty())
+        }
+    }
+
+    @Test
     fun releasedProviderRejectsFurtherTileRequests() {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val tile = tileCoordinate(121.3011, 24.9929, zoom = 16)
