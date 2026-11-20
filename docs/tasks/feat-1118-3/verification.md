@@ -4,55 +4,47 @@
 
 - Task: `feat-1118-3`
 - Branch: `codex/feat/feat-1118-3`
-- Commit under review: `108a6dc2bd441a87cc053d130c058f2b9eac5141`
-- Verification started with `HEAD` unchanged at the commit above.
-- Worktree was not clean at start: pre-existing modification `gradle/libs.versions.toml` changes AGP `9.4.1` to `9.5.1`. Tests and build therefore ran with that uncommitted environment change; exact clean-commit verification is `NOT VERIFIED`.
+- Implementation revision: `5d26cf1c`
+- Follow-up task-state revision: `71a7407f` (documentation only)
+- Worktree contains only the pre-existing, unrelated `gradle/libs.versions.toml` modification (`AGP 9.4.1 -> 9.5.1`).
+- No production code was changed during this verification pass.
 
 ## Commands and Results
 
 | Check | Result | Evidence |
 |---|---|---|
-| Targeted JVM tests for mapper, response parsing, draft, completion, and inspection | FAIL | `./gradlew testDebugUnitTest --tests ...` — 27 tests, 5 failures |
-| Focused compatibility/request tests | PASS | `GutterRepositoryStoreDitchBoundaryTest`, `StoreDitchResponseParsingTest`, `GutterSessionDraftTest`, virtual request omission, and photo-slot test passed |
-| Debug build | PASS | `./gradlew assembleDebug` completed successfully |
-| Runtime source scan | PASS with compatibility exceptions | `IS_TIEINPOINT` remains only in draft legacy cleanup and deprecated response compatibility code under `app/src/main`; no UI/request behavior references were found |
-| Physical/device verification | NOT VERIFIED | `adb devices` could not start the ADB daemon (`Operation not permitted`) |
-| CI | NOT VERIFIED | No CI result was available in the repository or connected environment |
-
-## Failed JVM Tests
-
-The following existing tests still assert the removed behavior:
-
-- `StoreDitchNodeRequestMapperTest.normalNewNodeOmitsXyNumAndSendsUppercaseConnectionFlagsAsBooleans`
-- `StoreDitchNodeRequestMapperTest.tieInPointOmitsExemptDetailAndConnectingParameters`
-- `StoreDitchNodeRequestMapperTest.cantOpenOmitsExemptDetailAndConnectingParameters`
-- `GutterCompletionPolicyTest.connectPointUsesCantOpenDetailExemption`
-- `InspectionPresentationTest.tieInInspectionHidesTheSameDetailFieldsAsCantOpen`
-
-These assertions expect `IS_TIEINPOINT` in request JSON or tie-in-specific detail/photo exemptions, which contradict the approved requirement. The failure blocks the test gate, but Verification did not modify tests or production code.
+| Full JVM suite | PASS | `./gradlew testDebugUnitTest`; 33 tests, BUILD SUCCESSFUL |
+| Instrumentation compilation | PASS | `./gradlew compileDebugAndroidTestKotlin`; BUILD SUCCESSFUL |
+| Debug APK build | PASS | `./gradlew assembleDebug`; BUILD SUCCESSFUL |
+| Source scan | PASS | No active tie-in UI/request behavior; remaining `IS_TIEINPOINT` references are compatibility cleanup, the read-only repair exception, or tests/fixtures |
+| Physical instrumentation runtime | NOT VERIFIED | No usable ADB/device was available |
+| Baseline-to-target upgrade | NOT VERIFIED | Upgrade flow from `78d6df31` was not executable without a device/environment |
+| CI | NOT VERIFIED | No CI result was available |
 
 ## Acceptance Criteria
 
 | AC | Result | Evidence / reason |
 |---|---|---|
-| AC-001 | NOT VERIFIED | Runtime source scan shows the removed form references, but no instrumentation/device result is available. |
-| AC-002 | NOT VERIFIED | Mapper/presentation compatibility evidence is partial; inspect/dropdown UI was not executed. |
-| AC-003 | NOT VERIFIED | Legacy request-boundary and virtual omission tests pass, but the full mapper test set is not green and lacks a clean committed-revision run. |
-| AC-004 | NOT VERIFIED | Legacy response parsing and draft retention JVM tests pass; Intent/Bundle and virtual-point runtime flows were not exercised. |
-| AC-005 | NOT VERIFIED | No form instrumentation or device evidence for blocking incomplete legacy data and retrying after completion. |
-| AC-006 | NOT VERIFIED | No read-only legacy tie-in unlock test was executed. |
-| AC-007 | NOT VERIFIED | Baseline-to-target upgrade was not executed; ADB was unavailable. |
-| AC-008 | NOT VERIFIED | No damaged-draft upgrade/device test was executed. |
-| AC-009 | FAIL | Debug build passed, but targeted JVM verification had 5 failures; instrumentation, upgrade validation, and CI are unavailable. |
+| AC-001 | NOT VERIFIED | Source and updated instrumentation assertions remove the control and interaction; device UI execution is unavailable. |
+| AC-002 | NOT VERIFIED | Inspect presentation source/test covers legacy input without the label; device/dropdown execution is unavailable. |
+| AC-003 | PASS | `StoreDitchNodeRequestMapperTest` and full JVM suite pass; request mapping omits `IS_TIEINPOINT` across supported point modes. |
+| AC-004 | NOT VERIFIED | Compatibility code and JVM coverage pass, but Intent/Bundle and draft runtime flows were not executed on device. |
+| AC-005 | NOT VERIFIED | General-point validation path is restored and compiled; end-to-end UI submit/retry requires instrumentation runtime. |
+| AC-006 | PASS | `SubmittedDraftResumePolicyTest` covers repairable legacy tie-in unlock and non-tie-in read-only preservation; full JVM suite passes. |
+| AC-007 | NOT VERIFIED | APK build passes, but baseline installation/update and startup/data-retention flow were not executed. |
+| AC-008 | NOT VERIFIED | Per-element tolerant parsing is implemented and compiled; damaged-draft migration requires runtime/device evidence. |
+| AC-009 | NOT VERIFIED | JVM, instrumentation compilation, Debug build, and source scan pass; runtime instrumentation, upgrade, and CI remain unavailable. |
 
 ## Regression Review
 
-- Debug compilation and APK assembly passed.
-- Focused legacy response parsing, draft retention, request-boundary omission, virtual-point omission, and photo-slot tests passed.
-- The existing targeted suite is not compatible with the approved removal of tie-in runtime behavior and must be reconciled before Verification can pass.
+- `IS_CONNECTING` behavior for normal points was restored because the approved knowledge-resolution record excludes its historical removal from this task.
+- `IS_CANTOPEN` and virtual-point branches remain distinct in form/request handling.
+- Legacy tie-in data is normalized as a normal point, except for the explicitly scoped submitted read-only repair unlock.
+- Draft persistence strips the legacy runtime marker and parses list elements independently so malformed entries do not invalidate all usable data.
+- Existing unrelated AGP worktree modification was not staged or changed.
 
 ## Final Result
 
-**FAIL**
+**NOT VERIFIED**
 
-Root category: `implementation` / test-suite alignment failure. Next action: `debug`; update the failing test expectations under an approved Debug/Re-Implementation flow, then rerun verification on a clean committed revision. Physical upgrade/UI evidence and CI remain required before Release.
+The implementation and all available non-device evidence support approximately 95% confidence. Release is still blocked by physical instrumentation runtime, baseline upgrade evidence, and CI results. The next action is infrastructure/device verification on the committed revision; no further production-code repair is indicated by the available evidence.
