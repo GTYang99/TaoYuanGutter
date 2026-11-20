@@ -27,7 +27,7 @@ validation:
 
 git:
   branch: codex/feat/feat-1118-2
-  commit: f4ef83df4a5a818c164194be5182efa1055ad763
+  commit: bbdad64fba432151b2e5f61b3b35f900606266d9
   status: committed
 
 verification:
