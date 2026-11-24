@@ -2,8 +2,8 @@ task:
   id: feat-1118-2
   type: feature
 
-phase: verification
-status: verification_passed
+phase: planning
+status: plan_ready
 
 knowledge_resolution:
   status: resolved
@@ -12,37 +12,30 @@ planning:
   status: completed
 
 plan_review:
-  status: changes_requested
+  status: pending
 
 implementation:
-  status: completed
-  source: completed
-  unit_test: added
+  status: pending
 
 validation:
-  status: completed
-  build: pass
-  unit_test: pass
-  source_scan: pass
+  status: pending
 
 git:
   branch: codex/feat/feat-1118-2
-  commit: 59eef93c
-  status: committed
+  commit: 32f75b9a29e6aa75990a03c4af169ba8e1cf36bd
+  status: pending
 
 verification:
-  result: pass
+  result: pending
   category: null
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria: []
 
 ci:
-  build: not_available
-  test: not_available
+  build: pending
+  test: pending
 
 release:
   status: pending
 
-blocking:
-  - CI result is not available in the local workspace.
-next_action: infrastructure
+blocking: []
+next_action: plan_review

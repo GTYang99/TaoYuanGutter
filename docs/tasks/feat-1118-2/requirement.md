@@ -2,54 +2,68 @@
 
 ## Source
 
-- User-provided requirement: `/Users/a10362/Desktop/markdown file/TY/ty_feat_1118-2.md`.
-- User decisions resolving OQ-001 through OQ-016 in this conversation.
-- Baseline commit: `8d484d5a6d31924d099e793476f898ed99594aa`.
+- Original requirement: `/Users/a10362/Desktop/markdown file/TY/ty_feat_1118-2.md`.
+- Possible-gutter district files: `/Users/a10362/Desktop/markdown file/TY/未調查側溝行政區細分13區`.
+- Existing-gutter district files: `/Users/a10362/Desktop/markdown file/TY/既有資料`.
+- User decisions OQ-001 through OQ-079 and the clarification that consistency validation runs on the development machine/CI, not on a phone.
+- Task branch: `codex/feat/feat-1118-2`; original baseline: `8d484d5a6d31924d099e793476f898ed99594aa`.
 
 ## Goal
 
-在圖層套疊頁面新增桃園市行政區多選篩選，讓三個離線 GPKG 圖層依選取行政區即時顯示符合資料。
+以分區 GPKG 降低手機載入與篩選負擔，讓圖層套疊依行政區選擇平滑切換三個離線圖層，同時保留全區完整 GPKG 模式與 fallback。
+
+## Data Scope
+
+App 最終包含 29 個 GPKG：
+
+- 3 個原始完整 GPKG：水務局既有資料、可能側溝位置、桃園行政區。
+- 13 個可能側溝位置分區 GPKG：`桃園區.gpkg` 等，table `refactored`、`MULTIPOLYGON`、EPSG:3826。
+- 13 個水務局既有資料分區 GPKG：`TOWN_桃園區.gpkg` 等，table 依檔案命名、`POLYGON`、EPSG:3826。
 
 ## Functional Requirements
 
-- 在三個 GPKG 圖層選項上方直接列出桃園市 13 個行政區多選框。
-- 行政區名稱限定為：桃園區、中壢區、大溪區、楊梅區、蘆竹區、大園區、龜山區、八德區、龍潭區、平鎮區、新屋區、觀音區、復興區。
-- 提供「全選」選項；勾選全選時同步勾選 13 個行政區，取消全選時同步取消 13 個行政區；個別勾選全部行政區時全選同步勾選。
-- 行政區預設 13 區全部選取；三個圖層預設開啟。
-- 行政區多選採 OR 邏輯；未選任何行政區時，三個 GPKG 圖層不顯示資料。
-- 行政區選擇與圖層選擇變更後立即更新地圖，只保留最後一次篩選結果。
-- 三個 GPKG 的篩選欄位分別為 `Town`、`TOWN`、`TOWNNAME`，欄位值以 13 個行政區名稱精確比對。
-- 篩選只套用於水務局舊資料、可能側溝位置、桃園行政區；其他圖層行為不變。
-- 行政區與三個圖層的選擇狀態在 App 重新啟動後仍須保留。
-- 無符合資料時不顯示額外提示。
-
-## GPKG Mapping
-
-| GPKG | Layer | Filter field |
-|---|---|---|
-| `20260824_水務局既有側溝更新v3_線轉面.gpkg` | 水務局舊資料 | `Town` |
-| `20260601_水務局未調查側溝_v5.gpkg` | 可能側溝位置 | `TOWN` |
-| `桃園市行政區.gpkg` | 桃園行政區 | `TOWNNAME` |
+- 圖層套疊頁面在三個圖層選項上方顯示固定順序的 13 個行政區多選框與三態「全選」CheckBox。
+- 13 區為：桃園區、中壢區、大溪區、楊梅區、蘆竹區、大園區、龜山區、八德區、龍潭區、平鎮區、新屋區、觀音區、復興區。
+- 首次使用預設 13 區全選，三個圖層預設開啟；「全選」與 13 個區全部勾選時狀態同步。
+- 未選行政區時，三個指定圖層不顯示資料且不跳提示。
+- 全選或 13 區全部選取時，三個圖層使用原始完整 GPKG，不載入分區檔。
+- 部分選取時：水務局既有資料載入對應 `TOWN_*.gpkg`；可能側溝位置載入對應行政區 `.gpkg`；桃園行政區使用完整 GPKG，以 `TOWNNAME` 篩選。
+- 多選採 OR 邏輯；多個分區檔可同時載入。
+- 只載入目前開啟的圖層；同一圖層的完整檔與分區檔不可同時顯示。
+- 選擇變更後背景載入，保留上一個完整結果，待新結果準備完成後原子切換；只保留最後一次選擇結果。
+- 只處理新增與移除的分區來源，釋放不再使用的 provider、快取與索引資源。
+- 分區檔優先；缺失或損毀時，可對該行政區 fallback 到完整 GPKG + 欄位篩選，不得造成 App 閃退。
+- 成功來源獨立顯示；單一行政區或單一圖層失敗不影響其他成功來源。
+- 行政區選擇與既有三個圖層開關狀態跨 App 重啟保存。
+- 水務局既有資料與可能側溝位置的資料來源選擇需保留未來切換至其他分區資料的擴充點。
 
 ## Acceptance Criteria
 
-- AC-001：圖層套疊頁面顯示 13 個行政區多選框及「全選」選項，且三個圖層選項位於行政區選項下方。
-- AC-002：首次使用時 13 個行政區及三個指定圖層皆為勾選狀態。
-- AC-003：全選、取消全選及逐一勾選 13 區時，所有勾選狀態正確同步。
-- AC-004：三個 GPKG 依各自指定欄位與選取行政區精確比對，選取多區時以 OR 邏輯顯示資料。
-- AC-005：行政區或圖層選擇變更後立即更新地圖；快速連續變更時只保留最後一次篩選結果。
-- AC-006：未選任何行政區時，三個指定 GPKG 圖層均不顯示資料，且不跳出提示。
-- AC-007：重新啟動 App 後，行政區與三個圖層的選擇狀態仍被保留。
-- AC-008：計畫調查、無側溝點、刪除區域及其他既有圖層行為不回歸。
-- AC-009：相關 JVM、instrumentation、Debug build 與 source scan 通過。
+- AC-001：APK 包含 29 個指定 GPKG；每個檔案的大小、SHA-256、table、geometry type、CRS、feature count 與 mapping 均通過開發機／CI 驗證。
+- AC-002：首次使用顯示固定順序的 13 區、三態全選與三個圖層，13 區及三個圖層預設全選／開啟。
+- AC-003：全選、取消全選、逐區勾選及半選狀態正確同步；13 區全選自動切換完整模式。
+- AC-004：全選模式只載入三個完整 GPKG；部分模式依選區載入兩組分區 GPKG，行政區圖層以 `TOWNNAME` 篩選。
+- AC-005：多區採 OR 邏輯，三個圖層均只顯示選取行政區；未選行政區時三層均不顯示資料。
+- AC-006：選擇變更背景載入且原子切換；快速切換只保留最後結果，不重複顯示完整檔與分區檔。
+- AC-007：分區檔優先，單檔失敗可局部 fallback 到完整檔篩選；任何檔案失敗不得閃退或影響其他成功來源。
+- AC-008：取消行政區或圖層後釋放不再使用資源；反覆切換不造成 provider、overlay 或快取無限制累積。
+- AC-009：App 重啟後恢復 13 區選擇與三個圖層開關；衍生載入模式由目前選擇重新決定。
+- AC-010：既有圖層、底圖、幾何樣式、孔洞、MultiPolygon、z-index 與其他地圖行為不回歸。
+- AC-011：JVM、instrumentation、Debug build、source scan 與效能驗證通過；UI thread 無 GPKG 解析、無 ANR、無閃退、無重複 overlay。
+
+## Validation Boundary
+
+- 開發機／CI：完成 29 個 GPKG 的 hash、metadata、feature count、空間範圍與分區合併一致性驗證。
+- Android Emulator：驗證 APK 資產、完整／分區載入、篩選、fallback、狀態恢復、切換流暢度、記憶體與 overlay lifecycle。
+- 實體手機不在本任務範圍；GPKG 一致性比對不在手機端執行。
 
 ## Constraints
 
-- 以 `8d484d5a6d31924d099e793476f898ed99594aa` 為基礎建立 `codex/feat/feat-1118-2`。
-- 不建立新的 worktree。
-- 不帶入目前工作區其他未提交修改。
-- 不修改無關的 GPKG 資產、圖層樣式、底圖或後端 API。
+- 不建立新的 worktree；使用 `codex/feat/feat-1118-2`。
+- 不帶入其他任務未提交修改。
+- 不刪除原始完整 GPKG；新分區檔與原始完整檔並存。
+- 不修改後端 API、底圖或與本任務無關的圖層。
 
 ## Open Questions
 
-- 無。OQ-001～OQ-016 已由使用者確認。
+- 無。OQ-001～OQ-079 已完成決策。
