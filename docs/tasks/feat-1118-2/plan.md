@@ -18,6 +18,8 @@
 
 ## Implementation Steps
 - 在開發機盤點 29 個 GPKG，產生 hash／size／schema／feature count／extent manifest，並比對 13 個分區集合與兩個完整來源。
+- 使用 host-side `sqlite3`/Python validator（規劃新增 `docs/tasks/feat-1118-2/evidence/validate_gpkg_sources.py`）讀取每個 GPKG 的 `gpkg_contents`、`gpkg_geometry_columns`、feature rows 與 bounds；以 `layer + district + canonical non-geometry attributes + canonical decoded geometry` 建立 row signature，不使用分區檔自己的 `fid` 作為跨檔 identity。
+- Validator 對每個完整來源與 13 個分區集合執行 deterministic diff：metadata、CRS、geometry type、district mapping、feature count 必須符合 manifest；每個完整檔案的行政區篩選 signature multiset 必須與對應分區 signature multiset 完全相等，missing、extra、duplicate、misassigned 任一項即 FAIL，並輸出差異 signature 與檔案清單。
 - 定義 29 個來源的 immutable mapping：三個完整來源、13 個 possible 分區、13 個 existing 分區；驗證 table、geometry type、CRS 與檔名對應。
 - 將 source selection 抽象為 `Full`、`DistrictSources` 與 per-district fallback，保留未來替換水務局資料來源的擴充點。
 - 改造 staging/index，使每個來源以 source hash、index version、layer、district 隔離；完整行政區來源支援 `TOWNNAME` 篩選。
@@ -26,13 +28,15 @@
 - 在背景完成新 generation 的所有必要來源後，原子替換 overlay；舊 generation callback 與 tile 結果直接丟棄。
 - 對單一缺失或損毀分區來源執行 per-district fallback；成功來源仍顯示，錯誤記錄且不讓 App 閃退。
 - 保留三態全選、半選、狀態保存與既有圖層行為；不讓完整與分區 overlay 同時存在。
+- 為 source manager 保留可注入的受控 loader／resource factory 測試 seam；以 deferred loader 先阻塞 generation 1，再完成 generation 2，最後完成 generation 1，驗證只提交 generation 2、上一個完整 overlay 在提交前仍可見，且每個啟用圖層最多一個 active overlay。
+- 以固定 20 回合 `full -> district(1) -> district(2,3) -> empty -> full` lifecycle scenario 驗證每次切換先 release 被移除的 source/provider；每回合 commit 後 active provider/overlay 數量不超過當前模式所需數量，`release()` 後為 0，tile cache 只保留 active generation 且不超過每 provider 的 48-entry bound。
 - 執行 source consistency、JVM、instrumentation、Debug build、source scan 與 emulator UX/performance validation，補齊 evidence。
 
 ## Test Plan
-- Host-side asset validation：29 個檔案存在、hash/size/schema/feature count/extent、分區合計與完整資料一致性。
-- JVM：source mapping、full/district selection、13 區全選切換、OR、空選擇、per-district fallback、cache key、generation、state persistence。
+- Host-side asset validation：執行 `python3 docs/tasks/feat-1118-2/evidence/validate_gpkg_sources.py --manifest docs/tasks/feat-1118-2/evidence/asset-manifest.json`；29 個檔案存在、hash/size/schema/feature count/extent、分區合計與完整資料 signature multiset 完全一致，任何 missing/extra/duplicate/misassigned 都是 FAIL。
+- JVM：source mapping、full/district selection、13 區全選切換、OR、空選擇、per-district fallback、cache key、generation、state persistence；使用 controlled deferred loader 覆蓋 out-of-order completion。
 - Instrumentation：UI 三態 CheckBox、預設與重啟恢復、三圖層部分／全選顯示、單一來源失敗、overlay 不重複與 lifecycle。
-- Emulator performance：全選、單區、2～3 區、13 區、模式反覆切換；記錄 UI 是否卡頓、ANR、閃退、切換時間、記憶體與 overlay 數量。
+- Emulator performance：全選、單區、2～3 區、13 區、模式反覆切換；記錄 UI 是否卡頓、ANR、閃退、切換時間、記憶體與 overlay 數量，並以固定 lifecycle scenario 的 provider/overlay/cache bound 作為 pass/fail 輔助證據。
 - Build/source scan：Debug build、相關 lint/static checks、29 個 assets package inspection 與無不當完整／分區同時載入。
 
 ### Physical Device Test Scope
@@ -46,16 +50,18 @@
 
 | AC | Environment | Steps | Expected | Evidence |
 |---|---|---|---|---|
-| AC-001 | Host/CI + APK inspection | 驗證 29 個來源並檢查 APK | metadata/hash/manifest 正確，29 檔完整 | asset manifest + APK readback |
+| AC-001 | Host/CI + APK inspection | 執行 validator 並檢查 APK | metadata/hash/manifest 正確；每個完整檔與分區集合的 canonical signature multiset 無 missing/extra/duplicate/misassigned | validator JSON/CSV + APK readback |
 | AC-002–AC-005 | Emulator | 操作全選、半選、單區、多區、空選擇 | 三態同步、來源選擇與三層篩選正確 | instrumentation + screenshots |
-| AC-006–AC-008 | Emulator | 連續切換、關閉圖層、模擬單檔失敗 | atomic latest result、fallback、資源釋放、無重複 | test log + map evidence |
+| AC-006–AC-008 | JVM + Emulator | 以 deferred loader 反序完成 generation，並執行 20 回合 lifecycle | 最新 generation 勝出；舊結果不提交；active overlay/provider/cache 符合 bound，release 後為 0；fallback 無重複 | deterministic test output + map evidence |
 | AC-009–AC-010 | Emulator | 重啟 App、切換底圖與其他 overlay | 狀態恢復且既有行為不回歸 | instrumentation + regression results |
 | AC-011 | Host/CI + Emulator | 執行測試、build、scan、效能場景 | 無 UI parse、ANR、閃退、重複 overlay | command output + performance report |
 
 ## Regression Plan
 - 驗證計畫調查、無側溝點、刪除區域、底圖與其他 WMS/WMTS overlay 不受 district source selection 影響。
 - 驗證完整 GPKG 的既有顏色、孔洞、MultiPolygon、EPSG:3826、z-index 與 map host 行為。
-- 驗證 provider release、cache bounds、map destruction、重啟恢復與快速切換不重複。
+- 執行固定 out-of-order generation test：generation 1 先開始、generation 2 後開始並先完成；可見 generation 必須為 2，generation 1 完成後不得覆蓋，active overlay 每圖層最多一個。
+- 執行固定 20 回合 full/district/empty 切換；每回合 assert 被移除來源已 release、active provider/overlay 不超過當前需求，cache 不超過 `48 * active provider count`；最終 `release()` 後 provider、overlay、cache count 必須為 0。
+- 驗證 provider release、map destruction、重啟恢復與快速切換不重複；既有 execution/verification report 僅作歷史背景，不作本次 11 個 AC 的通過證據。
 
 ## Risks
 - 29 個檔案增加 package/storage/index build cost。
@@ -74,14 +80,14 @@
 ## Acceptance Criteria Traceability
 | AC | Implementation Step | Validation |
 |---|---|---|
-| AC-001 | Asset manifest and package inspection | Host/CI manifest + APK readback |
+| AC-001 | Asset manifest, canonical signature validator and package inspection | Host/CI validator output + APK readback |
 | AC-002 | UI/default state | JVM + instrumentation |
 | AC-003 | Three-state selection | JVM + instrumentation |
 | AC-004 | Source selection strategy | JVM + emulator |
 | AC-005 | Multi-source query/filter | JVM + emulator map evidence |
-| AC-006 | Generation and atomic swap | JVM + instrumentation |
+| AC-006 | Generation and atomic swap with controlled out-of-order completion | JVM deterministic generation test + instrumentation |
 | AC-007 | Fallback/error handling | JVM + instrumentation |
-| AC-008 | Resource lifecycle | JVM + emulator lifecycle |
+| AC-008 | Resource lifecycle with repeated fixed scenario and bounds | JVM counters + emulator lifecycle/performance evidence |
 | AC-009 | Persisted state | MainViewModel + restart instrumentation |
 | AC-010 | Regression preservation | Existing map tests + source review |
 | AC-011 | Build/performance/source scan | CI-equivalent commands + emulator report |

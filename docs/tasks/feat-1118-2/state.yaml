@@ -2,8 +2,8 @@ task:
   id: feat-1118-2
   type: feature
 
-phase: planning
-status: plan_ready
+phase: plan_review
+status: approved
 
 knowledge_resolution:
   status: resolved
@@ -12,7 +12,9 @@ planning:
   status: completed
 
 plan_review:
-  status: pending
+  status: approved
+  result: APPROVED
+  iteration: 2
 
 implementation:
   status: pending
@@ -22,7 +24,7 @@ validation:
 
 git:
   branch: codex/feat/feat-1118-2
-  commit: 32f75b9a29e6aa75990a03c4af169ba8e1cf36bd
+  commit: 3f712431f616a00e01bb1d347f23a7a0aee4d498
   status: pending
 
 verification:
@@ -38,4 +40,4 @@ release:
   status: pending
 
 blocking: []
-next_action: plan_review
+next_action: implementation
