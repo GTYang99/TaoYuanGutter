@@ -28,3 +28,19 @@
 
 - Android UI interaction and map rendering verification passed on `Medium_Phone(AVD) - 16`; the snapshot helper avoids overlapping fill samples and tolerates renderer anti-aliasing only.
 - CI and independent verification remain pending.
+
+## Implementation Continuation (2026-11-26)
+
+- Added typed full/district source selection for the existing offline polygon loader.
+- Partial selection now creates the matching district source list; each district source falls back independently to the corresponding full GPKG filter if staging/indexing fails. Full selection retains the original three full sources.
+- Added `OfflinePolygonSourceTest` for full-source and district-fallback mapping.
+- Added the 26 district GPKGs and generated `evidence/asset-manifest.json` from the host validator.
+
+| Check | Result | Evidence |
+|---|---|---|
+| `python3 docs/tasks/feat-1118-2/evidence/validate_gpkg_sources.py --manifest docs/tasks/feat-1118-2/evidence/asset-manifest.json` | NOT VERIFIED / FAIL | Metadata and union consistency PASS; exact per-district partition consistency FAIL because supplied possible files reassign 61,435 rows across district labels. |
+| `./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.map.*'` | PASS | Focused map JVM suite completed successfully with temporary non-secret Maps placeholder. |
+| `./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.map.OfflinePolygonSourceTest'` | PASS | New source mapping test completed successfully. |
+| `./gradlew :app:assembleDebug` | PASS | Debug APK assembled with temporary non-secret Maps placeholder. |
+
+The validator failure remains tracked as ISS-003; no exact-equivalence claim is made for AC-001.

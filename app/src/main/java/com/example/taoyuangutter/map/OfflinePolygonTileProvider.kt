@@ -19,13 +19,17 @@ import java.util.concurrent.atomic.AtomicBoolean
 internal class OfflinePolygonTileProvider(
     context: Context,
     private val layer: OfflinePolygonLayer,
+    sourceDefinitions: List<OfflinePolygonSource> = listOf(OfflinePolygonSourceCatalog.full(layer)),
     private val outlineWidthPx: Float? = null,
     private val selectedDistrictsProvider: () -> Set<String> = { MapOverlayController.DEFAULT_DISTRICTS },
     private val generationProvider: () -> Long = { 0L }
 ) : TileProvider {
     private data class TileKey(val x: Int, val y: Int, val zoom: Int, val generation: Long)
 
-    private val sourceFuture = OfflinePolygonDataStore.load(context, layer)
+    private val appContext = context.applicationContext
+    private val sourceFutures = sourceDefinitions.map { source ->
+        source to OfflinePolygonDataStore.load(appContext, source)
+    }
     private val tileCache = object : LruCache<TileKey, Tile>(MAX_CACHED_TILES) {}
     private val cacheLock = Any()
     private val geometryFailureLogged = AtomicBoolean(false)
@@ -44,9 +48,18 @@ internal class OfflinePolygonTileProvider(
 
         return try {
             val bounds = WebMercatorTileMath.bounds3826(x, y, zoom)
-            val source = sourceFuture.get()
             if (released || generation != generationProvider()) return NO_TILE
-            val features = source.query(bounds, selectedDistrictsProvider())
+            val features = sourceFutures.flatMap { (definition, future) ->
+                val source = runCatching { future.get() }.getOrElse { failure ->
+                    val fallback = definition.fallback ?: return@flatMap emptyList()
+                    runCatching { OfflinePolygonDataStore.load(appContext, fallback).get() }
+                        .getOrElse { fallbackFailure ->
+                            Log.e(TAG, "Unable to load local ${layer.name} source ${definition.assetName}", fallbackFailure)
+                            return@flatMap emptyList()
+                        }
+                }
+                source.query(bounds, selectedDistrictsProvider())
+            }
             if (released || generation != generationProvider()) return NO_TILE
             if (features.isEmpty()) return NO_TILE
             val rendered = render(
@@ -226,6 +239,7 @@ internal class OfflinePolygonOverlayManager(
                 val provider = OfflinePolygonTileProvider(
                     appContext,
                     OfflinePolygonLayer.LEGACY,
+                    sourceDefinitions = sourceDefinitions(OfflinePolygonLayer.LEGACY, selectedDistricts),
                     selectedDistrictsProvider = { selectedDistricts },
                     generationProvider = { generation }
                 )
@@ -252,6 +266,7 @@ internal class OfflinePolygonOverlayManager(
                 val provider = OfflinePolygonTileProvider(
                     appContext,
                     OfflinePolygonLayer.POSSIBLE,
+                    sourceDefinitions = sourceDefinitions(OfflinePolygonLayer.POSSIBLE, selectedDistricts),
                     selectedDistrictsProvider = { selectedDistricts },
                     generationProvider = { generation }
                 )
@@ -278,6 +293,7 @@ internal class OfflinePolygonOverlayManager(
                 val provider = OfflinePolygonTileProvider(
                     appContext,
                     OfflinePolygonLayer.REGION,
+                    sourceDefinitions = listOf(OfflinePolygonSourceCatalog.full(OfflinePolygonLayer.REGION)),
                     selectedDistrictsProvider = { selectedDistricts },
                     generationProvider = { generation }
                 )
@@ -297,4 +313,11 @@ internal class OfflinePolygonOverlayManager(
             regionProvider = null
         }
     }
+
+    private fun sourceDefinitions(layer: OfflinePolygonLayer, selectedDistricts: Set<String>): List<OfflinePolygonSource> =
+        if (selectedDistricts == MapOverlayController.DEFAULT_DISTRICTS) {
+            listOf(OfflinePolygonSourceCatalog.full(layer))
+        } else {
+            selectedDistricts.sorted().map { district -> OfflinePolygonSourceCatalog.district(layer, district) }
+        }
 }

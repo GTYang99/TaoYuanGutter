@@ -58,36 +58,41 @@ internal object OfflinePolygonDataStore {
     }
     private val sources = ConcurrentHashMap<String, CompletableFuture<OfflinePolygonDataSource>>()
 
-    fun load(context: Context, layer: OfflinePolygonLayer): CompletableFuture<OfflinePolygonDataSource> {
+    fun load(context: Context, layer: OfflinePolygonLayer): CompletableFuture<OfflinePolygonDataSource> =
+        load(context, OfflinePolygonSourceCatalog.full(layer))
+
+    fun load(context: Context, source: OfflinePolygonSource): CompletableFuture<OfflinePolygonDataSource> {
         val appContext = context.applicationContext
-        val key = "${appContext.filesDir.absolutePath}:${layer.name}"
+        val key = "${appContext.filesDir.absolutePath}:${source.assetName}"
         return sources.computeIfAbsent(key) {
             CompletableFuture.supplyAsync({
-                when (layer) {
-                    OfflinePolygonLayer.LEGACY -> openGeoPackage(appContext, layer)
+                when (source.layer) {
                     OfflinePolygonLayer.POSSIBLE -> {
                         invalidateObsoleteGeoJsonIndex(appContext)
-                        openGeoPackage(appContext, layer)
+                        openGeoPackage(appContext, source)
                     }
-                    OfflinePolygonLayer.REGION -> openGeoPackage(appContext, layer)
+                    else -> openGeoPackage(appContext, source)
                 }
             }, executor)
         }
     }
 
-    private fun openGeoPackage(context: Context, layer: OfflinePolygonLayer): OfflinePolygonDataSource {
+    private fun openGeoPackage(context: Context, source: OfflinePolygonSource): OfflinePolygonDataSource {
         val dataDir = File(context.filesDir, "offline_polygon_data").apply { mkdirs() }
-        val file = File(dataDir, layer.assetName)
-        val versionFile = File(dataDir, "${layer.tableName}.sha256")
-        if (!file.isFile || file.length() != layer.assetSizeBytes || versionFile.readTextOrNull() != layer.assetSha256) {
-            val temporaryFile = File(dataDir, "${layer.assetName}.tmp")
-            context.assets.open(layer.assetName).use { input ->
+        val file = File(dataDir, source.assetName)
+        val versionFile = File(dataDir, "${source.assetName}.sha256")
+        if (!file.isFile || (source.expectedSizeBytes != null && file.length() != source.expectedSizeBytes) ||
+            versionFile.readTextOrNull() != (source.expectedSha256 ?: "unknown")) {
+            val temporaryFile = File(dataDir, "${source.assetName}.tmp")
+            context.assets.open(source.assetName).use { input ->
                 temporaryFile.outputStream().use { output -> input.copyTo(output) }
             }
-            check(temporaryFile.length() == layer.assetSizeBytes) { "Staged GeoPackage size does not match packaged source" }
+            check(source.expectedSizeBytes == null || temporaryFile.length() == source.expectedSizeBytes) {
+                "Staged GeoPackage size does not match packaged source"
+            }
             if (file.exists()) check(file.delete()) { "Unable to replace staged GeoPackage" }
             check(temporaryFile.renameTo(file)) { "Unable to finalize staged GeoPackage" }
-            versionFile.writeText(layer.assetSha256)
+            versionFile.writeText(source.expectedSha256 ?: file.length().toString())
         }
         val database = SQLiteDatabase.openDatabase(
             file.absolutePath,
@@ -97,19 +102,20 @@ internal object OfflinePolygonDataStore {
         val metadata = database.rawQuery(
             "SELECT c.srs_id, g.geometry_type_name FROM gpkg_contents c " +
                 "JOIN gpkg_geometry_columns g ON g.table_name = c.table_name WHERE c.table_name = ?",
-            arrayOf(layer.tableName)
+            arrayOf(source.tableName)
         ).use { cursor ->
-            check(cursor.moveToFirst()) { "GeoPackage layer ${layer.tableName} is missing" }
+            check(cursor.moveToFirst()) { "GeoPackage layer ${source.tableName} is missing" }
             cursor.getInt(0) to cursor.getString(1)
         }
-        check(metadata.first == layer.srsId && metadata.second.equals(layer.geometryType, ignoreCase = true)) {
+        check(metadata.first == source.srsId && metadata.second.equals(source.geometryType, ignoreCase = true)) {
             "Unsupported GeoPackage CRS/geometry: $metadata"
         }
-        val indexFile = File(dataDir, "${layer.tableName}.spatial.sqlite")
-        val indexDatabase = openVersionedIndex(indexFile, layer.assetSha256) { freshDatabase ->
-            buildGeoPackageSpatialIndex(database, layer, freshDatabase)
+        val indexFile = File(dataDir, "${source.assetName}.spatial.sqlite")
+        val sourceVersion = source.expectedSha256 ?: file.length().toString()
+        val indexDatabase = openVersionedIndex(indexFile, sourceVersion) { freshDatabase ->
+            buildGeoPackageSpatialIndex(database, source, freshDatabase)
         }
-        return GeoPackageDataSource(database, indexDatabase, layer)
+        return GeoPackageDataSource(database, indexDatabase, source)
     }
 
     internal fun invalidateObsoleteGeoJsonIndex(context: Context) {
@@ -170,7 +176,7 @@ internal object OfflinePolygonDataStore {
 
     private fun buildGeoPackageSpatialIndex(
         sourceDatabase: SQLiteDatabase,
-        layer: OfflinePolygonLayer,
+        source: OfflinePolygonSource,
         indexDatabase: SQLiteDatabase
     ) {
         initializeCellIndex(indexDatabase)
@@ -182,20 +188,20 @@ internal object OfflinePolygonDataStore {
         var count = 0
         indexDatabase.beginTransaction()
         try {
-            val districtQuery = layer.districtFieldName?.let { field -> "SELECT fid, geom, CAST($field AS TEXT) FROM \"${layer.tableName}\" WHERE geom IS NOT NULL" }
-                ?: "SELECT fid, geom, NULL FROM \"${layer.tableName}\" WHERE geom IS NOT NULL"
+            val districtQuery = source.districtFieldName?.let { field -> "SELECT fid, geom, CAST($field AS TEXT) FROM \"${source.tableName}\" WHERE geom IS NOT NULL" }
+                ?: "SELECT fid, geom, NULL FROM \"${source.tableName}\" WHERE geom IS NOT NULL"
             sourceDatabase.rawQuery(districtQuery, null).use { cursor ->
                 while (cursor.moveToNext()) {
                     val id = cursor.getLong(0)
                     val geometryBlob = cursor.getBlob(1)
                     val districtName = if (cursor.isNull(2)) null else cursor.getString(2)
                     val geometry = OfflineGeometryCodec.fromGeoPackage(geometryBlob).let {
-                        if (layer.normalizeGeographicCoordinates) OfflineGeometryCodec.transformToTwd97(it) else it
+                        if (source.normalizeGeographicCoordinates) OfflineGeometryCodec.transformToTwd97(it) else it
                     }
                     val bounds = OfflineGeometryCodec.bounds(geometry)
                     insertBounds(boundsInsert, id, bounds, districtName)
                     insertCells(cellInsert, id, bounds)
-                    if (layer.normalizeGeographicCoordinates) {
+                    if (source.normalizeGeographicCoordinates) {
                         geometryInsert.clearBindings()
                         geometryInsert.bindLong(1, id)
                         geometryInsert.bindBlob(2, OfflineGeometryCodec.fromGeoJsonMultiPolygon(geometry.polygons))
@@ -205,7 +211,7 @@ internal object OfflinePolygonDataStore {
                 }
             }
             check(count > 0) { "GeoPackage contains no polygon rows" }
-            recordIndexMetadata(indexDatabase, layer, count)
+            recordIndexMetadata(indexDatabase, source, count)
             indexDatabase.setTransactionSuccessful()
             Log.i(TAG, "Built $count GeoPackage cell-index entries")
         } finally {
@@ -243,9 +249,9 @@ internal object OfflinePolygonDataStore {
 
     private fun cellCoordinate(meters: Double): Int = floor(meters / CELL_SIZE_METERS).toInt()
 
-    private fun recordIndexMetadata(database: SQLiteDatabase, layer: OfflinePolygonLayer, count: Int) {
+    private fun recordIndexMetadata(database: SQLiteDatabase, source: OfflinePolygonSource, count: Int) {
         database.execSQL("INSERT INTO metadata(key,value) VALUES('index_version', '4')")
-        database.execSQL("INSERT INTO metadata(key,value) VALUES('source_sha256', ?)", arrayOf(layer.assetSha256))
+        database.execSQL("INSERT INTO metadata(key,value) VALUES('source_sha256', ?)", arrayOf(source.expectedSha256 ?: "unknown"))
         database.execSQL("INSERT INTO metadata(key,value) VALUES('feature_count', ?)", arrayOf(count.toString()))
         database.execSQL("INSERT INTO metadata(key,value) VALUES('cell_size_meters', ?)", arrayOf(CELL_SIZE_METERS.toString()))
     }
@@ -264,8 +270,8 @@ internal object OfflinePolygonDataStore {
         ).use { cursor -> buildList { while (cursor.moveToNext()) add(cursor.getLong(0)) } }
     }
 
-    private fun queryDistrictNames(database: SQLiteDatabase, ids: List<Long>, layer: OfflinePolygonLayer): Map<Long, String?> {
-        if (layer.districtFieldName == null || ids.isEmpty()) return emptyMap()
+    private fun queryDistrictNames(database: SQLiteDatabase, ids: List<Long>, source: OfflinePolygonSource): Map<Long, String?> {
+        if (source.districtFieldName == null || ids.isEmpty()) return emptyMap()
         val results = mutableMapOf<Long, String?>()
         ids.chunked(500).forEach { batch ->
             val placeholders = batch.joinToString(",") { "?" }
@@ -285,14 +291,14 @@ internal object OfflinePolygonDataStore {
     private class GeoPackageDataSource(
         private val source: SQLiteDatabase,
         private val index: SQLiteDatabase,
-        private val layer: OfflinePolygonLayer
+        private val sourceDefinition: OfflinePolygonSource
     ) : OfflinePolygonDataSource {
         override fun query(bounds: DoubleArray, selectedDistricts: Set<String>): List<ByteArray> {
-            if (layer.districtFieldName != null && selectedDistricts.isEmpty()) return emptyList()
+            if (sourceDefinition.districtFieldName != null && selectedDistricts.isEmpty()) return emptyList()
             val ids = queryCellIds(index, bounds)
             if (ids.isEmpty()) return emptyList()
-            val districts = queryDistrictNames(index, ids, layer)
-            val filteredIds = if (layer.districtFieldName == null) ids else ids.filter { id ->
+            val districts = queryDistrictNames(index, ids, sourceDefinition)
+            val filteredIds = if (sourceDefinition.districtFieldName == null) ids else ids.filter { id ->
                 val districtName = districts[id] ?: return@filter false
                 selectedDistricts.contains(districtName)
             }
@@ -301,12 +307,12 @@ internal object OfflinePolygonDataStore {
             filteredIds.chunked(500).forEach { batch ->
                 val placeholders = batch.joinToString(",") { "?" }
                 val args = batch.map(Long::toString).toTypedArray()
-                val query = if (layer.normalizeGeographicCoordinates) {
+                val query = if (sourceDefinition.normalizeGeographicCoordinates) {
                     "SELECT geom FROM normalized_geometries WHERE id IN ($placeholders)"
                 } else {
-                    "SELECT geom FROM \"${layer.tableName}\" WHERE fid IN ($placeholders)"
+                    "SELECT geom FROM \"${sourceDefinition.tableName}\" WHERE fid IN ($placeholders)"
                 }
-                val database = if (layer.normalizeGeographicCoordinates) index else source
+                val database = if (sourceDefinition.normalizeGeographicCoordinates) index else source
                 database.rawQuery(query, args).use { cursor ->
                     while (cursor.moveToNext()) results += cursor.getBlob(0)
                 }

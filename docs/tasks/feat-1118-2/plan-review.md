@@ -155,7 +155,8 @@ plan_review:
 
 - Review was performed in the dedicated worktree on the task branch at `3f712431f616a00e01bb1d347f23a7a0aee4d498`; the worktree was clean before review artifacts were written.
 - The source folders referenced by the requirement were present and contained 13 possible-gutter district GPKGs and 13 existing-gutter district GPKGs.
-- No tests or builds were run; this was a plan review. `git diff --check` passed for the tracked state update.
+- The existing GPKG schemas were inspected read-only; the existing-gutter full dataset includes repeated `ID` values, so the validator must compare full row signatures/multiplicities rather than treating `ID` alone as a unique key. The plan signature includes attributes and geometry.
+- No tests or builds were run; this was a plan review. The validator and lifecycle scenarios remain planned implementation checks, not executed evidence.
 
 ---
 
@@ -173,8 +174,8 @@ plan_review:
 # Re-review Addendum
 
 Review Iteration: 2  
-Revision Reviewed: `3f712431f616a00e01bb1d347f23a7a0aee4d498` plus Planning artifact revisions  
-Review Date: 2026-11-24
+Revision Reviewed: `4635d6a65eb77b8a7e0b6285f62ab31fbbbacdbe` (`codex/feat/feat-1118-2`)
+Review Date: 2026-11-25
 
 ## Planning Responses
 
@@ -189,7 +190,7 @@ Status: Resolved.
 - compares each full-source district-filtered signature multiset with its 13 district-source multiset;
 - fails on missing, extra, duplicate, or misassigned signatures and records the diff in manifest evidence.
 
-This makes AC-001 reproducible on the development machine/CI and keeps the phone/emulator limited to package and runtime behavior checks.
+This makes AC-001 reproducible on the development machine/CI and keeps the phone/emulator limited to package and runtime behavior checks. The plan leaves the validator itself as an implementation deliverable; it is not claimed as already implemented or executed.
 
 ### ISS-002 — Latest-generation switching and resource lifecycle
 
@@ -234,4 +235,4 @@ The revised plan explicitly treats earlier execution and verification reports as
 - [ ] REQUEST_CHANGES
 - [ ] BLOCKED
 
-Implementation may begin after this fixed plan-review revision. Production code was not modified during Plan Critic.
+Plan Critic independently re-reviewed the revised plan at `4635d6a65eb77b8a7e0b6285f62ab31fbbbacdbe` on 2026-11-25. ISS-001 and ISS-002 are resolved for planning readiness, and Finding 3 is addressed by the historical-evidence control. APPROVED; implementation may begin. Production code was not modified during Plan Critic.

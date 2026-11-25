@@ -33,7 +33,7 @@
 
 ## Unresolved Conflicts
 
-- None in product behavior. The original attachment described 3 GPKGs; later user decisions add 26 district files and supersede the original three-source-only scope.
+- The supplied possible-gutter district files are not exact partitions by the full source's `Town` attribute. The host-side validator found split-only rows in 8 districts: 桃園區 2, 大溪區 1, 楊梅區 35, 蘆竹區 2, 龜山區 12, 八德區 4, 龍潭區 30, 復興區 13. Those rows exist in the full file under neighboring `Town` values; the possible 13-file union still exactly matches all 61,435 full-file geometries when the district attribute is excluded. Metadata, schema, CRS, and the existing-gutter union pass; this conflict affects the approved AC-001 per-district equivalence gate and the meaning of full-versus-district switching.
 
 ## Safe Planning Assumptions
 
@@ -43,8 +43,9 @@
 
 ## Questions Requiring Approval
 
-- None.
+- Should the 8 possible-gutter district files be treated as the authoritative newer dataset, accepting their split-only rows and changing the consistency gate from exact equivalence to a documented superset check?
+- Or should the supplied possible-gutter files be replaced/regenerated so their canonical row signature multisets exactly match the packaged full GPKG before implementation continues?
 
 ## Resolution Status
 
-- Resolved. Planning can proceed with the 29-source model and host-side manifest validation boundary.
+- Blocked pending the smallest source-data decision above. Production source selection must not be implemented against an unresolved full/split data conflict.
