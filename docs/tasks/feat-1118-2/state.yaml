@@ -2,8 +2,8 @@ task:
   id: feat-1118-2
   type: feature
 
-phase: verification
-status: verification_not_verified
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: resolved
@@ -24,7 +24,7 @@ validation:
 
 git:
   branch: codex/feat/feat-1118-2
-  commit: 94f5ba0a0aee62f2a803b63f0bae5b408d3c4c89
+  commit: 2a156b1d6d7d3453e1587b5e2bfa8c79d9478093
   status: committed
 
 verification:
@@ -52,6 +52,7 @@ release:
   status: pending
 
 blocking:
-  - AC-005 through AC-011: plan-required deterministic, restart, regression and performance evidence remains incomplete
-  - Remote CI: no status or workflow run is available for the local verification commit
+  - AC-005 through AC-009: new tests require independent Verification on committed revision 2a156b1d
+  - AC-010: broader basemap, WMS and geometry regression evidence remains incomplete
+  - AC-011: hosted CI and final performance assessment remain pending
 next_action: verification
