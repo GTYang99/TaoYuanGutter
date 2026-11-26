@@ -89,17 +89,17 @@ class OfflinePolygonMapHostInstrumentedTest {
                 scenario.onActivity { activity ->
                     exerciseCameraProfile(map)
                     offlineManager = offlineProviderManager(activity)
-                    assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = true)
                 }
+                awaitProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = true)
                 onView(withId(R.id.btnLayers)).perform(click())
                 assertLayerToggle(R.id.cbWaterOld, "水務局舊資料") { visible ->
-                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = visible, possibleVisible = true) }
+                    awaitProviderVisibility(offlineManager!!, legacyVisible = visible, possibleVisible = true, regionVisible = true)
                 }
                 assertLayerToggle(R.id.cbPossible, "可能側溝位置") { visible ->
-                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = visible) }
+                    awaitProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = visible, regionVisible = true)
                 }
                 assertLayerToggle(R.id.cbRegion, "桃園行政區") { visible ->
-                    scenario.onActivity { assertProviderVisibility(offlineManager!!, true, true, visible) }
+                    awaitProviderVisibility(offlineManager!!, true, true, visible)
                 }
                 if (reopenIndex == 0) assertRegionTileInHost(offlineManager!!)
                 exerciseVisibilityLifecycle(offlineManager!!)
@@ -146,8 +146,8 @@ class OfflinePolygonMapHostInstrumentedTest {
                     val workspace = activity.supportFragmentManager
                         .findFragmentById(R.id.shell_container) as MapWorkspaceFragment
                     offlineManager = offlineProviderManager(workspace)
-                    assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = true)
                 }
+                awaitProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = true)
                 if (reopenIndex == 0) {
                     assertRegionTileInHost(offlineManager!!)
                     assertProviderTileAtInterior(offlineManager!!, OfflinePolygonLayer.LEGACY, findInteriorSample(OfflinePolygonLayer.LEGACY))
@@ -158,13 +158,13 @@ class OfflinePolygonMapHostInstrumentedTest {
 
                 onView(withId(R.id.btnLayers)).perform(click())
                 assertLayerToggle(R.id.cbWaterOld, "水務局舊資料") { visible ->
-                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = visible, possibleVisible = true) }
+                    awaitProviderVisibility(offlineManager!!, legacyVisible = visible, possibleVisible = true, regionVisible = true)
                 }
                 assertLayerToggle(R.id.cbPossible, "可能側溝位置") { visible ->
-                    scenario.onActivity { assertProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = visible) }
+                    awaitProviderVisibility(offlineManager!!, legacyVisible = true, possibleVisible = visible, regionVisible = true)
                 }
                 assertLayerToggle(R.id.cbRegion, "桃園行政區") { visible ->
-                    scenario.onActivity { assertProviderVisibility(offlineManager!!, true, true, visible) }
+                    awaitProviderVisibility(offlineManager!!, true, true, visible)
                 }
                 exerciseVisibilityLifecycle(offlineManager!!)
             } finally {
@@ -206,8 +206,8 @@ class OfflinePolygonMapHostInstrumentedTest {
                 formScenario.onActivity { activity ->
                     exerciseCameraProfile(formMapReference.get())
                     formManager = offlineProviderManager(activity)
-                    assertProviderVisibility(formManager!!, legacyVisible = false, possibleVisible = true)
                 }
+                awaitProviderVisibility(formManager!!, legacyVisible = false, possibleVisible = true)
                 if (reopenIndex == 0) {
                     assertRegionTileInHost(formManager!!)
                     assertProviderTileAtInterior(formManager!!, OfflinePolygonLayer.POSSIBLE, findInteriorSample(OfflinePolygonLayer.POSSIBLE))
@@ -245,8 +245,8 @@ class OfflinePolygonMapHostInstrumentedTest {
                 pickerScenario.onActivity { activity ->
                     exerciseCameraProfile(pickerMapReference.get())
                     pickerManager = offlineProviderManager(activity)
-                    assertProviderVisibility(pickerManager!!, legacyVisible = true, possibleVisible = false)
                 }
+                awaitProviderVisibility(pickerManager!!, legacyVisible = true, possibleVisible = false)
                 if (reopenIndex == 0) {
                     assertRegionTileInHost(pickerManager!!)
                     assertProviderTileAtInterior(pickerManager!!, OfflinePolygonLayer.LEGACY, findInteriorSample(OfflinePolygonLayer.LEGACY))
@@ -595,12 +595,14 @@ class OfflinePolygonMapHostInstrumentedTest {
         manager: Any,
         legacyVisible: Boolean,
         possibleVisible: Boolean,
-        regionVisible: Boolean
+        regionVisible: Boolean = true
     ) {
         val deadline = SystemClock.uptimeMillis() + 60_000L
         while (SystemClock.uptimeMillis() < deadline) {
             val matches = runCatching {
-                assertProviderVisibility(manager, legacyVisible, possibleVisible, regionVisible)
+                InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                    assertProviderVisibility(manager, legacyVisible, possibleVisible, regionVisible)
+                }
                 true
             }.getOrDefault(false)
             if (matches) return

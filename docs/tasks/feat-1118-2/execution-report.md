@@ -79,3 +79,10 @@ ISS-005 and ISS-008 remain open until independent verification confirms map atta
 - Focused map JVM tests and `assembleDebug` pass on the latest source.
 - `assembleDebugAndroidTest` passes and produces the instrumentation APK.
 - `connectedDebugAndroidTest` is `NOT VERIFIED` in this environment because ADB reports no connected devices; no new device assertion result was produced.
+
+## Verification Feedback Response (2026-11-26)
+
+- The reported immediate provider read was confirmed in the host instrumentation helper and removed from all map-host visibility assertions, not only the lifecycle helper.
+- All provider visibility checks now run through a bounded wait and main-thread read after the asynchronous candidate commit.
+- `assembleDebugAndroidTest` passes after this test correction.
+- Emulator execution remains `NOT VERIFIED` because the environment reports no connected device; the prior 3/4 result must not be reused as evidence for the corrected test revision.

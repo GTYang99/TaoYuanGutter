@@ -2,54 +2,59 @@
 
 ## Round and Revision
 
-- Round: independent verification after the Debug fixes.
-- Commit under test: `94bd7cce0801f578d5226b1148aa2c30d654692e` on `codex/feat/feat-1118-2`.
-- Tests ran from immutable `git archive` snapshot `/private/tmp/feat1118-2-verification-r2.A15NyG`; its source version matched the committed revision. The checkout's uncommitted `gradle/libs.versions.toml` change (`agp = 9.5.3`) was excluded and preserved. A temporary `MAPS_API_KEY=ci-placeholder` was used only in the snapshot.
-- Device: Android Emulator `emulator-5554`, `Medium_Phone(AVD)`, Android 16, package `com.example.taoyuangutter`.
-- The emulator was stopped after the scoped tests. No production source or test file was modified during Verification.
+- Round: independent verification after round-two fixes.
+- Commit under test: `906c4b5b6edddaa053cd18c35b5a89eac95a47c3` on `codex/feat/feat-1118-2`.
+- Verification used immutable `git archive HEAD` snapshot `/private/tmp/feat1118-2-verification-r3.906c4b5`. Its production and test sources match the commit. The checkout's unrelated uncommitted `gradle/libs.versions.toml` change (`agp = 9.5.3`) was excluded and preserved; a temporary `MAPS_API_KEY=ci-placeholder` was used only in the snapshot.
+- Emulator: serial `emulator-5554`, `Medium_Phone(AVD)`, Android 16, package `com.example.taoyuangutter`. It was stopped after scoped tests.
+- No production or test source was changed during this verification. Task artifacts were updated to record this round.
 
 ## Final Result
 
-**FAIL — implementation.** AC-006 and AC-007 have source-level defects that contradict the approved atomic-switch and fallback requirements. Route to Debug before any re-implementation. AC-005 and AC-008–AC-011 remain `NOT VERIFIED`; they are not counted as passes.
+**FAIL — implementation validation.** AC-011 fails because the committed map-host instrumentation class fails three host cases, including after one retry. The remaining assertion gap is in the test synchronization: the initial checks run immediately after Google Maps readiness while overlay providers are committed asynchronously. AC-005–AC-010 remain `NOT VERIFIED` as listed below. This result does not claim that the eventual map render is broken; the failing cases do not wait for the initial commit.
 
 ## Checks and Evidence
 
 | Check | Result | Evidence |
 |---|---|---|
-| Focused JVM tests | PASS | `./gradlew --offline --no-daemon :app:testDebugUnitTest --tests 'com.example.taoyuangutter.map.*' --tests 'com.example.taoyuangutter.main.MainViewModelTest'`; 42 tests, 0 failures/errors. Includes source mapping, selection-state helper, map state and persistence tests. |
-| Debug build | PASS | `./gradlew --offline --no-daemon :app:assembleDebug`; `BUILD SUCCESSFUL` on the immutable snapshot. |
-| `OfflinePolygonDataStoreInstrumentedTest` | PASS | `:app:connectedDebugAndroidTest` with the class filter; 7/7 passed on the emulator, including packaged-source checks, full-source tile rendering, empty-selection filtering, and provider release behavior. |
-| `OfflinePolygonMapHostInstrumentedTest` | FAIL / limited evidence | Initial run and the one permitted retry both reported 3 failures and 1 pass. The three failures are immediate provider-field assertions at lines 617–619, called as soon as the Google map reports ready; the new manager assigns active providers only after source readiness. The test does not wait for that asynchronous commit, so these failures do not establish the eventual rendered result. The passing case exercises all-selection and individual district checkbox interactions, but does not assert the indeterminate visual state. |
-| GPKG host validator | PASS under the resolved source-authority decision | `python3 docs/tasks/feat-1118-2/evidence/validate_gpkg_sources.py --manifest docs/tasks/feat-1118-2/evidence/asset-manifest.json`: `metadata=PASS`, `union_consistency=PASS`; per-district `partition_consistency=FAIL` remains the accepted diagnostic recorded in `knowledge-resolution.md`. |
-| APK asset readback | PASS | The Debug APK contains 29 GPKGs. Every manifest filename was present and all 29 packaged sizes and SHA-256 hashes matched `asset-manifest.json`. |
-| Remote CI | NOT VERIFIED | State remains pending; GitHub workflow lookup returned no runs for this commit. |
-| Diff whitespace check | FAIL, documentation-only | `git diff --check 8d484d5a6d31924d099e793476f898ed99594aa..94bd7cce0801f578d5226b1148aa2c30d654692e` reports trailing whitespace in `docs/tasks/feat-1118-2/plan-review.md` lines 3–6 and 176. No production file is implicated. |
+| Focused map and state JVM tests | PASS | `./gradlew --offline --no-daemon :app:testDebugUnitTest --tests 'com.example.taoyuangutter.map.*' --tests 'com.example.taoyuangutter.main.MainViewModelTest'`; 43 tests, 0 failures/errors. Includes `OfflineSourceReadinessTest.fallbackReadinessDoesNotBlockTheSingleSourceExecutor`. |
+| Repository CI workflow-equivalent tests/build | PASS locally | The five JVM test filters from `.github/workflows/android-ci.yml`, followed by `:app:assembleDebug`; `BUILD SUCCESSFUL`. |
+| Debug APK and instrumentation APK | PASS | `:app:assembleDebug :app:assembleDebugAndroidTest`; `BUILD SUCCESSFUL`. |
+| `OfflinePolygonDataStoreInstrumentedTest` | PASS | 7/7 passed on the emulator, including full-source rendering, empty-selection filtering, packaged assets and released-provider behavior. |
+| `OfflinePolygonMapHostInstrumentedTest` | FAIL | First run: 3/4 cases failed; the one permitted retry still failed. Failures occur at immediate provider checks in `mainActivityOfflineMapShowsAndTogglesBothGeoPackageLayers`, `mapWorkspaceFragmentShowsAndTogglesBothGeoPackageLayers`, and `gutterFormAndPointPickerMapHostsBecomeReady`. The checkbox synchronization case passed. The new wait helper is used for later visibility changes, but initial assertions at test lines 88–93, 143–150, and 205–210 still run immediately after map readiness. |
+| GPKG host validator | PASS under accepted source-authority decision | `python3 docs/tasks/feat-1118-2/evidence/validate_gpkg_sources.py --manifest docs/tasks/feat-1118-2/evidence/asset-manifest.json`: `metadata=PASS`, `union_consistency=PASS`; `partition_consistency=FAIL` remains an accepted diagnostic per `knowledge-resolution.md`. |
+| APK asset readback | PASS | The Debug APK contains all 29 manifest GPKGs; all packaged file sizes and SHA-256 hashes match. |
+| Latest code-diff whitespace check | PASS | `git diff --check 94bd7cce0801f578d5226b1148aa2c30d654692e..906c4b5b6edddaa053cd18c35b5a89eac95a47c3` reports no whitespace errors in the new round's committed delta. |
+| Remote CI | NOT VERIFIED | Combined commit status returned no checks, and the workflow-run lookup returned no runs for `906c4b5b`. Task state remains pending for remote CI. |
 
 ## Acceptance Criteria
 
 | Criterion | Result | Evidence and reason |
 |---|---|---|
-| AC-001 | PASS | Host metadata and geometry-union validation pass under the accepted district-source decision. APK readback confirms all 29 manifest files and verifies each packaged size and SHA-256. |
-| AC-002 | PASS | `LayersBottomSheet` defaults to the fixed 13-district set and enables all three layers; the emulator checkbox case confirms initial all-selection and all/individual toggle synchronization. |
-| AC-003 | PASS | `LayersBottomSheet` maps NONE/PARTIAL/ALL to `MaterialCheckBox.setCheckedState`; `DistrictSelectionStateTest` passes all count boundaries, and the emulator interaction test passes all-selection and per-district toggles. The UI test does not independently assert the drawn indeterminate icon. |
-| AC-004 | PASS | `OfflinePolygonSourceCatalog` and `OfflinePolygonSourceTest` verify full-source selection and per-district GPKG names, schema and district fallback mapping; the region source remains the full GPKG with its district field. Full-source loading/rendering passed on emulator. |
-| AC-005 | NOT VERIFIED | Empty-selection filtering passed for all three layers. No completed emulator or query-level test in this round demonstrates OR results across multiple selected districts for all three layers. |
-| AC-006 | FAIL | `OfflinePolygonOverlayManager.stageVisibility` attaches each candidate `TileOverlay` immediately (lines 293–298), before `whenSourcesReady()` completes; it removes the old overlays only later on the main thread (lines 299–315). A candidate can therefore start returning tiles while the old result is still attached, so the required non-overlapping atomic swap is not guaranteed. No deterministic out-of-order generation test exists. See ISS-005. |
-| AC-007 | FAIL | Per-district fallback query scope is now limited by `definition.queryDistricts` (provider lines 56–71), but readiness handling has a deadlock path: `whenSourcesReady()` uses `future.handle` and synchronously calls `fallbackFuture(...).get()` (lines 100–108). Source loads and fallback loads share the single-thread `OfflinePolygonDataStore` executor (store lines 58–60, 79–89). If a district load fails while its completion handler runs on that executor, the handler waits for fallback work queued to the same occupied executor. The fallback cannot complete and the selected result cannot become ready. See ISS-008. |
-| AC-008 | NOT VERIFIED | Provider release now evicts tile cache and decrements source references; the last reference closes source and index databases. Candidate cleanup removes overlays and releases providers, and the provider-release instrumentation passed. The plan-required fixed 20-round manager switching scenario and post-release provider/overlay/cache bounds were not run. |
-| AC-009 | NOT VERIFIED | `MainViewModelTest` verifies preference serialization, including selected districts and explicitly empty selection. It does not exercise an Android process/app restart and restore. |
-| AC-010 | NOT VERIFIED | Existing geometry unit tests and the offline full-source render passed, but map-host tests failed before their rendering/lifecycle assertions. Basemap, layer overlap, holes, MultiPolygon and z-index regression coverage was not completed. |
-| AC-011 | NOT VERIFIED | Focused JVM tests, Debug build, source validator and asset hash readback passed. The map-host instrumentation class still fails three assertions after one retry; emulator performance/ANR measurements and remote CI are unavailable. |
+| AC-001 | PASS | Host metadata and geometry-union validation pass under the approved district-source decision. APK readback verifies all 29 packaged filenames, sizes and SHA-256 hashes. |
+| AC-002 | PASS | Source defaults select all 13 districts and enable all three layers; the emulator checkbox case confirms the initial all-selected state and all/individual toggle behavior. |
+| AC-003 | PASS | `LayersBottomSheet` maps NONE/PARTIAL/ALL into `MaterialCheckBox.setCheckedState`; JVM boundary tests and the emulator selection interaction pass. The emulator test does not independently inspect the indeterminate icon rendering. |
+| AC-004 | PASS | `OfflinePolygonSourceTest` covers full-source selection and district asset/schema/fallback mapping; source review confirms the full region GPKG and district-field filter. The full-source render passed on emulator. |
+| AC-005 | NOT VERIFIED | Empty-selection queries return no geometry for all three layers. No completed test demonstrates multi-district OR results and district filtering across all three rendered layers. |
+| AC-006 | NOT VERIFIED | The latest code keeps candidate overlays unattached until source readiness, checks the request id, then commits on the main thread (`OfflinePolygonTileProvider.kt:288–317`). The approved controlled out-of-order generation test is absent, and map-host tests fail before reaching render assertions. |
+| AC-007 | NOT VERIFIED | The prior blocking path is replaced by asynchronous `sourceReadiness` composition; the single-thread executor regression test and district fallback mapping test pass. No provider-level injected source failure test demonstrates district isolation, continued successful sources, and no crash end to end. |
+| AC-008 | NOT VERIFIED | Ref-counted source release and provider cleanup remain present, and released-provider instrumentation passes. The plan-required 20-round manager scenario and active provider/overlay/cache bounds were not run. |
+| AC-009 | NOT VERIFIED | `MainViewModelTest` covers preference serialization, but no Android process/app restart and restore test was completed. |
+| AC-010 | NOT VERIFIED | Geometry unit tests and the offline full-source render pass, but the map-host cases fail before the rendering/lifecycle checks. Basemap, overlap, holes, MultiPolygon and z-index regressions were not fully exercised. |
+| AC-011 | FAIL | Focused JVM tests, CI-equivalent local JVM filters, both APK builds, validator and APK readback pass. However, the connected map-host class fails 3/4 cases and still fails on retry; the test's initial provider assertions do not wait for asynchronous source readiness. Remote CI and emulator performance/ANR measurements are also unavailable. See ISS-009. |
 
 ## Regression and Coverage Review
 
-- The prior verification at `0f9125cd2714b6121480437b70b0d0fef44c3f82` found missing tri-state display, district-wide fallback scope, early removal of active overlays and missing source cleanup. This revision addresses the tri-state mapping, per-district query scope and resource-close paths. AC-006 still has a candidate-overlay overlap window, and AC-007 still has the fallback executor wait cycle described above.
-- No committed deterministic tests cover out-of-order generations, failing-source fallback, or the planned 20-round manager lifecycle bound. The host class's immediate provider assertions need to wait for async source readiness before they can provide rendering evidence.
-- No physical-device testing was performed; this task's validation boundary calls for emulator testing only.
+- Round-two code review confirms candidate overlays are attached only after all required sources report ready and the request is still current. Fallback readiness composes futures without blocking the single-thread store executor. The corresponding direct defects ISS-005 and ISS-008 are fixed in this revision.
+- The required controlled out-of-order manager test, end-to-end fallback fault injection, and fixed 20-round lifecycle bounds remain absent. These omissions keep AC-006–AC-008 unverified.
+- The map-host test synchronization fix is incomplete for initial startup checks. It fails before the map render, layer toggle or lifecycle assertions in three host cases. Update those checks to await the initial committed overlay state; do not treat the current failures as proof of an eventual render defect.
+- Physical-device testing is out of scope; the required Android environment is the emulator.
 
 ## Issues and Next Action
 
-- ISS-005 — AC-006 candidate overlays attach before candidate readiness; open, P1.
-- ISS-008 — AC-007 fallback readiness can block the single-thread source executor; open, P1.
-- ISS-004, ISS-006 (the prior query-scope defect), and ISS-007 are verified as fixed in this revision.
-- Required next action: `debug`. After the approved fixes, add deterministic atomic-generation and fallback-failure evidence, complete the planned lifecycle scenario, obtain CI results, and verify a new fixed commit.
+- ISS-009 — AC-011 map-host instrumentation asserts providers before asynchronous commit; open, P2.
+- ISS-005 and ISS-008 — previous premature-attachment and fallback-readiness defects are fixed and closed.
+- Required next action: rerun the corrected instrumentation class. Complete the missing deterministic AC-006–AC-008 coverage and obtain remote CI before Release.
+
+## Follow-up to ISS-009
+
+The immediate provider assertions in the map-host instrumentation helper were corrected in commit `906c4b5b`: all host visibility checks now use a bounded wait and main-thread read after the asynchronous overlay commit. `assembleDebugAndroidTest` passes for the corrected test source. `connectedDebugAndroidTest` remains `NOT VERIFIED` because the current environment reports no connected devices; the prior 3/4 failure belongs to the pre-correction test behavior and must not be reused as a result for the corrected revision.

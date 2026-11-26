@@ -91,13 +91,14 @@ phase: verification
 category: implementation_regression
 priority: P1
 title: Candidate overlays attach before the replacement is ready
-status: open
-impact: AC-006 atomic switching is not guaranteed; a candidate can render while the previous complete result remains attached.
+status: closed
+impact: The early-attachment defect is fixed in commit 705017e8; AC-006's out-of-order behavior remains NOT VERIFIED because its planned deterministic test is absent.
 expected: Keep the previous complete overlay visible until the latest generation is ready, then atomically replace it.
-actual: stageVisibility attaches candidate overlays before whenSourcesReady completes, then removes the previous overlays in a later main-thread callback.
+actual: stageVisibility keeps candidate overlays unattached until source readiness completes, checks that the request is still latest, then clears and attaches on the main thread.
 evidence:
-  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:293-315
-next_action: debug
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:288-317
+resolution: Candidate attachment now occurs only inside the latest-ready commit. The required deferred out-of-order manager test is still missing and is recorded as NOT VERIFIED under AC-006.
+next_action: closed
 owner: developer
 ```
 
@@ -153,13 +154,35 @@ phase: verification
 category: implementation_regression
 priority: P1
 title: Fallback readiness can block the single-thread source executor
-status: open
-impact: AC-007 fallback may never become ready after a district source fails, preventing the latest selection from committing.
+status: closed
+impact: The blocking fallback readiness path is replaced by future composition; the focused regression test passes on a single-thread executor.
 expected: A failed district source falls back to the full source without blocking the executor that loads that fallback.
-actual: whenSourcesReady attaches a synchronous future.handle that calls fallbackFuture(...).get(); source and fallback loads use the same single-thread executor, so completion on that executor can wait for its own queued fallback task.
+actual: whenSourcesReady delegates to sourceReadiness, which handles primary failure by composing the fallback future without blocking.
 evidence:
-  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:100-115
-  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt:58-89
-next_action: debug
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:100-112
+  - app/src/main/java/com/example/taoyuangutter/map/OfflineSourceReadiness.kt:5-17
+  - app/src/test/java/com/example/taoyuangutter/map/OfflineSourceReadinessTest.kt:9-26
+resolution: The previous deadlock defect is fixed and its regression test passes. Full provider fault-injection coverage remains NOT VERIFIED under AC-007.
+next_action: closed
+owner: developer
+```
+
+## ISS-009
+
+```yaml
+issue_id: ISS-009
+task_id: feat-1118-2
+phase: verification
+category: implementation_regression
+priority: P2
+title: Initial map-host instrumentation checks providers before async commit
+status: open
+impact: AC-011's map-host instrumentation class fails on three host cases, blocking a passing integration gate.
+expected: Wait for the initial source-ready generation to commit before asserting active provider visibility, then verify rendering and lifecycle.
+actual: The test helper previously asserted provider fields immediately after GoogleMap readiness. It now waits up to 60 seconds and reads on the main thread after asynchronous source readiness and commit; the corrected test has compiled but has not yet run on a connected emulator.
+evidence:
+  - app/src/androidTest/java/com/example/taoyuangutter/map/OfflinePolygonMapHostInstrumentedTest.kt:88-107
+  - app/src/androidTest/java/com/example/taoyuangutter/map/OfflinePolygonMapHostInstrumentedTest.kt:576-612
+next_action: verification
 owner: developer
 ```
