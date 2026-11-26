@@ -2,8 +2,8 @@ task:
   id: feat-1118-2
   type: feature
 
-phase: infrastructure
-status: infrastructure_in_progress
+phase: verification
+status: verification_failed
 
 knowledge_resolution:
   status: resolved
@@ -28,9 +28,10 @@ git:
   status: committed
 
 verification:
-  result: not_verified
-  category: environment
-  failed_acceptance_criteria: []
+  result: fail
+  category: implementation
+  failed_acceptance_criteria:
+    - AC-011
   not_verified_acceptance_criteria:
     - AC-005
     - AC-006
@@ -38,7 +39,6 @@ verification:
     - AC-008
     - AC-009
     - AC-010
-    - AC-011
 
 debug:
   status: completed
@@ -52,5 +52,5 @@ release:
   status: pending
 
 blocking:
-  - ISS-010: AC-010/AC-011 map snapshot evidence is blocked because the verification Maps SDK key is unauthorized; workspace has no valid local.properties key
-next_action: infrastructure
+  - ISS-011: AC-011 map-host instrumentation intermittently captures a pixel without the expected offline polygon fill
+next_action: debug

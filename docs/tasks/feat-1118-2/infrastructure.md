@@ -25,8 +25,12 @@ Rerun command from the fixed snapshot:
 
 The network condition was remediated, and the blocked check was rerun as required. The rerun distinguishes the remaining cause: Maps SDK authorization is unavailable with the temporary placeholder key. Since the camera-idle callback is not delivered, the screenshot and color assertion never run.
 
-## Outcome and Next Action
+## Resolution and Return to Verification
 
-Infrastructure remains **BLOCKED** for AC-010/AC-011 map-render evidence. Provide a valid Maps SDK key through ignored local configuration or use an authenticated emulator configuration, then rerun the focused test on the same fixed commit. Do not store or copy the key into task artifacts. After that check is available, return the task to `verification` and reassess the affected criteria.
+- A valid Maps key is now present in ignored workspace `local.properties`. Only its value was transferred to the isolated snapshot's ignored `local.properties`; no credential value was printed or stored in task artifacts.
+- On fixed revision `d21a49a1d7db0f104e85b2aa06b8c23a69810222`, `./gradlew --offline --no-daemon --rerun-tasks :app:assembleDebug :app:assembleDebugAndroidTest` completed successfully. The Debug and AndroidTest manifests merged successfully.
+- The previously blocked `mainActivityOfflineMapShowsAndTogglesBothGeoPackageLayers` case then passed on the Android 16 emulator (`OK (1 test)`). It reached the map snapshot and color assertions. ISS-010 is closed.
+- The subsequent complete map-host class exposed an intermittent LEGACY snapshot mismatch, recorded as ISS-011. This is a Verification failure requiring Debug, not a remaining credential or network blocker.
+- The current worktree's `:app:processDebugMainManifest :app:processDebugAndroidTestManifest` tasks also passed with its existing uncommitted AGP version change; the reported Android Studio manifest merger failure was not reproduced by these CLI checks.
 
-Current task state remains `phase: infrastructure`, `status: infrastructure_in_progress`, `next_action: infrastructure`. No production or test source was changed. Remote CI also remains pending as recorded in `verification.md`.
+Infrastructure has returned the task to `verification`. No production or test source was changed. Remote CI remains pending as recorded in `verification.md`.

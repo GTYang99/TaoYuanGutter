@@ -197,15 +197,36 @@ phase: infrastructure
 category: environment
 priority: P2
 title: Emulator Maps SDK lacks a valid API key for map-render evidence
-status: open
-impact: AC-010 and AC-011 map-render evidence cannot be completed until the Google Maps Android SDK is authorized and can deliver map camera callbacks.
+status: closed
+impact: The Maps SDK authorization blocker is resolved; the map snapshot assertion now executes.
 expected: The emulator's GoogleMap camera settles and delivers the camera-idle callback so the offline polygon overlay snapshot can be checked.
-actual: The first attempt was blocked by an AVD with Wi-Fi disabled and no active default network. Enabling Wi-Fi restored connectivity. The required rerun then failed at the same camera-idle assertion; its log reports `StatusCode=INVALID_ARGUMENT` and a Google Maps SDK authorization failure for the temporary `ci-placeholder` key. The workspace has no `local.properties` with a valid Maps key.
+actual: The first attempt was blocked by an AVD with Wi-Fi disabled and no active default network. Enabling Wi-Fi restored connectivity. The required rerun then failed at the same camera-idle assertion; its log reports `StatusCode=INVALID_ARGUMENT` and a Google Maps SDK authorization failure for the temporary `ci-placeholder` key. At that time the workspace had no valid local Maps key.
 evidence:
   - /private/tmp/feat1118-2-verification-r4.d21a49a1/app/src/androidTest/java/com/example/taoyuangutter/map/OfflinePolygonMapHostInstrumentedTest.kt:425-437
   - /private/tmp/feat1118-2-verification-r4.d21a49a1/app/build/outputs/androidTest-results/connected/debug/Medium_Phone(AVD) - 16/logcat-com.example.taoyuangutter.map.OfflinePolygonMapHostInstrumentedTest-mainActivityOfflineMapShowsAndTogglesBothGeoPackageLayers.txt
   - /private/tmp/feat1118-2-verification-r4.d21a49a1/app/build/outputs/androidTest-results/connected/debug/TEST-Medium_Phone(AVD) - 16.xml
-resolution: AVD connectivity was restored, but map-render verification remains blocked until a valid Maps SDK key is configured in ignored local.properties or an authenticated test environment is available. No credential was added to task artifacts.
-next_action: infrastructure
+resolution: A valid key was provided in ignored local.properties and copied only to the isolated test snapshot. Debug and AndroidTest APKs rebuilt successfully, and the previously blocked focused case passed 1/1. The later intermittent snapshot mismatch is tracked separately as ISS-011. No credential was added to task artifacts.
+next_action: closed
 owner: infrastructure
+```
+
+## ISS-011
+
+```yaml
+issue_id: ISS-011
+task_id: feat-1118-2
+phase: verification
+category: implementation_regression
+priority: P1
+title: Map-host snapshot intermittently lacks the expected offline polygon fill
+status: open
+impact: AC-011's instrumentation gate is unstable, and AC-010's map-render regression evidence remains incomplete.
+expected: With the LEGACY provider active and the camera centered on a known polygon interior, the map snapshot pixel matches the opaque LEGACY fill.
+actual: On the fixed revision with a valid Maps key, the focused case passed once. The four-case map-host class then failed 1/4 at the LEGACY snapshot pixel, expected #ff156d1d but observed #ffa3c2a1. The one permitted retry of that failed case passed. Direct provider tile checks and the other three map-host cases passed.
+evidence:
+  - app/src/androidTest/java/com/example/taoyuangutter/map/OfflinePolygonMapHostInstrumentedTest.kt:425-478
+  - The four-case instrumentation output reports the LEGACY snapshot assertion failure at line 462; focused runs before and after it report OK (1 test).
+resolution: Pending Debug classification of overlay rendering readiness versus snapshot-test synchronization; do not treat the intermittent result as a passing instrumentation gate.
+next_action: debug
+owner: developer
 ```
