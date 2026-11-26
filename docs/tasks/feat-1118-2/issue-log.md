@@ -176,13 +176,36 @@ phase: verification
 category: implementation_regression
 priority: P2
 title: Initial map-host instrumentation checks providers before async commit
-status: open
-impact: AC-011's map-host instrumentation class fails on three host cases, blocking a passing integration gate.
+status: closed
+impact: The initial provider assertion race is fixed and verified on the current commit; all four host cases reached their post-commit checks, with three passing and one later rendering step blocked.
 expected: Wait for the initial source-ready generation to commit before asserting active provider visibility, then verify rendering and lifecycle.
-actual: The test helper previously asserted provider fields immediately after GoogleMap readiness. It now waits up to 60 seconds and reads on the main thread after asynchronous source readiness and commit; the corrected test has compiled but has not yet run on a connected emulator.
+actual: All provider-visibility assertions now use a bounded wait and main-thread reads. The current emulator run passed the initial visibility checks in all four cases; the remaining failure occurs later at the GoogleMap camera-idle wait in the MainActivity screenshot case.
 evidence:
   - app/src/androidTest/java/com/example/taoyuangutter/map/OfflinePolygonMapHostInstrumentedTest.kt:88-107
   - app/src/androidTest/java/com/example/taoyuangutter/map/OfflinePolygonMapHostInstrumentedTest.kt:576-612
-next_action: verification
+resolution: Initial provider-visibility race fixed and verified; camera-idle environment issue tracked separately as ISS-010.
+next_action: closed
 owner: developer
+```
+
+## ISS-010
+
+```yaml
+issue_id: ISS-010
+task_id: feat-1118-2
+phase: infrastructure
+category: environment
+priority: P2
+title: Emulator Maps SDK lacks a valid API key for map-render evidence
+status: open
+impact: AC-010 and AC-011 map-render evidence cannot be completed until the Google Maps Android SDK is authorized and can deliver map camera callbacks.
+expected: The emulator's GoogleMap camera settles and delivers the camera-idle callback so the offline polygon overlay snapshot can be checked.
+actual: The first attempt was blocked by an AVD with Wi-Fi disabled and no active default network. Enabling Wi-Fi restored connectivity. The required rerun then failed at the same camera-idle assertion; its log reports `StatusCode=INVALID_ARGUMENT` and a Google Maps SDK authorization failure for the temporary `ci-placeholder` key. The workspace has no `local.properties` with a valid Maps key.
+evidence:
+  - /private/tmp/feat1118-2-verification-r4.d21a49a1/app/src/androidTest/java/com/example/taoyuangutter/map/OfflinePolygonMapHostInstrumentedTest.kt:425-437
+  - /private/tmp/feat1118-2-verification-r4.d21a49a1/app/build/outputs/androidTest-results/connected/debug/Medium_Phone(AVD) - 16/logcat-com.example.taoyuangutter.map.OfflinePolygonMapHostInstrumentedTest-mainActivityOfflineMapShowsAndTogglesBothGeoPackageLayers.txt
+  - /private/tmp/feat1118-2-verification-r4.d21a49a1/app/build/outputs/androidTest-results/connected/debug/TEST-Medium_Phone(AVD) - 16.xml
+resolution: AVD connectivity was restored, but map-render verification remains blocked until a valid Maps SDK key is configured in ignored local.properties or an authenticated test environment is available. No credential was added to task artifacts.
+next_action: infrastructure
+owner: infrastructure
 ```

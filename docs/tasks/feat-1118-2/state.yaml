@@ -2,8 +2,8 @@ task:
   id: feat-1118-2
   type: feature
 
-phase: verification
-status: pending
+phase: infrastructure
+status: infrastructure_in_progress
 
 knowledge_resolution:
   status: resolved
@@ -24,12 +24,12 @@ validation:
 
 git:
   branch: codex/feat/feat-1118-2
-  commit: 906c4b5b6edddaa053cd18c35b5a89eac95a47c3
+  commit: d21a49a1d7db0f104e85b2aa06b8c23a69810222
   status: committed
 
 verification:
-  result: pending
-  category: implementation
+  result: not_verified
+  category: environment
   failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-005
@@ -38,6 +38,7 @@ verification:
     - AC-008
     - AC-009
     - AC-010
+    - AC-011
 
 debug:
   status: completed
@@ -51,5 +52,5 @@ release:
   status: pending
 
 blocking:
-  - ISS-009: AC-011 map-host instrumentation fails before async overlay commit
-next_action: verification
+  - ISS-010: AC-010/AC-011 map snapshot evidence is blocked because the verification Maps SDK key is unauthorized; workspace has no valid local.properties key
+next_action: infrastructure
