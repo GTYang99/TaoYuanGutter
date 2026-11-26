@@ -219,14 +219,14 @@ phase: verification
 category: implementation_regression
 priority: P1
 title: Map-host snapshot intermittently lacks the expected offline polygon fill
-status: open
-impact: AC-011's instrumentation gate is unstable, and AC-010's map-render regression evidence remains incomplete.
+status: closed
+impact: The intermittent snapshot assertion was repaired and the affected map-host instrumentation passed on the fixed revision; broader AC-010/AC-011 evidence remains incomplete.
 expected: With the LEGACY provider active and the camera centered on a known polygon interior, the map snapshot pixel matches the opaque LEGACY fill.
 actual: On the fixed revision with a valid Maps key, the focused case passed once. The four-case map-host class then failed 1/4 at the LEGACY snapshot pixel, expected #ff156d1d but observed #ffa3c2a1. The one permitted retry of that failed case passed. Direct provider tile checks and the other three map-host cases passed.
 evidence:
   - app/src/androidTest/java/com/example/taoyuangutter/map/OfflinePolygonMapHostInstrumentedTest.kt:425-478
   - The four-case instrumentation output reports the LEGACY snapshot assertion failure at line 462; focused runs before and after it report OK (1 test).
-resolution: Root cause identified and minimum test-side fix implemented in commit 1fbdd9e9. The instrumentation now uses bounded snapshot polling for the expected rendered color while preserving the exact assertion. The focused MainActivity map-host case passed on emulator; the complete class still needs a clean rerun because one attempt failed earlier at activity startup with NoActivityResumedException before snapshot validation.
-next_action: verification
+resolution: The test-side fix in commit 94f5ba0a uses bounded snapshot polling while preserving the exact color assertion. Independent Verification on Android 16 Medium_Phone(AVD) passed the focused MainActivity case 1/1 and the complete map-host class 4/4. Other acceptance-criteria coverage gaps remain in verification.md.
+next_action: closed
 owner: developer
 ```

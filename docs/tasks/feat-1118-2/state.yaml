@@ -2,8 +2,8 @@ task:
   id: feat-1118-2
   type: feature
 
-phase: debug
-status: debug_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -24,14 +24,13 @@ validation:
 
 git:
   branch: codex/feat/feat-1118-2
-  commit: 1fbdd9e9
+  commit: 94f5ba0a0aee62f2a803b63f0bae5b408d3c4c89
   status: committed
 
 verification:
-  result: fail
-  category: implementation
-  failed_acceptance_criteria:
-    - AC-011
+  result: not_verified
+  category: null
+  failed_acceptance_criteria: []
   not_verified_acceptance_criteria:
     - AC-005
     - AC-006
@@ -39,6 +38,7 @@ verification:
     - AC-008
     - AC-009
     - AC-010
+    - AC-011
 
 debug:
   status: completed
@@ -52,5 +52,6 @@ release:
   status: pending
 
 blocking:
-  - ISS-011: AC-011 map-host instrumentation intermittently captures a pixel without the expected offline polygon fill
+  - AC-005 through AC-011: plan-required deterministic, restart, regression and performance evidence remains incomplete
+  - Remote CI: no status or workflow run is available for the local verification commit
 next_action: verification
