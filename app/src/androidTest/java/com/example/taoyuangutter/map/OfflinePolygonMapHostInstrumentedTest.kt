@@ -5,6 +5,7 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Point
 import android.graphics.BitmapFactory
+import android.os.SystemClock
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.espresso.Espresso.onView
@@ -576,6 +577,7 @@ class OfflinePolygonMapHostInstrumentedTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             setProviderVisibility(manager, legacyVisible, possibleVisible, regionVisible)
         }
+        awaitProviderVisibility(manager, legacyVisible, possibleVisible, regionVisible)
     }
 
     private fun setProviderVisibility(manager: Any, legacyVisible: Boolean, possibleVisible: Boolean, regionVisible: Boolean = true) {
@@ -587,6 +589,23 @@ class OfflinePolygonMapHostInstrumentedTest {
         )
         method.isAccessible = true
         method.invoke(manager, legacyVisible, possibleVisible, regionVisible)
+    }
+
+    private fun awaitProviderVisibility(
+        manager: Any,
+        legacyVisible: Boolean,
+        possibleVisible: Boolean,
+        regionVisible: Boolean
+    ) {
+        val deadline = SystemClock.uptimeMillis() + 60_000L
+        while (SystemClock.uptimeMillis() < deadline) {
+            val matches = runCatching {
+                assertProviderVisibility(manager, legacyVisible, possibleVisible, regionVisible)
+                true
+            }.getOrDefault(false)
+            if (matches) return
+            SystemClock.sleep(50L)
+        }
         assertProviderVisibility(manager, legacyVisible, possibleVisible, regionVisible)
     }
 

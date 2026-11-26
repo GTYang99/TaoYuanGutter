@@ -72,3 +72,10 @@ The four verification issues remain open until the next independent verification
 | `./gradlew :app:assembleDebug` | PASS | Debug APK assembled with a temporary non-secret Maps placeholder, then the placeholder was removed. |
 
 ISS-005 and ISS-008 remain open until independent verification confirms map attachment timing and emulator behavior.
+
+## Verification Follow-up (2026-11-26)
+
+- Updated `OfflinePolygonMapHostInstrumentedTest` to wait for the asynchronous overlay commit before asserting provider visibility; this removes the test's immediate-read race without weakening the expected state.
+- Focused map JVM tests and `assembleDebug` pass on the latest source.
+- `assembleDebugAndroidTest` passes and produces the instrumentation APK.
+- `connectedDebugAndroidTest` is `NOT VERIFIED` in this environment because ADB reports no connected devices; no new device assertion result was produced.
