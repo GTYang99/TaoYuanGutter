@@ -34,6 +34,6 @@ Repair ISS-004 through ISS-007 with the smallest changes that restore the approv
 3. Re-run the host validator and APK asset readback.
 4. Re-attempt emulator instrumentation; if ADB remains unavailable, record the affected ACs as `NOT VERIFIED`.
 
-## Re-entry Boundary
+## Implementation Result
 
-No production code is changed during this debug phase. After root cause and this plan are accepted by the workflow, re-enter `implementation_debug` for the four fixes.
+The four fixes were implemented in the current debug re-entry. The next gate is independent verification of the committed revision; ISS-004 through ISS-007 remain open until that verification passes.

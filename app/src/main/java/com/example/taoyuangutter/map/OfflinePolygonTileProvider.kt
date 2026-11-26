@@ -100,6 +100,7 @@ internal class OfflinePolygonTileProvider(
     fun whenSourcesReady(): CompletableFuture<Unit> {
         val readiness = sourceFutures.map { (definition, future) ->
             future.handle { _, failure ->
+                if (released) return@handle Unit
                 if (failure != null && definition.fallback != null) fallbackFuture(definition.fallback).get()
                 Unit
             }

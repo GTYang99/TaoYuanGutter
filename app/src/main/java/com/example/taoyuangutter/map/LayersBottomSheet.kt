@@ -147,10 +147,12 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
         applySelected(binding.cardEMapGray, binding.ivEMapGrayRadio, selected == LAYER_EMAP01)
     }
 
-    private fun allCheckState(selectedDistricts: Set<String>): Int = when {
-        selectedDistricts.isEmpty() -> com.google.android.material.checkbox.MaterialCheckBox.STATE_UNCHECKED
-        selectedDistricts.size == DISTRICTS.size -> com.google.android.material.checkbox.MaterialCheckBox.STATE_CHECKED
-        else -> com.google.android.material.checkbox.MaterialCheckBox.STATE_INDETERMINATE
+    private fun allCheckState(selectedDistricts: Set<String>): Int = when (
+        districtSelectionState(selectedDistricts.size, DISTRICTS.size)
+    ) {
+        DistrictSelectionState.NONE -> com.google.android.material.checkbox.MaterialCheckBox.STATE_UNCHECKED
+        DistrictSelectionState.ALL -> com.google.android.material.checkbox.MaterialCheckBox.STATE_CHECKED
+        DistrictSelectionState.PARTIAL -> com.google.android.material.checkbox.MaterialCheckBox.STATE_INDETERMINATE
     }
 
     override fun onStart() {
