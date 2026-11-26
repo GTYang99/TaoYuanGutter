@@ -2,8 +2,8 @@ task:
   id: feat-1118-2
   type: feature
 
-phase: implementation
-status: implementation_complete
+phase: verification
+status: verification_not_verified
 
 knowledge_resolution:
   status: resolved
@@ -24,7 +24,7 @@ validation:
 
 git:
   branch: codex/feat/feat-1118-2
-  commit: 2a156b1d6d7d3453e1587b5e2bfa8c79d9478093
+  commit: 215e59fe51cba50bb458ad2ecfd60e749a028911
   status: committed
 
 verification:
