@@ -17,6 +17,9 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.floor
 import kotlin.math.ln
 import kotlin.math.tan
@@ -182,6 +185,118 @@ class OfflinePolygonDataStoreInstrumentedTest {
 
         listOf(OfflinePolygonLayer.LEGACY, OfflinePolygonLayer.POSSIBLE, OfflinePolygonLayer.REGION).forEach { layer ->
             assertTrue("${layer.name} must hide all features for an empty district selection", OfflinePolygonDataStore.load(context, layer).get().query(bounds, emptySet()).isEmpty())
+        }
+    }
+
+    @Test
+    fun twoDistrictSelectionUsesOrAcrossAllLayersAndDistrictFiles() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val bounds = doubleArrayOf(265000.0, 2757000.0, 283500.0, 2770000.0)
+        val first = "桃園區"
+        val second = "中壢區"
+
+        OfflinePolygonLayer.entries.forEach { layer ->
+            val source = OfflinePolygonSourceCatalog.full(layer)
+            val data = OfflinePolygonDataStore.load(context, source).get()
+            try {
+                val firstOnly = geometrySignatures(data.query(bounds, setOf(first)))
+                val secondOnly = geometrySignatures(data.query(bounds, setOf(second)))
+                val combined = geometrySignatures(data.query(bounds, setOf(first, second)))
+                assertTrue("${layer.name} needs a first-district sample", firstOnly.isNotEmpty())
+                assertTrue("${layer.name} needs a second-district sample", secondOnly.isNotEmpty())
+                assertEquals("${layer.name} selection must use OR without extra districts", (firstOnly + secondOnly).sorted(), combined.sorted())
+                assertTrue(data.query(bounds, emptySet()).isEmpty())
+            } finally {
+                OfflinePolygonDataStore.release(context, source)
+            }
+        }
+
+        listOf(OfflinePolygonLayer.LEGACY, OfflinePolygonLayer.POSSIBLE).forEach { layer ->
+            listOf(first, second).forEach { district ->
+                val source = OfflinePolygonSourceCatalog.district(layer, district)
+                val data = OfflinePolygonDataStore.load(context, source).get()
+                try {
+                    assertTrue("${layer.name} $district district file must contain local geometry", data.query(bounds, setOf(district)).isNotEmpty())
+                    val other = if (district == first) second else first
+                    assertTrue("${layer.name} $district district file must exclude $other", data.query(bounds, setOf(other)).isEmpty())
+                } finally {
+                    OfflinePolygonDataStore.release(context, source)
+                }
+            }
+        }
+    }
+
+    private fun geometrySignatures(geometries: List<ByteArray>): List<String> {
+        val digest = MessageDigest.getInstance("SHA-256")
+        return geometries.map { geometry ->
+            digest.digest(geometry).joinToString("") { byte ->
+                (byte.toInt() and 0xff).toString(16).padStart(2, '0')
+            }
+        }
+    }
+
+    @Test
+    fun failedDistrictSourceFallsBackWithoutBlockingAnotherDistrict() {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        val failedDistrict = "桃園區"
+        val successfulDistrict = "中壢區"
+        val failedSource = OfflinePolygonSourceCatalog.district(OfflinePolygonLayer.LEGACY, failedDistrict)
+        val successfulSource = OfflinePolygonSourceCatalog.district(OfflinePolygonLayer.LEGACY, successfulDistrict)
+        val fallbackSource = failedSource.fallback!!
+        val bounds = doubleArrayOf(265000.0, 2757000.0, 283500.0, 2770000.0)
+        val successfulFuture = OfflinePolygonDataStore.load(context, successfulSource)
+        val fallbackFuture = OfflinePolygonDataStore.load(context, fallbackSource)
+        var provider: OfflinePolygonTileProvider? = null
+        try {
+            val successfulData = successfulFuture.get(60, TimeUnit.SECONDS)
+            val fallbackData = fallbackFuture.get(60, TimeUnit.SECONDS)
+            val primaryAttempts = AtomicInteger()
+            val successfulAttempts = AtomicInteger()
+            val fallbackAttempts = AtomicInteger()
+            val activeProvider = OfflinePolygonTileProvider(
+                context,
+                OfflinePolygonLayer.LEGACY,
+                sourceDefinitions = listOf(failedSource, successfulSource),
+                selectedDistrictsProvider = { setOf(failedDistrict, successfulDistrict) },
+                sourceLoader = { source ->
+                    when (source.assetName) {
+                        failedSource.assetName -> {
+                            primaryAttempts.incrementAndGet()
+                            CompletableFuture<OfflinePolygonDataSource>().apply {
+                                completeExceptionally(IllegalStateException("injected district source failure"))
+                            }
+                        }
+                        successfulSource.assetName -> {
+                            successfulAttempts.incrementAndGet()
+                            CompletableFuture.completedFuture(successfulData)
+                        }
+                        fallbackSource.assetName -> {
+                            fallbackAttempts.incrementAndGet()
+                            CompletableFuture.completedFuture(fallbackData)
+                        }
+                        else -> error("Unexpected source: ${source.assetName}")
+                    }
+                },
+                sourceReleaser = {}
+            )
+            provider = activeProvider
+            activeProvider.whenSourcesReady().get(60, TimeUnit.SECONDS)
+            assertEquals(1, primaryAttempts.get())
+            assertEquals(1, successfulAttempts.get())
+            assertEquals(1, fallbackAttempts.get())
+            assertTrue("successful district must remain readable", successfulData.query(bounds, setOf(successfulDistrict)).isNotEmpty())
+            assertTrue("failed district must remain available through full-source fallback", fallbackData.query(bounds, setOf(failedDistrict)).isNotEmpty())
+            listOf(failedDistrict to fallbackData, successfulDistrict to successfulData).forEach { (district, data) ->
+                val geometry = OfflineGeometryCodec.fromGeoPackage(data.query(bounds, setOf(district)).first())
+                val point = geometry.polygons.first().rings.first().first()
+                val (longitude, latitude) = Twd97Projection.twd97ToLongitudeLatitude(point.x, point.y)
+                val tile = tileCoordinate(longitude, latitude, zoom = 13)
+                assertNotSame("$district must still render from its available source", TileProvider.NO_TILE, activeProvider.getTile(tile.first, tile.second, tile.third))
+            }
+        } finally {
+            provider?.release()
+            OfflinePolygonDataStore.release(context, successfulSource)
+            OfflinePolygonDataStore.release(context, fallbackSource)
         }
     }
 

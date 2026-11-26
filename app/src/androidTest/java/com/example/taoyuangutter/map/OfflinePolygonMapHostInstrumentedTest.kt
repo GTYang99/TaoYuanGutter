@@ -280,6 +280,171 @@ class OfflinePolygonMapHostInstrumentedTest {
         }
     }
 
+    @Test
+    fun twentyRoundDistrictSwitchKeepsProvidersOverlaysAndCachesBounded() {
+        val baselineSourceKeys = (privateProperty(OfflinePolygonDataStore, "sources") as Map<*, *>).keys.toSet()
+        val scenario = ActivityScenario.launch<MainActivity>(
+            Intent(context, MainActivity::class.java).putExtra(MainActivity.EXTRA_OFFLINE_MAIN, true)
+        )
+        var manager: Any? = null
+        var maxSwitchMs = 0L
+        var maxPssKb = 0
+        try {
+            awaitMainMap(scenario)
+            scenario.onActivity { activity -> manager = offlineProviderManager(activity) }
+            val target = manager!!
+            awaitProviderVisibility(target, true, true, true)
+            val setVisibility = target.javaClass.getDeclaredMethod(
+                "setVisibility",
+                Boolean::class.javaPrimitiveType,
+                Boolean::class.javaPrimitiveType,
+                Boolean::class.javaPrimitiveType,
+                Set::class.java,
+                Long::class.javaPrimitiveType
+            ).apply { isAccessible = true }
+            val sequence = listOf(
+                MapOverlayController.DEFAULT_DISTRICTS,
+                setOf("桃園區"),
+                setOf("桃園區", "中壢區"),
+                emptySet(),
+                MapOverlayController.DEFAULT_DISTRICTS
+            )
+            var generation = 10_000L
+            repeat(20) { round ->
+                sequence.forEach { districts ->
+                    generation++
+                    val expectedGeneration = generation
+                    val startedAt = SystemClock.elapsedRealtime()
+                    InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                        setVisibility.invoke(target, true, true, true, districts, expectedGeneration)
+                    }
+                    val deadline = SystemClock.elapsedRealtime() + 60_000L
+                    while (SystemClock.elapsedRealtime() < deadline) {
+                        val committed = AtomicReference(false)
+                        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                            committed.set(privateProperty(target, "activeGeneration") == expectedGeneration)
+                        }
+                        if (committed.get()) break
+                        SystemClock.sleep(50L)
+                    }
+                    assertEquals("round $round must commit latest generation", expectedGeneration, privateProperty(target, "activeGeneration"))
+                    assertEquals("round $round must commit selected districts", districts, privateProperty(target, "activeDistricts"))
+                    assertEquals("round $round must release pending candidate", null, privateProperty(target, "pendingCandidate"))
+                    listOf("legacy", "possible", "region").forEach { name ->
+                        val provider = privateProperty(target, "${name}Provider")
+                        assertNotNull("round $round $name provider must be active", provider)
+                        assertNotNull("round $round $name overlay must be active", privateProperty(target, "${name}Overlay"))
+                        val cache = privateProperty(provider!!, "tileCache") as android.util.LruCache<*, *>
+                        assertTrue("round $round $name cache exceeds 48 tiles", cache.size() <= 48)
+                    }
+                    val sourceCache = privateProperty(OfflinePolygonDataStore, "sources") as Map<*, *>
+                    val expectedSourceCount = when (districts.size) {
+                        0 -> 1
+                        13 -> 3
+                        else -> 1 + 2 * districts.size
+                    }
+                    val newSourceKeys = sourceCache.keys - baselineSourceKeys
+                    assertTrue("round $round retains unused sources: ${newSourceKeys.size}", newSourceKeys.size <= expectedSourceCount)
+                    maxSwitchMs = maxOf(maxSwitchMs, SystemClock.elapsedRealtime() - startedAt)
+                }
+                val memory = android.os.Debug.MemoryInfo()
+                android.os.Debug.getMemoryInfo(memory)
+                maxPssKb = maxOf(maxPssKb, memory.totalPss)
+            }
+        } finally {
+            scenario.close()
+        }
+        manager?.let { target ->
+            assertProvidersReleased(target)
+            val sourceCache = privateProperty(OfflinePolygonDataStore, "sources") as Map<*, *>
+            assertTrue("release must leave no newly acquired sources", (sourceCache.keys - baselineSourceKeys).isEmpty())
+        }
+        android.util.Log.i("FEAT1118_VERIFY", "20 rounds complete; maxSwitchMs=$maxSwitchMs maxPssKb=$maxPssKb")
+    }
+
+    @Test
+    fun newestGenerationWinsWhenOlderSourcesFinishLast() {
+        val scenario = ActivityScenario.launch<MainActivity>(
+            Intent(context, MainActivity::class.java).putExtra(MainActivity.EXTRA_OFFLINE_MAIN, true)
+        )
+        val pendingOlder = java.util.concurrent.CopyOnWriteArrayList<java.util.concurrent.CompletableFuture<OfflinePolygonDataSource>>()
+        val releases = java.util.concurrent.ConcurrentHashMap<Long, java.util.concurrent.atomic.AtomicInteger>()
+        val emptySource = object : OfflinePolygonDataSource {
+            override fun query(bounds: DoubleArray, selectedDistricts: Set<String>): List<ByteArray> = emptyList()
+        }
+        var manager: OfflinePolygonOverlayManager? = null
+        try {
+            val map = awaitMainMap(scenario)
+            val controlled = OfflinePolygonOverlayManager(
+                context,
+                mapProvider = { map },
+                sourceLoader = { _, generation ->
+                    if (generation == 1L) {
+                        java.util.concurrent.CompletableFuture<OfflinePolygonDataSource>().also(pendingOlder::add)
+                    } else {
+                        java.util.concurrent.CompletableFuture.completedFuture(emptySource)
+                    }
+                },
+                sourceReleaser = { _, generation ->
+                    releases.computeIfAbsent(generation) { java.util.concurrent.atomic.AtomicInteger() }.incrementAndGet()
+                }
+            )
+            manager = controlled
+            val selected = MapOverlayController.DEFAULT_DISTRICTS
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                controlled.setVisibility(true, true, true, selected, 0L)
+            }
+            awaitManagerGeneration(controlled, 0L)
+            val originalOverlay = privateProperty(controlled, "legacyOverlay")
+            assertNotNull(originalOverlay)
+
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                controlled.setVisibility(true, true, true, setOf("桃園區"), 1L)
+            }
+            assertEquals(3, pendingOlder.size)
+            assertEquals(0L, privateProperty(controlled, "activeGeneration"))
+            assertSame("old complete overlay stays visible while the candidate loads", originalOverlay, privateProperty(controlled, "legacyOverlay"))
+            val candidate = privateProperty(controlled, "pendingCandidate")!!
+            listOf("legacyOverlay", "possibleOverlay", "regionOverlay").forEach { name ->
+                assertEquals("pending $name must not attach early", null, privateProperty(candidate, name))
+            }
+
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                controlled.setVisibility(true, true, true, setOf("桃園區", "中壢區"), 2L)
+            }
+            awaitManagerGeneration(controlled, 2L)
+            val latestOverlay = privateProperty(controlled, "legacyOverlay")
+            assertNotNull(latestOverlay)
+            assertNotSame(originalOverlay, latestOverlay)
+            assertEquals(3, releases[0L]?.get())
+            assertEquals(3, releases[1L]?.get())
+            pendingOlder.forEach { it.complete(emptySource) }
+            SystemClock.sleep(100L)
+            assertEquals(2L, privateProperty(controlled, "activeGeneration"))
+            assertSame("late older completion must not replace newest overlay", latestOverlay, privateProperty(controlled, "legacyOverlay"))
+            assertEquals(null, privateProperty(controlled, "pendingCandidate"))
+        } finally {
+            manager?.let { controlled ->
+                InstrumentationRegistry.getInstrumentation().runOnMainSync { controlled.release() }
+            }
+            scenario.close()
+        }
+        assertEquals(5, releases[2L]?.get())
+    }
+
+    private fun awaitManagerGeneration(manager: OfflinePolygonOverlayManager, generation: Long) {
+        val deadline = SystemClock.elapsedRealtime() + 30_000L
+        while (SystemClock.elapsedRealtime() < deadline) {
+            val committed = AtomicReference<Any?>()
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                committed.set(privateProperty(manager, "activeGeneration"))
+            }
+            if (committed.get() == generation) return
+            SystemClock.sleep(50L)
+        }
+        assertEquals("latest generation must commit", generation, privateProperty(manager, "activeGeneration"))
+    }
+
     private fun awaitMainMap(scenario: ActivityScenario<MainActivity>): GoogleMap {
         val mapReady = CountDownLatch(1)
         val mapReference = AtomicReference<GoogleMap>()
