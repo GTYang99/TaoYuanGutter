@@ -70,14 +70,15 @@ task_id: feat-1118-2
 phase: verification
 category: implementation_regression
 priority: P2
-title: All-district checkbox does not show its indeterminate state
-status: open
-impact: AC-003's required three-state all-selection control is not represented when only some districts are selected.
+title: All-district checkbox did not show its indeterminate state
+status: closed
+impact: Resolved and verified for AC-003 in commit 94bd7cce0801f578d5226b1148aa2c30d654692e.
 expected: The all-selection checkbox shows indeterminate when the selected count is between zero and thirteen.
-actual: LayersBottomSheet only updates isChecked to whether all districts are selected; it never sets isIndeterminate.
+actual: LayersBottomSheet now maps NONE/PARTIAL/ALL into MaterialCheckBox.setCheckedState; the selection-state unit test and emulator selection interaction pass.
 evidence:
   - app/src/main/java/com/example/taoyuangutter/map/LayersBottomSheet.kt:96-105
-next_action: debug
+resolution: Tri-state mapping is implemented and verified in the current revision.
+next_action: closed
 owner: developer
 ```
 
@@ -89,13 +90,13 @@ task_id: feat-1118-2
 phase: verification
 category: implementation_regression
 priority: P1
-title: District changes remove the visible result before the replacement is ready
+title: Candidate overlays attach before the replacement is ready
 status: open
-impact: AC-006's retain-old-result and atomic-swap behavior is not met; the layer can disappear while new sources are staged/indexed.
+impact: AC-006 atomic switching is not guaranteed; a candidate can render while the previous complete result remains attached.
 expected: Keep the previous complete overlay visible until the latest generation is ready, then atomically replace it.
-actual: OfflinePolygonOverlayManager clears all overlays immediately when the selected districts or generation changes.
+actual: stageVisibility attaches candidate overlays before whenSourcesReady completes, then removes the previous overlays in a later main-thread callback.
 evidence:
-  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:205-209
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:293-315
 next_action: debug
 owner: developer
 ```
@@ -108,15 +109,16 @@ task_id: feat-1118-2
 phase: verification
 category: implementation_regression
 priority: P1
-title: Per-district fallback queries every selected district
-status: open
-impact: AC-007 fallback for one failed district can duplicate data from other district files and violate source isolation.
+title: Per-district fallback query scope was not honored
+status: closed
+impact: The original query-scope defect is fixed and verified in commit 94bd7cce0801f578d5226b1148aa2c30d654692e.
 expected: A district fallback queries only the failed district while successful district sources continue independently.
-actual: OfflinePolygonTileProvider passes the complete selected-district set to the fallback data source and ignores the fallback definition's queryDistricts.
+actual: OfflinePolygonTileProvider now uses each source definition's queryDistricts; OfflinePolygonSourceTest also verifies a single-district fallback mapping.
 evidence:
-  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:52-61
-  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonSource.kt:29-38
-next_action: debug
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:56-71
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonSource.kt:31-56
+resolution: Query scope is fixed. A separate fallback-readiness deadlock is tracked as ISS-008.
+next_action: closed
 owner: developer
 ```
 
@@ -128,15 +130,36 @@ task_id: feat-1118-2
 phase: verification
 category: implementation_regression
 priority: P2
-title: Unused source and index databases are not released
-status: open
-impact: AC-008 requires removed sources, providers, caches, and indexes to release resources; source/index database handles remain retained after provider release.
+title: Unused source and index databases were not released
+status: closed
+impact: Source and index handles now close when their last provider reference is released; provider release behavior passed instrumentation.
 expected: Release or evict no-longer-used source and index resources when a district or layer is removed.
-actual: The static source-future cache has no eviction/close path, and tile-provider release only clears its tile cache.
+actual: The source cache is reference-counted, its zero-reference path removes the entry and closes the loaded data source, and provider release clears the tile cache and decrements source references.
 evidence:
-  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt:59-77
-  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt:291-295
-  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:90-94
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt:61-103
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt:316-324
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:117-125
+resolution: The direct resource-retention defect is fixed and verified. The planned 20-round manager bound remains NOT VERIFIED under AC-008.
+next_action: closed
+owner: developer
+```
+
+## ISS-008
+
+```yaml
+issue_id: ISS-008
+task_id: feat-1118-2
+phase: verification
+category: implementation_regression
+priority: P1
+title: Fallback readiness can block the single-thread source executor
+status: open
+impact: AC-007 fallback may never become ready after a district source fails, preventing the latest selection from committing.
+expected: A failed district source falls back to the full source without blocking the executor that loads that fallback.
+actual: whenSourcesReady attaches a synchronous future.handle that calls fallbackFuture(...).get(); source and fallback loads use the same single-thread executor, so completion on that executor can wait for its own queued fallback task.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:100-115
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt:58-89
 next_action: debug
 owner: developer
 ```

@@ -37,3 +37,9 @@ Repair ISS-004 through ISS-007 with the smallest changes that restore the approv
 ## Implementation Result
 
 The four fixes were implemented in the current debug re-entry. The next gate is independent verification of the committed revision; ISS-004 through ISS-007 remain open until that verification passes.
+
+## Round 2 Debug Fixes
+
+1. In `OfflinePolygonOverlayManager`, keep candidate providers unattached while they stage. On the latest-ready main-thread commit, attach the candidate overlays and retire the old overlays in the same commit operation. Stale candidates are released without ever being attached.
+2. In `OfflinePolygonTileProvider.whenSourcesReady()`, replace synchronous fallback `.get()` with non-blocking future composition. A failed primary source must schedule and await its fallback without occupying the single source-index executor.
+3. Add focused deterministic coverage for candidate attachment timing and failed-primary fallback completion without executor deadlock.

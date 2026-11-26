@@ -98,15 +98,18 @@ internal class OfflinePolygonTileProvider(
     }
 
     fun whenSourcesReady(): CompletableFuture<Unit> {
-        val readiness = sourceFutures.map { (definition, future) ->
-            future.handle { _, failure ->
-                if (released) return@handle Unit
-                if (failure != null && definition.fallback != null) fallbackFuture(definition.fallback).get()
-                Unit
-            }
-        }
+        val readiness = sourceFutures.map { (definition, future) -> sourceReadyFuture(definition, future) }
         return CompletableFuture.allOf(*readiness.toTypedArray()).thenApply { Unit }
     }
+
+    private fun sourceReadyFuture(
+        definition: OfflinePolygonSource,
+        future: CompletableFuture<OfflinePolygonDataSource>
+    ): CompletableFuture<Unit> = sourceReadiness(
+        primary = future,
+        fallback = definition.fallback?.let { fallback -> { fallbackFuture(fallback) } },
+        released = { released }
+    )
 
     private fun fallbackFuture(source: OfflinePolygonSource): CompletableFuture<OfflinePolygonDataSource> =
         fallbackFutures.computeIfAbsent(source.assetName) {
@@ -290,26 +293,24 @@ internal class OfflinePolygonOverlayManager(
             createProvider(showRegion, OfflinePolygonLayer.REGION, selectedDistricts, generation),
             null
         )
-        val candidateWithOverlays = candidate.copy(
-            legacyOverlay = candidate.legacyProvider?.let { addOverlay(it, 0.1f) },
-            possibleOverlay = candidate.possibleProvider?.let { addOverlay(it, 0f) },
-            regionOverlay = candidate.regionProvider?.let { addOverlay(it, -0.5f) }
-        )
-        pendingCandidate = candidateWithOverlays
-        CompletableFuture.allOf(*candidateWithOverlays.providers().map { it.whenSourcesReady() }.toTypedArray())
+        pendingCandidate = candidate
+        CompletableFuture.allOf(*candidate.providers().map { it.whenSourcesReady() }.toTypedArray())
             .whenComplete { _, _ ->
                 android.os.Handler(android.os.Looper.getMainLooper()).post {
-                    if (requestId != pendingRequestId || pendingCandidate !== candidateWithOverlays) {
-                        candidateWithOverlays.release()
+                    if (requestId != pendingRequestId || pendingCandidate !== candidate) {
+                        candidate.release()
                         return@post
                     }
                     clearOverlays()
-                    legacyProvider = candidateWithOverlays.legacyProvider
-                    legacyOverlay = candidateWithOverlays.legacyOverlay
-                    possibleProvider = candidateWithOverlays.possibleProvider
-                    possibleOverlay = candidateWithOverlays.possibleOverlay
-                    regionProvider = candidateWithOverlays.regionProvider
-                    regionOverlay = candidateWithOverlays.regionOverlay
+                    val legacy = attach(candidate.legacyProvider, 0.1f)
+                    val possible = attach(candidate.possibleProvider, 0f)
+                    val region = attach(candidate.regionProvider, -0.5f)
+                    legacyProvider = legacy.first
+                    legacyOverlay = legacy.second
+                    possibleProvider = possible.first
+                    possibleOverlay = possible.second
+                    regionProvider = region.first
+                    regionOverlay = region.second
                     activeDistricts = selectedDistricts
                     activeGeneration = generation
                     pendingCandidate = null
@@ -334,10 +335,21 @@ internal class OfflinePolygonOverlayManager(
         generationProvider = { generation }
     ) else null
 
-    private fun addOverlay(provider: OfflinePolygonTileProvider, zIndex: Float): TileOverlay? =
-        mapProvider()?.addTileOverlay(
+    private fun attach(
+        provider: OfflinePolygonTileProvider?,
+        zIndex: Float
+    ): Pair<OfflinePolygonTileProvider?, TileOverlay?> {
+        if (provider == null) return null to null
+        val overlay = mapProvider()?.addTileOverlay(
             TileOverlayOptions().tileProvider(provider).zIndex(zIndex).transparency(0f)
         )
+        return if (overlay == null) {
+            provider.release()
+            null to null
+        } else {
+            provider to overlay
+        }
+    }
 
     private fun clearOverlays() {
         legacyOverlay?.remove()

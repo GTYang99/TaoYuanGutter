@@ -24,17 +24,21 @@ validation:
 
 git:
   branch: codex/feat/feat-1118-2
-  commit: 0f9125cd2714b6121480437b70b0d0fef44c3f82
+  commit: 94bd7cce0801f578d5226b1148aa2c30d654692e
   status: committed
 
 verification:
   result: fail
   category: implementation
   failed_acceptance_criteria:
-    - AC-003
     - AC-006
     - AC-007
+  not_verified_acceptance_criteria:
+    - AC-005
     - AC-008
+    - AC-009
+    - AC-010
+    - AC-011
 
 debug:
   status: completed
@@ -48,8 +52,6 @@ release:
   status: pending
 
 blocking:
-  - ISS-004: AC-003 all-selection checkbox lacks an indeterminate state
-  - ISS-005: AC-006 old overlays are removed before the new selection is ready
-  - ISS-006: AC-007 fallback queries all selected districts instead of the failed district
-  - ISS-007: AC-008 unused source/index database resources are retained
+  - ISS-005: AC-006 candidate overlays attach before replacement sources are ready
+  - ISS-008: AC-007 fallback readiness can block the single-thread source executor
 next_action: verification

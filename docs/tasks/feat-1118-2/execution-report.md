@@ -59,3 +59,16 @@ ISS-003 is resolved by the user decision to trust district files as the authorit
 | `git diff --check` | PASS | No whitespace errors in the task changes. |
 
 The four verification issues remain open until the next independent verification confirms behavior and lifecycle bounds.
+
+## Verification Round 2 Re-implementation (2026-11-26)
+
+- Delayed candidate `TileOverlay` attachment until all candidate source readiness futures complete; stale candidates are released before attachment.
+- Replaced fallback readiness blocking with non-blocking `CompletableFuture` composition, avoiding `.get()` on the single-thread source-index executor.
+- Added `OfflineSourceReadinessTest`, which completes primary failure and fallback completion on a single executor and asserts readiness completes without deadlock.
+
+| Check | Result | Evidence |
+|---|---|---|
+| `./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.map.*'` | PASS | Focused map JVM suite completed successfully, including tri-state and fallback-readiness regression tests. |
+| `./gradlew :app:assembleDebug` | PASS | Debug APK assembled with a temporary non-secret Maps placeholder, then the placeholder was removed. |
+
+ISS-005 and ISS-008 remain open until independent verification confirms map attachment timing and emulator behavior.
