@@ -3,7 +3,7 @@ task:
   type: feature
 
 phase: verification
-status: verification_not_verified
+status: verification_passed
 
 knowledge_resolution:
   status: resolved
@@ -28,11 +28,10 @@ git:
   status: committed
 
 verification:
-  result: not_verified
+  result: pass
   category: null
   failed_acceptance_criteria: []
-  not_verified_acceptance_criteria:
-    - AC-010
+  not_verified_acceptance_criteria: []
 
 debug:
   status: completed
@@ -45,6 +44,5 @@ ci:
 release:
   status: pending
 
-blocking:
-  - AC-010: switch-basemap regression with existing WMS/WMTS overlays active has not been exercised
-next_action: verification
+blocking: []
+next_action: release

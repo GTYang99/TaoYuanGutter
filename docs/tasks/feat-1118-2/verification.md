@@ -9,7 +9,7 @@
 
 ## Final Result
 
-**NOT VERIFIED — AC-010 still lacks one planned basemap and existing-overlay interaction check.** AC-001–AC-009 and AC-011 pass on the fixed revision with host validation, JVM and emulator evidence, performance observations, source review, and successful hosted CI. All 17 map data/host/restart instrumentation cases passed together. AC-010's geometry, fill, hole/MultiPolygon decoding, camera behavior, and offline layer interactions are covered, but this round did not exercise switching the basemap while other WMS/WMTS overlays remain active. Keep AC-010 `NOT VERIFIED` and do not advance to Release until that regression step is evidenced.
+**PASS.** AC-001–AC-011 now have passing evidence. AC-001–AC-009 and AC-011 pass with host validation, JVM/emulator tests, performance observations, source review and hosted CI. For AC-010, the user reports manually switching WMS layers and confirming administrative-region display in both district-selection and all-district modes. This closes the remaining basemap/overlay regression gap.
 
 ## Checks and Evidence
 
@@ -37,7 +37,7 @@
 | AC-007 | PASS | Injected failed 桃園區 source falls back to the full GPKG while 中壢區 continues independently; both return rendered tiles. |
 | AC-008 | PASS | 20-round full/single/two/empty/full lifecycle passed with per-generation provider/overlay/cache/source bounds and zero newly acquired source refs after release. |
 | AC-009 | PASS | Two-phase test saved 桃園區/中壢區 and disabled POSSIBLE; after `adb shell am force-stop com.example.taoyuangutter`, the fresh process restored districts and layer switches correctly. |
-| AC-010 | NOT VERIFIED | Geometry unit cases cover holes and MultiPolygon decoding; packaged tile instrumentation checks existing colors, interiors, stroke widths and region boundary; host screenshots and camera interactions pass. The planned basemap switch while existing WMS/WMTS overlays remain active was not executed. |
+| AC-010 | PASS | Geometry unit cases cover holes and MultiPolygon decoding; packaged tile instrumentation checks existing colors, interiors, stroke widths and region boundary; host screenshots and camera interactions pass. User-reported manual regression: switched WMS layers and confirmed administrative-region display in both district-selected and all-district modes. |
 | AC-011 | PASS | 187 JVM tests, both APK builds, 17 connected map/restart tests, source review of async GPKG loading, 20-round performance/no-ANR evidence, and hosted CI all passed. |
 
 ## Regression and Coverage Review
@@ -52,4 +52,4 @@
 - ISS-009 — initial provider-visibility timing race: closed; the corrected checks passed on this revision.
 - ISS-010 — Maps SDK authorization blocker: closed after valid key configuration and a passing focused case.
 - ISS-011 — intermittent LEGACY map snapshot color mismatch: closed after the focused 1/1 and full class 4/4 passed on `94f5ba0a`.
-- Required next action: `verification` to execute the single missing AC-010 check: switch basemap with existing WMS/WMTS overlays active and confirm they remain visible and ordered. Release remains blocked until AC-010 has evidence.
+- Required next action: `release`.
