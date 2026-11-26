@@ -61,3 +61,82 @@ resolution: Plan Critic re-review confirmed these assertions make AC-006 and AC-
 next_action: implementation
 owner: planning
 ```
+
+## ISS-004
+
+```yaml
+issue_id: ISS-004
+task_id: feat-1118-2
+phase: verification
+category: implementation_regression
+priority: P2
+title: All-district checkbox does not show its indeterminate state
+status: open
+impact: AC-003's required three-state all-selection control is not represented when only some districts are selected.
+expected: The all-selection checkbox shows indeterminate when the selected count is between zero and thirteen.
+actual: LayersBottomSheet only updates isChecked to whether all districts are selected; it never sets isIndeterminate.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/map/LayersBottomSheet.kt:96-105
+next_action: debug
+owner: developer
+```
+
+## ISS-005
+
+```yaml
+issue_id: ISS-005
+task_id: feat-1118-2
+phase: verification
+category: implementation_regression
+priority: P1
+title: District changes remove the visible result before the replacement is ready
+status: open
+impact: AC-006's retain-old-result and atomic-swap behavior is not met; the layer can disappear while new sources are staged/indexed.
+expected: Keep the previous complete overlay visible until the latest generation is ready, then atomically replace it.
+actual: OfflinePolygonOverlayManager clears all overlays immediately when the selected districts or generation changes.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:205-209
+next_action: debug
+owner: developer
+```
+
+## ISS-006
+
+```yaml
+issue_id: ISS-006
+task_id: feat-1118-2
+phase: verification
+category: implementation_regression
+priority: P1
+title: Per-district fallback queries every selected district
+status: open
+impact: AC-007 fallback for one failed district can duplicate data from other district files and violate source isolation.
+expected: A district fallback queries only the failed district while successful district sources continue independently.
+actual: OfflinePolygonTileProvider passes the complete selected-district set to the fallback data source and ignores the fallback definition's queryDistricts.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:52-61
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonSource.kt:29-38
+next_action: debug
+owner: developer
+```
+
+## ISS-007
+
+```yaml
+issue_id: ISS-007
+task_id: feat-1118-2
+phase: verification
+category: implementation_regression
+priority: P2
+title: Unused source and index databases are not released
+status: open
+impact: AC-008 requires removed sources, providers, caches, and indexes to release resources; source/index database handles remain retained after provider release.
+expected: Release or evict no-longer-used source and index resources when a district or layer is removed.
+actual: The static source-future cache has no eviction/close path, and tile-provider release only clears its tile cache.
+evidence:
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt:59-77
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonDataStore.kt:291-295
+  - app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt:90-94
+next_action: debug
+owner: developer
+```
