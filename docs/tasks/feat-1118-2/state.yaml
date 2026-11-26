@@ -2,8 +2,8 @@ task:
   id: feat-1118-2
   type: feature
 
-phase: debug
-status: debug_in_progress
+phase: implementation
+status: implementation_complete
 
 knowledge_resolution:
   status: resolved
@@ -37,7 +37,7 @@ verification:
     - AC-008
 
 debug:
-  status: investigating
+  status: completed
   root_cause: identified
 
 ci:
@@ -52,4 +52,4 @@ blocking:
   - ISS-005: AC-006 old overlays are removed before the new selection is ready
   - ISS-006: AC-007 fallback queries all selected districts instead of the failed district
   - ISS-007: AC-008 unused source/index database resources are retained
-next_action: debug
+next_action: verification

@@ -94,14 +94,14 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
                         selectedDistrictsState - DISTRICTS[index]
                     }
                     suppressAllListener = true
-                    binding.cbDistrictAll.isChecked = selectedDistrictsState.size == DISTRICTS.size
+                    binding.cbDistrictAll.setCheckedState(allCheckState(selectedDistrictsState))
                     suppressAllListener = false
                     dispatchOverlayToggles()
                 }
             }
         }
         bindDistrictChecks()
-        binding.cbDistrictAll.isChecked = selectedDistrictsState.size == DISTRICTS.size
+        binding.cbDistrictAll.setCheckedState(allCheckState(selectedDistrictsState))
         binding.cbDistrictAll.setOnCheckedChangeListener { _, checked ->
             if (suppressAllListener) return@setOnCheckedChangeListener
             selectedDistrictsState = if (checked) DEFAULT_DISTRICTS else emptySet()
@@ -145,6 +145,12 @@ class LayersBottomSheet : BottomSheetDialogFragment() {
         applySelected(binding.cardEMap, binding.ivEMapRadio, selected == LAYER_EMAP)
         applySelected(binding.cardPhoto2, binding.ivPhoto2Radio, selected == LAYER_PHOTO2)
         applySelected(binding.cardEMapGray, binding.ivEMapGrayRadio, selected == LAYER_EMAP01)
+    }
+
+    private fun allCheckState(selectedDistricts: Set<String>): Int = when {
+        selectedDistricts.isEmpty() -> com.google.android.material.checkbox.MaterialCheckBox.STATE_UNCHECKED
+        selectedDistricts.size == DISTRICTS.size -> com.google.android.material.checkbox.MaterialCheckBox.STATE_CHECKED
+        else -> com.google.android.material.checkbox.MaterialCheckBox.STATE_INDETERMINATE
     }
 
     override fun onStart() {

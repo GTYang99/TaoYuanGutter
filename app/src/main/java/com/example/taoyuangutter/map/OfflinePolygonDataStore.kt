@@ -48,6 +48,8 @@ internal interface OfflinePolygonDataSource {
         bounds: DoubleArray,
         selectedDistricts: Set<String> = MapOverlayController.DEFAULT_DISTRICTS
     ): List<ByteArray>
+
+    fun close() = Unit
 }
 
 internal object OfflinePolygonDataStore {
@@ -56,7 +58,12 @@ internal object OfflinePolygonDataStore {
     private val executor: ExecutorService = Executors.newSingleThreadExecutor { runnable ->
         Thread(runnable, "offline-polygon-index").apply { isDaemon = true }
     }
-    private val sources = ConcurrentHashMap<String, CompletableFuture<OfflinePolygonDataSource>>()
+    private data class CachedSource(
+        val future: CompletableFuture<OfflinePolygonDataSource>,
+        var references: Int
+    )
+
+    private val sources = ConcurrentHashMap<String, CachedSource>()
 
     fun load(context: Context, layer: OfflinePolygonLayer): CompletableFuture<OfflinePolygonDataSource> =
         load(context, OfflinePolygonSourceCatalog.full(layer))
@@ -64,8 +71,12 @@ internal object OfflinePolygonDataStore {
     fun load(context: Context, source: OfflinePolygonSource): CompletableFuture<OfflinePolygonDataSource> {
         val appContext = context.applicationContext
         val key = "${appContext.filesDir.absolutePath}:${source.assetName}"
-        return sources.computeIfAbsent(key) {
-            CompletableFuture.supplyAsync({
+        synchronized(sources) {
+            sources[key]?.let {
+                it.references++
+                return it.future
+            }
+            val future = CompletableFuture.supplyAsync({
                 when (source.layer) {
                     OfflinePolygonLayer.POSSIBLE -> {
                         invalidateObsoleteGeoJsonIndex(appContext)
@@ -74,7 +85,21 @@ internal object OfflinePolygonDataStore {
                     else -> openGeoPackage(appContext, source)
                 }
             }, executor)
+            sources[key] = CachedSource(future, references = 1)
+            return future
         }
+    }
+
+    fun release(context: Context, source: OfflinePolygonSource) {
+        val key = "${context.applicationContext.filesDir.absolutePath}:${source.assetName}"
+        val entry = synchronized(sources) {
+            val current = sources[key] ?: return
+            current.references--
+            if (current.references > 0) return
+            sources.remove(key)
+            current
+        }
+        entry.future.whenComplete { dataSource, _ -> dataSource?.close() }
     }
 
     private fun openGeoPackage(context: Context, source: OfflinePolygonSource): OfflinePolygonDataSource {
@@ -293,6 +318,11 @@ internal object OfflinePolygonDataStore {
         private val index: SQLiteDatabase,
         private val sourceDefinition: OfflinePolygonSource
     ) : OfflinePolygonDataSource {
+        override fun close() {
+            index.close()
+            source.close()
+        }
+
         override fun query(bounds: DoubleArray, selectedDistricts: Set<String>): List<ByteArray> {
             if (sourceDefinition.districtFieldName != null && selectedDistricts.isEmpty()) return emptyList()
             val ids = queryCellIds(index, bounds)

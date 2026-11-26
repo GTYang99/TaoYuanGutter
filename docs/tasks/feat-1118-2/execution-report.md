@@ -44,3 +44,18 @@
 | `./gradlew :app:assembleDebug` | PASS | Debug APK assembled with temporary non-secret Maps placeholder. |
 
 ISS-003 is resolved by the user decision to trust district files as the authoritative partial-selection source.
+
+## Debug Re-Implementation (2026-11-26)
+
+- `LayersBottomSheet` now uses `MaterialCheckBox.setCheckedState` for unchecked, indeterminate, and checked states.
+- District fallback queries now use the failed source's `queryDistricts` instead of the complete selected set.
+- Overlay changes now stage candidate providers and retain the active overlays until source readiness, then commit only the latest request on the main thread.
+- Offline data sources now expose `close()`; the shared source cache uses reference counts and providers release their source/index handles on `release()`.
+
+| Check | Result | Evidence |
+|---|---|---|
+| `./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.map.*'` | PASS | Focused map JVM suite compiled and completed successfully after the fixes. |
+| `./gradlew :app:assembleDebug` | PASS | Debug APK assembled with a temporary non-secret Maps placeholder, then the placeholder was removed. |
+| `git diff --check` | PASS | No whitespace errors in the task changes. |
+
+The four verification issues remain open until the next independent verification confirms behavior and lifecycle bounds.

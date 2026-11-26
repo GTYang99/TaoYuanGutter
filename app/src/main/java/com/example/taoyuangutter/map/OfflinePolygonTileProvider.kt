@@ -13,6 +13,8 @@ import com.google.android.gms.maps.model.TileOverlay
 import com.google.android.gms.maps.model.TileOverlayOptions
 import com.google.android.gms.maps.model.TileProvider
 import java.io.ByteArrayOutputStream
+import java.util.concurrent.CompletableFuture
+import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.ExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -30,6 +32,8 @@ internal class OfflinePolygonTileProvider(
     private val sourceFutures = sourceDefinitions.map { source ->
         source to OfflinePolygonDataStore.load(appContext, source)
     }
+    private val fallbackFutures = ConcurrentHashMap<String, CompletableFuture<OfflinePolygonDataSource>>()
+    private val fallbackSources = ConcurrentHashMap<String, OfflinePolygonSource>()
     private val tileCache = object : LruCache<TileKey, Tile>(MAX_CACHED_TILES) {}
     private val cacheLock = Any()
     private val geometryFailureLogged = AtomicBoolean(false)
@@ -52,13 +56,19 @@ internal class OfflinePolygonTileProvider(
             val features = sourceFutures.flatMap { (definition, future) ->
                 val source = runCatching { future.get() }.getOrElse { failure ->
                     val fallback = definition.fallback ?: return@flatMap emptyList()
-                    runCatching { OfflinePolygonDataStore.load(appContext, fallback).get() }
+                    val fallbackFuture = fallbackFuture(fallback)
+                    runCatching { fallbackFuture.get() }
                         .getOrElse { fallbackFailure ->
                             Log.e(TAG, "Unable to load local ${layer.name} source ${definition.assetName}", fallbackFailure)
                             return@flatMap emptyList()
                         }
                 }
-                source.query(bounds, selectedDistrictsProvider())
+                val selectedDistricts = if (definition.queryDistricts == MapOverlayController.DEFAULT_DISTRICTS) {
+                    selectedDistrictsProvider()
+                } else {
+                    definition.queryDistricts
+                }
+                source.query(bounds, selectedDistricts)
             }
             if (released || generation != generationProvider()) return NO_TILE
             if (features.isEmpty()) return NO_TILE
@@ -87,11 +97,30 @@ internal class OfflinePolygonTileProvider(
         }
     }
 
+    fun whenSourcesReady(): CompletableFuture<Unit> {
+        val readiness = sourceFutures.map { (definition, future) ->
+            future.handle { _, failure ->
+                if (failure != null && definition.fallback != null) fallbackFuture(definition.fallback).get()
+                Unit
+            }
+        }
+        return CompletableFuture.allOf(*readiness.toTypedArray()).thenApply { Unit }
+    }
+
+    private fun fallbackFuture(source: OfflinePolygonSource): CompletableFuture<OfflinePolygonDataSource> =
+        fallbackFutures.computeIfAbsent(source.assetName) {
+            fallbackSources[source.assetName] = source
+            OfflinePolygonDataStore.load(appContext, source)
+        }
+
     fun release() {
         synchronized(cacheLock) {
+            if (released) return
             released = true
             tileCache.evictAll()
         }
+        sourceFutures.forEach { (source, _) -> OfflinePolygonDataStore.release(appContext, source) }
+        fallbackSources.values.forEach { OfflinePolygonDataStore.release(appContext, it) }
     }
 
     private fun render(features: List<ByteArray>, x: Int, y: Int, zoom: Int, outlineWidthPx: Float): Tile {
@@ -184,6 +213,28 @@ internal class OfflinePolygonOverlayManager(
     private var regionOverlay: TileOverlay? = null
     private var activeDistricts: Set<String>? = null
     private var activeGeneration: Long? = null
+    private var pendingCandidate: Candidate? = null
+    private var pendingRequestId = 0L
+
+    private data class Candidate(
+        val legacyProvider: OfflinePolygonTileProvider?,
+        val legacyOverlay: TileOverlay?,
+        val possibleProvider: OfflinePolygonTileProvider?,
+        val possibleOverlay: TileOverlay?,
+        val regionProvider: OfflinePolygonTileProvider?,
+        val regionOverlay: TileOverlay?
+    ) {
+        fun providers(): List<OfflinePolygonTileProvider> = listOfNotNull(
+            legacyProvider, possibleProvider, regionProvider
+        )
+
+        fun release() {
+            legacyOverlay?.remove()
+            possibleOverlay?.remove()
+            regionOverlay?.remove()
+            providers().forEach { it.release() }
+        }
+    }
 
     fun setVisibility(showLegacy: Boolean, showPossible: Boolean, showRegion: Boolean) {
         setVisibility(
@@ -203,9 +254,8 @@ internal class OfflinePolygonOverlayManager(
         generation: Long = generationProvider()
     ) {
         if (activeDistricts != selectedDistricts || activeGeneration != generation) {
-            clearOverlays()
-            activeDistricts = selectedDistricts
-            activeGeneration = generation
+            stageVisibility(showLegacy, showPossible, showRegion, selectedDistricts, generation)
+            return
         }
         setLegacyVisible(showLegacy, selectedDistricts, generation)
         setPossibleVisible(showPossible, selectedDistricts, generation)
@@ -213,10 +263,80 @@ internal class OfflinePolygonOverlayManager(
     }
 
     fun release() {
+        pendingRequestId++
+        pendingCandidate?.release()
+        pendingCandidate = null
         clearOverlays()
         activeDistricts = null
         activeGeneration = null
     }
+
+    private fun stageVisibility(
+        showLegacy: Boolean,
+        showPossible: Boolean,
+        showRegion: Boolean,
+        selectedDistricts: Set<String>,
+        generation: Long
+    ) {
+        pendingRequestId++
+        val requestId = pendingRequestId
+        pendingCandidate?.release()
+        val candidate = Candidate(
+            createProvider(showLegacy, OfflinePolygonLayer.LEGACY, selectedDistricts, generation),
+            null,
+            createProvider(showPossible, OfflinePolygonLayer.POSSIBLE, selectedDistricts, generation),
+            null,
+            createProvider(showRegion, OfflinePolygonLayer.REGION, selectedDistricts, generation),
+            null
+        )
+        val candidateWithOverlays = candidate.copy(
+            legacyOverlay = candidate.legacyProvider?.let { addOverlay(it, 0.1f) },
+            possibleOverlay = candidate.possibleProvider?.let { addOverlay(it, 0f) },
+            regionOverlay = candidate.regionProvider?.let { addOverlay(it, -0.5f) }
+        )
+        pendingCandidate = candidateWithOverlays
+        CompletableFuture.allOf(*candidateWithOverlays.providers().map { it.whenSourcesReady() }.toTypedArray())
+            .whenComplete { _, _ ->
+                android.os.Handler(android.os.Looper.getMainLooper()).post {
+                    if (requestId != pendingRequestId || pendingCandidate !== candidateWithOverlays) {
+                        candidateWithOverlays.release()
+                        return@post
+                    }
+                    clearOverlays()
+                    legacyProvider = candidateWithOverlays.legacyProvider
+                    legacyOverlay = candidateWithOverlays.legacyOverlay
+                    possibleProvider = candidateWithOverlays.possibleProvider
+                    possibleOverlay = candidateWithOverlays.possibleOverlay
+                    regionProvider = candidateWithOverlays.regionProvider
+                    regionOverlay = candidateWithOverlays.regionOverlay
+                    activeDistricts = selectedDistricts
+                    activeGeneration = generation
+                    pendingCandidate = null
+                }
+            }
+    }
+
+    private fun createProvider(
+        visible: Boolean,
+        layer: OfflinePolygonLayer,
+        selectedDistricts: Set<String>,
+        generation: Long
+    ): OfflinePolygonTileProvider? = if (visible) OfflinePolygonTileProvider(
+        appContext,
+        layer,
+        sourceDefinitions = if (layer == OfflinePolygonLayer.REGION) {
+            listOf(OfflinePolygonSourceCatalog.full(layer))
+        } else {
+            sourceDefinitions(layer, selectedDistricts)
+        },
+        selectedDistrictsProvider = { selectedDistricts },
+        generationProvider = { generation }
+    ) else null
+
+    private fun addOverlay(provider: OfflinePolygonTileProvider, zIndex: Float): TileOverlay? =
+        mapProvider()?.addTileOverlay(
+            TileOverlayOptions().tileProvider(provider).zIndex(zIndex).transparency(0f)
+        )
 
     private fun clearOverlays() {
         legacyOverlay?.remove()
