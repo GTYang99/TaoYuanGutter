@@ -2,8 +2,8 @@ task:
   id: feat-1118-2
   type: feature
 
-phase: verification
-status: verification_failed
+phase: debug
+status: debug_complete
 
 knowledge_resolution:
   status: resolved
@@ -24,7 +24,7 @@ validation:
 
 git:
   branch: codex/feat/feat-1118-2
-  commit: d21a49a1d7db0f104e85b2aa06b8c23a69810222
+  commit: 1fbdd9e9
   status: committed
 
 verification:
@@ -53,4 +53,4 @@ release:
 
 blocking:
   - ISS-011: AC-011 map-host instrumentation intermittently captures a pixel without the expected offline polygon fill
-next_action: debug
+next_action: verification

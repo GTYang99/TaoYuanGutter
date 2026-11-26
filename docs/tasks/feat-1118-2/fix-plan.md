@@ -43,3 +43,13 @@ The four fixes were implemented in the current debug re-entry. The next gate is 
 1. In `OfflinePolygonOverlayManager`, keep candidate providers unattached while they stage. On the latest-ready main-thread commit, attach the candidate overlays and retire the old overlays in the same commit operation. Stale candidates are released without ever being attached.
 2. In `OfflinePolygonTileProvider.whenSourcesReady()`, replace synchronous fallback `.get()` with non-blocking future composition. A failed primary source must schedule and await its fallback without occupying the single source-index executor.
 3. Add focused deterministic coverage for candidate attachment timing and failed-primary fallback completion without executor deadlock.
+
+## ISS-011 Minimum Fix Plan
+
+1. Keep the production overlay/provider implementation unchanged unless a new reproduction proves that the provider is not attached or returns the wrong tile.
+2. In `OfflinePolygonMapHostInstrumentedTest`, separate readiness checks:
+   - retain the direct provider tile assertion as data/provider readiness evidence;
+   - after camera and base-map readiness, capture bounded repeated snapshots until the expected interior color is observed at the same projected point;
+   - fail with the last observed color and elapsed time if the overlay never becomes visible.
+3. Preserve the exact color assertion and bounded timeout; the retry is only synchronization for asynchronous tile rendering, not a relaxed acceptance criterion.
+4. Re-run the focused LEGACY case, then the complete four-case host class. Only after both pass, record AC-010/AC-011 evidence; the remaining planned deterministic lifecycle cases stay `NOT VERIFIED` unless separately executed.

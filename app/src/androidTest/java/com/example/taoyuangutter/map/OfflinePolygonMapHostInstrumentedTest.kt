@@ -417,7 +417,6 @@ class OfflinePolygonMapHostInstrumentedTest {
         val target = LatLng(latitude, longitude)
         val cameraIdle = CountDownLatch(1)
         val mapLoaded = CountDownLatch(1)
-        val snapshotReady = CountDownLatch(1)
         var actualColor: Int? = null
         var samplePoint: Point? = null
         var screenshotFailure: Throwable? = null
@@ -435,29 +434,38 @@ class OfflinePolygonMapHostInstrumentedTest {
             map.setOnMapLoadedCallback { mapLoaded.countDown() }
         }
         assertTrue("${layer.name} map should finish loading the populated extent", mapLoaded.await(60, TimeUnit.SECONDS))
-        InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            map.snapshot { bitmap ->
-                try {
-                    val snapshot = bitmap ?: throw AssertionError("${layer.name} map snapshot returned null")
-                    val point = map.projection.toScreenLocation(target)
-                    samplePoint = point
-                    if (point.x !in 0 until snapshot.width || point.y !in 0 until snapshot.height) {
-                        throw AssertionError("GPKG interior sample $point is outside map snapshot ${snapshot.width}x${snapshot.height}")
+        val snapshotDeadline = SystemClock.elapsedRealtime() + 30_000L
+        do {
+            screenshotFailure = null
+            actualColor = null
+            val attemptReady = CountDownLatch(1)
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                map.snapshot { bitmap ->
+                    try {
+                        val snapshot = bitmap ?: throw AssertionError("${layer.name} map snapshot returned null")
+                        val point = map.projection.toScreenLocation(target)
+                        samplePoint = point
+                        if (point.x !in 0 until snapshot.width || point.y !in 0 until snapshot.height) {
+                            throw AssertionError("GPKG interior sample $point is outside map snapshot ${snapshot.width}x${snapshot.height}")
+                        }
+                        actualColor = snapshot.getPixel(point.x, point.y)
+                        FileOutputStream(context.cacheDir.resolve(screenshotName)).use {
+                            snapshot.compress(Bitmap.CompressFormat.PNG, 100, it)
+                        }
+                        snapshot.recycle()
+                    } catch (failure: Throwable) {
+                        screenshotFailure = failure
+                        bitmap?.recycle()
+                    } finally {
+                        attemptReady.countDown()
                     }
-                    actualColor = snapshot.getPixel(point.x, point.y)
-                    FileOutputStream(context.cacheDir.resolve(screenshotName)).use {
-                        snapshot.compress(Bitmap.CompressFormat.PNG, 100, it)
-                    }
-                    snapshot.recycle()
-                } catch (failure: Throwable) {
-                    screenshotFailure = failure
-                    bitmap?.recycle()
-                } finally {
-                    snapshotReady.countDown()
                 }
             }
-        }
-        assertTrue("${layer.name} map snapshot should complete", snapshotReady.await(30, TimeUnit.SECONDS))
+            val remaining = (snapshotDeadline - SystemClock.elapsedRealtime()).coerceAtLeast(1L)
+            assertTrue("${layer.name} map snapshot should complete", attemptReady.await(remaining.coerceAtMost(5_000L), TimeUnit.MILLISECONDS))
+            if (screenshotFailure == null && isColorNear(layer.color, actualColor)) break
+            if (SystemClock.elapsedRealtime() < snapshotDeadline) SystemClock.sleep(250L)
+        } while (SystemClock.elapsedRealtime() < snapshotDeadline)
         screenshotFailure?.let { throw AssertionError("Unable to inspect ${layer.name} map snapshot", it) }
         assertColorNear(
             "${layer.name} GPKG interior at $target should render its opaque fill in the map snapshot at $samplePoint",
@@ -470,12 +478,17 @@ class OfflinePolygonMapHostInstrumentedTest {
     }
 
     private fun assertColorNear(message: String, expected: Int, actual: Int, tolerance: Int = 8) {
+        assertTrue(message + " expected #${expected.toUInt().toString(16)} but was #${actual.toUInt().toString(16)}", isColorNear(expected, actual, tolerance))
+    }
+
+    private fun isColorNear(expected: Int, actual: Int?, tolerance: Int = 8): Boolean {
+        if (actual == null) return false
         val channelDelta = listOf(
             kotlin.math.abs((expected shr 16 and 0xff) - (actual shr 16 and 0xff)),
             kotlin.math.abs((expected shr 8 and 0xff) - (actual shr 8 and 0xff)),
             kotlin.math.abs((expected and 0xff) - (actual and 0xff))
         ).maxOrNull() ?: 0
-        assertTrue("$message expected #${expected.toUInt().toString(16)} but was #${actual.toUInt().toString(16)}", channelDelta <= tolerance)
+        return channelDelta <= tolerance
     }
 
     private fun findInteriorPoint(geometry: OfflineGeometry, searchBounds: DoubleArray): OfflineCoordinate? {

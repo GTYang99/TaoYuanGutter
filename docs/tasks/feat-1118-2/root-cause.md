@@ -57,3 +57,22 @@ All four findings are `implementation_regression` against the approved plan. No 
 - Correct boundary: compose the primary and fallback futures asynchronously with `thenCompose`/`handle`; never block the store executor with `get()`.
 
 The round-2 verifier also confirms ISS-004, ISS-006, and ISS-007 are fixed. AC-005 and AC-008–AC-011 remain unverified because the required coverage was not completed; they are not additional root causes.
+
+## Verification Round 4 — ISS-011
+
+### AC-011 — intermittent map-host snapshot misses the offline fill
+
+- Direct cause: `OfflinePolygonMapHostInstrumentedTest.assertMapShowsLayerInteriorColor()` captures exactly one `GoogleMap.snapshot()` after waiting for `OnCameraIdle` and `OnMapLoadedCallback`. Those callbacks establish camera/base-map readiness, but do not establish that a custom `TileOverlay` has fetched, rasterized, and been composited into the snapshot.
+- Root cause: the test has no explicit offline-overlay render-readiness boundary. Provider readiness and map readiness are treated as equivalent, although the offline provider is attached asynchronously and Google Maps renders tile overlays on a separate pipeline.
+- Evidence: the valid-key focused case passed once; the four-case run failed only at the LEGACY interior pixel (`expected #ff156d1d`, `observed #ffa3c2a1`); the permitted retry passed; direct provider tile checks and the other three host cases passed. This pattern is timing-sensitive and does not indicate a stable source/query failure.
+- The observed color is therefore evidence that the snapshot was taken before the expected overlay tile was visible at the sample point, not evidence that the provider returned the wrong tile. The current test also uses a single exact pixel, which makes the race observable rather than classifying it as a readiness timeout.
+
+### Classification
+
+`ISS-011` remains an `implementation_regression` for the verification gate because the implementation/test contract does not provide a deterministic render-readiness signal. The minimum repair is test synchronization around the actual rendered result; no Maps key, source data, query scope, or overlay-selection behavior change is justified by this evidence.
+
+### Affected files and regression risk
+
+- `app/src/androidTest/java/com/example/taoyuangutter/map/OfflinePolygonMapHostInstrumentedTest.kt`: snapshot readiness and bounded retry logic.
+- `app/src/main/java/com/example/taoyuangutter/map/OfflinePolygonTileProvider.kt`: inspected as the provider/overlay source; no production defect is established by this failure.
+- Regression risk is limited to the instrumentation assertion timing. Changing production overlay lifecycle without a reproducible provider/data failure would expand scope and could reintroduce the already-fixed generation and resource-lifecycle behavior.

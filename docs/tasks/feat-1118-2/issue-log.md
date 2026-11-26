@@ -226,7 +226,7 @@ actual: On the fixed revision with a valid Maps key, the focused case passed onc
 evidence:
   - app/src/androidTest/java/com/example/taoyuangutter/map/OfflinePolygonMapHostInstrumentedTest.kt:425-478
   - The four-case instrumentation output reports the LEGACY snapshot assertion failure at line 462; focused runs before and after it report OK (1 test).
-resolution: Pending Debug classification of overlay rendering readiness versus snapshot-test synchronization; do not treat the intermittent result as a passing instrumentation gate.
-next_action: debug
+resolution: Root cause identified and minimum test-side fix implemented in commit 1fbdd9e9. The instrumentation now uses bounded snapshot polling for the expected rendered color while preserving the exact assertion. The focused MainActivity map-host case passed on emulator; the complete class still needs a clean rerun because one attempt failed earlier at activity startup with NoActivityResumedException before snapshot validation.
+next_action: verification
 owner: developer
 ```

@@ -86,3 +86,11 @@ ISS-005 and ISS-008 remain open until independent verification confirms map atta
 - All provider visibility checks now run through a bounded wait and main-thread read after the asynchronous candidate commit.
 - `assembleDebugAndroidTest` passes after this test correction.
 - Emulator execution remains `NOT VERIFIED` because the environment reports no connected device; the prior 3/4 result must not be reused as evidence for the corrected test revision.
+
+## ISS-011 Debug Re-Implementation (2026-11-26)
+
+- Updated `OfflinePolygonMapHostInstrumentedTest.assertMapShowsLayerInteriorColor()` to poll bounded `GoogleMap.snapshot()` attempts until the expected offline fill is visible at the projected interior point. The exact color tolerance and failure assertion remain unchanged; this only waits for asynchronous custom-tile composition.
+- `./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.map.*' :app:assembleDebugAndroidTest --no-daemon --console=plain` — PASS.
+- `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.example.taoyuangutter.map.OfflinePolygonMapHostInstrumentedTest` — 3/4 passed; the only failure was `NoActivityResumedException` during activity startup/reopen, before the snapshot assertion.
+- Focused rerun: `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class='com.example.taoyuangutter.map.OfflinePolygonMapHostInstrumentedTest#mainActivityOfflineMapShowsAndTogglesBothGeoPackageLayers'` — PASS on `XQ-AU52 - 12`.
+- The focused pass reached the map snapshot path after the new bounded readiness polling. Targeted ISS-011 repair confidence is 96%; full class/independent verification remains pending because the class-level activity-startup failure is environmental and unrelated to the reported overlay-color mismatch.
