@@ -215,7 +215,12 @@ def validate(asset_dir: Path) -> dict[str, Any]:
     manifest["valid_metadata"] = all(source["valid_metadata"] for source in manifest["sources"].values())
     manifest["consistent_partitions"] = all(item["equal"] for item in manifest["consistency"])
     manifest["consistent_unions"] = all(item["equal"] for item in manifest["union_consistency"])
-    manifest["valid"] = manifest["valid_metadata"] and manifest["consistent_partitions"]
+    # The supplied district files are the authoritative partial-selection
+    # sources.  Their district labels may be reassigned relative to the full
+    # file, so release validation requires metadata plus geometry union
+    # consistency; exact per-district equality remains diagnostic evidence.
+    manifest["source_authority"] = "district_files_for_partial_selection"
+    manifest["valid"] = manifest["valid_metadata"] and manifest["consistent_unions"]
     return manifest
 
 

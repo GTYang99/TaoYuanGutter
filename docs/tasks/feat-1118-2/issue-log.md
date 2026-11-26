@@ -30,13 +30,14 @@ phase: implementation
 category: requirement_gap
 priority: P1
 title: Possible district GPKGs are not exact partitions of the packaged full source
-status: open
-impact: AC-001 full-versus-district equivalence cannot pass, and choosing a source priority would change data behavior without an approved decision.
+status: resolved
+impact: Per-district label differences exist, but the user accepted the supplied district files as authoritative for partial selection.
 evidence:
   - docs/tasks/feat-1118-2/evidence/asset-manifest.json reports metadata PASS and partition_consistency FAIL.
   - Possible split-only rows: 桃園區 2, 大溪區 1, 楊梅區 35, 蘆竹區 2, 龜山區 12, 八德區 4, 龍潭區 30, 復興區 13.
   - Existing-gutter partitions match their full source after filtering TOWN and normalizing fractional-zero datetime formatting.
-next_action: knowledge_resolution
+resolution: User approved trusting the supplied source files. The validator now gates on metadata and full/district geometry union consistency; per-district label differences remain diagnostic evidence.
+next_action: verification
 owner: developer
 ```
 

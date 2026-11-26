@@ -38,9 +38,9 @@
 
 | Check | Result | Evidence |
 |---|---|---|
-| `python3 docs/tasks/feat-1118-2/evidence/validate_gpkg_sources.py --manifest docs/tasks/feat-1118-2/evidence/asset-manifest.json` | NOT VERIFIED / FAIL | Metadata and union consistency PASS; exact per-district partition consistency FAIL because supplied possible files reassign 61,435 rows across district labels. |
+| `python3 docs/tasks/feat-1118-2/evidence/validate_gpkg_sources.py --manifest docs/tasks/feat-1118-2/evidence/asset-manifest.json` | PASS under accepted source-authority decision | Metadata and union consistency PASS; exact per-district label differences remain recorded as diagnostics. |
 | `./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.map.*'` | PASS | Focused map JVM suite completed successfully with temporary non-secret Maps placeholder. |
 | `./gradlew :app:testDebugUnitTest --tests 'com.example.taoyuangutter.map.OfflinePolygonSourceTest'` | PASS | New source mapping test completed successfully. |
 | `./gradlew :app:assembleDebug` | PASS | Debug APK assembled with temporary non-secret Maps placeholder. |
 
-The validator failure remains tracked as ISS-003; no exact-equivalence claim is made for AC-001.
+ISS-003 is resolved by the user decision to trust district files as the authoritative partial-selection source.

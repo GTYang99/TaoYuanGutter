@@ -31,9 +31,9 @@
 - All 13 existing-gutter files in the supplied directory use a district-specific table, geometry `POLYGON`, and SRS 3826.
 - Exact hashes, sizes, feature counts, extents, and full-vs-district consistency must be generated in the host-side asset manifest before implementation validation.
 
-## Unresolved Conflicts
+## Resolved Source-Data Decision
 
-- The supplied possible-gutter district files are not exact partitions by the full source's `Town` attribute. The host-side validator found split-only rows in 8 districts: 桃園區 2, 大溪區 1, 楊梅區 35, 蘆竹區 2, 龜山區 12, 八德區 4, 龍潭區 30, 復興區 13. Those rows exist in the full file under neighboring `Town` values; the possible 13-file union still exactly matches all 61,435 full-file geometries when the district attribute is excluded. Metadata, schema, CRS, and the existing-gutter union pass; this conflict affects the approved AC-001 per-district equivalence gate and the meaning of full-versus-district switching.
+- The supplied possible-gutter district files are accepted as the authoritative newer dataset for partial selection. They are not exact partitions by the full source's `Town` attribute, but their 13-file geometry union exactly matches all 61,435 full-file geometries. Metadata, schema, CRS, and existing-gutter union pass. The per-district label differences remain manifest diagnostics and do not block implementation.
 
 ## Safe Planning Assumptions
 
@@ -41,11 +41,10 @@
 - Partial mode may load multiple district sources concurrently through a bounded executor, but only the latest completed generation is committed to the map.
 - Existing renderer behavior, colors, z-index, geometry support, and unrelated layer controls remain unchanged.
 
-## Questions Requiring Approval
+## Decision Applied
 
-- Should the 8 possible-gutter district files be treated as the authoritative newer dataset, accepting their split-only rows and changing the consistency gate from exact equivalence to a documented superset check?
-- Or should the supplied possible-gutter files be replaced/regenerated so their canonical row signature multisets exactly match the packaged full GPKG before implementation continues?
+- User approved trusting the supplied source files and closing ISS-003. Partial selection uses district files as authoritative; validation gates on metadata and union consistency.
 
 ## Resolution Status
 
-- Blocked pending the smallest source-data decision above. Production source selection must not be implemented against an unresolved full/split data conflict.
+- Resolved. Proceed to verification with the accepted source-authority decision.

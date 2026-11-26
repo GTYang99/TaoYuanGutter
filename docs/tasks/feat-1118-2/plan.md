@@ -19,7 +19,7 @@
 ## Implementation Steps
 - 在開發機盤點 29 個 GPKG，產生 hash／size／schema／feature count／extent manifest，並比對 13 個分區集合與兩個完整來源。
 - 使用 host-side `sqlite3`/Python validator（規劃新增 `docs/tasks/feat-1118-2/evidence/validate_gpkg_sources.py`）讀取每個 GPKG 的 `gpkg_contents`、`gpkg_geometry_columns`、feature rows 與 bounds；以 `layer + district + canonical non-geometry attributes + canonical decoded geometry` 建立 row signature，不使用分區檔自己的 `fid` 作為跨檔 identity。
-- Validator 對每個完整來源與 13 個分區集合執行 deterministic diff：metadata、CRS、geometry type、district mapping、feature count 必須符合 manifest；每個完整檔案的行政區篩選 signature multiset 必須與對應分區 signature multiset 完全相等，missing、extra、duplicate、misassigned 任一項即 FAIL，並輸出差異 signature 與檔案清單。
+- Validator 對每個完整來源與 13 個分區集合執行 deterministic diff：metadata、CRS、geometry type、district mapping、feature count 必須符合 manifest；district 檔案作為部分選取的權威來源，完整檔與分區集合需通過 canonical geometry union 比對；逐行政區 signature 差異保留為診斷證據，不作 blocker。
 - 定義 29 個來源的 immutable mapping：三個完整來源、13 個 possible 分區、13 個 existing 分區；驗證 table、geometry type、CRS 與檔名對應。
 - 將 source selection 抽象為 `Full`、`DistrictSources` 與 per-district fallback，保留未來替換水務局資料來源的擴充點。
 - 改造 staging/index，使每個來源以 source hash、index version、layer、district 隔離；完整行政區來源支援 `TOWNNAME` 篩選。
@@ -33,7 +33,7 @@
 - 執行 source consistency、JVM、instrumentation、Debug build、source scan 與 emulator UX/performance validation，補齊 evidence。
 
 ## Test Plan
-- Host-side asset validation：執行 `python3 docs/tasks/feat-1118-2/evidence/validate_gpkg_sources.py --manifest docs/tasks/feat-1118-2/evidence/asset-manifest.json`；29 個檔案存在、hash/size/schema/feature count/extent、分區合計與完整資料 signature multiset 完全一致，任何 missing/extra/duplicate/misassigned 都是 FAIL。
+- Host-side asset validation：執行 `python3 docs/tasks/feat-1118-2/evidence/validate_gpkg_sources.py --manifest docs/tasks/feat-1118-2/evidence/asset-manifest.json`；29 個檔案存在、hash/size/schema/feature count/extent 與 full/district geometry union 通過；逐行政區 label 差異列入 manifest 診斷，不阻擋來源採用。
 - JVM：source mapping、full/district selection、13 區全選切換、OR、空選擇、per-district fallback、cache key、generation、state persistence；使用 controlled deferred loader 覆蓋 out-of-order completion。
 - Instrumentation：UI 三態 CheckBox、預設與重啟恢復、三圖層部分／全選顯示、單一來源失敗、overlay 不重複與 lifecycle。
 - Emulator performance：全選、單區、2～3 區、13 區、模式反覆切換；記錄 UI 是否卡頓、ANR、閃退、切換時間、記憶體與 overlay 數量，並以固定 lifecycle scenario 的 provider/overlay/cache bound 作為 pass/fail 輔助證據。
@@ -50,7 +50,7 @@
 
 | AC | Environment | Steps | Expected | Evidence |
 |---|---|---|---|---|
-| AC-001 | Host/CI + APK inspection | 執行 validator 並檢查 APK | metadata/hash/manifest 正確；每個完整檔與分區集合的 canonical signature multiset 無 missing/extra/duplicate/misassigned | validator JSON/CSV + APK readback |
+| AC-001 | Host/CI + APK inspection | 執行 validator 並檢查 APK | metadata/hash/manifest 正確；完整檔與分區集合的 canonical geometry union 一致，逐行政區 label 差異保留診斷 | validator JSON/CSV + APK readback |
 | AC-002–AC-005 | Emulator | 操作全選、半選、單區、多區、空選擇 | 三態同步、來源選擇與三層篩選正確 | instrumentation + screenshots |
 | AC-006–AC-008 | JVM + Emulator | 以 deferred loader 反序完成 generation，並執行 20 回合 lifecycle | 最新 generation 勝出；舊結果不提交；active overlay/provider/cache 符合 bound，release 後為 0；fallback 無重複 | deterministic test output + map evidence |
 | AC-009–AC-010 | Emulator | 重啟 App、切換底圖與其他 overlay | 狀態恢復且既有行為不回歸 | instrumentation + regression results |

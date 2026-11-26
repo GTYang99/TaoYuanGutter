@@ -1770,5 +1770,6 @@
   "valid_metadata": true,
   "consistent_partitions": false,
   "consistent_unions": true,
-  "valid": false
+  "source_authority": "district_files_for_partial_selection",
+  "valid": true
 }
